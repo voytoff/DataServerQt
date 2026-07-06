@@ -1,0 +1,1 @@
+#include "moduleinfo.h"

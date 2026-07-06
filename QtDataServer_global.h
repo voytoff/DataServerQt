@@ -1,0 +1,12 @@
+#ifndef QTDATASERVER_GLOBAL_H
+#define QTDATASERVER_GLOBAL_H
+
+#include <QtCore/qglobal.h>
+
+#if defined(QTDATASERVER_LIBRARY)
+#define QTDATASERVER_EXPORT Q_DECL_EXPORT
+#else
+#define QTDATASERVER_EXPORT Q_DECL_IMPORT
+#endif
+
+#endif // QTDATASERVER_GLOBAL_H
