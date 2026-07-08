@@ -1,4 +1,5 @@
 #include "systemconfiguration.h"
+#include <cassert>
 
 namespace qds
 {
@@ -18,12 +19,7 @@ void SystemConfiguration::addTag(const TagInfo& tag)
 {
   m_tags.push_back(tag);
 
-  TagRecord rec;
-  //?rec.module = tag.module;
-  //?rec.channel = tag.channel;
-
-  m_tagIndex.push_back(rec);
-
+  assert(tag.module.value < m_moduleTags.size());
   // важно: индекс по module.value
   m_moduleTags[tag.module.value].push_back(tag.tag);
 }
@@ -43,13 +39,9 @@ const std::vector<TagInfo>& SystemConfiguration::tags() const
   return m_tags;
 }
 
-const TagRecord SystemConfiguration::tagRecord(TagId id) const
-{
-  return m_tagIndex[id.value];
-}
-
 const std::vector<TagId>& SystemConfiguration::moduleTags(ModuleId id) const
 {
+  assert(id.value < m_moduleTags.size());
   return m_moduleTags[id.value];
 }
 

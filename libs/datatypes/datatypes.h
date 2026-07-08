@@ -34,24 +34,13 @@ struct ChannelId
 struct SubscriptionId
 {
   uint32_t value = 0;
-  auto operator<=>(const SubscriptionId&) const = default;
+  constexpr auto operator<=>(const SubscriptionId&) const = default;
 };
 
 struct Sample
 {
   float value = 0.0f;
   uint32_t quality = 0;
-};
-
-//struct TagRecord
-//{
-//  ModuleId module;
-//  ChannelId channel;
-//};
-struct TagRecord
-{
-  uint64_t timestamp = 0;
-  float value = 0.0f;
 };
 
 }

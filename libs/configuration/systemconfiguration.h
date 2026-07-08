@@ -21,15 +21,13 @@ public:
   const std::vector<ModuleInfo>& modules() const;
   const std::vector<TagInfo>& tags() const;
 
-  const TagRecord tagRecord(TagId id) const;
   const std::vector<TagId>& moduleTags(ModuleId id) const;
 
 private:
+
   std::vector<CrateInfo>  m_crates;
   std::vector<ModuleInfo> m_modules;
   std::vector<TagInfo>    m_tags;
-
-  std::vector<TagRecord>  m_tagIndex;
   std::vector<std::vector<TagId>> m_moduleTags;
 };
 

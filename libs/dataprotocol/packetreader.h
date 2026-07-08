@@ -38,6 +38,8 @@ public:
   bool eof() const noexcept;
   std::size_t bytesRemaining() const noexcept;
 
+  PacketType packetType() const;
+
 private:
   void consumePacket();
 

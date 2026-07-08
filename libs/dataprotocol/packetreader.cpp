@@ -95,6 +95,11 @@ std::size_t PacketReader::bytesRemaining() const noexcept
   return m_header.payloadSize - m_offset;
 }
 
+PacketType PacketReader::packetType() const
+{
+  return m_header.type;
+}
+
 // -----------------------------
 // header
 // -----------------------------

@@ -4,6 +4,7 @@
 #include "livestorage.h"
 #include "packetreader.h"
 #include "packetwriter.h"
+#include "publisher.h"
 #include "subscriptionmanager.h"
 #include "systemconfiguration.h"
 #include "protocol/livedata.h"
@@ -17,7 +18,7 @@ public:
   ~test_common() override;
 
 private slots:
-  void test_configuration();
+  void test_configuration_moduleTags();
   void test_livestorage();
   void test_subscriptions_add_remove();
   void test_subscriptions_unique_ids();
@@ -25,32 +26,39 @@ private slots:
   void test_liveDataHeader();
   void test_LiveDataPacket();
   void test_liveDataPayload();
+  void test_livePublisher();
+  void test_livePublisher_reverse();
 };
 
 test_common::test_common() { }
 
 test_common::~test_common() = default;
 
-void test_common::test_configuration() {
+void test_common::test_configuration_moduleTags()
+{
+  using namespace qds;
 
-  qds::SystemConfiguration cfg;
+  SystemConfiguration cfg;
 
-  qds::ModuleInfo m1;
-  m1.id.value = 0;
+  ModuleInfo m0;
+  m0.id = {0};
+  cfg.addModule(m0);
 
-  cfg.addModule(m1);
+  TagInfo t0;
+  t0.tag = {0};
+  t0.module = {0};
+  cfg.addTag(t0);
 
-  qds::TagInfo t1;
-  t1.tag.value = 0;
-  t1.module.value = 0;
-  t1.channel.value = 3;
+  TagInfo t5;
+  t5.tag = {5};
+  t5.module = {0};
+  cfg.addTag(t5);
 
-  cfg.addTag(t1);
+  const auto& tags = cfg.moduleTags(ModuleId{0});
 
-  auto rec = cfg.tagRecord(qds::TagId{0});
-
-  QCOMPARE(rec.value, 0u);
-  QCOMPARE(rec.value, 3u);
+  QCOMPARE(tags.size(), 2u);
+  QCOMPARE(tags[0].value, 0u);
+  QCOMPARE(tags[1].value, 5u);
 }
 
 void test_common::test_livestorage()
@@ -131,6 +139,7 @@ void test_common::test_subscriptions_id_not_reused()
   auto id2 = manager.add(s);
 
   auto p = manager.remove(id1);
+  QVERIFY(p);
 
   auto id3 = manager.add(s);
 
@@ -259,6 +268,141 @@ void test_common::test_liveDataPayload()
   QCOMPARE(readValues[0], 1.1f);
   QCOMPARE(readValues[1], 2.2f);
   QCOMPARE(readValues[2], 3.3f);
+}
+
+
+void test_common::test_livePublisher() {
+  using namespace qds;
+  // 1. Configuration
+  SystemConfiguration cfg;
+
+  ModuleInfo m;
+  m.id.value = 0;
+  cfg.addModule(m);
+
+  TagInfo t1;
+  t1.tag.value = 0;
+  t1.module.value = 0;
+  t1.channel.value = 0;
+  cfg.addTag(t1);
+
+  TagInfo t2;
+  t2.tag.value = 1;
+  t2.module.value = 0;
+  t2.channel.value = 1;
+  cfg.addTag(t2);
+
+  // 2. LiveStorage
+  LiveStorage storage(cfg);
+
+  float values[] = {100.0f, 101.2f};
+
+  uint64_t t = 1234567;
+  // модуль 0 обновил данные в livestorage с временем 1234567
+  storage.updateModule(ModuleId{0}, values, t);
+
+  // 3. Подписка
+  Subscription s1;
+  s1.endpoint.address = "127.0.0.1";
+  s1.endpoint.port = 35015;
+  s1.periodMs = 100;
+  s1.tags = { {0}, {1} };
+
+  PacketWriter writer{};
+  Publisher pub{};
+
+  pub.publish(storage, s1, 0, t, writer);
+
+  PacketReader reader;
+  reader.append(writer.data(), writer.size());
+
+  QVERIFY(reader.nextPacket());
+  LiveDataHeader ldh;
+
+  QVERIFY(reader.read(ldh));
+  QCOMPARE(ldh.subscriptionId.value, 0u);
+  QCOMPARE(ldh.sequence, 0u);
+  QCOMPARE(ldh.timestamp, t);
+  QCOMPARE(ldh.sampleCount, 2u);
+
+  QCOMPARE(reader.packetType(), PacketType::LiveData);
+
+  std::array<float,2> pubValues{};
+
+  QVERIFY(reader.readArray(pubValues.data(),
+                           pubValues.size()));
+
+  QCOMPARE(pubValues[0], 100.0f);
+  QCOMPARE(pubValues[1], 101.2f);
+
+  QVERIFY(reader.eof());
+}
+
+void test_common::test_livePublisher_reverse() {
+  using namespace qds;
+  // 1. Configuration
+  SystemConfiguration cfg;
+
+  ModuleInfo m;
+  m.id.value = 0;
+  cfg.addModule(m);
+
+  TagInfo t1;
+  t1.tag.value = 0;
+  t1.module.value = 0;
+  t1.channel.value = 0;
+  cfg.addTag(t1);
+
+  TagInfo t2;
+  t2.tag.value = 1;
+  t2.module.value = 0;
+  t2.channel.value = 1;
+  cfg.addTag(t2);
+
+  // 2. LiveStorage
+  LiveStorage storage(cfg);
+
+  float values[] = {100.0f, 101.2f};
+
+  uint64_t t = 1234567;
+  // модуль 0 обновил данные в livestorage с временем 1234567
+  storage.updateModule(ModuleId{0}, values, t);
+
+  // 3. Подписка
+  Subscription s1;
+  s1.endpoint.address = "127.0.0.1";
+  s1.endpoint.port = 35015;
+  s1.periodMs = 100;
+  s1.tags = { {1}, {0} };
+
+  PacketWriter writer{};
+  Publisher pub{};
+
+  pub.publish(storage, s1, 0, t, writer);
+
+  PacketReader reader;
+  reader.append(writer.data(), writer.size());
+
+  QVERIFY(reader.nextPacket());
+  LiveDataHeader ldh;
+
+  QVERIFY(reader.read(ldh));
+  QCOMPARE(ldh.subscriptionId.value, 0u);
+  QCOMPARE(ldh.sequence, 0u);
+  QCOMPARE(ldh.timestamp, t);
+  QCOMPARE(ldh.sampleCount, 2u);
+
+  QCOMPARE(reader.packetType(), PacketType::LiveData);
+
+  std::array<float,2> pubValues{};
+
+  QVERIFY(reader.readArray(pubValues.data(),
+                           pubValues.size()));
+
+  QCOMPARE(pubValues[1], 100.0f);
+  QCOMPARE(pubValues[0], 101.2f);
+
+  QVERIFY(reader.eof());
 }
 
 

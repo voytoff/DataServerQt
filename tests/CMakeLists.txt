@@ -13,7 +13,8 @@ add_executable(test_common tst_test_common.cpp)
 
 target_include_directories(test_common PRIVATE
     ../libs/configuration
-    ../libs/livestorage
+    ../libs/configuration
+    ../libs/publisher
     ../libs/subscriptions
     ../libs/dataprotocol
 )
@@ -24,6 +25,7 @@ target_link_libraries(test_common PRIVATE
     LiveStorage
     Subscriptions
     DataProtocol
+    Publisher
 )
 
 add_test(NAME test_common COMMAND test_common)
