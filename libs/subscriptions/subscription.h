@@ -17,7 +17,7 @@ struct Subscription
 
   std::vector<TagId> tags;
 
-  uint32_t periodMs = 100;
+  PublishRate rate = PublishRate::Hz10;
 };
 
 }

@@ -17,6 +17,7 @@ target_include_directories(test_common PRIVATE
     ../libs/publisher
     ../libs/subscriptions
     ../libs/dataprotocol
+    ../libs/livescheduler
 )
 
 target_link_libraries(test_common PRIVATE
@@ -26,6 +27,7 @@ target_link_libraries(test_common PRIVATE
     Subscriptions
     DataProtocol
     Publisher
+    LiveScheduler
 )
 
 add_test(NAME test_common COMMAND test_common)

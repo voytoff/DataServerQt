@@ -43,6 +43,18 @@ struct Sample
   uint32_t quality = 0;
 };
 
+enum class PublishRate : uint16_t
+{
+  Hz1   = 1,
+  Hz10  = 10,
+  Hz100 = 100
+};
+
+constexpr uint32_t toHz(PublishRate r)
+{
+  return static_cast<uint32_t>(r);
+}
+
 }
 
 #endif // DATATYPES_H

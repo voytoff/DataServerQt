@@ -17,10 +17,9 @@ void SystemConfiguration::addModule(const ModuleInfo& module)
 
 void SystemConfiguration::addTag(const TagInfo& tag)
 {
+  assert(tag.module.value < m_moduleTags.size());
   m_tags.push_back(tag);
 
-  assert(tag.module.value < m_moduleTags.size());
-  // важно: индекс по module.value
   m_moduleTags[tag.module.value].push_back(tag.tag);
 }
 

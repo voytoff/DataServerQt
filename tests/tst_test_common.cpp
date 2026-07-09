@@ -91,7 +91,7 @@ void test_common::test_subscriptions_add_remove() {
   qds::Subscription s1;
   s1.endpoint.address = "127.0.0.1";
   s1.endpoint.port = 5000;
-  s1.periodMs = 100;
+  s1.rate = qds::PublishRate::Hz10;
   s1.tags = { {1}, {2}, {3} };
 
   auto id = manager.add(s1);
@@ -104,7 +104,7 @@ void test_common::test_subscriptions_add_remove() {
 
   QVERIFY(s != nullptr);
 
-  QCOMPARE(s->periodMs, 100u);
+  QCOMPARE(s->rate, qds::PublishRate::Hz10);
   QCOMPARE(s->tags.size(), size_t(3));
 
   QVERIFY(manager.remove(id));
@@ -305,7 +305,7 @@ void test_common::test_livePublisher() {
   Subscription s1;
   s1.endpoint.address = "127.0.0.1";
   s1.endpoint.port = 35015;
-  s1.periodMs = 100;
+  s1.rate = PublishRate::Hz10;
   s1.tags = { {0}, {1} };
 
   PacketWriter writer{};
@@ -372,7 +372,7 @@ void test_common::test_livePublisher_reverse() {
   Subscription s1;
   s1.endpoint.address = "127.0.0.1";
   s1.endpoint.port = 35015;
-  s1.periodMs = 100;
+  s1.rate = PublishRate::Hz10;
   s1.tags = { {1}, {0} };
 
   PacketWriter writer{};
@@ -404,6 +404,36 @@ void test_common::test_livePublisher_reverse() {
 
   QVERIFY(reader.eof());
 }
+
+/*
+ * void test_liveScheduler_100Hz()
+{
+    SystemConfiguration cfg;
+    ...
+
+    LiveStorage storage(cfg);
+
+    SubscriptionManager manager;
+
+    Publisher publisher;
+
+    LiveScheduler scheduler(
+        storage,
+        manager,
+        publisher);
+
+    auto id = manager.add(...);
+
+    scheduler.addSubscription(
+        id,
+        PublishRate::Hz100);
+
+    scheduler.tick();
+
+    QCOMPARE(
+        scheduler.packets().size(),
+        1u);
+}*/
 
 
 
