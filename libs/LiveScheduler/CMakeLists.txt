@@ -10,6 +10,7 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
 add_library(LiveScheduler SHARED
   livescheduler.cpp
   livescheduler.h
+  isender.h
 )
 
 target_include_directories(LiveScheduler
@@ -19,6 +20,7 @@ target_include_directories(LiveScheduler
         ../subscriptions
         ../publisher
         ../livestorage
+        ../dataprotocol
 )
 
 target_link_libraries(LiveScheduler PRIVATE
@@ -26,6 +28,7 @@ target_link_libraries(LiveScheduler PRIVATE
     Subscriptions
     Publisher
     LiveStorage
+    DataProtocol
 )
 
 target_compile_definitions(LiveScheduler PRIVATE CONFIGURATION_LIBRARY)

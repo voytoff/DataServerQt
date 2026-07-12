@@ -14,7 +14,7 @@ bool Publisher::publish(const LiveStorage& storage,
 
   const auto& tags = subscription.tags;
 
-  LiveDataHeader header{};
+  LiveDataHeader header;
 
   header.subscriptionId = subscription.id;
   header.sequence       = sequence;

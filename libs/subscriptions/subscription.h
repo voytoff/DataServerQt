@@ -12,12 +12,10 @@ namespace qds
 struct Subscription
 {
   SubscriptionId id;
-
   Endpoint endpoint;
-
   std::vector<TagId> tags;
-
   PublishRate rate = PublishRate::Hz10;
+  uint32_t sequence = 0;
 };
 
 }
