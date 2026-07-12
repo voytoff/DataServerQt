@@ -10,7 +10,6 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
 add_library(LiveScheduler SHARED
   livescheduler.cpp
   livescheduler.h
-  isender.h
 )
 
 target_include_directories(LiveScheduler

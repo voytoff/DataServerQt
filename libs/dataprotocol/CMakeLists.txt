@@ -14,12 +14,13 @@ add_library(DataProtocol SHARED
   protocol/packettype.h protocol/packettype.cpp
   protocol/subscribe.h protocol/subscribe.cpp
   protocol/livedata.h
+  endpoint.h isender.h
 )
 target_include_directories(DataProtocol
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
         ../datatypes
-        ../subscriptions
+        #../subscriptions
 )
 
 target_link_libraries(DataProtocol PRIVATE

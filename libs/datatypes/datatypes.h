@@ -3,6 +3,7 @@
 
 #include <compare>
 #include <cstdint>
+#include <string>
 
 namespace qds
 {

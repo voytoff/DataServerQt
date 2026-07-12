@@ -9,7 +9,6 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
 
 add_library(Subscriptions SHARED
   subscription.cpp subscription.h
-  endpoint.h endpoint.cpp
 
   subscriptionmanager.h subscriptionmanager.cpp
 )

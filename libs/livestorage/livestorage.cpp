@@ -1,4 +1,5 @@
 #include "livestorage.h"
+#include "systemconfiguration.h"
 #include <qassert.h>
 
 namespace qds

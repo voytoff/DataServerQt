@@ -1,14 +1,16 @@
 #ifndef LIVESTORAGE_H
 #define LIVESTORAGE_H
 
+#include "datatypes.h"
 #include <cstdint>
 #include <span>
 #include <vector>
-#include "systemconfiguration.h"
+//#include "systemconfiguration.h"
 
 namespace qds
 {
 
+class SystemConfiguration;
 class LiveStorage
 {
 public:
