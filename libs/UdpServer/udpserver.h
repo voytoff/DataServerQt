@@ -2,32 +2,45 @@
 #define UDPSERVER_H
 
 #include <QObject>
-#include <qudpsocket.h>
+#include <QUdpSocket>
 
+#include "subscriptionmanager.h"
 #include "livescheduler.h"
 #include "packetreader.h"
-#include "subscriptionmanager.h"
 
 namespace qds
 {
 
-class UdpServer : public QObject {
+class UdpServer : public QObject
+{
   Q_OBJECT
 
 public:
+  // Конструктор
   explicit UdpServer(
     SubscriptionManager& subscriptions,
     LiveScheduler& scheduler,
     QObject* parent = nullptr);
 
-  bool start(quint16 port);
+  // Запуск
+  bool start(uint16_t port);
+  // Остановка
   void stop();
 
+  uint16_t port() const noexcept;
+  bool isRunning() const noexcept;
+
 private slots:
+  // Приём датаграмм
   void onReadyRead();
 
 private:
+  // Switch
   void processPacket(
+    PacketReader& reader,
+    const Endpoint& endpoint);
+
+  void processPing(
     PacketReader& reader,
     const Endpoint& endpoint);
 

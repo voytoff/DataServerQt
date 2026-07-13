@@ -4,7 +4,6 @@
 tst_udpsender::tst_udpsender() { }
 tst_udpsender::~tst_udpsender() = default;
 
-
 void tst_udpsender::test_send()
 {
   using namespace qds;

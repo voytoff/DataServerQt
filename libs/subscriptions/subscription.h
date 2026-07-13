@@ -9,8 +9,7 @@
 namespace qds
 {
 
-struct Subscription
-{
+struct Subscription {
   SubscriptionId id;
   Endpoint endpoint;
   std::vector<TagId> tags;

@@ -15,6 +15,10 @@ add_executable(test_common
     main.cpp
     tst_common.h tst_common.cpp
     tst_udpsender.h tst_udpsender.cpp
+    tst_subscriptions.h tst_subscriptions.cpp
+    tst_livestorage.h tst_livestorage.cpp
+    tst_livescheduler.h tst_livescheduler.cpp
+    tst_udpserver.h tst_udpserver.cpp
 )
 
 target_include_directories(test_common PRIVATE
@@ -25,6 +29,7 @@ target_include_directories(test_common PRIVATE
     ../libs/dataprotocol
     ../libs/livescheduler
     ../libs/udpsender
+    ../libs/udpserver
 )
 
 target_link_libraries(test_common PRIVATE
@@ -38,6 +43,7 @@ target_link_libraries(test_common PRIVATE
     Publisher
     LiveScheduler
     UdpSender
+    UdpServer
 )
 
 add_test(NAME test_common COMMAND test_common)
