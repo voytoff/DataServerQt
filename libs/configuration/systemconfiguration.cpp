@@ -18,8 +18,15 @@ void SystemConfiguration::addModule(const ModuleInfo& module)
 void SystemConfiguration::addTag(const TagInfo& tag)
 {
   assert(tag.module.value < m_moduleTags.size());
-  m_tags.push_back(tag);
 
+  if (tag.tag.value >= m_tagExists.size())
+    m_tagExists.resize(tag.tag.value + 1, false);
+
+  assert(!m_tagExists[tag.tag.value]);
+
+  m_tagExists[tag.tag.value] = true;
+
+  m_tags.push_back(tag);
   m_moduleTags[tag.module.value].push_back(tag.tag);
 }
 
@@ -42,6 +49,22 @@ const std::vector<TagId>& SystemConfiguration::moduleTags(ModuleId id) const
 {
   assert(id.value < m_moduleTags.size());
   return m_moduleTags[id.value];
+}
+
+bool SystemConfiguration::containsTag(TagId id) const
+{
+  return id.value < m_tagExists.size() && m_tagExists[id.value];
+}
+
+const TagInfo *SystemConfiguration::findTag(TagId id) const
+{
+  for (const auto& tag : m_tags)
+  {
+    if (tag.tag == id)
+      return &tag;
+  }
+
+  return nullptr;
 }
 
 }

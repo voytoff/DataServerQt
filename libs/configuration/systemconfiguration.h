@@ -23,12 +23,18 @@ public:
 
   const std::vector<TagId>& moduleTags(ModuleId id) const;
 
-private:
+  [[nodiscard]] bool containsTag(TagId id) const;
+  [[nodiscard]] const TagInfo* findTag(TagId id) const;
 
-  std::vector<CrateInfo>  m_crates;
+private:
+  std::vector<CrateInfo> m_crates;
   std::vector<ModuleInfo> m_modules;
-  std::vector<TagInfo>    m_tags;
+  std::vector<TagInfo> m_tags;
+
   std::vector<std::vector<TagId>> m_moduleTags;
+
+  std::vector<bool> m_tagExists;
+
 };
 
 }

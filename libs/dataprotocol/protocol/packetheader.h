@@ -9,6 +9,7 @@ namespace qds
 
 constexpr uint16_t ProtocolMagic   = 0x4450;   // "DP"
 constexpr uint8_t  ProtocolVersion = 1;
+constexpr uint32_t MaxSubscriptionTags = 256;
 
 struct PacketHeader
 {
