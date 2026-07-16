@@ -19,6 +19,7 @@ add_executable(test_common
     tst_livestorage.h tst_livestorage.cpp
     tst_livescheduler.h tst_livescheduler.cpp
     tst_udpserver.h tst_udpserver.cpp
+    test_dataprotocol.h test_dataprotocol.cpp
 )
 
 target_include_directories(test_common PRIVATE

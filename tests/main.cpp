@@ -1,6 +1,7 @@
 #include <QCoreApplication>
 #include <QTest>
 
+#include "test_dataprotocol.h"
 #include "tst_common.h"
 #include "tst_udpsender.h"
 #include "tst_subscriptions.h"
@@ -38,6 +39,11 @@ int main(int argc, char *argv[])
     tst_udpserver tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
+  {
+    test_dataprotocol tc;
+    rc |= QTest::qExec(&tc, argc, argv);
+  }
+
 
   return rc;
 }

@@ -15,8 +15,9 @@ add_library(DataProtocol SHARED
   protocol/subscribe.h protocol/subscribe.cpp
   protocol/livedata.h
   endpoint.h isender.h
-  protocol/subscribelistrequest.h protocol/subscribelistrequest.cpp
-  protocol/subscriberesponse.h protocol/subscriberesponse.cpp
+
+
+  protocol/subscriptionpackets.h protocol/subscriptionpackets.cpp
 )
 target_include_directories(DataProtocol
     PUBLIC

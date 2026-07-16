@@ -11,6 +11,15 @@ set(CMAKE_AUTORCC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Network)
 
+# Configuration	описание системы
+# LiveStorage	хранение текущих значений
+# Publisher	формирование LiveData
+# SubscriptionManager	управление подписками
+# LiveScheduler	когда публиковать
+# DataProtocol	формат сетевых пакетов
+# UdpSender	отправка UDP
+# UdpServer	приём и обработка UDP
+
 add_subdirectory(tests)
 add_subdirectory(libs/configuration)
 add_subdirectory(libs/livestorage)
