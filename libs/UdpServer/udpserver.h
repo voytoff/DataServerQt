@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QUdpSocket>
 
+#include "protocol/subscriptionpackets.h"
 #include "subscriptionmanager.h"
 #include "livescheduler.h"
 #include "packetreader.h"
@@ -18,6 +19,7 @@ class UdpServer : public QObject
 public:
   // Конструктор
   explicit UdpServer(
+    const SystemConfiguration& configuration,
     SubscriptionManager& subscriptions,
     LiveScheduler& scheduler,
     QObject* parent = nullptr);
@@ -46,9 +48,13 @@ private:
 
 private:
   QUdpSocket m_socket;
-
+  const SystemConfiguration& m_configuration;
   SubscriptionManager& m_subscriptions;
   LiveScheduler& m_scheduler;
+  void processSubscribeList(PacketReader &reader, const Endpoint &endpoint);
+  void sendSubscribeResponse(const Endpoint& endpoint, SubscribeResult result, SubscriptionId id = {});
+  void sendErrorResponse(const Endpoint& endpoint);
+  SubscriptionId createSubscription(const Endpoint& endpoint, PublishRate rate, std::span<const TagId> tags);
 };
 
 }

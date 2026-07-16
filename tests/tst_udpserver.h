@@ -14,6 +14,11 @@ private slots:
   void test_ping();
   void test_invalid_packet();
   void test_unknown_packet();
+  void test_subscribeList_ok();
+  //void test_subscribeList_empty();
+  //void test_subscribeList_tooManyTags();
+  //void test_subscribeList_invalidTag();
+  //void test_subscribeList_duplicateTag();
 
 };
 

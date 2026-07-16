@@ -24,7 +24,7 @@ void test_dataprotocol::test_subscribeListPacket()
   using namespace qds;
   PacketWriter writer;
 
-  writer.begin(qds::PacketType::SubscribeList);
+  writer.begin(PacketType::SubscribeListRequest);
 
   SubscribeListRequest req;
   req.rate = PublishRate::Hz10;
@@ -46,7 +46,7 @@ void test_dataprotocol::test_subscribeListPacket()
   reader.append(writer.data(), writer.size());
 
   QVERIFY(reader.nextPacket());
-  QCOMPARE(reader.packetType(), PacketType::SubscribeList);
+  QCOMPARE(reader.packetType(), PacketType::SubscribeListRequest);
 
   SubscribeListRequest testReq;
   QVERIFY(reader.read(testReq));
@@ -66,5 +66,28 @@ void test_dataprotocol::test_subscribeListPacket()
 
 void test_dataprotocol::test_subscribeResponsePacket()
 {
+  using namespace qds;
 
+  PacketWriter writer;
+  writer.begin(PacketType::SubscribeResponse);
+
+  SubscribeResponse response;
+  response.result = SubscribeResult::Ok;
+  response.id = SubscriptionId{123};
+
+  writer.write(response);
+
+  PacketReader reader;
+  reader.append(writer.data(), writer.size());
+
+  QVERIFY(reader.nextPacket());
+  QCOMPARE(reader.packetType(), PacketType::SubscribeResponse);
+
+  SubscribeResponse testResponse;
+  QVERIFY(reader.read(testResponse));
+
+  QCOMPARE(testResponse.result, SubscribeResult::Ok);
+  QCOMPARE(testResponse.id, SubscriptionId{123});
+
+  QVERIFY(reader.eof());
 }

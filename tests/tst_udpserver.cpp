@@ -62,6 +62,7 @@ void tst_udpserver::test_ping() {
     sender);
 
   UdpServer server(
+    cfg,
     manager,
     scheduler);
 
@@ -126,6 +127,7 @@ void tst_udpserver::test_ping() {
     PacketType::Pong);
 
   server.stop();
+  QVERIFY(!server.isRunning());
 }
 
 void tst_udpserver::test_invalid_packet()
@@ -145,6 +147,7 @@ void tst_udpserver::test_invalid_packet()
     sender);
 
   UdpServer server(
+    cfg,
     manager,
     scheduler);
   // запускаем сервер
@@ -199,7 +202,7 @@ void tst_udpserver::test_unknown_packet()
     publisher,
     sender);
 
-  UdpServer server(manager, scheduler);
+  UdpServer server(cfg, manager, scheduler);
 
   QVERIFY(server.start(0));
   QVERIFY(server.isRunning());
@@ -236,4 +239,123 @@ void tst_udpserver::test_unknown_packet()
   QVERIFY(server.isRunning());
 
   server.stop();
+}
+
+void tst_udpserver::test_subscribeList_ok()
+{
+  using namespace qds;
+  // создаем конфигурацию
+  SystemConfiguration cfg;
+
+  ModuleInfo m0;
+  m0.id = {0};
+  cfg.addModule(m0);
+
+  TagInfo t0;
+  t0.tag = {0};
+  t0.module = {0};
+  cfg.addTag(t0);
+
+  TagInfo t1;
+  t1.tag = {1};
+  t1.module = {0};
+  cfg.addTag(t1);
+
+  SubscriptionManager manager;
+  Publisher publisher;
+  LiveStorage storage(cfg);
+  TestSender sender;
+
+  LiveScheduler scheduler(
+    storage,
+    manager,
+    publisher,
+    sender);
+
+  UdpServer server(cfg, manager, scheduler);
+
+  QVERIFY(server.start(0));
+  QVERIFY(server.isRunning());
+
+  // Создаём клиент
+  QUdpSocket client;
+
+  QVERIFY(
+    client.bind(
+      QHostAddress::LocalHost,
+      0));
+
+  // Формируем запрос SubscribeListRequest
+  PacketWriter writer;
+  writer.begin(PacketType::SubscribeListRequest);
+
+  // Формируем запрос на подписку
+  constexpr TagId tags[]
+    {
+      {0},
+      {1}
+    };
+  SubscribeListRequest req;
+  req.rate = PublishRate::Hz10;
+  req.tagCount = std::size(tags);
+
+  writer.write(req);
+  writer.writeArray(tags, std::size(tags));
+
+  // Отправляем
+  const auto bytes =
+    client.writeDatagram(
+      reinterpret_cast<const char*>(
+        writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      server.port());
+
+  QCOMPARE(
+    bytes,
+    qint64(writer.size()));
+
+
+  // Ждём ответ
+  QTRY_VERIFY(client.waitForReadyRead(100));
+  QTRY_VERIFY(client.hasPendingDatagrams());
+
+  // Читаем ответ
+  QByteArray data;
+  data.resize(client.pendingDatagramSize());
+
+  client.readDatagram(data.data(), data.size());
+
+  // Проверяем
+  PacketReader reader;
+
+  reader.append(
+    reinterpret_cast<const std::byte*>(data.constData()),
+    data.size());
+
+  QVERIFY(reader.nextPacket());
+  QCOMPARE(reader.packetType(), PacketType::SubscribeResponse);
+
+  SubscribeResponse response;
+  QVERIFY(reader.read(response));
+
+  QVERIFY(reader.eof());
+
+  QCOMPARE(response.result, SubscribeResult::Ok);
+  QVERIFY(response.id.value > 0);
+
+  const Subscription* sub = manager.find(response.id);
+  QVERIFY(sub != nullptr);
+
+  QCOMPARE(sub->rate, PublishRate::Hz10);
+
+  QCOMPARE(sub->tags.size(), size_t(2));
+  QCOMPARE(sub->tags[0], TagId{0});
+  QCOMPARE(sub->tags[1], TagId{1});
+
+  scheduler.tick();
+  QCOMPARE(sender.sendCount, 1u);
+
+  server.stop();
+  QVERIFY(!server.isRunning());
 }

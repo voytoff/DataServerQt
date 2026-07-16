@@ -18,6 +18,7 @@ target_include_directories(Subscriptions
         ../dataprotocol
         ../subscriptions
         ../livescheduler
+        ../configuration
 )
 
 target_link_libraries(UdpServer PRIVATE
@@ -26,6 +27,7 @@ target_link_libraries(UdpServer PRIVATE
   DataProtocol
   Subscriptions
   LiveScheduler
+  Configuration
 )
 
 target_compile_definitions(UdpServer PRIVATE CONFIGURATION_LIBRARY)

@@ -7,20 +7,25 @@
 namespace qds
 {
 
-enum class PacketType : uint8_t {
+enum class PacketType : uint8_t
+{
   Invalid = 0,
 
-  SubscribeRange = 1,
-  SubscribeList  = 2,
-  Unsubscribe    = 3,
+  SubscribeRangeRequest = 1,
+  SubscribeListRequest  = 2,
+  UnsubscribeRequest    = 3,
+  SnapshotRequest       = 4,
 
-  Snapshot       = 10,
+  SubscribeResponse     = 20,
+  SnapshotResponse      = 21,
+  UnsubscribeResponse   = 22,
 
-  Ping           = 20,
-  Pong           = 21,
+  Ping                  = 30,
+  Pong                  = 31,
 
-  Error          = 30,
-  LiveData       = 100
+  ErrorResponse         = 40,
+
+  LiveData              = 100
 };
 
 }
