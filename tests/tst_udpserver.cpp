@@ -326,13 +326,13 @@ void tst_udpserver::test_subscribeList_ok()
 
   client.readDatagram(data.data(), data.size());
 
-  // Проверяем
   PacketReader reader;
 
   reader.append(
     reinterpret_cast<const std::byte*>(data.constData()),
     data.size());
 
+  // Проверяем
   QVERIFY(reader.nextPacket());
   QCOMPARE(reader.packetType(), PacketType::SubscribeResponse);
 
