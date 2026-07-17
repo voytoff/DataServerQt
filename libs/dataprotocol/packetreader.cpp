@@ -1,5 +1,6 @@
 #include "packetreader.h"
 
+#include <QtCore/qassert.h>
 #include <cstring>
 
 namespace qds
@@ -63,14 +64,13 @@ bool PacketReader::nextPacket()
 // -----------------------------
 bool PacketReader::readRaw(void* dst, std::size_t size)
 {
-  const std::size_t packetSize =
-    sizeof(PacketHeader) + m_header.payloadSize;
-
-  if (m_offset + size > packetSize)
+  if (size > remaining())
     return false;
 
   const std::byte* src =
-    m_buffer.data() + sizeof(PacketHeader) + m_offset;
+    m_buffer.data()
+    + sizeof(PacketHeader)
+    + m_offset;
 
   std::memcpy(dst, src, size);
 
@@ -84,7 +84,7 @@ bool PacketReader::readRaw(void* dst, std::size_t size)
 // -----------------------------
 bool PacketReader::eof() const noexcept
 {
-  return m_offset == m_header.payloadSize;
+  return remaining() == 0;
 }
 
 // -----------------------------
@@ -98,6 +98,13 @@ std::size_t PacketReader::bytesRemaining() const noexcept
 PacketType PacketReader::packetType() const
 {
   return m_header.type;
+}
+
+[[nodiscard]]
+size_t PacketReader::remaining() const noexcept
+{
+  Q_ASSERT(m_offset <= m_header.payloadSize);
+  return m_header.payloadSize - m_offset;
 }
 
 // -----------------------------

@@ -35,10 +35,12 @@ public:
 
   bool readRaw(void* dst, std::size_t size);
 
-  bool eof() const noexcept;
   std::size_t bytesRemaining() const noexcept;
 
   PacketType packetType() const;
+
+  [[nodiscard]] bool eof() const noexcept;
+  [[nodiscard]] size_t remaining() const noexcept;
 
 private:
   void consumePacket();

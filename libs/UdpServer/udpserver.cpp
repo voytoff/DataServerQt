@@ -60,20 +60,22 @@ void UdpServer::onReadyRead()
       &address,
       &port);
 
-    Endpoint endpoint;
-    endpoint.address =
-      address.toString().toStdString();
-    endpoint.port = port;
+    Endpoint endpoint {
+      .address = address.toString().toStdString(),
+      .port = port
+    };
 
     PacketReader reader;
 
     reader.append(
-      reinterpret_cast<const std::byte*>(
-        data.constData()),
+      reinterpret_cast<const std::byte*>(data.constData()),
       data.size());
 
     if (!reader.nextPacket())
+    {
+      sendErrorResponse(endpoint, ErrorCode::InvalidPacket);
       continue;
+    }
 
     processPacket(reader, endpoint);
   }
@@ -89,21 +91,29 @@ void UdpServer::processPacket(
     processSubscribeList(reader, endpoint);
     break;
 
+  case PacketType::UnsubscribeRequest:
+    processUnsubscribe(reader, endpoint);
+    break;
+
   case PacketType::Ping:
     processPing(reader, endpoint);
     break;
 
   default:
-    qDebug() << "Unknown packet type:" << static_cast<int>(reader.packetType());
-    break;
+    sendErrorResponse(endpoint, ErrorCode::UnsupportedPacket);
+    return;
   }
 }
 
 void UdpServer::processPing(
-  PacketReader&,
+  PacketReader& reader,
   const Endpoint& endpoint)
 {
-  qDebug() << "processPing";
+  if (!reader.eof())
+  {
+    sendErrorResponse(endpoint, ErrorCode::ExtraData, reader.remaining());
+    return;
+  }
 
   PacketWriter writer;
   writer.begin(PacketType::Pong);
@@ -125,15 +135,15 @@ void UdpServer::processPing(
 
 void UdpServer::processSubscribeList(PacketReader &reader, const Endpoint &endpoint)
 {
-  qDebug() << "processSubscribeList";
-
+  // 1. Разбор пакета
   SubscribeListRequest req;
   if (!reader.read(req))
   {
-    sendErrorResponse(endpoint);
+    sendErrorResponse(endpoint, ErrorCode::InvalidRequest);
     return;
   }
 
+  // 2. Проверка формата
   if (req.tagCount == 0) {
     sendSubscribeResponse(
       endpoint,
@@ -164,15 +174,17 @@ void UdpServer::processSubscribeList(PacketReader &reader, const Endpoint &endpo
     return;
   }
 
+
+  // 3. Проверка бизнес-логики
   std::vector<TagId> tags(req.tagCount);
   if (!reader.readArray(tags.data(), tags.size()))
   {
-    sendErrorResponse(endpoint);
+    sendErrorResponse(endpoint, ErrorCode::InvalidRequest);
     return;
   }
 
   if (!reader.eof()) {
-    sendErrorResponse(endpoint);
+    sendErrorResponse(endpoint, ErrorCode::ExtraData, reader.remaining());
     return;
   }
 
@@ -205,17 +217,100 @@ void UdpServer::processSubscribeList(PacketReader &reader, const Endpoint &endpo
     }
   }
 
+
+  // 4. Создание подписки
   SubscriptionId id =
     createSubscription(
       endpoint,
       req.rate,
       tags);
 
+  // 5. Ответ клиенту
   sendSubscribeResponse(
     endpoint,
     SubscribeResult::Ok,
     id);
 
+}
+
+void UdpServer::processUnsubscribe(PacketReader &reader, const Endpoint &endpoint)
+{
+  UnsubscribeRequest req;
+
+  if (!reader.read(req))
+  {
+    sendErrorResponse(endpoint, ErrorCode::InvalidRequest);
+    return;
+  }
+
+  if (!reader.eof())
+  {
+    sendErrorResponse(endpoint, ErrorCode::ExtraData, reader.remaining());
+    return;
+  }
+
+  const Subscription* sub = m_subscriptions.find(req.id);
+
+  if (!sub)
+  {
+    sendUnsubscribeResponse(endpoint, UnsubscribeResult::InvalidId);
+    return;
+  }
+
+  m_scheduler.removeSubscription(req.id);
+
+  if (!m_subscriptions.remove(req.id)) {
+    // не найдена подписка, уже удалена
+    //sendUnsubscribeResponse(endpoint, UnsubscribeResult::InvalidId);
+    //return;
+  }
+
+  sendUnsubscribeResponse(endpoint, UnsubscribeResult::Ok);
+}
+
+void UdpServer::sendUnsubscribeResponse(const Endpoint &endpoint, UnsubscribeResult result)
+{
+  PacketWriter writer;
+
+  writer.begin(PacketType::UnsubscribeResponse);
+
+  UnsubscribeResponse response;
+  response.result = result;
+
+  writer.write(response);
+
+  const QHostAddress address(QString::fromStdString(endpoint.address));
+
+  const auto sent = m_socket.writeDatagram(
+    reinterpret_cast<const char*>(writer.data()),
+    static_cast<qint64>(writer.size()),
+    address,
+    endpoint.port);
+
+  if (sent != qint64(writer.size()))
+  {
+    qWarning() << "Не удалось отправить UDP-дейтаграмму полностью:" << sent << "из" << writer.size() << "байт";
+  }
+
+
+  qDebug() << sent;
+}
+
+bool UdpServer::sendPacket(const Endpoint& endpoint, const PacketWriter& writer)
+{
+  const auto sent = m_socket.writeDatagram(
+    reinterpret_cast<const char*>(writer.data()),
+    static_cast<qint64>(writer.size()),
+    QHostAddress(QString::fromStdString(endpoint.address)),
+    endpoint.port);
+
+  if (sent < 0)
+  {
+    qWarning() << "Не удалось отправить UDP-дейтаграмму:" << m_socket.errorString();
+    return false;
+  }
+
+  return true;
 }
 
 void UdpServer::sendSubscribeResponse(const Endpoint &endpoint, SubscribeResult result, SubscriptionId id)
@@ -230,25 +325,17 @@ void UdpServer::sendSubscribeResponse(const Endpoint &endpoint, SubscribeResult 
 
   writer.write(response);
 
-  const QHostAddress address(
-    QString::fromStdString(
-      endpoint.address));
-
-  const auto sent = m_socket.writeDatagram(
-    reinterpret_cast<const char*>(writer.data()),
-    static_cast<qint64>(writer.size()),
-    address,
-    endpoint.port);
-
-  Q_ASSERT(sent == qint64(writer.size()));
-
-  qDebug() << sent;
+  sendPacket(endpoint, writer);
 }
 
-void UdpServer::sendErrorResponse(const Endpoint &endpoint)
+void UdpServer::sendErrorResponse(const Endpoint& endpoint, ErrorCode code, uint32_t info)
 {
   PacketWriter writer;
   writer.begin(PacketType::ErrorResponse);
+  ErrorResponse response{.code = code, .info = info};
+  writer.write(response);
+
+  sendPacket(endpoint, writer);
 }
 
 SubscriptionId UdpServer::createSubscription(const Endpoint &endpoint, PublishRate rate, std::span<const TagId> tags)

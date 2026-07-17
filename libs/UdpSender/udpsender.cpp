@@ -32,8 +32,7 @@ bool UdpSender::send(
       address,
       endpoint.port);
 
-  return sent ==
-         static_cast<qint64>(size);
+  return sent == static_cast<qint64>(size);
 }
 
 }

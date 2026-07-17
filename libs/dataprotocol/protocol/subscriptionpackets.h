@@ -31,6 +31,22 @@ struct SubscribeResponse
   SubscriptionId id{};
 };
 
+struct UnsubscribeRequest
+{
+  SubscriptionId id;
+};
+
+enum class UnsubscribeResult : uint8_t
+{
+  Ok = 0,
+  InvalidId
+};
+
+struct UnsubscribeResponse
+{
+  UnsubscribeResult result;
+};
+
 }
 
 #endif
