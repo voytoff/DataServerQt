@@ -48,6 +48,20 @@ private:
   void processUnsubscribe(PacketReader &reader, const Endpoint &endpoint);
   void sendUnsubscribeResponse(const Endpoint& endpoint, UnsubscribeResult result);
   bool sendPacket(const Endpoint& endpoint, const PacketWriter& writer);
+  bool checkEof(PacketReader& reader, const Endpoint& endpoint);
+
+  template<class T>
+  bool readRequest(PacketReader& reader, const Endpoint& endpoint, T& value) {
+    if (reader.read(value))
+      return true;
+
+    sendErrorResponse(
+      endpoint,
+      ErrorCode::InvalidRequest,
+      reader.remaining());
+
+    return false;
+  }
 
 private:
   QUdpSocket m_socket;

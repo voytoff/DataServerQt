@@ -29,6 +29,7 @@ private slots:
   void test_unsubscribe_invalidId();
   void test_unsubscribe_extraData();
   void test_unsubscribe_emptyPayload();
+  void test_ping_followedByPing();
 
 };
 

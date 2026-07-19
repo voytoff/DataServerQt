@@ -81,9 +81,7 @@ void UdpServer::onReadyRead()
   }
 }
 
-void UdpServer::processPacket(
-  PacketReader& reader,
-  const Endpoint& endpoint)
+void UdpServer::processPacket(PacketReader& reader, const Endpoint& endpoint)
 {
   switch (reader.packetType())
   {
@@ -105,15 +103,10 @@ void UdpServer::processPacket(
   }
 }
 
-void UdpServer::processPing(
-  PacketReader& reader,
-  const Endpoint& endpoint)
+void UdpServer::processPing(PacketReader& reader, const Endpoint& endpoint)
 {
-  if (!reader.eof())
-  {
-    sendErrorResponse(endpoint, ErrorCode::ExtraData, reader.remaining());
+  if (!checkEof(reader, endpoint))
     return;
-  }
 
   PacketWriter writer;
   writer.begin(PacketType::Pong);
@@ -137,11 +130,8 @@ void UdpServer::processSubscribeList(PacketReader &reader, const Endpoint &endpo
 {
   // 1. Разбор пакета
   SubscribeListRequest req;
-  if (!reader.read(req))
-  {
-    sendErrorResponse(endpoint, ErrorCode::InvalidRequest);
+  if (!readRequest(reader, endpoint, req))
     return;
-  }
 
   // 2. Проверка формата
   if (req.tagCount == 0) {
@@ -183,10 +173,8 @@ void UdpServer::processSubscribeList(PacketReader &reader, const Endpoint &endpo
     return;
   }
 
-  if (!reader.eof()) {
-    sendErrorResponse(endpoint, ErrorCode::ExtraData, reader.remaining());
+  if (!checkEof(reader, endpoint))
     return;
-  }
 
   // неверный тег
   for (const TagId& tag : tags)
@@ -236,18 +224,11 @@ void UdpServer::processSubscribeList(PacketReader &reader, const Endpoint &endpo
 void UdpServer::processUnsubscribe(PacketReader &reader, const Endpoint &endpoint)
 {
   UnsubscribeRequest req;
-
-  if (!reader.read(req))
-  {
-    sendErrorResponse(endpoint, ErrorCode::InvalidRequest);
+  if (!readRequest(reader, endpoint, req))
     return;
-  }
 
-  if (!reader.eof())
-  {
-    sendErrorResponse(endpoint, ErrorCode::ExtraData, reader.remaining());
+  if (!checkEof(reader, endpoint))
     return;
-  }
 
   const Subscription* sub = m_subscriptions.find(req.id);
 
@@ -311,6 +292,19 @@ bool UdpServer::sendPacket(const Endpoint& endpoint, const PacketWriter& writer)
   }
 
   return true;
+}
+
+bool UdpServer::checkEof(PacketReader &reader, const Endpoint &endpoint)
+{
+  if (reader.eof())
+    return true;
+
+  sendErrorResponse(
+    endpoint,
+    ErrorCode::ExtraData,
+    reader.remaining());
+
+  return false;
 }
 
 void UdpServer::sendSubscribeResponse(const Endpoint &endpoint, SubscribeResult result, SubscriptionId id)

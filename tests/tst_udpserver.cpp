@@ -51,26 +51,11 @@ static void processEvents(int timeoutMs = 100)
 
 void tst_udpserver::test_ping() {
   using namespace qds;
-
-  SubscriptionManager manager;
-  Publisher publisher;
   SystemConfiguration cfg;
-  LiveStorage storage(cfg);
-  TestSender sender;
+  TestSrv srv(cfg);
 
-  LiveScheduler scheduler(
-    storage,
-    manager,
-    publisher,
-    sender);
-
-  UdpServer server(
-    cfg,
-    manager,
-    scheduler);
-
-  QVERIFY(server.start(0));
-  QVERIFY(server.isRunning());
+  QVERIFY(srv.server.start(0));
+  QVERIFY(srv.server.isRunning());
 
   // Создаём клиент
   QUdpSocket client;
@@ -88,7 +73,7 @@ void tst_udpserver::test_ping() {
       reinterpret_cast<const char*>(writer.data()),
       writer.size(),
       QHostAddress::LocalHost,
-      server.port());
+      srv.server.port());
 
   QCOMPARE(bytes, qint64(writer.size()));
 
@@ -117,8 +102,8 @@ void tst_udpserver::test_ping() {
 
   QCOMPARE(reader.packetType(), PacketType::Pong);
 
-  server.stop();
-  QVERIFY(!server.isRunning());
+  srv.server.stop();
+  QVERIFY(!srv.server.isRunning());
 }
 
 void tst_udpserver::test_ping_extraData()
@@ -1596,6 +1581,72 @@ void tst_udpserver::test_unsubscribe_emptyPayload()
   QVERIFY(reader.eof());
 
   QCOMPARE(err.code, ErrorCode::InvalidRequest);
+  QVERIFY(err.info == 0);
+
+  srv.server.stop();
+  QVERIFY(!srv.server.isRunning());
+}
+
+void tst_udpserver::test_ping_followedByPing()
+{
+  using namespace qds;
+  SystemConfiguration cfg;
+  TestSrv srv(cfg);
+
+  QVERIFY(srv.server.start(0));
+  QVERIFY(srv.server.isRunning());
+
+  // Создаём клиент
+  QUdpSocket client;
+
+  QVERIFY(
+    client.bind(QHostAddress::LocalHost, 0));
+
+  PacketWriter w1;
+  w1.begin(PacketType::Ping);
+
+  PacketWriter w2;
+  w2.begin(PacketType::Ping);
+
+  QByteArray data;
+  data.append(reinterpret_cast<const char*>(w1.data()), w1.size());
+  data.append(reinterpret_cast<const char*>(w2.data()), w2.size());
+
+  // Отправляем
+  const auto bytes =
+    client.writeDatagram(
+      data,
+      QHostAddress::LocalHost,
+      srv.server.port());
+
+  QCOMPARE(bytes, qint64(data.size()));
+
+  // Ждём ответ
+  QTRY_VERIFY(client.waitForReadyRead(100));
+  QTRY_VERIFY(client.hasPendingDatagrams());
+
+  // Читаем
+  data.resize(
+    client.pendingDatagramSize());
+
+  client.readDatagram(data.data(), data.size());
+
+  // Проверяем
+  PacketReader reader;
+
+  reader.append(
+    reinterpret_cast<const std::byte*>(data.constData()),
+    data.size());
+
+  QVERIFY(reader.nextPacket());
+  QCOMPARE(reader.packetType(), PacketType::ErrorResponse);
+
+  ErrorResponse err;
+  QVERIFY(reader.read(err));
+
+  QVERIFY(reader.eof());
+
+  QCOMPARE(err.code, ErrorCode::ExtraData);
   QVERIFY(err.info == 0);
 
   srv.server.stop();
