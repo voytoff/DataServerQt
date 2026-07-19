@@ -223,7 +223,7 @@ void tst_livestorage::test_livePublisher() {
   QCOMPARE(pubValues[0], 100.0f);
   QCOMPARE(pubValues[1], 101.2f);
 
-  QVERIFY(reader.eof());
+  QVERIFY(reader.remaining() == 0);
 }
 
 void tst_livestorage::test_livePublisher_reverse() {
@@ -290,5 +290,5 @@ void tst_livestorage::test_livePublisher_reverse() {
   QCOMPARE(pubValues[1], 100.0f);
   QCOMPARE(pubValues[0], 101.2f);
 
-  QVERIFY(reader.eof());
+  QVERIFY(reader.remaining() == 0);
 }

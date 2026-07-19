@@ -22,25 +22,24 @@ public:
   const PacketHeader& header() const noexcept;
 
   template<typename T>
-  bool read(T& value)
-  {
+  bool read(T& value) {
     return readRaw(&value, sizeof(T));
   }
 
   template<typename T>
-  bool readArray(T* values, std::size_t count)
-  {
+  bool readArray(T* values, std::size_t count) {
     return readRaw(values, sizeof(T) * count);
   }
 
   bool readRaw(void* dst, std::size_t size);
 
-  std::size_t bytesRemaining() const noexcept;
-
   PacketType packetType() const;
 
-  [[nodiscard]] bool eof() const noexcept;
   [[nodiscard]] size_t remaining() const noexcept;
+  /// Количество байтов в буфере после конца текущего пакета.
+  /// Обычно равно 0.
+  /// Может быть больше 0 при нескольких пакетах в одном буфере.
+  [[nodiscard]] size_t trailingBytes() const noexcept;
 
 private:
   void consumePacket();

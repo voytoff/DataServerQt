@@ -9,6 +9,7 @@
 #include <qtestcase.h>
 #include <QElapsedTimer>
 #include <qtestsupport_core.h>
+#include <QTest>
 
 tst_udpserver::tst_udpserver() { }
 tst_udpserver::~tst_udpserver() = default;
@@ -163,7 +164,7 @@ void tst_udpserver::test_ping_extraData()
   ErrorResponse response;
   QVERIFY(reader.read(response));
 
-  QVERIFY(reader.eof());
+  QVERIFY(reader.remaining() == 0u);
 
   QCOMPARE(response.code, ErrorCode::ExtraData);
   QCOMPARE(response.info, uint32_t(garbage.size()));
@@ -228,7 +229,7 @@ void tst_udpserver::test_invalid_packet()
   ErrorResponse response;
   QVERIFY(reader.read(response));
 
-  QVERIFY(reader.eof());
+  QVERIFY(reader.remaining() == 0u);
 
   QCOMPARE(response.code, ErrorCode::InvalidPacket);
   QCOMPARE(response.info, 0);
@@ -297,7 +298,7 @@ void tst_udpserver::test_packet_payloadSizeMismatch()
   ErrorResponse response;
   QVERIFY(reader.read(response));
 
-  QVERIFY(reader.eof());
+  QVERIFY(reader.remaining() == 0u);
 
   QCOMPARE(response.code, ErrorCode::InvalidPacket);
   QCOMPARE(response.info, 0);
@@ -366,7 +367,7 @@ void tst_udpserver::test_packet_payloadSizeTooSmall()
   ErrorResponse response;
   QVERIFY(reader.read(response));
 
-  QVERIFY(reader.eof());
+  QVERIFY(reader.remaining() == 0u);
 
   QCOMPARE(response.code, ErrorCode::ExtraData);
   QVERIFY(response.info > 0);
@@ -446,7 +447,7 @@ void tst_udpserver::test_unknown_packet()
   ErrorResponse response;
   QVERIFY(reader.read(response));
 
-  QVERIFY(reader.eof());
+  QVERIFY(reader.remaining() == 0u);
 
   QCOMPARE(response.code, ErrorCode::UnsupportedPacket);
   QCOMPARE(response.info, 0);
@@ -524,7 +525,7 @@ void tst_udpserver::test_subscribeList_ok()
   SubscribeResponse response;
   QVERIFY(reader.read(response));
 
-  QVERIFY(reader.eof());
+  QVERIFY(reader.remaining() == 0u);
 
   QCOMPARE(response.result, SubscribeResult::Ok);
   QVERIFY(response.id.value > 0);
@@ -616,7 +617,7 @@ void tst_udpserver::test_subscribeList_truncatedTagArray()
   ErrorResponse err;
   QVERIFY(reader.read(err));
 
-  QVERIFY(reader.eof());
+  QVERIFY(reader.remaining() == 0u);
 
   QCOMPARE(err.code, ErrorCode::InvalidRequest);
   QVERIFY(err.info == 0);
@@ -684,7 +685,7 @@ void tst_udpserver::test_subscribeList_empty()
   SubscribeResponse response;
   QVERIFY(reader.read(response));
 
-  QVERIFY(reader.eof());
+  QVERIFY(reader.remaining() == 0u);
 
   QCOMPARE(response.result, SubscribeResult::EmptyList);
   QCOMPARE(response.id, SubscriptionId{});;
@@ -764,7 +765,7 @@ void tst_udpserver::test_subscribeList_tooManyTags()
   SubscribeResponse response;
   QVERIFY(reader.read(response));
 
-  QVERIFY(reader.eof());
+  QVERIFY(reader.remaining() == 0u);
 
   QCOMPARE(response.result, SubscribeResult::TooManyTags);
   QCOMPARE(response.id, SubscriptionId{});;
@@ -842,7 +843,7 @@ void tst_udpserver::test_subscribeList_invalidTag()
   SubscribeResponse response;
   QVERIFY(reader.read(response));
 
-  QVERIFY(reader.eof());
+  QVERIFY(reader.remaining() == 0u);
 
   QCOMPARE(response.result, SubscribeResult::InvalidTag);
   QCOMPARE(response.id, SubscriptionId{});;
@@ -919,7 +920,7 @@ void tst_udpserver::test_subscribeList_invalidRate()
   SubscribeResponse response;
   QVERIFY(reader.read(response));
 
-  QVERIFY(reader.eof());
+  QVERIFY(reader.remaining() == 0u);
 
   QCOMPARE(response.result, SubscribeResult::InvalidRate);
   QCOMPARE(response.id, SubscriptionId{});;
@@ -1009,7 +1010,7 @@ void tst_udpserver::test_subscribeList_duplicateTag()
   SubscribeResponse response;
   QVERIFY(reader.read(response));
 
-  QVERIFY(reader.eof());
+  QVERIFY(reader.remaining() == 0u);
 
   QCOMPARE(response.result, SubscribeResult::DuplicateTag);
   QCOMPARE(response.id, SubscriptionId{});;
@@ -1069,7 +1070,7 @@ void tst_udpserver::test_subscribeList_emptyPayload()
   ErrorResponse err;
   QVERIFY(reader.read(err));
 
-  QVERIFY(reader.eof());
+  QVERIFY(reader.remaining() == 0u);
 
   QCOMPARE(err.code, ErrorCode::InvalidRequest);
   QVERIFY(err.info == 0);
@@ -1157,7 +1158,7 @@ void tst_udpserver::test_unsubscribe_ok()
   SubscribeResponse response;
   QVERIFY(reader.read(response));
 
-  QVERIFY(reader.eof());
+  QVERIFY(reader.remaining() == 0u);
 
   QCOMPARE(response.result, SubscribeResult::Ok);
   QVERIFY(response.id.value > 0);
@@ -1213,7 +1214,7 @@ void tst_udpserver::test_unsubscribe_ok()
   UnsubscribeResponse response2;
   QVERIFY(reader.read(response2));
 
-  QVERIFY(reader.eof());
+  QVERIFY(reader.remaining() == 0u);
 
   QCOMPARE(response2.result, UnsubscribeResult::Ok);
 
@@ -1222,7 +1223,6 @@ void tst_udpserver::test_unsubscribe_ok()
 
   scheduler.tick();
   QCOMPARE(sender.sendCount, 1u);
-
 
   server.stop();
   QVERIFY(!server.isRunning());
@@ -1307,7 +1307,7 @@ void tst_udpserver::test_unsubscribe_invalidId()
   SubscribeResponse response;
   QVERIFY(reader.read(response));
 
-  QVERIFY(reader.eof());
+  QVERIFY(reader.remaining() == 0u);
 
   QCOMPARE(response.result, SubscribeResult::Ok);
   QVERIFY(response.id.value > 0);
@@ -1363,7 +1363,7 @@ void tst_udpserver::test_unsubscribe_invalidId()
   UnsubscribeResponse response2;
   QVERIFY(reader.read(response2));
 
-  QVERIFY(reader.eof());
+  QVERIFY(reader.remaining() == 0u);
 
   QCOMPARE(response2.result, UnsubscribeResult::InvalidId);
 
@@ -1454,7 +1454,7 @@ void tst_udpserver::test_unsubscribe_extraData()
   SubscribeResponse response;
   QVERIFY(reader.read(response));
 
-  QVERIFY(reader.eof());
+  QVERIFY(reader.remaining() == 0u);
 
   QCOMPARE(response.result, SubscribeResult::Ok);
   QVERIFY(response.id.value > 0);
@@ -1517,7 +1517,7 @@ void tst_udpserver::test_unsubscribe_extraData()
   ErrorResponse err;
   QVERIFY(reader.read(err));
 
-  QVERIFY(reader.eof());
+  QVERIFY(reader.remaining() == 0u);
 
   QCOMPARE(err.code, ErrorCode::ExtraData);
   QVERIFY(err.info == 4);
@@ -1578,13 +1578,206 @@ void tst_udpserver::test_unsubscribe_emptyPayload()
   ErrorResponse err;
   QVERIFY(reader.read(err));
 
-  QVERIFY(reader.eof());
+  QVERIFY(reader.remaining() == 0u);
 
   QCOMPARE(err.code, ErrorCode::InvalidRequest);
   QVERIFY(err.info == 0);
 
   srv.server.stop();
   QVERIFY(!srv.server.isRunning());
+}
+
+void tst_udpserver::test_unsubscribe_twice()
+{
+  using namespace qds;
+  // создаем конфигурацию
+  constexpr TagId tags1[] { {0}, {1} };
+  SystemConfiguration cfg = createTestConfig(tags1, std::size(tags1));
+
+  SubscriptionManager manager;
+  Publisher publisher;
+  LiveStorage storage(cfg);
+  TestSender sender;
+
+  LiveScheduler scheduler(
+    storage,
+    manager,
+    publisher,
+    sender);
+
+  UdpServer server(cfg, manager, scheduler);
+
+  QVERIFY(server.start(0));
+  QVERIFY(server.isRunning());
+
+  // Создаём клиент
+  QUdpSocket client;
+
+  QVERIFY(client.bind(QHostAddress::LocalHost, 0));
+
+  // Формируем запрос SubscribeListRequest
+  PacketWriter writer;
+  writer.begin(PacketType::SubscribeListRequest);
+
+  // Формируем запрос на подписку
+  constexpr TagId tags[]
+    {
+      {0},
+      {1}
+    };
+  SubscribeListRequest req;
+  req.rate = PublishRate::Hz10;
+  req.tagCount = std::size(tags);
+
+  writer.write(req);
+  writer.writeArray(tags, std::size(tags));
+
+  // Отправляем
+  const auto bytes =
+    client.writeDatagram(
+      reinterpret_cast<const char*>(writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      server.port());
+
+  QCOMPARE(bytes, qint64(writer.size()));
+
+
+  // Ждём ответ
+  QTRY_VERIFY(client.waitForReadyRead(100));
+  QTRY_VERIFY(client.hasPendingDatagrams());
+
+  // Читаем ответ
+  QByteArray data;
+  data.resize(client.pendingDatagramSize());
+
+  client.readDatagram(data.data(), data.size());
+
+  PacketReader reader;
+
+  reader.append(
+    reinterpret_cast<const std::byte*>(data.constData()),
+    data.size());
+
+  // Проверяем
+  QVERIFY(reader.nextPacket());
+  QCOMPARE(reader.packetType(), PacketType::SubscribeResponse);
+
+  SubscribeResponse response;
+  QVERIFY(reader.read(response));
+
+  QVERIFY(reader.remaining() == 0u);
+
+  QCOMPARE(response.result, SubscribeResult::Ok);
+  QVERIFY(response.id.value > 0);
+
+  const Subscription* sub = manager.find(response.id);
+  QVERIFY(sub != nullptr);
+
+  QCOMPARE(sub->rate, PublishRate::Hz10);
+
+  QCOMPARE(sub->tags.size(), size_t(2));
+  QCOMPARE(sub->tags[0], TagId{0});
+  QCOMPARE(sub->tags[1], TagId{1});
+
+  scheduler.tick();
+  QCOMPARE(sender.sendCount, 1u);
+
+  // подписка создана, теперь удалить ее
+  UnsubscribeRequest req2;
+  req2.id = response.id;
+
+  writer.begin(PacketType::UnsubscribeRequest);
+  writer.write(req2);
+
+  // Отправляем
+  const auto bytes2 =
+    client.writeDatagram(
+      reinterpret_cast<const char*>(writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      server.port());
+
+  QCOMPARE(bytes2, qint64(writer.size()));
+
+  // И опять ждём ответ
+  QTRY_VERIFY(client.waitForReadyRead(100));
+  QTRY_VERIFY(client.hasPendingDatagrams());
+
+  // Читаем ответ на удаление подписки
+  data.resize(client.pendingDatagramSize());
+  client.readDatagram(data.data(), data.size());
+
+  reader.clear();
+  reader.append(
+    reinterpret_cast<const std::byte*>(data.constData()),
+    data.size());
+
+  // Проверяем
+  QVERIFY(reader.nextPacket());
+  QCOMPARE(reader.packetType(), PacketType::UnsubscribeResponse);
+
+  UnsubscribeResponse response2;
+  QVERIFY(reader.read(response2));
+
+  QVERIFY(reader.remaining() == 0u);
+
+  QCOMPARE(response2.result, UnsubscribeResult::Ok);
+
+  const Subscription* sub2 = manager.find(response.id);
+  QVERIFY(sub2 == nullptr);
+
+  scheduler.tick();
+  QCOMPARE(sender.sendCount, 1u);
+
+  // пробуем удалить подписку еще раз
+  writer.begin(PacketType::UnsubscribeRequest);
+  writer.write(req2);
+
+  // Отправляем
+  const auto bytes3 =
+    client.writeDatagram(
+      reinterpret_cast<const char*>(writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      server.port());
+
+  QCOMPARE(bytes3, qint64(writer.size()));
+
+  // И ... опять ждём ответ
+  QTRY_VERIFY(client.waitForReadyRead(100));
+  QTRY_VERIFY(client.hasPendingDatagrams());
+
+  // Читаем ответ на запрос повторного удаления уже удаленной подписки
+  data.resize(client.pendingDatagramSize());
+  client.readDatagram(data.data(), data.size());
+
+  reader.clear();
+  reader.append(
+    reinterpret_cast<const std::byte*>(data.constData()),
+    data.size());
+
+  // Проверяем
+  QVERIFY(reader.nextPacket());
+  QCOMPARE(reader.packetType(), PacketType::UnsubscribeResponse);
+
+  UnsubscribeResponse response3;
+  QVERIFY(reader.read(response3));
+
+  QVERIFY(reader.remaining() == 0u);
+
+  QCOMPARE(response3.result, UnsubscribeResult::InvalidId);
+
+  // повторно проверим отсутствие подписки
+  const Subscription* sub3 = manager.find(response.id);
+  QVERIFY(sub3 == nullptr);
+
+  // повторно проверим выполнения callback-а и то что счетчик не увеличен
+  scheduler.tick();
+  QCOMPARE(sender.sendCount, 1u);
+
+  server.stop();
+  QVERIFY(!server.isRunning());
 }
 
 void tst_udpserver::test_ping_followedByPing()
@@ -1644,10 +1837,290 @@ void tst_udpserver::test_ping_followedByPing()
   ErrorResponse err;
   QVERIFY(reader.read(err));
 
-  QVERIFY(reader.eof());
+  QVERIFY(reader.remaining() == 0u);
 
   QCOMPARE(err.code, ErrorCode::ExtraData);
   QVERIFY(err.info == 0);
+
+  srv.server.stop();
+  QVERIFY(!srv.server.isRunning());
+}
+
+void tst_udpserver::test_packet_incompleteHeader()
+{
+  using namespace qds;
+  SystemConfiguration cfg;
+  TestSrv srv(cfg);
+
+  // запускаем сервер
+  QVERIFY(srv.server.start(0));
+  QVERIFY(srv.server.isRunning());
+
+  // Создаём клиент
+  QUdpSocket client;
+
+  QVERIFY(client.bind(QHostAddress::LocalHost, 0));
+
+  // Формируем пакет
+  PacketHeader hdr{};
+  hdr.magic = ProtocolMagic;
+  hdr.version = ProtocolVersion;
+  hdr.type = PacketType::Ping;
+  hdr.payloadSize = 0;
+
+  QByteArray data;
+  data.append(reinterpret_cast<const char*>(&hdr), sizeof(hdr));
+
+
+  // Отправляем
+  const auto bytes =
+    client.writeDatagram(
+      data,
+      sizeof(PacketHeader)-1,
+      QHostAddress::LocalHost,
+      srv.server.port());
+
+  QCOMPARE(bytes, sizeof(PacketHeader)-1);
+
+  processEvents();
+
+  QVERIFY(client.waitForReadyRead(100));
+  QTRY_VERIFY(client.hasPendingDatagrams());
+
+  // Читаем ответ
+  data.resize(client.pendingDatagramSize());
+
+  client.readDatagram(data.data(), data.size());
+
+  PacketReader reader;
+
+  reader.append(
+    reinterpret_cast<const std::byte*>(data.constData()),
+    data.size());
+
+  // Проверяем
+  QVERIFY(reader.nextPacket());
+  QCOMPARE(reader.packetType(), PacketType::ErrorResponse);
+
+  ErrorResponse response;
+  QVERIFY(reader.read(response));
+
+  QVERIFY(reader.remaining() == 0u);
+
+  QCOMPARE(response.code, ErrorCode::InvalidPacket);
+  QCOMPARE(response.info, 0);
+
+  srv.server.stop();
+  QVERIFY(!srv.server.isRunning());
+}
+
+void tst_udpserver::test_invalidProtocolVersion()
+{
+  using namespace qds;
+  SystemConfiguration cfg;
+  TestSrv srv(cfg);
+
+  // запускаем сервер
+  QVERIFY(srv.server.start(0));
+  QVERIFY(srv.server.isRunning());
+
+  // Создаём клиент
+  QUdpSocket client;
+
+  QVERIFY(client.bind(QHostAddress::LocalHost, 0));
+
+  // Формируем пакет
+  PacketHeader hdr{};
+  hdr.magic = ProtocolMagic;
+  hdr.version = 0xFF;
+  hdr.type = PacketType::Ping;
+  hdr.payloadSize = 0;
+
+  QByteArray data;
+  data.append(reinterpret_cast<const char*>(&hdr), sizeof(hdr));
+
+  // Отправляем
+  const auto bytes =
+    client.writeDatagram(
+      data,
+      QHostAddress::LocalHost,
+      srv.server.port());
+
+  QCOMPARE(bytes, data.size());
+
+  processEvents();
+
+  QVERIFY(client.waitForReadyRead(100));
+  QTRY_VERIFY(client.hasPendingDatagrams());
+
+  // Читаем ответ
+  data.resize(client.pendingDatagramSize());
+
+  client.readDatagram(data.data(), data.size());
+
+  PacketReader reader;
+
+  reader.append(
+    reinterpret_cast<const std::byte*>(data.constData()),
+    data.size());
+
+  // Проверяем
+  QVERIFY(reader.nextPacket());
+  QCOMPARE(reader.packetType(), PacketType::ErrorResponse);
+
+  ErrorResponse response;
+  QVERIFY(reader.read(response));
+
+  QVERIFY(reader.remaining() == 0u);
+
+  QCOMPARE(response.code, ErrorCode::InvalidPacket);
+  QCOMPARE(response.info, 0);
+
+  srv.server.stop();
+  QVERIFY(!srv.server.isRunning());
+}
+
+void tst_udpserver::test_invalidProtocolMagic()
+{
+  using namespace qds;
+  SystemConfiguration cfg;
+  TestSrv srv(cfg);
+
+  // запускаем сервер
+  QVERIFY(srv.server.start(0));
+  QVERIFY(srv.server.isRunning());
+
+  // Создаём клиент
+  QUdpSocket client;
+
+  QVERIFY(client.bind(QHostAddress::LocalHost, 0));
+
+  // Формируем пакет
+  PacketHeader hdr{};
+  hdr.magic = 0x1234;
+  hdr.version = ProtocolVersion;
+  hdr.type = PacketType::Ping;
+  hdr.payloadSize = 0;
+
+  QByteArray data;
+  data.append(reinterpret_cast<const char*>(&hdr), sizeof(hdr));
+
+  // Отправляем
+  const auto bytes =
+    client.writeDatagram(
+      data,
+      QHostAddress::LocalHost,
+      srv.server.port());
+
+  QCOMPARE(bytes, data.size());
+
+  processEvents();
+
+  QVERIFY(client.waitForReadyRead(100));
+  QTRY_VERIFY(client.hasPendingDatagrams());
+
+  // Читаем ответ
+  data.resize(client.pendingDatagramSize());
+
+  client.readDatagram(data.data(), data.size());
+
+  PacketReader reader;
+
+  reader.append(
+    reinterpret_cast<const std::byte*>(data.constData()),
+    data.size());
+
+  // Проверяем
+  QVERIFY(reader.nextPacket());
+  QCOMPARE(reader.packetType(), PacketType::ErrorResponse);
+
+  ErrorResponse response;
+  QVERIFY(reader.read(response));
+
+  QVERIFY(reader.remaining() == 0u);
+
+  QCOMPARE(response.code, ErrorCode::InvalidPacket);
+  QCOMPARE(response.info, 0);
+
+  srv.server.stop();
+  QVERIFY(!srv.server.isRunning());
+}
+
+void tst_udpserver::test_pingBurst1000()
+{
+  using namespace qds;
+  SystemConfiguration cfg;
+  TestSrv srv(cfg);
+
+  QVERIFY(srv.server.start(0));
+  QVERIFY(srv.server.isRunning());
+
+  // Создаём клиент
+  QUdpSocket client;
+
+  QVERIFY(
+    client.bind(QHostAddress::LocalHost, 0));
+
+  QElapsedTimer timer;
+  timer.start();
+
+  for (int i = 0; i < 1000; i++) {
+
+    // Формируем Ping
+    PacketWriter writer;
+    writer.begin(PacketType::Ping);
+
+    // Отправляем
+    const auto bytes =
+      client.writeDatagram(
+        reinterpret_cast<const char*>(writer.data()),
+        writer.size(),
+        QHostAddress::LocalHost,
+        srv.server.port());
+
+    QCOMPARE(bytes, qint64(writer.size()));
+  }
+
+  processEvents();
+
+  // Ждём ответ
+  QTRY_VERIFY(client.waitForReadyRead(100));
+
+  QByteArray data;
+  int pongCount = 0;
+
+  while (pongCount < 1000)
+  {
+    QVERIFY(client.waitForReadyRead(100));
+
+    while (client.hasPendingDatagrams())
+    {
+      // Читаем
+      data.resize(
+        client.pendingDatagramSize());
+
+      client.readDatagram(data.data(), data.size());
+
+      // Проверяем
+      PacketReader reader;
+
+      reader.append(
+        reinterpret_cast<const std::byte*>(data.constData()),
+        data.size());
+
+      QVERIFY(reader.nextPacket());
+
+      QCOMPARE(reader.packetType(), PacketType::Pong);
+      if (pongCount % 100 == 0)
+        qDebug() << "Ping-Pong:" << pongCount;
+
+      ++pongCount;
+    }
+  }
+
+  qDebug() << "Время выполнения:" << timer.elapsed() << "ms";
+
+  QCOMPARE(pongCount, 1000);
 
   srv.server.stop();
   QVERIFY(!srv.server.isRunning());

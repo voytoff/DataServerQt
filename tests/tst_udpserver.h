@@ -29,7 +29,12 @@ private slots:
   void test_unsubscribe_invalidId();
   void test_unsubscribe_extraData();
   void test_unsubscribe_emptyPayload();
+  void test_unsubscribe_twice();
   void test_ping_followedByPing();
+  void test_packet_incompleteHeader();
+  void test_invalidProtocolVersion();
+  void test_invalidProtocolMagic();
+  void test_pingBurst1000();
 
 };
 

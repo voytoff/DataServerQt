@@ -123,7 +123,7 @@ void UdpServer::processPing(PacketReader& reader, const Endpoint& endpoint)
     address,
     endpoint.port);
 
-  qDebug() << sent;
+  //qDebug() << sent;
 }
 
 void UdpServer::processSubscribeList(PacketReader &reader, const Endpoint &endpoint)
@@ -273,8 +273,7 @@ void UdpServer::sendUnsubscribeResponse(const Endpoint &endpoint, UnsubscribeRes
     qWarning() << "Не удалось отправить UDP-дейтаграмму полностью:" << sent << "из" << writer.size() << "байт";
   }
 
-
-  qDebug() << sent;
+  //qDebug() << sent;
 }
 
 bool UdpServer::sendPacket(const Endpoint& endpoint, const PacketWriter& writer)
@@ -296,7 +295,7 @@ bool UdpServer::sendPacket(const Endpoint& endpoint, const PacketWriter& writer)
 
 bool UdpServer::checkEof(PacketReader &reader, const Endpoint &endpoint)
 {
-  if (reader.eof())
+  if (reader.remaining() == 0 && reader.trailingBytes() == 0)
     return true;
 
   sendErrorResponse(

@@ -17,7 +17,7 @@ test_dataprotocol::~test_dataprotocol() = default;
 6. reader.nextPacket()
 7. reader.read(...)
 8. reader.readArray(...)
-9. reader.eof()
+9. reader.remaining() == 0
 */
 void test_dataprotocol::test_subscribeListPacket()
 {
@@ -61,7 +61,7 @@ void test_dataprotocol::test_subscribeListPacket()
   QCOMPARE(testTags[1], TagId{10});
   QCOMPARE(testTags[2], TagId{100});
 
-  QVERIFY(reader.eof());
+  QVERIFY(reader.remaining() == 0);
 }
 
 void test_dataprotocol::test_subscribeResponsePacket()
@@ -89,5 +89,5 @@ void test_dataprotocol::test_subscribeResponsePacket()
   QCOMPARE(testResponse.result, SubscribeResult::Ok);
   QCOMPARE(testResponse.id, SubscriptionId{123});
 
-  QVERIFY(reader.eof());
+  QVERIFY(reader.remaining() == 0);
 }

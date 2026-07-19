@@ -35,11 +35,9 @@ public:
   void write(const T& value);
 
   template<typename T>
-  void writeArray(const T* data,
-                  std::size_t count);
+  void writeArray(const T* data, std::size_t count);
 
-  void writeRaw(const void* data,
-                std::size_t size);
+  void writeRaw(const void* data, std::size_t size);
 
   const std::byte* data() const noexcept;
   std::byte* rawData() noexcept;   // ⚠️ только для тестов

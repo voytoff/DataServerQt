@@ -6,50 +6,40 @@
 namespace qds
 {
 
-// -----------------------------
-// clear
-// -----------------------------
 void PacketReader::clear()
 {
   m_buffer.clear();
   m_offset = 0;
 }
 
-// -----------------------------
-// append
-// -----------------------------
-void PacketReader::append(const std::byte* data, std::size_t size)
-{
+void PacketReader::append(const std::byte* data, std::size_t size) {
   m_buffer.insert(m_buffer.end(), data, data + size);
 }
 
-// -----------------------------
-// nextPacket
-// -----------------------------
-bool PacketReader::nextPacket()
-{
-  if (m_offset != 0 && !eof())
+bool PacketReader::nextPacket() {
+
+  if (m_offset != 0 && remaining() != 0)
     return false;
 
-  if (m_offset != 0 && eof())
+  if (m_offset != 0 && remaining() == 0)
     consumePacket();
 
-  if (m_buffer.size() < sizeof(PacketHeader))
+  if (m_buffer.size() < HeaderSize)
     return false;
 
   std::memcpy(&m_header,
               m_buffer.data(),
-              sizeof(PacketHeader));
+              HeaderSize);
 
-  // ❗ TEST4 FIX
-  if (m_header.magic != ProtocolMagic)
+  if (m_header.magic != ProtocolMagic ||
+      m_header.version != ProtocolVersion)
   {
     m_buffer.erase(m_buffer.begin());
     return false;
   }
 
   const std::size_t packetSize =
-    sizeof(PacketHeader) + m_header.payloadSize;
+    HeaderSize + m_header.payloadSize;
 
   if (m_buffer.size() < packetSize)
     return false;
@@ -59,9 +49,6 @@ bool PacketReader::nextPacket()
   return true;
 }
 
-// -----------------------------
-// readRaw
-// -----------------------------
 bool PacketReader::readRaw(void* dst, std::size_t size)
 {
   if (size > remaining())
@@ -69,7 +56,7 @@ bool PacketReader::readRaw(void* dst, std::size_t size)
 
   const std::byte* src =
     m_buffer.data()
-    + sizeof(PacketHeader)
+    + HeaderSize
     + m_offset;
 
   std::memcpy(dst, src, size);
@@ -79,49 +66,37 @@ bool PacketReader::readRaw(void* dst, std::size_t size)
   return true;
 }
 
-// -----------------------------
-// eof
-// -----------------------------
-bool PacketReader::eof() const noexcept
-{
-  return remaining() == 0;
-}
-
-// -----------------------------
-// bytesRemaining
-// -----------------------------
-std::size_t PacketReader::bytesRemaining() const noexcept
-{
-  return m_header.payloadSize - m_offset;
-}
-
 PacketType PacketReader::packetType() const
 {
   return m_header.type;
 }
 
-[[nodiscard]]
+//[[nodiscard]]
 size_t PacketReader::remaining() const noexcept
 {
   Q_ASSERT(m_offset <= m_header.payloadSize);
   return m_header.payloadSize - m_offset;
 }
 
-// -----------------------------
-// header
-// -----------------------------
+size_t PacketReader::trailingBytes() const noexcept
+{
+  const size_t packetSize =
+    HeaderSize + m_header.payloadSize;
+
+  Q_ASSERT(m_buffer.size() >= packetSize);
+
+  return m_buffer.size() - packetSize;
+}
+
 const PacketHeader& PacketReader::header() const noexcept
 {
   return m_header;
 }
 
-// -----------------------------
-// consumePacket
-// -----------------------------
 void PacketReader::consumePacket()
 {
   const std::size_t packetSize =
-    sizeof(PacketHeader) + m_header.payloadSize;
+    HeaderSize + m_header.payloadSize;
 
   m_buffer.erase(
     m_buffer.begin(),
