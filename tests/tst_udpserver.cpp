@@ -358,27 +358,12 @@ void tst_udpserver::test_packet_payloadSizeTooSmall()
 void tst_udpserver::test_unknown_packet()
 {
   using namespace qds;
-
-  SubscriptionManager manager;
-  Publisher publisher;
   SystemConfiguration cfg;
-  LiveStorage storage(cfg);
-  TestSender sender;
-
-  LiveScheduler scheduler(
-    storage,
-    manager,
-    publisher,
-    sender);
-
-  UdpServer server(
-    cfg,
-    manager,
-    scheduler);
+  TestSrv srv(cfg);
 
   // запускаем сервер
-  QVERIFY(server.start(0));
-  QVERIFY(server.isRunning());
+  QVERIFY(srv.server.start(0));
+  QVERIFY(srv.server.isRunning());
 
   // Создаём клиент
   QUdpSocket client;
@@ -396,7 +381,7 @@ void tst_udpserver::test_unknown_packet()
       writer.data()),
       writer.size(),
       QHostAddress::LocalHost,
-      server.port());
+      srv.server.port());
 
   QCOMPARE(
     bytes,
@@ -431,8 +416,8 @@ void tst_udpserver::test_unknown_packet()
   QCOMPARE(response.code, ErrorCode::UnsupportedPacket);
   QCOMPARE(response.info, 0);
 
-  server.stop();
-  QVERIFY(!server.isRunning());
+  srv.server.stop();
+  QVERIFY(!srv.server.isRunning());
 }
 
 void tst_udpserver::test_subscribeList_ok()
@@ -458,11 +443,8 @@ void tst_udpserver::test_subscribeList_ok()
   writer.begin(PacketType::SubscribeListRequest);
 
   // Формируем запрос на подписку
-  constexpr TagId tags[]
-    {
-      {0},
-      {1}
-    };
+  constexpr TagId tags[] { {0}, {1} };
+
   SubscribeListRequest req;
   req.rate = PublishRate::Hz10;
   req.tagCount = std::size(tags);
@@ -479,7 +461,6 @@ void tst_udpserver::test_subscribeList_ok()
       srv.server.port());
 
   QCOMPARE(bytes, qint64(writer.size()));
-
 
   // Ждём ответ
   QTRY_VERIFY(client.waitForReadyRead(100));
@@ -548,11 +529,7 @@ void tst_udpserver::test_subscribeList_truncatedTagArray()
   writer.begin(PacketType::SubscribeListRequest);
 
   // Формируем запрос на подписку
-  constexpr TagId tags[]
-    {
-      {0},
-      {1}
-    };
+  constexpr TagId tags[] { {0}, {1} };
 
   // Заявляем 3 тега, передаем только 2
   SubscribeListRequest req;
@@ -571,7 +548,6 @@ void tst_udpserver::test_subscribeList_truncatedTagArray()
       srv.server.port());
 
   QCOMPARE(bytes, qint64(writer.size()));
-
 
   // Ждём ответ
   QTRY_VERIFY(client.waitForReadyRead(100));
@@ -678,21 +654,10 @@ void tst_udpserver::test_subscribeList_tooManyTags()
   using namespace qds;
 
   SystemConfiguration cfg;
-  SubscriptionManager manager;
-  Publisher publisher;
-  LiveStorage storage(cfg);
-  TestSender sender;
+  TestSrv srv(cfg);
 
-  LiveScheduler scheduler(
-    storage,
-    manager,
-    publisher,
-    sender);
-
-  UdpServer server(cfg, manager, scheduler);
-
-  QVERIFY(server.start(0));
-  QVERIFY(server.isRunning());
+  QVERIFY(srv.server.start(0));
+  QVERIFY(srv.server.isRunning());
 
   // Создаём клиент
   QUdpSocket client;
@@ -716,7 +681,7 @@ void tst_udpserver::test_subscribeList_tooManyTags()
       reinterpret_cast<const char*>(writer.data()),
       writer.size(),
       QHostAddress::LocalHost,
-      server.port());
+      srv.server.port());
 
   QCOMPARE(bytes, qint64(writer.size()));
 
@@ -749,8 +714,8 @@ void tst_udpserver::test_subscribeList_tooManyTags()
   QCOMPARE(response.result, SubscribeResult::TooManyTags);
   QCOMPARE(response.id, SubscriptionId{});;
 
-  server.stop();
-  QVERIFY(!server.isRunning());
+  srv.server.stop();
+  QVERIFY(!srv.server.isRunning());
 }
 
 void tst_udpserver::test_subscribeList_invalidTag()
@@ -914,22 +879,10 @@ void tst_udpserver::test_subscribeList_duplicateTag()
   // создаем конфигурацию
   constexpr TagId tags1[] { {0}, {1} };
   SystemConfiguration cfg = createTestConfig(tags1, std::size(tags1));
+  TestSrv srv(cfg);
 
-  SubscriptionManager manager;
-  Publisher publisher;
-  LiveStorage storage(cfg);
-  TestSender sender;
-
-  LiveScheduler scheduler(
-    storage,
-    manager,
-    publisher,
-    sender);
-
-  UdpServer server(cfg, manager, scheduler);
-
-  QVERIFY(server.start(0));
-  QVERIFY(server.isRunning());
+  QVERIFY(srv.server.start(0));
+  QVERIFY(srv.server.isRunning());
 
   // Создаём клиент
   QUdpSocket client;
@@ -961,7 +914,7 @@ void tst_udpserver::test_subscribeList_duplicateTag()
       reinterpret_cast<const char*>(writer.data()),
       writer.size(),
       QHostAddress::LocalHost,
-      server.port());
+      srv.server.port());
 
   QCOMPARE(bytes, qint64(writer.size()));
 
@@ -994,8 +947,8 @@ void tst_udpserver::test_subscribeList_duplicateTag()
   QCOMPARE(response.result, SubscribeResult::DuplicateTag);
   QCOMPARE(response.id, SubscriptionId{});;
 
-  server.stop();
-  QVERIFY(!server.isRunning());
+  srv.server.stop();
+  QVERIFY(!srv.server.isRunning());
 }
 
 void tst_udpserver::test_subscribeList_emptyPayload()
@@ -1065,21 +1018,10 @@ void tst_udpserver::test_unsubscribe_ok()
   constexpr TagId tags1[] { {0}, {1} };
   SystemConfiguration cfg = createTestConfig(tags1, std::size(tags1));
 
-  SubscriptionManager manager;
-  Publisher publisher;
-  LiveStorage storage(cfg);
-  TestSender sender;
+  TestSrv srv(cfg);
 
-  LiveScheduler scheduler(
-    storage,
-    manager,
-    publisher,
-    sender);
-
-  UdpServer server(cfg, manager, scheduler);
-
-  QVERIFY(server.start(0));
-  QVERIFY(server.isRunning());
+  QVERIFY(srv.server.start(0));
+  QVERIFY(srv.server.isRunning());
 
   // Создаём клиент
   QUdpSocket client;
@@ -1109,7 +1051,7 @@ void tst_udpserver::test_unsubscribe_ok()
       reinterpret_cast<const char*>(writer.data()),
       writer.size(),
       QHostAddress::LocalHost,
-      server.port());
+      srv.server.port());
 
   QCOMPARE(bytes, qint64(writer.size()));
 
@@ -1142,7 +1084,7 @@ void tst_udpserver::test_unsubscribe_ok()
   QCOMPARE(response.result, SubscribeResult::Ok);
   QVERIFY(response.id.value > 0);
 
-  const Subscription* sub = manager.find(response.id);
+  const Subscription* sub = srv.manager.find(response.id);
   QVERIFY(sub != nullptr);
 
   QCOMPARE(sub->rate, PublishRate::Hz10);
@@ -1151,8 +1093,8 @@ void tst_udpserver::test_unsubscribe_ok()
   QCOMPARE(sub->tags[0], TagId{0});
   QCOMPARE(sub->tags[1], TagId{1});
 
-  scheduler.tick();
-  QCOMPARE(sender.sendCount, 1u);
+  srv.scheduler.tick();
+  QCOMPARE(srv.sender.sendCount, 1u);
 
   // подписка создана, теперь попробуем ее удалить ===============
 
@@ -1169,7 +1111,7 @@ void tst_udpserver::test_unsubscribe_ok()
       reinterpret_cast<const char*>(writer.data()),
       writer.size(),
       QHostAddress::LocalHost,
-      server.port());
+      srv.server.port());
 
   QCOMPARE(bytes2, qint64(writer.size()));
 
@@ -1197,14 +1139,14 @@ void tst_udpserver::test_unsubscribe_ok()
 
   QCOMPARE(response2.result, UnsubscribeResult::Ok);
 
-  const Subscription* sub2 = manager.find(response.id);
+  const Subscription* sub2 = srv.manager.find(response.id);
   QVERIFY(sub2 == nullptr);
 
-  scheduler.tick();
-  QCOMPARE(sender.sendCount, 1u);
+  srv.scheduler.tick();
+  QCOMPARE(srv.sender.sendCount, 1u);
 
-  server.stop();
-  QVERIFY(!server.isRunning());
+  srv.server.stop();
+  QVERIFY(!srv.server.isRunning());
 }
 
 void tst_udpserver::test_unsubscribe_invalidId()
@@ -1214,21 +1156,10 @@ void tst_udpserver::test_unsubscribe_invalidId()
   constexpr TagId tags1[] { {0}, {1} };
   SystemConfiguration cfg = createTestConfig(tags1, std::size(tags1));
 
-  SubscriptionManager manager;
-  Publisher publisher;
-  LiveStorage storage(cfg);
-  TestSender sender;
+  TestSrv srv(cfg);
 
-  LiveScheduler scheduler(
-    storage,
-    manager,
-    publisher,
-    sender);
-
-  UdpServer server(cfg, manager, scheduler);
-
-  QVERIFY(server.start(0));
-  QVERIFY(server.isRunning());
+  QVERIFY(srv.server.start(0));
+  QVERIFY(srv.server.isRunning());
 
   // Создаём клиент
   QUdpSocket client;
@@ -1258,7 +1189,7 @@ void tst_udpserver::test_unsubscribe_invalidId()
       reinterpret_cast<const char*>(writer.data()),
       writer.size(),
       QHostAddress::LocalHost,
-      server.port());
+      srv.server.port());
 
   QCOMPARE(bytes, qint64(writer.size()));
 
@@ -1291,7 +1222,7 @@ void tst_udpserver::test_unsubscribe_invalidId()
   QCOMPARE(response.result, SubscribeResult::Ok);
   QVERIFY(response.id.value > 0);
 
-  const Subscription* sub = manager.find(response.id);
+  const Subscription* sub = srv.manager.find(response.id);
   QVERIFY(sub != nullptr);
 
   QCOMPARE(sub->rate, PublishRate::Hz10);
@@ -1300,8 +1231,8 @@ void tst_udpserver::test_unsubscribe_invalidId()
   QCOMPARE(sub->tags[0], TagId{0});
   QCOMPARE(sub->tags[1], TagId{1});
 
-  scheduler.tick();
-  QCOMPARE(sender.sendCount, 1u);
+  srv.scheduler.tick();
+  QCOMPARE(srv.sender.sendCount, 1u);
 
   // подписка создана, теперь попробуем удалить, но не какую то другую ===============
 
@@ -1318,7 +1249,7 @@ void tst_udpserver::test_unsubscribe_invalidId()
       reinterpret_cast<const char*>(writer.data()),
       writer.size(),
       QHostAddress::LocalHost,
-      server.port());
+      srv.server.port());
 
   QCOMPARE(bytes2, qint64(writer.size()));
 
@@ -1346,12 +1277,12 @@ void tst_udpserver::test_unsubscribe_invalidId()
 
   QCOMPARE(response2.result, UnsubscribeResult::InvalidId);
 
-  scheduler.tick();
-  QCOMPARE(sender.sendCount, 1u);
+  srv.scheduler.tick();
+  QCOMPARE(srv.sender.sendCount, 1u);
 
 
-  server.stop();
-  QVERIFY(!server.isRunning());
+  srv.server.stop();
+  QVERIFY(!srv.server.isRunning());
 }
 
 void tst_udpserver::test_unsubscribe_extraData()
@@ -1361,21 +1292,10 @@ void tst_udpserver::test_unsubscribe_extraData()
   constexpr TagId tags1[] { {0}, {1} };
   SystemConfiguration cfg = createTestConfig(tags1, std::size(tags1));
 
-  SubscriptionManager manager;
-  Publisher publisher;
-  LiveStorage storage(cfg);
-  TestSender sender;
+  TestSrv srv(cfg);
 
-  LiveScheduler scheduler(
-    storage,
-    manager,
-    publisher,
-    sender);
-
-  UdpServer server(cfg, manager, scheduler);
-
-  QVERIFY(server.start(0));
-  QVERIFY(server.isRunning());
+  QVERIFY(srv.server.start(0));
+  QVERIFY(srv.server.isRunning());
 
   // Создаём клиент
   QUdpSocket client;
@@ -1405,7 +1325,7 @@ void tst_udpserver::test_unsubscribe_extraData()
       reinterpret_cast<const char*>(writer.data()),
       writer.size(),
       QHostAddress::LocalHost,
-      server.port());
+      srv.server.port());
 
   QCOMPARE(bytes, qint64(writer.size()));
 
@@ -1438,7 +1358,7 @@ void tst_udpserver::test_unsubscribe_extraData()
   QCOMPARE(response.result, SubscribeResult::Ok);
   QVERIFY(response.id.value > 0);
 
-  const Subscription* sub = manager.find(response.id);
+  const Subscription* sub = srv.manager.find(response.id);
   QVERIFY(sub != nullptr);
 
   QCOMPARE(sub->rate, PublishRate::Hz10);
@@ -1447,8 +1367,8 @@ void tst_udpserver::test_unsubscribe_extraData()
   QCOMPARE(sub->tags[0], TagId{0});
   QCOMPARE(sub->tags[1], TagId{1});
 
-  scheduler.tick();
-  QCOMPARE(sender.sendCount, 1u);
+  srv.scheduler.tick();
+  QCOMPARE(srv.sender.sendCount, 1u);
 
   // подписка создана, теперь попробуем ее удалить ===============
 
@@ -1469,7 +1389,7 @@ void tst_udpserver::test_unsubscribe_extraData()
       reinterpret_cast<const char*>(writer.data()),
       writer.size(),
       QHostAddress::LocalHost,
-      server.port());
+      srv.server.port());
 
   QCOMPARE(bytes2, qint64(writer.size()));
 
@@ -1502,8 +1422,8 @@ void tst_udpserver::test_unsubscribe_extraData()
   QVERIFY(err.info == 4);
 
 
-  server.stop();
-  QVERIFY(!server.isRunning());
+  srv.server.stop();
+  QVERIFY(!srv.server.isRunning());
 }
 
 void tst_udpserver::test_unsubscribe_emptyPayload()
@@ -1573,21 +1493,10 @@ void tst_udpserver::test_unsubscribe_twice()
   constexpr TagId tags1[] { {0}, {1} };
   SystemConfiguration cfg = createTestConfig(tags1, std::size(tags1));
 
-  SubscriptionManager manager;
-  Publisher publisher;
-  LiveStorage storage(cfg);
-  TestSender sender;
+  TestSrv srv(cfg);
 
-  LiveScheduler scheduler(
-    storage,
-    manager,
-    publisher,
-    sender);
-
-  UdpServer server(cfg, manager, scheduler);
-
-  QVERIFY(server.start(0));
-  QVERIFY(server.isRunning());
+  QVERIFY(srv.server.start(0));
+  QVERIFY(srv.server.isRunning());
 
   // Создаём клиент
   QUdpSocket client;
@@ -1617,7 +1526,7 @@ void tst_udpserver::test_unsubscribe_twice()
       reinterpret_cast<const char*>(writer.data()),
       writer.size(),
       QHostAddress::LocalHost,
-      server.port());
+      srv.server.port());
 
   QCOMPARE(bytes, qint64(writer.size()));
 
@@ -1650,7 +1559,7 @@ void tst_udpserver::test_unsubscribe_twice()
   QCOMPARE(response.result, SubscribeResult::Ok);
   QVERIFY(response.id.value > 0);
 
-  const Subscription* sub = manager.find(response.id);
+  const Subscription* sub = srv.manager.find(response.id);
   QVERIFY(sub != nullptr);
 
   QCOMPARE(sub->rate, PublishRate::Hz10);
@@ -1659,8 +1568,8 @@ void tst_udpserver::test_unsubscribe_twice()
   QCOMPARE(sub->tags[0], TagId{0});
   QCOMPARE(sub->tags[1], TagId{1});
 
-  scheduler.tick();
-  QCOMPARE(sender.sendCount, 1u);
+  srv.scheduler.tick();
+  QCOMPARE(srv.sender.sendCount, 1u);
 
   // подписка создана, теперь удалить ее
   UnsubscribeRequest req2;
@@ -1675,7 +1584,7 @@ void tst_udpserver::test_unsubscribe_twice()
       reinterpret_cast<const char*>(writer.data()),
       writer.size(),
       QHostAddress::LocalHost,
-      server.port());
+      srv.server.port());
 
   QCOMPARE(bytes2, qint64(writer.size()));
 
@@ -1703,11 +1612,11 @@ void tst_udpserver::test_unsubscribe_twice()
 
   QCOMPARE(response2.result, UnsubscribeResult::Ok);
 
-  const Subscription* sub2 = manager.find(response.id);
+  const Subscription* sub2 = srv.manager.find(response.id);
   QVERIFY(sub2 == nullptr);
 
-  scheduler.tick();
-  QCOMPARE(sender.sendCount, 1u);
+  srv.scheduler.tick();
+  QCOMPARE(srv.sender.sendCount, 1u);
 
   // пробуем удалить подписку еще раз
   writer.begin(PacketType::UnsubscribeRequest);
@@ -1719,7 +1628,7 @@ void tst_udpserver::test_unsubscribe_twice()
       reinterpret_cast<const char*>(writer.data()),
       writer.size(),
       QHostAddress::LocalHost,
-      server.port());
+      srv.server.port());
 
   QCOMPARE(bytes3, qint64(writer.size()));
 
@@ -1748,15 +1657,15 @@ void tst_udpserver::test_unsubscribe_twice()
   QCOMPARE(response3.result, UnsubscribeResult::InvalidId);
 
   // повторно проверим отсутствие подписки
-  const Subscription* sub3 = manager.find(response.id);
+  const Subscription* sub3 = srv.manager.find(response.id);
   QVERIFY(sub3 == nullptr);
 
   // повторно проверим выполнения callback-а и то что счетчик не увеличен
-  scheduler.tick();
-  QCOMPARE(sender.sendCount, 1u);
+  srv.scheduler.tick();
+  QCOMPARE(srv.sender.sendCount, 1u);
 
-  server.stop();
-  QVERIFY(!server.isRunning());
+  srv.server.stop();
+  QVERIFY(!srv.server.isRunning());
 }
 
 void tst_udpserver::test_ping_followedByPing()

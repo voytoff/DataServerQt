@@ -201,7 +201,7 @@ void tst_livestorage::test_publishSamples() {
   PacketWriter writer{};
   Publisher pub{};
 
-  QVERIFY(pub.publish(storage, s1, s1.sequence, t, writer));
+  QVERIFY(pub.publish(storage, s1, s1.sequence, writer));
 
   PacketReader reader;
   reader.append(writer.data(), writer.size());
@@ -267,7 +267,7 @@ void tst_livestorage::test_publishSamples_reverseOrder() {
   PacketWriter writer{};
   Publisher pub{};
 
-  QVERIFY(pub.publish(storage, s1, s1.sequence, t, writer));
+  QVERIFY(pub.publish(storage, s1, s1.sequence, writer));
 
   PacketReader reader;
   reader.append(writer.data(), writer.size());
@@ -337,7 +337,7 @@ void tst_livestorage::test_updateModule_read()
   PacketWriter writer;
   Publisher pub;
 
-  QVERIFY(pub.publish(storage, s1, s1.sequence, t, writer));
+  QVERIFY(pub.publish(storage, s1, s1.sequence, writer));
 
   PacketReader reader;
   reader.append(writer.data(), writer.size());
@@ -408,7 +408,7 @@ void tst_livestorage::test_updateModule_invalidSize_keepsPreviousValues()
   PacketWriter writer;
   Publisher pub;
 
-  QVERIFY(pub.publish(storage, s1, s1.sequence, t, writer));
+  QVERIFY(pub.publish(storage, s1, s1.sequence, writer));
 
   PacketReader reader;
   reader.append(writer.data(), writer.size());
@@ -434,12 +434,12 @@ void tst_livestorage::test_updateModule_invalidSize_keepsPreviousValues()
 
   QVERIFY(reader.remaining() == 0);
 
-  t = 7654321;
+  uint64_t t_2 = 7654321;
   float values2[] = {11.1f, 22.2f};
   // модуль 0 обновляет неполные данные в livestorage с временем 7654321
-  QVERIFY(!storage.updateModule(ModuleId{0}, values2, t));
+  QVERIFY(!storage.updateModule(ModuleId{0}, values2, t_2));
 
-  QVERIFY(pub.publish(storage, s1, s1.sequence, t, writer));
+  QVERIFY(pub.publish(storage, s1, s1.sequence, writer));
 
   reader.clear();
   reader.append(writer.data(), writer.size());
@@ -543,7 +543,7 @@ void tst_livestorage::test_updateModule_multipleUpdates()
   PacketWriter writer;
   Publisher pub;
 
-  QVERIFY(pub.publish(storage, s1, s1.sequence, time2, writer));
+  QVERIFY(pub.publish(storage, s1, s1.sequence, writer));
 
   PacketReader reader;
   reader.append(writer.data(), writer.size());

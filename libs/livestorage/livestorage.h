@@ -5,12 +5,11 @@
 #include <cstdint>
 #include <span>
 #include <vector>
-//#include "systemconfiguration.h"
+#include "systemconfiguration.h"
 
 namespace qds
 {
 
-class SystemConfiguration;
 class LiveStorage
 {
 public:
@@ -20,9 +19,10 @@ public:
   bool updateModule(ModuleId module, std::span<const float> values, uint64_t timestamp);
 
   [[nodiscard]] const Sample& sample(TagId id) const;
-  bool read(TagId tag, Sample& sample) const;
+  [[nodiscard]] bool read(TagId tag, Sample& sample) const;
 
   [[nodiscard]] uint64_t moduleTimestamp(ModuleId id) const noexcept;
+  [[nodiscard]] uint64_t timestamp(TagId tag) const noexcept;
 
   [[nodiscard]] std::size_t size() const noexcept;
 
@@ -31,7 +31,10 @@ private:
 
   std::vector<Sample>   m_samples;
   std::vector<uint64_t> m_moduleTimestamps;
+  std::vector<ModuleId> m_tagModules;
+
 };
+
 }
 
 #endif // LIVESTORAGE_H

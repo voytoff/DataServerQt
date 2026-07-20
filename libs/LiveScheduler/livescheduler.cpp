@@ -83,7 +83,6 @@ void LiveScheduler::publish(std::span<const SubscriptionId> ids)
           m_storage,
           *sub,
           sub->sequence,
-          timestamp,
           writer))
     {
       continue;

@@ -17,7 +17,6 @@ public:
     const LiveStorage& storage,
     const Subscription& sub,
     uint32_t sequence,
-    uint64_t timestamp,
     PacketWriter& writer) const;
 };
 

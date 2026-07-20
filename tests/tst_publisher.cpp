@@ -77,7 +77,7 @@ void tst_publisher::test_publish_invalidTag()
   PacketWriter writer;
   Publisher pub;
 
-  QVERIFY(!pub.publish(storage, s1, s1.sequence, t, writer));
+  QVERIFY(!pub.publish(storage, s1, t, writer));
   QCOMPARE(writer.size(), std::size_t(0));
 }
 
@@ -120,7 +120,7 @@ void tst_publisher::test_publish_sequence()
   PacketWriter writer{};
   Publisher pub{};
 
-  pub.publish(storage, s1, 10u, t, writer);
+  pub.publish(storage, s1, 10u, writer);
 
   PacketReader reader;
   reader.append(writer.data(), writer.size());
@@ -172,7 +172,6 @@ void tst_publisher::test_publish_emptySubscription()
       storage,
       sub,
       5u,
-      1234567,
       writer));
 
   PacketReader reader;
@@ -190,7 +189,7 @@ void tst_publisher::test_publish_emptySubscription()
 
   QCOMPARE(hdr.subscriptionId.value, 1u);
   QCOMPARE(hdr.sequence, 5u);
-  QCOMPARE(hdr.timestamp, 1234567u);
+  QCOMPARE(hdr.timestamp, 0u);
   QCOMPARE(hdr.valueCount, 0u);
 
   QVERIFY(reader.remaining() == 0);
@@ -235,7 +234,7 @@ void tst_publisher::test_publish_reuseWriter()
   s1.rate = PublishRate::Hz10;
   s1.tags = { {0}, {1} };
 
-  pub.publish(storage, s1, s1.sequence, t, writer);
+  pub.publish(storage, s1, t, writer);
 
   auto size1 = writer.size();
 
@@ -246,7 +245,7 @@ void tst_publisher::test_publish_reuseWriter()
   s2.rate = PublishRate::Hz10;
   s2.tags = { {0} };
 
-  pub.publish(storage, s2, s2.sequence, t, writer);
+  pub.publish(storage, s2, t, writer);
 
   auto size2 = writer.size();
 

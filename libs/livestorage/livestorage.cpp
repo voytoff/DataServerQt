@@ -12,6 +12,10 @@ LiveStorage::LiveStorage(const SystemConfiguration& cfg)
 {
     m_samples.resize(cfg.tags().size());
     m_moduleTimestamps.resize(cfg.modules().size(), 0);
+    m_tagModules.resize(cfg.tags().size());
+
+    for (const auto& tag : cfg.tags())
+      m_tagModules[tag.tag.value] = tag.module;
 }
 
 const Sample& LiveStorage::sample(TagId id) const
@@ -38,6 +42,12 @@ uint64_t LiveStorage::moduleTimestamp(ModuleId id) const noexcept
 std::size_t LiveStorage::size() const noexcept
 {
   return m_samples.size();
+}
+
+uint64_t LiveStorage::timestamp(TagId tag) const noexcept
+{
+  Q_ASSERT(tag.value < m_tagModules.size());
+  return m_moduleTimestamps[m_tagModules[tag.value].value];
 }
 
 bool LiveStorage::updateModule(ModuleId module,
