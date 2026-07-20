@@ -1,6 +1,7 @@
 #include "systemconfiguration.h"
 #include <algorithm>
 #include <cassert>
+#include <qassert.h>
 
 namespace qds
 {
@@ -48,7 +49,7 @@ const std::vector<TagInfo>& SystemConfiguration::tags() const
 
 const std::vector<TagId>& SystemConfiguration::moduleTags(ModuleId id) const
 {
-  assert(id.value < m_moduleTags.size());
+  Q_ASSERT(id.value < m_moduleTags.size());
   return m_moduleTags[id.value];
 }
 

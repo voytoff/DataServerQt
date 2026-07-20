@@ -12,7 +12,7 @@ PacketWriter::PacketWriter()
 
 void PacketWriter::begin(PacketType type)
 {
-  m_buffer.clear();
+  clear();
   m_buffer.resize(sizeof(PacketHeader));
 
   PacketHeader* h = header();
@@ -26,6 +26,7 @@ void PacketWriter::begin(PacketType type)
 void PacketWriter::clear()
 {
   m_buffer.clear();
+  m_buffer.resize(0);
 }
 
 void PacketWriter::writeRaw(const void* data,

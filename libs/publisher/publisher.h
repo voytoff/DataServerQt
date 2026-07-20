@@ -13,12 +13,12 @@ namespace qds
 class Publisher
 {
 public:
-
-  bool publish(const LiveStorage& storage,
-               const Subscription& subscription,
-               uint32_t sequence,
-               uint64_t timestamp,
-               PacketWriter& writer) const;
+  bool publish(
+    const LiveStorage& storage,
+    const Subscription& sub,
+    uint32_t sequence,
+    uint64_t timestamp,
+    PacketWriter& writer) const;
 };
 
 }

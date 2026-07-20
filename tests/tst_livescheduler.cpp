@@ -3,10 +3,12 @@
 #include "livescheduler.h"
 #include "packetreader.h"
 #include "protocol/livedata.h"
+#include "protocol/publishheader.h"
 #include "publisher.h"
 #include "subscription.h"
 #include "subscriptionmanager.h"
 #include "systemconfiguration.h"
+#include "testsrv.h"
 #include <qtestcase.h>
 
 tst_livescheduler::tst_livescheduler() { }
@@ -445,5 +447,136 @@ void tst_livescheduler::test_scheduler_send_subscriptions_sequence2() {
   QCOMPARE(checkS1->sequence, 10u);
   //const Subscription* checkS2 = manager.find(id2);
   //QVERIFY(checkS2 == nullptr);
+}
+
+void tst_livescheduler::test_publishFailed_sequenceNotIncremented()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg;
+  SubscriptionManager manager;
+  Publisher publisher;
+
+  LiveStorage storage(cfg);
+  TestSender sender;
+
+  LiveScheduler scheduler(
+    storage,
+    manager,
+    publisher,
+    sender);
+
+  Subscription sub;
+  sub.rate = PublishRate::Hz10;
+  sub.tags = {{999}};
+
+  auto id = manager.add(sub);
+
+  scheduler.addSubscription(
+    id,
+    PublishRate::Hz10);
+
+  QCOMPARE(manager.size(), 1u);
+  QCOMPARE(id.value, 1u);
+  QCOMPARE(manager.find(id)->sequence, 0u);
+
+  scheduler.tick();
+
+  // после неудачной публикации состояние подписки не изменилось.
+  QCOMPARE(sender.sendCount, 0u);
+  QCOMPARE(manager.find(id)->sequence, 0u);
+}
+
+void tst_livescheduler::test_emptySubscription_sequenceIncremented()
+{
+  using namespace qds;
+  SubscriptionManager manager;
+  Publisher publisher;
+
+  SystemConfiguration cfg;
+  LiveStorage storage(cfg);
+  TestSender sender;
+
+  LiveScheduler scheduler(
+    storage,
+    manager,
+    publisher,
+    sender);
+
+  Subscription sub;
+  sub.rate = PublishRate::Hz10;
+  // sub.tags.empty()
+
+  auto id = manager.add(sub);
+
+  scheduler.addSubscription(
+    id,
+    PublishRate::Hz10);
+
+  QCOMPARE(id.value, 1u);
+  QCOMPARE(manager.find(id)->sequence, 0u);
+
+  scheduler.tick();
+
+  // после публикации состояние подписки изменилось.
+  QCOMPARE(sender.sendCount, 1u);
+  QCOMPARE(manager.find(id)->sequence, 1u);
+}
+
+void tst_livescheduler::test_publishPacket_singleTag()
+{
+  using namespace qds;
+  constexpr TagId tags1[] { {0}, {1} };
+  SystemConfiguration cfg = createTestConfig(tags1, std::size(tags1));
+
+  TestSrv srv(cfg);
+
+  float expectedValue = 110.0f;
+  float values[] = {expectedValue, 201.2f};
+
+  uint64_t time1 = 1234567;
+  // модуль 0 обновил данные в livestorage с временем 1234567
+  QVERIFY(srv.storage.updateModule(ModuleId{0}, values, time1));
+
+
+  Subscription sub;
+  sub.rate = PublishRate::Hz10;
+  sub.tags = {{0}};
+
+  auto id = srv.manager.add(sub);
+
+  srv.scheduler.addSubscription(
+    id,
+    PublishRate::Hz10);
+
+  QCOMPARE(id.value, 1u);
+  QCOMPARE(srv.manager.find(id)->sequence, 0u);
+
+  srv.scheduler.tick();
+
+  // после публикации состояние подписки изменилось.
+  QCOMPARE(srv.sender.sendCount, 1u);
+  QCOMPARE(srv.manager.find(id)->sequence, 1u);
+
+  PacketReader reader;
+  reader.append(srv.sender.packets.front().data(),
+                srv.sender.packets.front().size());
+
+  QVERIFY(reader.nextPacket());
+  QCOMPARE(reader.packetType(), PacketType::LiveData);
+
+  PublishHeader hdr;
+  QVERIFY(reader.read(hdr));
+
+  QCOMPARE(hdr.sequence, 0u);
+  QCOMPARE(hdr.valueCount, 1u);
+
+  Sample sample;
+  QVERIFY(reader.read(sample));
+
+  QCOMPARE(sample.value, expectedValue);
+
+  QCOMPARE(reader.remaining(), 0u);
+  QCOMPARE(hdr.timestamp, time1);
 }
 

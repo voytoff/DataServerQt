@@ -3,6 +3,7 @@
 
 #include "test_dataprotocol.h"
 #include "tst_common.h"
+#include "tst_publisher.h"
 #include "tst_udpsender.h"
 #include "tst_subscriptions.h"
 #include "tst_livescheduler.h"
@@ -41,6 +42,10 @@ int main(int argc, char *argv[])
   }
   {
     test_dataprotocol tc;
+    rc |= QTest::qExec(&tc, argc, argv);
+  }
+  {
+    tst_publisher tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
 

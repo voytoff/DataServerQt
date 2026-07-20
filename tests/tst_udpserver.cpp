@@ -14,27 +14,6 @@
 tst_udpserver::tst_udpserver() { }
 tst_udpserver::~tst_udpserver() = default;
 
-static qds::SystemConfiguration createTestConfig(const qds::TagId* tags, int tagCount)
-{
-  using namespace qds;
-  // создаем конфигурацию
-  SystemConfiguration cfg;
-
-  ModuleInfo m0;
-  m0.id = {0};
-  cfg.addModule(m0);
-
-  for (int i = 0; i < tagCount; i++) {
-    TagId t = tags[i];
-    TagInfo ti;
-    ti.tag = t;
-    ti.module = {0};
-    cfg.addTag(ti);
-  }
-
-  return cfg;
-}
-
 static void processEvents(int timeoutMs = 100)
 {
   QElapsedTimer timer;
@@ -2081,17 +2060,13 @@ void tst_udpserver::test_pingBurst1000()
     QCOMPARE(bytes, qint64(writer.size()));
   }
 
-  processEvents();
-
-  // Ждём ответ
-  QTRY_VERIFY(client.waitForReadyRead(100));
-
   QByteArray data;
   int pongCount = 0;
 
   while (pongCount < 1000)
   {
-    QVERIFY(client.waitForReadyRead(100));
+    // Ждём ответ
+    QTRY_VERIFY(client.waitForReadyRead(100));
 
     while (client.hasPendingDatagrams())
     {
@@ -2104,6 +2079,7 @@ void tst_udpserver::test_pingBurst1000()
       // Проверяем
       PacketReader reader;
 
+      reader.clear();
       reader.append(
         reinterpret_cast<const std::byte*>(data.constData()),
         data.size());

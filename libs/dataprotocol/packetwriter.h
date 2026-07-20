@@ -60,15 +60,12 @@ private:
 template<typename T>
 void PacketWriter::write(const T& value)
 {
-  static_assert(std::is_trivially_copyable_v<T>,
-                "PacketWriter::write supports only trivially copyable types");
-
+  static_assert(std::is_trivially_copyable_v<T>, "PacketWriter::write supports only trivially copyable types");
   writeRaw(&value, sizeof(T));
 }
 
 template<typename T>
-void PacketWriter::writeArray(const T* data,
-                              std::size_t count)
+void PacketWriter::writeArray(const T* data, std::size_t count)
 {
   static_assert(std::is_trivially_copyable_v<T>,
                 "PacketWriter::writeArray supports only trivially copyable types");

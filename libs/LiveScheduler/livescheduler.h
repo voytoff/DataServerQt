@@ -28,7 +28,7 @@ public:
   void tick();
 
 private:
-  void publish(const std::vector<SubscriptionId>& ids);
+  void publish(std::span<const SubscriptionId> ids);
 
 private:
   const LiveStorage& m_storage;
@@ -42,14 +42,6 @@ private:
 
   uint32_t m_tick = 0;
 
-/*
-  // для тестов
-public:
-  [[nodiscard]]
-  uint32_t publishCount() const noexcept;
-private:
-  uint32_t m_publishCount = 0;
-*/
 };
 
 }

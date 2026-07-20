@@ -41,7 +41,6 @@ struct SubscriptionId
 struct Sample
 {
   float value = 0.0f;
-  uint32_t quality = 0;
 };
 
 enum class PublishRate : uint16_t

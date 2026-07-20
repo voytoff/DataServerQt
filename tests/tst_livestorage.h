@@ -15,8 +15,13 @@ private slots:
   void test_liveDataHeader();
   void test_LiveDataPacket();
   void test_liveDataPayload();
-  void test_livePublisher();
-  void test_livePublisher_reverse();
+  void test_publishSamples();
+  void test_publishSamples_reverseOrder();
+
+  void test_updateModule_read();
+  void test_updateModule_invalidSize_keepsPreviousValues();
+  void test_read_invalidTag();
+  void test_updateModule_multipleUpdates();
 
 };
 

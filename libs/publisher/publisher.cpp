@@ -1,32 +1,37 @@
 #include "publisher.h"
-#include "protocol/livedata.h"
+#include "protocol/publishheader.h"
 
 namespace qds
 {
 
 bool Publisher::publish(const LiveStorage& storage,
-                        const Subscription& subscription,
+                        const Subscription& sub,
                         uint32_t sequence,
                         uint64_t timestamp,
                         PacketWriter& writer) const
 {
   writer.begin(PacketType::LiveData);
 
-  const auto& tags = subscription.tags;
+  const auto& tags = sub.tags;
 
-  LiveDataHeader header;
+  PublishHeader hdr;
+  hdr.subscriptionId = sub.id;
+  hdr.sequence = sequence;
+  hdr.timestamp = timestamp;
+  hdr.valueCount = uint32_t(tags.size());
 
-  header.subscriptionId = subscription.id;
-  header.sequence       = sequence;
-  header.timestamp      = timestamp;
-  header.sampleCount =
-    static_cast<uint32_t>(tags.size());
-
-  writer.write(header);
+  writer.write(hdr);
 
   for (TagId tag : tags)
   {
-    writer.write(storage.sample(tag).value);
+    Sample sample;
+
+    if (!storage.read(tag, sample)) {
+      writer.clear();
+      return false;
+    }
+
+    writer.write(sample);
   }
 
   return true;

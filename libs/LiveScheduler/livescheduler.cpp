@@ -66,46 +66,36 @@ void LiveScheduler::tick()
   m_tick = (m_tick + 1) % 100;
 }
 
-void LiveScheduler::publish(
-  const std::vector<SubscriptionId>& ids)
+void LiveScheduler::publish(std::span<const SubscriptionId> ids)
 {
+  PacketWriter writer;
+
   for (SubscriptionId id : ids)
   {
-    Subscription* sub =
-      m_subscriptions.find(id);
+    Subscription* sub = m_subscriptions.find(id);
 
     if (!sub)
       continue;
 
-    PacketWriter writer;
+    const uint64_t timestamp = 0; // TODO
 
-    const uint64_t timestamp = 0;
-
-    const uint32_t sequence = sub->sequence++;
-
-    const bool ok =
-      m_publisher.publish(
-        m_storage,
-        *sub,
-        sequence,
-        timestamp,
-        writer);
-
-    if (!ok)
+    if (!m_publisher.publish(
+          m_storage,
+          *sub,
+          sub->sequence,
+          timestamp,
+          writer))
+    {
       continue;
+    }
 
     m_sender.send(
       sub->endpoint,
       writer.data(),
       writer.size());
+
+    ++sub->sequence;
   }
 }
 
-/*
-// для тестов
-uint32_t LiveScheduler::publishCount() const noexcept
-{
-  return m_publishCount;
-}
-*/
 }
