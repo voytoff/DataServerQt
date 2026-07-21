@@ -20,6 +20,7 @@ target_include_directories(Subscriptions
         ../subscriptions
         ../livescheduler
         ../configuration
+        ../datasource
 )
 
 target_link_libraries(UdpServer PRIVATE

@@ -24,11 +24,9 @@ public:
   TestSender sender;
   LiveScheduler scheduler;
   UdpServer server;
-
 };
 
-static SystemConfiguration createTestConfig(const qds::TagId* tags, int tagCount)
-{
+static SystemConfiguration createTestConfig(const qds::TagId* tags, int tagCount) {
   using namespace qds;
   // создаем конфигурацию
   SystemConfiguration cfg;
@@ -48,5 +46,26 @@ static SystemConfiguration createTestConfig(const qds::TagId* tags, int tagCount
   return cfg;
 }
 
+/** создает конфигурацию с произвольным числом модулей */
+static SystemConfiguration createTestConfig(const std::vector<std::vector<TagId>> &modules) {
+  using namespace qds;
+  SystemConfiguration cfg;
+
+  for (uint32_t n = 0; n < modules.size(); n++) {
+    ModuleInfo m{n};
+    cfg.addModule(m);
+
+    const auto& tags = modules[n];
+    for (int i = 0; i < tags.size(); i++) {
+      TagId t = tags[i];
+      TagInfo ti;
+      ti.tag = t;
+      ti.module = m.id;
+      cfg.addTag(ti);
+    }
+  }
+
+  return cfg;
+}
 
 #endif // TESTSRV_H

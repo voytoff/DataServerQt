@@ -2,7 +2,6 @@
 #include <qudpsocket.h>
 
 #include "datatypes.h"
-#include "livestorage.h"
 #include "systemconfiguration.h"
 
 test_common::test_common() { }

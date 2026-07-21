@@ -23,7 +23,6 @@ target_include_directories(DataProtocol
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
         ../datatypes
-        #../subscriptions
 )
 
 target_link_libraries(DataProtocol PRIVATE

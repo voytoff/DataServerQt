@@ -22,6 +22,7 @@ add_executable(test_common
     test_dataprotocol.h test_dataprotocol.cpp
     testsrv.h testsrv.cpp
     tst_publisher.h tst_publisher.cpp
+    tst_datasource.h tst_datasource.cpp
 )
 
 target_include_directories(test_common PRIVATE
@@ -33,6 +34,7 @@ target_include_directories(test_common PRIVATE
     ../libs/livescheduler
     ../libs/udpsender
     ../libs/udpserver
+    ../libs/datasource
 )
 
 target_link_libraries(test_common PRIVATE
@@ -47,6 +49,7 @@ target_link_libraries(test_common PRIVATE
     LiveScheduler
     UdpSender
     UdpServer
+    DataSource
 )
 
 add_test(NAME test_common COMMAND test_common)

@@ -39,20 +39,18 @@ uint64_t LiveStorage::moduleTimestamp(ModuleId id) const noexcept
   return m_moduleTimestamps[id.value];
 }
 
-std::size_t LiveStorage::size() const noexcept
-{
-  return m_samples.size();
-}
-
 uint64_t LiveStorage::timestamp(TagId tag) const noexcept
 {
   Q_ASSERT(tag.value < m_tagModules.size());
   return m_moduleTimestamps[m_tagModules[tag.value].value];
 }
 
-bool LiveStorage::updateModule(ModuleId module,
-                               std::span<const float> values,
-                               uint64_t timestamp)
+std::size_t LiveStorage::size() const noexcept
+{
+  return m_samples.size();
+}
+
+bool LiveStorage::updateModule(ModuleId module, std::span<const float> values, uint64_t timestamp)
 {
   const auto& tags = m_cfg.moduleTags(module);
 

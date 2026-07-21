@@ -6,11 +6,12 @@
 #include <span>
 #include <vector>
 #include "systemconfiguration.h"
+#include "imoduledatasink.h"
 
 namespace qds
 {
 
-class LiveStorage
+class LiveStorage : public IModuleDataSink
 {
 public:
   explicit LiveStorage(const SystemConfiguration& cfg);
