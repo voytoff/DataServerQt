@@ -139,40 +139,64 @@ void tst_datasource::test_generatorDataSource_periodicCall()
 
   QTest::qWait(1000);
 
-  Sample before;
-  QVERIFY(srv.storage.read(tags[0], before));
-  QVERIFY(before.value > 0.f);
-  qDebug() << "тег 0:" << before.value;
+  Sample beforeSample;
+  QVERIFY(srv.storage.read(tags[0], beforeSample));
+  QVERIFY(beforeSample.value > 0.f);
+  qDebug() << "тег 0 before:" << beforeSample.value;
 
-  QVERIFY(srv.storage.read(tags[1], before));
-  QVERIFY(before.value > 0.f);
-  qDebug() << "тег 1:" << before.value;
+  QVERIFY(srv.storage.read(tags[1], beforeSample));
+  QVERIFY(beforeSample.value > 0.f);
+  qDebug() << "тег 1 before:" << beforeSample.value;
 
   QVERIFY(srv.storage.timestamp(tags[0]) > 0);
   QVERIFY(srv.storage.timestamp(tags[1]) > 0);
 
-  //QVERIFY(srv.storage.updateCount  >= 90);
-  //QVERIFY(srv.storage.updateCount <= 110);
+  const auto beforeCount = source.generationCount();
 
-  qDebug() << "timestamp" << srv.storage.moduleTimestamp({0});
+  QVERIFY(beforeCount >= 70);
+  QVERIFY(beforeCount <= 90);
+
+  uint64_t t1 = srv.storage.moduleTimestamp({0});
+
+  qDebug() << "generationCount before" << beforeCount;
 
   QTest::qWait(100);
 
-  Sample after;
+  Sample afterSample;
 
-  QVERIFY(srv.storage.read(tags[0], after));
-  QVERIFY(after.value > before.value);
-  qDebug() << "  тег 0:" << after.value;
+  QVERIFY(srv.storage.read(tags[0], afterSample));
+  QVERIFY(afterSample.value > beforeSample.value);
+  qDebug() << "тег 0 after:" << afterSample.value;
 
-  QVERIFY(srv.storage.read(tags[1], after));
-  QVERIFY(after.value > before.value);
-  qDebug() << "  тег 1:" << after.value;
+  QVERIFY(srv.storage.read(tags[1], afterSample));
+  QVERIFY(afterSample.value > beforeSample.value);
+  qDebug() << "  тег 1 after:" << afterSample.value;
 
-  //QVERIFY(srv.storage.updateCount >= 100);
-  //QVERIFY(srv.storage.updateCount <= 120);
+  const auto afterCount = source.generationCount();
 
-  qDebug() << "  timestamp" << srv.storage.moduleTimestamp({0});
+  QVERIFY(afterCount >= 80);
+  QVERIFY(afterCount <= 100);
+
+  qDebug() << "generationCount after" << afterCount;
+  qDebug() << "time:" << srv.storage.moduleTimestamp({0}) - t1;
+
+  const auto delta = afterCount - beforeCount;
+
+  QVERIFY(delta >= 7);
+  QVERIFY(delta <= 12);
 
   runner.stop();
   QVERIFY(!source.isRunning());
+
+  // проверка после остановки
+  Sample s1, s2;
+  const auto count = source.generationCount();
+  QVERIFY(srv.storage.read(tags[0], s1));
+
+  QTest::qWait(100);
+
+  QCOMPARE(source.generationCount(), count);
+  QVERIFY(srv.storage.read(tags[0], s2));
+
+  QCOMPARE(s1.value, s2.value);
 }

@@ -50,6 +50,7 @@ bool GeneratorDataSource::generateOnce(uint64_t timestamp)
     }
   }
 
+  ++m_generationCount;
   return true;
 }
 
@@ -65,14 +66,19 @@ bool GeneratorDataSource::step()
   return generateOnce(timestamp);
 }
 
+uint64_t GeneratorDataSource::generationCount() const noexcept
+{
+  return m_generationCount;
+}
+
 bool GeneratorDataSource::generateModule(
   ModuleId module,
   IModuleGenerator& generator,
   uint64_t timestamp)
 {
-  const auto& tags = m_cfg.moduleTags(module);
+  //const auto& tags = m_cfg.moduleTags(module);
 
-  m_buffer.resize(tags.size());
+  m_buffer.resize(m_cfg.moduleTags(module).size());
 
   generator.generate(module, m_buffer);
 

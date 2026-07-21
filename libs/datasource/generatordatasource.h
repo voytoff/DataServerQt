@@ -39,6 +39,8 @@ public:
 
   bool generateOnce(uint64_t timestamp);
   bool step();
+  [[nodiscard]]
+  uint64_t generationCount() const noexcept;
 
 private:
   bool generateModule(
@@ -53,6 +55,7 @@ private:
   const SystemConfiguration& m_cfg;
   std::vector<ModuleContext> m_modules;
   std::vector<float> m_buffer;
+  uint64_t m_generationCount = 0;
 };
 
 }
