@@ -20,6 +20,7 @@ find_package(Qt6 REQUIRED COMPONENTS Core Network)
 # UdpSender	отправка UDP
 # UdpServer	приём и обработка UDP
 # DataSource    подсистема получения данных
+# Core          Время
 
 add_subdirectory(tests)
 add_subdirectory(libs/configuration)
@@ -31,3 +32,4 @@ add_subdirectory(libs/livescheduler)
 add_subdirectory(libs/udpsender)
 add_subdirectory(libs/udpserver)
 add_subdirectory(libs/datasource)
+add_subdirectory(libs/core)

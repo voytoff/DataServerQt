@@ -1,7 +1,6 @@
 #include "tst_udpserver.h"
 #include "isender.h"
 #include "livescheduler.h"
-#include "publisher.h"
 #include "subscriptionmanager.h"
 #include "systemconfiguration.h"
 #include "testsrv.h"

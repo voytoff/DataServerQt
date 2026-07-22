@@ -1,6 +1,7 @@
 #ifndef GENERATORDATASOURCE_H
 #define GENERATORDATASOURCE_H
 
+#include "iclock.h"
 #include "imoduledatasink.h"
 #include "imodulegenerator.h"
 #include "systemconfiguration.h"
@@ -16,12 +17,11 @@ struct ModuleContext
   std::unique_ptr<IModuleGenerator> generator;
 
   ModuleContext(
-    ModuleId id,
-    std::unique_ptr<IModuleGenerator> gen)
-    : id(id)
-    , generator(std::move(gen))
-  {
-  }
+    ModuleId moduleId,
+    std::unique_ptr<IModuleGenerator> generator)
+    : id(moduleId)
+    , generator(std::move(generator))
+  {}
 };
 
 class GeneratorDataSource : public IDataSource
@@ -29,7 +29,8 @@ class GeneratorDataSource : public IDataSource
 public:
   GeneratorDataSource(
     IModuleDataSink& sink,
-    const SystemConfiguration& cfg);
+    const SystemConfiguration& cfg,
+    IClock& clock);
 
   bool start() override;
   void stop() noexcept override;
@@ -38,14 +39,25 @@ public:
   bool isRunning() const noexcept override;
 
   bool generateOnce(uint64_t timestamp);
-  bool step();
+  bool step() override;
   [[nodiscard]]
   uint64_t generationCount() const noexcept;
 
+  [[nodiscard]]
+  bool setGenerator(ModuleId module, std::unique_ptr<IModuleGenerator> gen);
+
+  template<class T, class... Args>
+  [[nodiscard]]
+  bool setGenerator(ModuleId module, Args&&... args)
+  {
+    return setGenerator(
+      module,
+      std::make_unique<T>(std::forward<Args>(args)...));
+  }
+
 private:
   bool generateModule(
-    ModuleId module,
-    IModuleGenerator& generator,
+    ModuleContext& module,
     uint64_t timestamp);
 
 private:
@@ -53,6 +65,7 @@ private:
 
   IModuleDataSink& m_sink;
   const SystemConfiguration& m_cfg;
+  IClock& m_clock;
   std::vector<ModuleContext> m_modules;
   std::vector<float> m_buffer;
   uint64_t m_generationCount = 0;

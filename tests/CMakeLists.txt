@@ -23,9 +23,11 @@ add_executable(test_common
     testsrv.h testsrv.cpp
     tst_publisher.h tst_publisher.cpp
     tst_datasource.h tst_datasource.cpp
+    tst_core.h tst_core.cpp
 )
 
 target_include_directories(test_common PRIVATE
+    ../libs/core
     ../libs/configuration
     ../libs/configuration
     ../libs/publisher
@@ -41,6 +43,7 @@ target_link_libraries(test_common PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Test
     Qt${QT_VERSION_MAJOR}::Network
+    Core
     Configuration
     LiveStorage
     Subscriptions

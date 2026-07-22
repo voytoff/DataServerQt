@@ -15,6 +15,9 @@ public:
 
   [[nodiscard]]
   virtual bool isRunning() const noexcept = 0;
+
+  [[nodiscard]]
+  virtual bool step() = 0;
 };
 
 }

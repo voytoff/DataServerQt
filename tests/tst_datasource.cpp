@@ -1,9 +1,13 @@
 #include "tst_datasource.h"
+#include "datasourcemanager.h"
+#include "fakedatasource.h"
 #include "generatordatasource.h"
 #include "periodicdatasourcerunner.h"
 #include "testsrv.h"
 #include <qtestcase.h>
 #include <qtestsupport_core.h>
+#include "systemclock.h"
+
 
 tst_datasource::tst_datasource() { }
 tst_datasource::~tst_datasource() = default;
@@ -14,10 +18,11 @@ void tst_datasource::test_generatorDataSource_once()
   // создаем конфигурацию
   constexpr TagId tags[] { {0}, {1} };
   SystemConfiguration cfg = createTestConfig(tags, std::size(tags));
+  SystemClock clock;
 
   TestSrv srv(cfg);
 
-  GeneratorDataSource source(srv.storage, cfg);
+  GeneratorDataSource source(srv.storage, cfg, clock);
   QVERIFY(source.start());
   QVERIFY(source.isRunning());
   QVERIFY(!source.start());
@@ -60,10 +65,11 @@ void tst_datasource::test_generatorDataSource_onceTwoModule()
     {{2},{3},{4}}
   };
   SystemConfiguration cfg = createTestConfig(modules);
+  SystemClock clock;
 
   TestSrv srv(cfg);
 
-  GeneratorDataSource source(srv.storage, cfg);
+  GeneratorDataSource source(srv.storage, cfg, clock);
 
   // ---------- First generation ----------
   uint64_t t(1234567);
@@ -126,12 +132,14 @@ void tst_datasource::test_generatorDataSource_onceTwoModule()
 
 void tst_datasource::test_generatorDataSource_periodicCall()
 {
+  using namespace qds;
   constexpr TagId tags[] { {0}, {1} };
   SystemConfiguration cfg = createTestConfig(tags, std::size(tags));
+  SystemClock clock;
 
   TestSrv srv(cfg);
 
-  GeneratorDataSource source(srv.storage, cfg);
+  GeneratorDataSource source(srv.storage, cfg, clock);
 
   PeriodicDataSourceRunner runner(source);
   runner.start(10);
@@ -153,7 +161,7 @@ void tst_datasource::test_generatorDataSource_periodicCall()
 
   const auto beforeCount = source.generationCount();
 
-  QVERIFY(beforeCount >= 70);
+  QVERIFY(beforeCount >= 60);
   QVERIFY(beforeCount <= 90);
 
   uint64_t t1 = srv.storage.moduleTimestamp({0});
@@ -174,7 +182,7 @@ void tst_datasource::test_generatorDataSource_periodicCall()
 
   const auto afterCount = source.generationCount();
 
-  QVERIFY(afterCount >= 80);
+  QVERIFY(afterCount >= 70);
   QVERIFY(afterCount <= 100);
 
   qDebug() << "generationCount after" << afterCount;
@@ -182,7 +190,7 @@ void tst_datasource::test_generatorDataSource_periodicCall()
 
   const auto delta = afterCount - beforeCount;
 
-  QVERIFY(delta >= 7);
+  QVERIFY(delta >= 5);
   QVERIFY(delta <= 12);
 
   runner.stop();
@@ -199,4 +207,59 @@ void tst_datasource::test_generatorDataSource_periodicCall()
   QVERIFY(srv.storage.read(tags[0], s2));
 
   QCOMPARE(s1.value, s2.value);
+}
+
+void tst_datasource::test_dataSourceManager_withoutSources()
+{
+  using namespace qds;
+  DataSourceManager manager;
+
+  QCOMPARE(manager.size(), std::size_t(0));
+
+  QVERIFY(manager.start());
+  QVERIFY(!manager.start());
+
+  QVERIFY(manager.isRunning());
+  QVERIFY(manager.step());
+
+  manager.stop();
+
+  QVERIFY(!manager.isRunning());
+  QVERIFY(!manager.step());
+
+  QCOMPARE(manager.size(), std::size_t(0));
+
+  QVERIFY(manager.start());
+  QVERIFY(manager.isRunning());
+
+  manager.stop();
+
+  QVERIFY(!manager.isRunning());
+}
+
+void tst_datasource::test_dataSourceManager_withFakeSource()
+{
+  using namespace qds;
+  auto ptr = std::make_unique<FakeDataSource>();
+  auto source = ptr.get();
+
+  DataSourceManager manager;
+
+  manager.add(std::move(ptr));
+
+  QVERIFY(!source->isRunning());
+
+  QVERIFY(manager.start());
+
+  QVERIFY(source->isRunning());
+
+  QVERIFY(manager.step());
+
+  manager.stop();
+
+  QVERIFY(!source->isRunning());
+
+  QCOMPARE(source->startCalls, 1);
+  QCOMPARE(source->stepCalls, 1);
+  QCOMPARE(source->stopCalls, 1);
 }

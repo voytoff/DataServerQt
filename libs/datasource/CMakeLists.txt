@@ -15,17 +15,21 @@ add_library(DataSource SHARED
   imodulegenerator.h
   countergenerator.h countergenerator.cpp
   periodicdatasourcerunner.h periodicdatasourcerunner.cpp
+  datasourcemanager.h datasourcemanager.cpp
+  fakedatasource.h fakedatasource.cpp
 )
 
 target_include_directories(DataSource
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
         ../datatypes
+        ../core
         ../configuration
 )
 
 target_link_libraries(DataSource PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
+    Core
     Configuration
 )
 

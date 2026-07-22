@@ -15,6 +15,9 @@ private slots:
   void test_generatorDataSource_onceTwoModule();
   void test_generatorDataSource_periodicCall();
 
+  void test_dataSourceManager_withoutSources();
+  void test_dataSourceManager_withFakeSource();
+
 };
 
 #endif // TST_DATASOURCE_H

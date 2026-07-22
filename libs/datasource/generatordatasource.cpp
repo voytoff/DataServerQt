@@ -1,15 +1,16 @@
 #include "generatordatasource.h"
 #include "countergenerator.h"
-#include <chrono>
+#include <algorithm>
 
 namespace qds
 {
 
 GeneratorDataSource::GeneratorDataSource(
   IModuleDataSink& sink,
-  const SystemConfiguration& cfg)
+  const SystemConfiguration& cfg, IClock &clock)
   : m_sink(sink)
   , m_cfg(cfg)
+  , m_clock(clock)
 {
   for (const auto& module : cfg.modules())
   {
@@ -42,9 +43,7 @@ bool GeneratorDataSource::generateOnce(uint64_t timestamp)
 {
   for (auto& module : m_modules)
   {
-    if (!generateModule(module.id,
-                        *module.generator,
-                        timestamp))
+    if (!generateModule(module, timestamp))
     {
       return false;
     }
@@ -56,14 +55,7 @@ bool GeneratorDataSource::generateOnce(uint64_t timestamp)
 
 bool GeneratorDataSource::step()
 {
-  const auto now =
-    std::chrono::system_clock::now();
-
-  const uint64_t timestamp =
-    std::chrono::duration_cast<std::chrono::milliseconds>(
-      now.time_since_epoch())
-      .count();
-  return generateOnce(timestamp);
+  return generateOnce(m_clock.now());
 }
 
 uint64_t GeneratorDataSource::generationCount() const noexcept
@@ -71,19 +63,38 @@ uint64_t GeneratorDataSource::generationCount() const noexcept
   return m_generationCount;
 }
 
-bool GeneratorDataSource::generateModule(
+bool GeneratorDataSource::setGenerator(
   ModuleId module,
-  IModuleGenerator& generator,
+  std::unique_ptr<IModuleGenerator> gen)
+{
+  auto it = std::find_if(
+    m_modules.begin(),
+    m_modules.end(),
+    [module](const ModuleContext& m)
+    {
+      return m.id == module;
+    });
+
+  if (it == m_modules.end())
+    return false;
+
+  it->generator = std::move(gen);
+  return true;
+}
+
+bool GeneratorDataSource::generateModule(
+  ModuleContext &module,
   uint64_t timestamp)
 {
-  //const auto& tags = m_cfg.moduleTags(module);
+  const auto& tags =
+    m_cfg.moduleTags(module.id);
 
-  m_buffer.resize(m_cfg.moduleTags(module).size());
+  m_buffer.resize(tags.size());
 
-  generator.generate(module, m_buffer);
+  module.generator->generate(module.id, m_buffer);
 
   return m_sink.updateModule(
-    module,
+    module.id,
     m_buffer,
     timestamp);
 }
