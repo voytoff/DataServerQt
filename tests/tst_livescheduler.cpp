@@ -40,7 +40,7 @@ void tst_livescheduler::test_scheduler_100Hz()
     id,
     PublishRate::Hz100);
 
-  scheduler.tick();
+  QVERIFY(scheduler.step());
 
   QCOMPARE(
     sender.sendCount,
@@ -74,7 +74,7 @@ void tst_livescheduler::test_scheduler_10Hz()
     PublishRate::Hz10);
 
   for (int i = 0; i < 9; ++i)
-    scheduler.tick();
+    QVERIFY(scheduler.step());
 
   QCOMPARE(
     sender.sendCount,
@@ -108,7 +108,7 @@ void tst_livescheduler::test_scheduler_1Hz()
     PublishRate::Hz1);
 
   for (int i = 0; i < 99; ++i)
-    scheduler.tick();
+    QVERIFY(scheduler.step());
 
   QCOMPARE(
     sender.sendCount,
@@ -140,7 +140,7 @@ void tst_livescheduler::test_scheduler_100Hz_remove_sub() {
     id,
     PublishRate::Hz100);
 
-  scheduler.tick();
+  QVERIFY(scheduler.step());
 
   QCOMPARE(
     sender.sendCount,
@@ -148,7 +148,7 @@ void tst_livescheduler::test_scheduler_100Hz_remove_sub() {
 
   scheduler.removeSubscription(id);
 
-  scheduler.tick();
+  QVERIFY(scheduler.step());
 
   QCOMPARE(
     sender.sendCount,
@@ -199,7 +199,7 @@ void tst_livescheduler::test_scheduler_AllHz()
     id,
     PublishRate::Hz1);
 
-  scheduler.tick();
+  QVERIFY(scheduler.step());
 
   QCOMPARE(
     sender.sendCount,
@@ -231,13 +231,13 @@ void tst_livescheduler::test_scheduler_100Hz_period() {
     id,
     PublishRate::Hz100);
 
-  scheduler.tick();
+  QVERIFY(scheduler.step());
 
   QCOMPARE(
     sender.sendCount,
     1u);
 
-  scheduler.tick();
+  QVERIFY(scheduler.step());
 
   QCOMPARE(
     sender.sendCount,
@@ -270,14 +270,14 @@ void tst_livescheduler::test_scheduler_10Hz_period() {
     id,
     PublishRate::Hz10);
 
-  scheduler.tick();
+  QVERIFY(scheduler.step());
 
   QCOMPARE(
     sender.sendCount,
     1u);
 
   for (int i = 0; i < 10; ++i)
-    scheduler.tick();
+    QVERIFY(scheduler.step());
 
   QCOMPARE(
     sender.sendCount,
@@ -309,14 +309,14 @@ void tst_livescheduler::test_scheduler_1Hz_period() {
     id,
     PublishRate::Hz1);
 
-  scheduler.tick();
+  QVERIFY(scheduler.step());
 
   QCOMPARE(
     sender.sendCount,
     1u);
 
   for (int i = 0; i < 100; ++i)
-    scheduler.tick();
+    QVERIFY(scheduler.step());
 
   QCOMPARE(
     sender.sendCount,
@@ -350,7 +350,7 @@ void tst_livescheduler::test_scheduler_send_subscription_sequence() {
     PublishRate::Hz10);
 
   for (int i = 0; i < 99; ++i)
-    scheduler.tick();
+    QVERIFY(scheduler.step());
 
   QCOMPARE(
     sender.sendCount,
@@ -422,7 +422,7 @@ void tst_livescheduler::test_scheduler_send_subscriptions_sequence2() {
     PublishRate::Hz10);
 
   for (int i = 0; i < 49; ++i)
-    scheduler.tick();
+    QVERIFY(scheduler.step());
 
   QCOMPARE(sender.sendCount, 5+5);
 
@@ -437,7 +437,7 @@ void tst_livescheduler::test_scheduler_send_subscriptions_sequence2() {
   QVERIFY(manager.remove(id2));
 
   for (int i = 0; i < 50; ++i)
-    scheduler.tick();
+    QVERIFY(scheduler.step());
 
   QCOMPARE(sender.sendCount, 15u);
   const Subscription* checkS1 = manager.find(id1);
@@ -480,7 +480,7 @@ void tst_livescheduler::test_publishFailed_sequenceNotIncremented()
   QCOMPARE(id.value, 1u);
   QCOMPARE(manager.find(id)->sequence, 0u);
 
-  scheduler.tick();
+  QVERIFY(scheduler.step());
 
   // после неудачной публикации состояние подписки не изменилось.
   QCOMPARE(sender.sendCount, 0u);
@@ -516,7 +516,7 @@ void tst_livescheduler::test_emptySubscription_sequenceIncremented()
   QCOMPARE(id.value, 1u);
   QCOMPARE(manager.find(id)->sequence, 0u);
 
-  scheduler.tick();
+  QVERIFY(scheduler.step());
 
   // после публикации состояние подписки изменилось.
   QCOMPARE(sender.sendCount, 1u);
@@ -552,7 +552,7 @@ void tst_livescheduler::test_publishPacket_singleTag()
   QCOMPARE(id.value, 1u);
   QCOMPARE(srv.manager.find(id)->sequence, 0u);
 
-  srv.scheduler.tick();
+  QVERIFY(srv.scheduler.step());
 
   // после публикации состояние подписки изменилось.
   QCOMPARE(srv.sender.sendCount, 1u);

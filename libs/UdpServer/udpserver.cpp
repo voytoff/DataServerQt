@@ -115,7 +115,8 @@ void UdpServer::processPing(PacketReader& reader, const Endpoint& endpoint)
     QString::fromStdString(
       endpoint.address));
 
-  const auto sent = m_socket.writeDatagram(
+  //const auto sent =
+  m_socket.writeDatagram(
     reinterpret_cast<const char*>(
       writer.data()),
     static_cast<qint64>(

@@ -32,14 +32,24 @@ public:
     const SystemConfiguration& cfg,
     IClock& clock);
 
-  bool start() override;
+  [[nodiscard]]
+  bool start() noexcept override;
+
   void stop() noexcept override;
 
   [[nodiscard]]
   bool isRunning() const noexcept override;
 
+  /**
+   * Выполняет один цикл генерации
+   * для всех зарегистрированных модулей.
+   */
+  [[nodiscard]]
   bool generateOnce(uint64_t timestamp);
-  bool step() override;
+
+  [[nodiscard]]
+  bool step() noexcept override;
+
   [[nodiscard]]
   uint64_t generationCount() const noexcept;
 

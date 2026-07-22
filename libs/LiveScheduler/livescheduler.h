@@ -25,7 +25,7 @@ public:
 
   void removeSubscription(SubscriptionId id);
 
-  void tick();
+  [[nodiscard]] bool step();
 
 private:
   void publish(std::span<const SubscriptionId> ids);

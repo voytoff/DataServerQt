@@ -16,7 +16,7 @@ public:
   void stop() noexcept override;
 
   [[nodiscard]]
-  bool step() override;
+  bool step() noexcept override;
 
   bool isRunning() const noexcept override;
 

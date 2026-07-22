@@ -24,6 +24,7 @@ add_executable(test_common
     tst_publisher.h tst_publisher.cpp
     tst_datasource.h tst_datasource.cpp
     tst_core.h tst_core.cpp
+    tst_engine.h tst_engine.cpp
 )
 
 target_include_directories(test_common PRIVATE
@@ -37,6 +38,7 @@ target_include_directories(test_common PRIVATE
     ../libs/udpsender
     ../libs/udpserver
     ../libs/datasource
+    ../libs/engine
 )
 
 target_link_libraries(test_common PRIVATE
@@ -53,6 +55,7 @@ target_link_libraries(test_common PRIVATE
     UdpSender
     UdpServer
     DataSource
+    Engine
 )
 
 add_test(NAME test_common COMMAND test_common)

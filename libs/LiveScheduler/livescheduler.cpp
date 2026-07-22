@@ -49,7 +49,7 @@ void LiveScheduler::removeSubscription(SubscriptionId id)
   removeId(m_sub1Hz);
 }
 
-void LiveScheduler::tick()
+bool LiveScheduler::step()
 {
   //   Hz100 -> every tick
   //   Hz10  -> every 10 subsequent ticks
@@ -64,6 +64,8 @@ void LiveScheduler::tick()
     publish(m_sub1Hz);
 
   m_tick = (m_tick + 1) % 100;
+
+  return true;
 }
 
 void LiveScheduler::publish(std::span<const SubscriptionId> ids)

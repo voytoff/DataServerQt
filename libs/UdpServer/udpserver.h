@@ -4,11 +4,13 @@
 #include <QObject>
 #include <QUdpSocket>
 
+#include "livescheduler.h"
+#include "packetwriter.h"
 #include "protocol/subscriptionpackets.h"
 #include "subscriptionmanager.h"
-#include "livescheduler.h"
 #include "packetreader.h"
 #include "protocol/errorpackets.h"
+#include "systemconfiguration.h"
 
 namespace qds
 {

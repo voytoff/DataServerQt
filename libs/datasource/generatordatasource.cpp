@@ -7,7 +7,8 @@ namespace qds
 
 GeneratorDataSource::GeneratorDataSource(
   IModuleDataSink& sink,
-  const SystemConfiguration& cfg, IClock &clock)
+  const SystemConfiguration& cfg
+  , IClock &clock)
   : m_sink(sink)
   , m_cfg(cfg)
   , m_clock(clock)
@@ -20,7 +21,7 @@ GeneratorDataSource::GeneratorDataSource(
   }
 }
 
-bool GeneratorDataSource::start()
+bool GeneratorDataSource::start() noexcept
 {
   if (m_running)
     return false;
@@ -53,7 +54,7 @@ bool GeneratorDataSource::generateOnce(uint64_t timestamp)
   return true;
 }
 
-bool GeneratorDataSource::step()
+bool GeneratorDataSource::step() noexcept
 {
   return generateOnce(m_clock.now());
 }
@@ -86,10 +87,8 @@ bool GeneratorDataSource::generateModule(
   ModuleContext &module,
   uint64_t timestamp)
 {
-  const auto& tags =
-    m_cfg.moduleTags(module.id);
-
-  m_buffer.resize(tags.size());
+  m_buffer.resize(
+    m_cfg.moduleTags(module.id).size());
 
   module.generator->generate(module.id, m_buffer);
 

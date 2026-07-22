@@ -16,7 +16,7 @@ void FakeDataSource::stop() noexcept
   m_running = false;
 }
 
-bool FakeDataSource::step()
+bool FakeDataSource::step() noexcept
 {
   ++stepCalls;
   return m_running;

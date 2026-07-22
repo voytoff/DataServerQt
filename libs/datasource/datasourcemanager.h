@@ -13,10 +13,10 @@ class DataSourceManager
 public:
   bool add(std::unique_ptr<IDataSource> source);
 
-  bool start();
+  [[nodiscard]] bool start();
   void stop() noexcept;
 
-  bool step();
+  [[nodiscard]] bool step();
 
   [[nodiscard]]
   bool isRunning() const noexcept;

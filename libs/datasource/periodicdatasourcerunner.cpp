@@ -11,7 +11,7 @@ PeriodicDataSourceRunner::PeriodicDataSourceRunner(
 {
   connect(&m_timer, &QTimer::timeout, this, [this]
     {
-      m_source.step();
+      auto _ = m_source.step();
     });
 }
 

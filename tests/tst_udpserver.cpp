@@ -498,7 +498,7 @@ void tst_udpserver::test_subscribeList_ok()
   QCOMPARE(sub->tags[0], TagId{0});
   QCOMPARE(sub->tags[1], TagId{1});
 
-  srv.scheduler.tick();
+  QVERIFY(srv.scheduler.step());
   QCOMPARE(srv.sender.sendCount, 1u);
 
   srv.server.stop();
@@ -1092,7 +1092,7 @@ void tst_udpserver::test_unsubscribe_ok()
   QCOMPARE(sub->tags[0], TagId{0});
   QCOMPARE(sub->tags[1], TagId{1});
 
-  srv.scheduler.tick();
+  QVERIFY(srv.scheduler.step());
   QCOMPARE(srv.sender.sendCount, 1u);
 
   // подписка создана, теперь попробуем ее удалить ===============
@@ -1141,7 +1141,7 @@ void tst_udpserver::test_unsubscribe_ok()
   const Subscription* sub2 = srv.manager.find(response.id);
   QVERIFY(sub2 == nullptr);
 
-  srv.scheduler.tick();
+  QVERIFY(srv.scheduler.step());
   QCOMPARE(srv.sender.sendCount, 1u);
 
   srv.server.stop();
@@ -1230,7 +1230,7 @@ void tst_udpserver::test_unsubscribe_invalidId()
   QCOMPARE(sub->tags[0], TagId{0});
   QCOMPARE(sub->tags[1], TagId{1});
 
-  srv.scheduler.tick();
+  QVERIFY(srv.scheduler.step());
   QCOMPARE(srv.sender.sendCount, 1u);
 
   // подписка создана, теперь попробуем удалить, но не какую то другую ===============
@@ -1276,7 +1276,7 @@ void tst_udpserver::test_unsubscribe_invalidId()
 
   QCOMPARE(response2.result, UnsubscribeResult::InvalidId);
 
-  srv.scheduler.tick();
+  QVERIFY(srv.scheduler.step());
   QCOMPARE(srv.sender.sendCount, 1u);
 
 
@@ -1366,7 +1366,7 @@ void tst_udpserver::test_unsubscribe_extraData()
   QCOMPARE(sub->tags[0], TagId{0});
   QCOMPARE(sub->tags[1], TagId{1});
 
-  srv.scheduler.tick();
+  QVERIFY(srv.scheduler.step());
   QCOMPARE(srv.sender.sendCount, 1u);
 
   // подписка создана, теперь попробуем ее удалить ===============
@@ -1567,7 +1567,7 @@ void tst_udpserver::test_unsubscribe_twice()
   QCOMPARE(sub->tags[0], TagId{0});
   QCOMPARE(sub->tags[1], TagId{1});
 
-  srv.scheduler.tick();
+  QVERIFY(srv.scheduler.step());
   QCOMPARE(srv.sender.sendCount, 1u);
 
   // подписка создана, теперь удалить ее
@@ -1614,7 +1614,7 @@ void tst_udpserver::test_unsubscribe_twice()
   const Subscription* sub2 = srv.manager.find(response.id);
   QVERIFY(sub2 == nullptr);
 
-  srv.scheduler.tick();
+  QVERIFY(srv.scheduler.step());
   QCOMPARE(srv.sender.sendCount, 1u);
 
   // пробуем удалить подписку еще раз
@@ -1660,7 +1660,7 @@ void tst_udpserver::test_unsubscribe_twice()
   QVERIFY(sub3 == nullptr);
 
   // повторно проверим выполнения callback-а и то что счетчик не увеличен
-  srv.scheduler.tick();
+  QVERIFY(srv.scheduler.step());
   QCOMPARE(srv.sender.sendCount, 1u);
 
   srv.server.stop();

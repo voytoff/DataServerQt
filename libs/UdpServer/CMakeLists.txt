@@ -33,3 +33,4 @@ target_link_libraries(UdpServer PRIVATE
 )
 
 target_compile_definitions(UdpServer PRIVATE CONFIGURATION_LIBRARY)
+target_compile_options(UdpServer PRIVATE -Wno-nonportable-include-path)
