@@ -14,8 +14,8 @@ public:
     DataSourceManager& sources,
     LiveScheduler& scheduler);
 
-  [[nodiscard]] bool start() noexcept;
-  void stop();
+  [[nodiscard]] bool start() ;
+  void stop() noexcept;
 
   [[nodiscard]] bool isRunning() const noexcept;
 

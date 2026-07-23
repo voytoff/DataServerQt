@@ -1,28 +1,10 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(QtDataServer VERSION 0.1 LANGUAGES CXX)
+project(DataServer VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTOUIC ON)
-set(CMAKE_AUTORCC ON)
-
-find_package(Qt6 REQUIRED COMPONENTS Core Network)
-
-# Configuration	описание системы
-# LiveStorage	хранение текущих значений
-# Publisher	формирование LiveData
-# SubscriptionManager	управление подписками
-# LiveScheduler	когда публиковать
-# DataProtocol	формат сетевых пакетов
-# UdpSender	отправка UDP
-# UdpServer	приём и обработка UDP
-# DataSource    подсистема получения данных
-# Core          Время
-
-add_subdirectory(tests)
 add_subdirectory(libs/configuration)
 add_subdirectory(libs/livestorage)
 add_subdirectory(libs/publisher)
@@ -34,3 +16,9 @@ add_subdirectory(libs/udpserver)
 add_subdirectory(libs/datasource)
 add_subdirectory(libs/core)
 add_subdirectory(libs/engine)
+add_subdirectory(libs/hardware)
+
+enable_testing()
+add_subdirectory(tests)
+
+add_subdirectory(apps/dataserver)

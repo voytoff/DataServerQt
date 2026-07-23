@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(test_common LANGUAGES CXX)
+project(unit_tests LANGUAGES CXX)
 
 set(CMAKE_AUTOMOC ON)
 
@@ -11,7 +11,7 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Test Core Network)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(test_common
+add_executable(unit_tests
     main.cpp
     tst_common.h tst_common.cpp
     tst_udpsender.h tst_udpsender.cpp
@@ -25,9 +25,10 @@ add_executable(test_common
     tst_datasource.h tst_datasource.cpp
     tst_core.h tst_core.cpp
     tst_engine.h tst_engine.cpp
+    tst_hardware.h tst_hardware.cpp
 )
 
-target_include_directories(test_common PRIVATE
+target_include_directories(unit_tests PRIVATE
     ../libs/core
     ../libs/configuration
     ../libs/configuration
@@ -39,9 +40,10 @@ target_include_directories(test_common PRIVATE
     ../libs/udpserver
     ../libs/datasource
     ../libs/engine
+    ../libs/hardware
 )
 
-target_link_libraries(test_common PRIVATE
+target_link_libraries(unit_tests PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Test
     Qt${QT_VERSION_MAJOR}::Network
@@ -56,6 +58,7 @@ target_link_libraries(test_common PRIVATE
     UdpServer
     DataSource
     Engine
+    Hardware
 )
 
-add_test(NAME test_common COMMAND test_common)
+add_test(NAME unit_tests COMMAND unit_tests)

@@ -6,6 +6,7 @@
 #include "tst_core.h"
 #include "tst_datasource.h"
 #include "tst_engine.h"
+#include "tst_hardware.h"
 #include "tst_publisher.h"
 #include "tst_udpsender.h"
 #include "tst_subscriptions.h"
@@ -61,6 +62,10 @@ int main(int argc, char *argv[])
   }
   {
     tst_engine tc;
+    rc |= QTest::qExec(&tc, argc, argv);
+  }
+  {
+    tst_hardware tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
 

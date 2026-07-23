@@ -3,7 +3,15 @@
 namespace qds
 {
 
-bool DataEngine::start() noexcept
+DataEngine::DataEngine(
+  DataSourceManager& sources,
+  LiveScheduler& scheduler)
+  : m_sources(sources)
+  , m_scheduler(scheduler)
+{
+}
+
+bool DataEngine::start()
 {
   if (m_running)
     return false;
@@ -15,7 +23,7 @@ bool DataEngine::start() noexcept
   return true;
 }
 
-void DataEngine::stop()
+void DataEngine::stop() noexcept
 {
   m_sources.stop();
   m_running = false;
@@ -30,6 +38,11 @@ bool DataEngine::step()
     return false;
 
   return m_scheduler.step();
+}
+
+bool DataEngine::isRunning() const noexcept
+{
+  return m_running;
 }
 
 }

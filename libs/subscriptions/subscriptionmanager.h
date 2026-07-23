@@ -30,6 +30,7 @@ public:
 private:
   uint32_t m_nextId = 1;
   std::vector<Subscription> m_subscriptions;
+
 };
 
 } // namespace qds

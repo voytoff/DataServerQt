@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 project(DataSource LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_AUTOMOC ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
@@ -32,5 +33,3 @@ target_link_libraries(DataSource PRIVATE
     Core
     Configuration
 )
-
-# target_compile_definitions(DataSource PRIVATE CONFIGURATION_LIBRARY)

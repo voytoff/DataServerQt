@@ -7,8 +7,8 @@ namespace qds
 
 GeneratorDataSource::GeneratorDataSource(
   IModuleDataSink& sink,
-  const SystemConfiguration& cfg
-  , IClock &clock)
+  const SystemConfiguration& cfg,
+  IClock &clock)
   : m_sink(sink)
   , m_cfg(cfg)
   , m_clock(clock)

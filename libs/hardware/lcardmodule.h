@@ -1,0 +1,4 @@
+#ifndef LCARDMODULE_H
+#define LCARDMODULE_H
+
+#endif // LCARDMODULE_H
