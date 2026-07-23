@@ -23,5 +23,3 @@ target_include_directories(Configuration
 target_link_libraries(Configuration PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
 )
-
-target_compile_definitions(Configuration PRIVATE CONFIGURATION_LIBRARY)

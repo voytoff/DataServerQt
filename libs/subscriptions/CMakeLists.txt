@@ -17,13 +17,8 @@ target_include_directories(Subscriptions
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
         ../datatypes
-        #../configuration
-        #../livestorage
 )
 
 target_link_libraries(Subscriptions PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
-    #LiveStorage
 )
-
-target_compile_definitions(Subscriptions PRIVATE CONFIGURATION_LIBRARY)

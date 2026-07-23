@@ -28,5 +28,3 @@ target_include_directories(DataProtocol
 target_link_libraries(DataProtocol PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
 )
-
-#target_compile_definitions(DataProtocol PRIVATE CONFIGURATION_LIBRARY)

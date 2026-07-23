@@ -29,7 +29,10 @@ target_include_directories(DataSource
 )
 
 target_link_libraries(DataSource PRIVATE
-    Qt${QT_VERSION_MAJOR}::Core
+  PUBLIC
     Core
     Configuration
+
+  PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
 )

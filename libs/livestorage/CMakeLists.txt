@@ -20,9 +20,10 @@ target_include_directories(LiveStorage
 )
 
 target_link_libraries(LiveStorage PRIVATE
-    Qt${QT_VERSION_MAJOR}::Core
-    Configuration
-    DataSource
-)
+    PUBLIC
+        Configuration
+        DataSource
 
-target_compile_definitions(LiveStorage PRIVATE CONFIGURATION_LIBRARY)
+    PRIVATE
+        Qt${QT_VERSION_MAJOR}::Core
+)

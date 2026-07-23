@@ -22,10 +22,11 @@ target_include_directories(Publisher
 )
 
 target_link_libraries(Publisher PRIVATE
-    Qt${QT_VERSION_MAJOR}::Core
-    LiveStorage
-    Subscriptions
-    DataProtocol
-)
+    PUBLIC
+        LiveStorage
+        Subscriptions
+        DataProtocol
 
-target_compile_definitions(Publisher PRIVATE CONFIGURATION_LIBRARY)
+    PRIVATE
+        Qt${QT_VERSION_MAJOR}::Core
+)

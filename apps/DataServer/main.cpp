@@ -1,52 +1,29 @@
+#include "systemconfiguration.h"
+#include "dataserver.h"
 #include <QTimer>
 #include <QCoreApplication>
-#include "dataengine.h"
-#include "datasourcemanager.h"
-#include "livescheduler.h"
-#include "publisher.h"
-#include "subscriptionmanager.h"
-#include "systemconfiguration.h"
-#include "udpsender.h"
 
 int main(int argc, char *argv[]) {
-  using namespace qds;
-  SystemConfiguration config;
-
-  LiveStorage storage(config);
-
-  SubscriptionManager subscriptions;
-
-  UdpSender sender;
-
-  Publisher publisher(
-    storage,
-    sender);
-
-  LiveScheduler scheduler(
-    subscriptions,
-    publisher);
-
-  DataSourceManager sources;
-
-  DataEngine engine(
-    sources,
-    scheduler);
-
-  auto _ = engine.start();
-
   QCoreApplication app(argc, argv);
 
-  QTimer timer;
+  qds::SystemConfiguration config;
+  qds::CrateInfo ci{0};
+  config.addCrate(ci);
 
-  QAbstractEventDispatcher::connect(
-    &timer,
-    &QTimer::timeout,
-    [&]()
-    {
-      auto _ = engine.step();
-    });
+  qds::ModuleInfo mi{.id = {0}, .crate = ci.id};
+  config.addModule(mi);
 
-  timer.start(1);
+  std::vector<qds::TagId> tags{{0}, {1}, {2}};
+  for (int i = 0; i < tags.size(); i++) {
+    auto tag = tags[i];
+    qds::TagInfo ti{.tag = tag, .module = mi.id, .channel = {tag.value}};
+    config.addTag(ti);
+  }
+
+  DataServer server(config);
+
+  if (!server.start())
+    return -1;
 
   return app.exec();
 }

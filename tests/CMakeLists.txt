@@ -28,21 +28,6 @@ add_executable(unit_tests
     tst_hardware.h tst_hardware.cpp
 )
 
-target_include_directories(unit_tests PRIVATE
-    ../libs/core
-    ../libs/configuration
-    ../libs/configuration
-    ../libs/publisher
-    ../libs/subscriptions
-    ../libs/dataprotocol
-    ../libs/livescheduler
-    ../libs/udpsender
-    ../libs/udpserver
-    ../libs/datasource
-    ../libs/engine
-    ../libs/hardware
-)
-
 target_link_libraries(unit_tests PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Test
