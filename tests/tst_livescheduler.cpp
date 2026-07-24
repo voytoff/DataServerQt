@@ -23,7 +23,7 @@ void tst_livescheduler::test_scheduler_100Hz()
 
   SystemConfiguration cfg;
   LiveStorage storage(cfg);
-  TestSender sender;
+  TestPublisherSender sender;
 
   LiveScheduler scheduler(
     storage,
@@ -56,7 +56,7 @@ void tst_livescheduler::test_scheduler_10Hz()
 
   SystemConfiguration cfg;
   LiveStorage storage(cfg);
-  TestSender sender;
+  TestPublisherSender sender;
 
   LiveScheduler scheduler(
     storage,
@@ -90,7 +90,7 @@ void tst_livescheduler::test_scheduler_1Hz()
 
   SystemConfiguration cfg;
   LiveStorage storage(cfg);
-  TestSender sender;
+  TestPublisherSender sender;
 
   LiveScheduler scheduler(
     storage,
@@ -123,7 +123,7 @@ void tst_livescheduler::test_scheduler_100Hz_remove_sub() {
 
   SystemConfiguration cfg;
   LiveStorage storage(cfg);
-  TestSender sender;
+  TestPublisherSender sender;
 
   LiveScheduler scheduler(
     storage,
@@ -164,7 +164,7 @@ void tst_livescheduler::test_scheduler_AllHz()
 
   SystemConfiguration cfg;
   LiveStorage storage(cfg);
-  TestSender sender;
+  TestPublisherSender sender;
 
   LiveScheduler scheduler(
     storage,
@@ -214,7 +214,7 @@ void tst_livescheduler::test_scheduler_100Hz_period() {
 
   SystemConfiguration cfg;
   LiveStorage storage(cfg);
-  TestSender sender;
+  TestPublisherSender sender;
 
   LiveScheduler scheduler(
     storage,
@@ -253,7 +253,7 @@ void tst_livescheduler::test_scheduler_10Hz_period() {
 
   SystemConfiguration cfg;
   LiveStorage storage(cfg);
-  TestSender sender;
+  TestPublisherSender sender;
 
   LiveScheduler scheduler(
     storage,
@@ -292,7 +292,7 @@ void tst_livescheduler::test_scheduler_1Hz_period() {
 
   SystemConfiguration cfg;
   LiveStorage storage(cfg);
-  TestSender sender;
+  TestPublisherSender sender;
 
   LiveScheduler scheduler(
     storage,
@@ -332,7 +332,7 @@ void tst_livescheduler::test_scheduler_send_subscription_sequence() {
 
   SystemConfiguration cfg;
   LiveStorage storage(cfg);
-  TestSender sender;
+  TestPublisherSender sender;
 
   LiveScheduler scheduler(
     storage,
@@ -365,8 +365,8 @@ void tst_livescheduler::test_scheduler_send_subscription_sequence() {
 
   PacketReader reader;
 
-  reader.append(sender.packets[0].data(),
-                sender.packets[0].size());
+  reader.append(sender.m_packets[0].data(),
+                sender.m_packets[0].size());
 
   QVERIFY(reader.nextPacket());
 
@@ -377,8 +377,8 @@ void tst_livescheduler::test_scheduler_send_subscription_sequence() {
 
   reader.clear();
 
-  reader.append(sender.packets.back().data(),
-                sender.packets.back().size());
+  reader.append(sender.m_packets.back().data(),
+                sender.m_packets.back().size());
 
   QVERIFY(reader.nextPacket());
 
@@ -395,7 +395,7 @@ void tst_livescheduler::test_scheduler_send_subscriptions_sequence2() {
 
   SystemConfiguration cfg;
   LiveStorage storage(cfg);
-  TestSender sender;
+  TestPublisherSender sender;
 
   LiveScheduler scheduler(
     storage,
@@ -458,7 +458,7 @@ void tst_livescheduler::test_publishFailed_sequenceNotIncremented()
   Publisher publisher;
 
   LiveStorage storage(cfg);
-  TestSender sender;
+  TestPublisherSender sender;
 
   LiveScheduler scheduler(
     storage,
@@ -495,7 +495,7 @@ void tst_livescheduler::test_emptySubscription_sequenceIncremented()
 
   SystemConfiguration cfg;
   LiveStorage storage(cfg);
-  TestSender sender;
+  TestPublisherSender sender;
 
   LiveScheduler scheduler(
     storage,
@@ -559,8 +559,8 @@ void tst_livescheduler::test_publishPacket_singleTag()
   QCOMPARE(srv.manager.find(id)->sequence, 1u);
 
   PacketReader reader;
-  reader.append(srv.sender.packets.front().data(),
-                srv.sender.packets.front().size());
+  reader.append(srv.sender.m_packets.front().data(),
+                srv.sender.m_packets.front().size());
 
   QVERIFY(reader.nextPacket());
   QCOMPARE(reader.packetType(), PacketType::LiveData);

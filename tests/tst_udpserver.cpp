@@ -499,7 +499,7 @@ void tst_udpserver::test_subscribeList_ok()
   QCOMPARE(sub->tags[1], TagId{1});
 
   QVERIFY(srv.scheduler.step());
-  QCOMPARE(srv.sender.sendCount, 1u);
+  QCOMPARE(srv.publisherSender.sendCount, 1u);
 
   srv.server.stop();
   QVERIFY(!srv.server.isRunning());
@@ -1093,7 +1093,7 @@ void tst_udpserver::test_unsubscribe_ok()
   QCOMPARE(sub->tags[1], TagId{1});
 
   QVERIFY(srv.scheduler.step());
-  QCOMPARE(srv.sender.sendCount, 1u);
+  QCOMPARE(srv.publisherSender.sendCount, 1u);
 
   // подписка создана, теперь попробуем ее удалить ===============
 
@@ -1142,7 +1142,7 @@ void tst_udpserver::test_unsubscribe_ok()
   QVERIFY(sub2 == nullptr);
 
   QVERIFY(srv.scheduler.step());
-  QCOMPARE(srv.sender.sendCount, 1u);
+  QCOMPARE(srv.publisherSender.sendCount, 1u);
 
   srv.server.stop();
   QVERIFY(!srv.server.isRunning());
@@ -1231,7 +1231,7 @@ void tst_udpserver::test_unsubscribe_invalidId()
   QCOMPARE(sub->tags[1], TagId{1});
 
   QVERIFY(srv.scheduler.step());
-  QCOMPARE(srv.sender.sendCount, 1u);
+  QCOMPARE(srv.publisherSender.sendCount, 1u);
 
   // подписка создана, теперь попробуем удалить, но не какую то другую ===============
 
@@ -1277,7 +1277,7 @@ void tst_udpserver::test_unsubscribe_invalidId()
   QCOMPARE(response2.result, UnsubscribeResult::InvalidId);
 
   QVERIFY(srv.scheduler.step());
-  QCOMPARE(srv.sender.sendCount, 1u);
+  QCOMPARE(srv.publisherSender.sendCount, 1u);
 
 
   srv.server.stop();
@@ -1367,7 +1367,7 @@ void tst_udpserver::test_unsubscribe_extraData()
   QCOMPARE(sub->tags[1], TagId{1});
 
   QVERIFY(srv.scheduler.step());
-  QCOMPARE(srv.sender.sendCount, 1u);
+  QCOMPARE(srv.publisherSender.sendCount, 1u);
 
   // подписка создана, теперь попробуем ее удалить ===============
 
@@ -1568,7 +1568,7 @@ void tst_udpserver::test_unsubscribe_twice()
   QCOMPARE(sub->tags[1], TagId{1});
 
   QVERIFY(srv.scheduler.step());
-  QCOMPARE(srv.sender.sendCount, 1u);
+  QCOMPARE(srv.publisherSender.sendCount, 1u);
 
   // подписка создана, теперь удалить ее
   UnsubscribeRequest req2;
@@ -1615,7 +1615,7 @@ void tst_udpserver::test_unsubscribe_twice()
   QVERIFY(sub2 == nullptr);
 
   QVERIFY(srv.scheduler.step());
-  QCOMPARE(srv.sender.sendCount, 1u);
+  QCOMPARE(srv.publisherSender.sendCount, 1u);
 
   // пробуем удалить подписку еще раз
   writer.begin(PacketType::UnsubscribeRequest);
@@ -1661,7 +1661,7 @@ void tst_udpserver::test_unsubscribe_twice()
 
   // повторно проверим выполнения callback-а и то что счетчик не увеличен
   QVERIFY(srv.scheduler.step());
-  QCOMPARE(srv.sender.sendCount, 1u);
+  QCOMPARE(srv.publisherSender.sendCount, 1u);
 
   srv.server.stop();
   QVERIFY(!srv.server.isRunning());

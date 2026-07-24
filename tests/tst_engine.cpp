@@ -267,12 +267,12 @@ void tst_engine::test_dataEngine_completePipeline()
 
   QCOMPARE(srv.storage.timestamp(tags[0]), t);
 
-  QCOMPARE(srv.sender.sendCount, 1u);
-  QCOMPARE(srv.sender.packets.size(), 1);
+  QCOMPARE(srv.publisherSender.sendCount, 1u);
+  QCOMPARE(srv.publisherSender.m_packets.size(), 1);
 
   PacketReader reader;
-  reader.append(srv.sender.packets.front().data(),
-                srv.sender.packets.front().size());
+  reader.append(srv.publisherSender.m_packets.front().data(),
+                srv.publisherSender.m_packets.front().size());
 
   QVERIFY(reader.nextPacket());
   QCOMPARE(reader.packetType(), PacketType::LiveData);

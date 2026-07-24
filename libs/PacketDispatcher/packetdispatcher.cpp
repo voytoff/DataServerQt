@@ -1,11 +1,257 @@
 #include "packetdispatcher.h"
+#include "packetreader.h"
+#include "protocol/errorpackets.h"
+#include "protocol/subscriptionpackets.h"
 
 namespace qds
 {
 
-bool qds::PacketDispatcher::dispatch(std::span<const std::byte> packet, const Endpoint &sender)
+PacketDispatcher::PacketDispatcher(
+  const SystemConfiguration& configuration,
+  SubscriptionManager& subscriptions,
+  LiveScheduler& scheduler,
+  ISender& sender)
+  : m_subscriptions(subscriptions)
+  , m_configuration(configuration)
+  , m_scheduler(scheduler)
+  , m_sender(sender) { }
+
+bool PacketDispatcher::dispatch(
+  std::span<const std::byte> packet,
+  const Endpoint& sender)
 {
-  return true;
+  PacketReader reader;
+
+  reader.append(packet);
+
+  if (!reader.nextPacket())
+  {
+    sendErrorResponse(
+      sender,
+      ErrorCode::InvalidPacket);
+
+    return false;
+  }
+
+
+  switch(reader.packetType())
+  {
+  case PacketType::SubscribeListRequest:
+    return processSubscribeList(reader, sender);
+
+  case PacketType::UnsubscribeRequest:
+    return processUnsubscribe(reader, sender);
+
+  case PacketType::Ping:
+    return processPing(reader, sender);
+  }
+
+  sendErrorResponse(
+    sender,
+    ErrorCode::UnsupportedPacket);
+
+  return false;
+
+}
+
+bool PacketDispatcher::sendErrorResponse(const Endpoint &endpoint, ErrorCode code, uint32_t info)
+{
+  PacketWriter writer;
+  writer.begin(PacketType::ErrorResponse);
+  ErrorResponse response{.code = code, .info = info};
+  writer.write(response);
+
+  return sendPacket(endpoint, writer);
+}
+
+bool PacketDispatcher::processSubscribeList(PacketReader &reader, const Endpoint &endpoint)
+{
+  // 1. Разбор пакета
+  SubscribeListRequest req;
+  if (!readRequest(reader, endpoint, req))
+    return false;
+
+  // 2. Проверка формата
+  if (req.tagCount == 0) {
+    sendSubscribeResponse(
+      endpoint,
+      SubscribeResult::EmptyList);
+
+    return false;
+  }
+
+  if (req.tagCount > MaxSubscriptionTags) {
+    sendSubscribeResponse(
+      endpoint,
+      SubscribeResult::TooManyTags);
+
+    return false;
+  }
+
+  switch (req.rate)
+  {
+  case PublishRate::Hz1:
+  case PublishRate::Hz10:
+  case PublishRate::Hz100:
+    break;
+
+  default:
+    sendSubscribeResponse(
+      endpoint,
+      SubscribeResult::InvalidRate);
+    return false;
+  }
+
+
+  // 3. Проверка бизнес-логики
+  std::vector<TagId> tags(req.tagCount);
+  if (!reader.readArray(tags.data(), tags.size()))
+  {
+    sendErrorResponse(endpoint, ErrorCode::InvalidRequest);
+    return false;
+  }
+
+  if (!checkEof(reader, endpoint))
+    return false;
+
+  // неверный тег
+  for (const TagId& tag : tags)
+  {
+    if (!m_configuration.containsTag(tag))
+    {
+      sendSubscribeResponse(
+        endpoint,
+        SubscribeResult::InvalidTag);
+
+      return false;
+    }
+  }
+
+  // повторяющийся тег
+  for (size_t i = 0; i < tags.size(); ++i)
+  {
+    for (size_t j = i + 1; j < tags.size(); ++j)
+    {
+      if (tags[i] == tags[j])
+      {
+        sendSubscribeResponse(
+          endpoint,
+          SubscribeResult::DuplicateTag);
+
+        return false;
+      }
+    }
+  }
+
+  // 4. Создание подписки
+  SubscriptionId id =
+    createSubscription(
+      endpoint,
+      req.rate,
+      tags);
+
+  // 5. Ответ клиенту
+  return sendSubscribeResponse(
+    endpoint,
+    SubscribeResult::Ok,
+    id);
+}
+
+bool PacketDispatcher::processUnsubscribe(PacketReader &reader, const Endpoint &endpoint)
+{
+  UnsubscribeRequest req;
+  if (!readRequest(reader, endpoint, req))
+    return false;
+
+  if (!checkEof(reader, endpoint))
+    return false;
+
+  const Subscription* sub = m_subscriptions.find(req.id);
+
+  if (!sub)
+  {
+    sendUnsubscribeResponse(endpoint, UnsubscribeResult::InvalidId);
+    return false;
+  }
+
+  m_scheduler.removeSubscription(req.id);
+
+  if (!m_subscriptions.remove(req.id))
+    return false;
+
+  return sendUnsubscribeResponse(endpoint, UnsubscribeResult::Ok);
+}
+
+bool PacketDispatcher::processPing(PacketReader &reader, const Endpoint &endpoint)
+{
+  if (!checkEof(reader, endpoint))
+    return false;
+
+  PacketWriter writer;
+  writer.begin(PacketType::Pong);
+
+  return sendPacket(endpoint, writer);
+}
+
+bool PacketDispatcher::sendPacket(const Endpoint &endpoint, const PacketWriter &writer)
+{
+  return m_sender.send(endpoint, writer.span());
+}
+
+bool PacketDispatcher::sendSubscribeResponse(const Endpoint &endpoint, SubscribeResult result, SubscriptionId id)
+{
+  PacketWriter writer;
+
+  writer.begin(PacketType::SubscribeResponse);
+
+  SubscribeResponse response;
+  response.result = result;
+  response.id = id;
+
+  writer.write(response);
+
+  return sendPacket(endpoint, writer);
+}
+
+bool PacketDispatcher::sendUnsubscribeResponse(const Endpoint &endpoint, UnsubscribeResult result)
+{
+  PacketWriter writer;
+
+  writer.begin(PacketType::UnsubscribeResponse);
+
+  UnsubscribeResponse response;
+  response.result = result;
+
+  writer.write(response);
+
+  return sendPacket(endpoint, writer);
+}
+
+bool PacketDispatcher::checkEof(PacketReader &reader, const Endpoint &endpoint)
+{
+  if (reader.remaining() == 0 && reader.trailingBytes() == 0)
+    return true;
+
+  sendErrorResponse(
+    endpoint,
+    ErrorCode::ExtraData,
+    reader.remaining());
+
+  return false;
+}
+
+SubscriptionId PacketDispatcher::createSubscription(const Endpoint &endpoint, PublishRate rate, std::span<const TagId> tags)
+{
+  Subscription s;
+  s.endpoint = endpoint;
+  s.rate = rate;
+  s.tags.assign(tags.begin(), tags.end());
+
+  SubscriptionId id = m_subscriptions.add(s);
+
+  m_scheduler.addSubscription(id, rate);
+
+  return id;
 }
 
 }

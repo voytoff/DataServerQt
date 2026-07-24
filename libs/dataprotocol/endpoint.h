@@ -13,6 +13,9 @@ struct Endpoint
   uint16_t port = 0;
 
   auto operator<=>(const Endpoint&) const = default;
+
+  [[nodiscard]]
+  std::string toString() const;
 };
 
 }

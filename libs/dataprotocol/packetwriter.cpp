@@ -67,6 +67,13 @@ std::size_t PacketWriter::size() const noexcept
   return m_buffer.size();
 }
 
+std::span<const std::byte> PacketWriter::span() const noexcept
+{
+  return std::span<const std::byte>(
+    m_buffer.data(),
+    m_buffer.size());
+}
+
 PacketHeader* PacketWriter::header() noexcept
 {
   return reinterpret_cast<PacketHeader*>(m_buffer.data());

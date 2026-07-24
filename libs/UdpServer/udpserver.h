@@ -4,15 +4,7 @@
 #include <QObject>
 #include <QUdpSocket>
 
-#include "livescheduler.h"
-#include "packetwriter.h"
-#include "protocol/subscriptionpackets.h"
-#include "subscriptionmanager.h"
-#include "packetreader.h"
-#include "protocol/errorpackets.h"
-#include "systemconfiguration.h"
 #include "packetdispatcher.h"
-
 
 namespace qds
 {
@@ -24,9 +16,7 @@ class UdpServer : public QObject
 public:
   // Конструктор
   explicit UdpServer(
-    const SystemConfiguration& configuration,
-    SubscriptionManager& subscriptions,
-    LiveScheduler& scheduler,
+    PacketDispatcher& dispatcher,
     QObject* parent = nullptr);
 
   // Запуск
@@ -37,45 +27,14 @@ public:
   uint16_t port() const noexcept;
   bool isRunning() const noexcept;
 
-private:
-private:
-  PacketDispatcher& m_dispatcher;
-
 private slots:
   // Приём датаграмм
   void onReadyRead();
 
 private:
-  // Switch
-  void processPacket(PacketReader& reader, const Endpoint& endpoint);
-  void processPing(PacketReader& reader, const Endpoint& endpoint);
-  void sendSubscribeResponse(const Endpoint& endpoint, SubscribeResult result, SubscriptionId id = {});
-  void sendErrorResponse(const Endpoint& endpoint, ErrorCode code, uint32_t info = 0);
-  SubscriptionId createSubscription(const Endpoint& endpoint, PublishRate rate, std::span<const TagId> tags);
-  void processSubscribeList(PacketReader &reader, const Endpoint &endpoint);
-  void processUnsubscribe(PacketReader &reader, const Endpoint &endpoint);
-  void sendUnsubscribeResponse(const Endpoint& endpoint, UnsubscribeResult result);
-  bool sendPacket(const Endpoint& endpoint, const PacketWriter& writer);
-  bool checkEof(PacketReader& reader, const Endpoint& endpoint);
-
-  template<class T>
-  bool readRequest(PacketReader& reader, const Endpoint& endpoint, T& value) {
-    if (reader.read(value))
-      return true;
-
-    sendErrorResponse(
-      endpoint,
-      ErrorCode::InvalidRequest,
-      reader.remaining());
-
-    return false;
-  }
-
-private:
   QUdpSocket m_socket;
-  const SystemConfiguration& m_configuration;
-  SubscriptionManager& m_subscriptions;
-  LiveScheduler& m_scheduler;
+  PacketDispatcher& m_dispatcher;
+
 };
 
 }

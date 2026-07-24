@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstring>
+#include <span>
 #include <type_traits>
 #include <vector>
 
@@ -42,6 +43,9 @@ public:
   const std::byte* data() const noexcept;
   std::byte* rawData() noexcept;   // ⚠️ только для тестов
   std::size_t size() const noexcept;
+
+  [[nodiscard]]
+  std::span<const std::byte> span() const noexcept;
 
 private:
 

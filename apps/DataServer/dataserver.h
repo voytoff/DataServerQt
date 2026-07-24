@@ -5,6 +5,7 @@
 #include "hardwaremodulefactory.h"
 #include "systemclock.h"
 #include "udpserver.h"
+#include "udpsender.h"
 #include <QObject>
 #include <QCoreApplication>
 #include <QTimer>
@@ -27,10 +28,14 @@ private:
   qds::Publisher m_publisher;
   qds::LiveStorage m_storage;
   qds::LiveScheduler m_scheduler;
-  qds::TestSender m_sender;
-  qds::UdpServer m_server;
+  //qds::TestSender m_sender;
+  //qds::UdpServer m_server;
   qds::SystemClock m_clock;
   qds::HardwareModuleFactory m_factory;
+
+  qds::UdpSender m_sender;
+  qds::PacketDispatcher m_dispatcher;
+  qds::UdpServer m_server;
 
   QTimer m_timer;
 

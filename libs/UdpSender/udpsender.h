@@ -13,9 +13,9 @@ class UdpSender : public ISender
 public:
   UdpSender();
 
-  bool send(const Endpoint& endpoint,
-            const std::byte* data,
-            std::size_t size) override;
+  bool send(
+    const Endpoint& endpoint,
+    std::span<const std::byte> data) override;
 
 private:
   QUdpSocket m_socket;

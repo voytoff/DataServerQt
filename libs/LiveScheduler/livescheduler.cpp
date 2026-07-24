@@ -92,8 +92,7 @@ void LiveScheduler::publish(std::span<const SubscriptionId> ids)
 
     m_sender.send(
       sub->endpoint,
-      writer.data(),
-      writer.size());
+      writer.span());
 
     ++sub->sequence;
   }

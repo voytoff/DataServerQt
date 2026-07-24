@@ -1,5 +1,4 @@
 #include "packetreader.h"
-
 #include <QtCore/qassert.h>
 #include <cstring>
 
@@ -9,27 +8,42 @@ namespace qds
 void PacketReader::clear()
 {
   m_buffer.clear();
+  m_header = {};
   m_offset = 0;
 }
 
-void PacketReader::append(const std::byte* data, std::size_t size) {
-  m_buffer.insert(m_buffer.end(), data, data + size);
+void PacketReader::append(std::span<const std::byte> data)
+{
+  m_buffer.insert(
+    m_buffer.end(),
+    data.begin(),
+    data.end());
 }
 
-bool PacketReader::nextPacket() {
+void PacketReader::append(
+  const std::byte* data,
+  std::size_t size)
+{
+  append(std::span(data, size));
+}
 
-  if (m_offset != 0 && remaining() != 0)
-    return false;
+bool PacketReader::nextPacket()
+{
+  if (m_offset != 0)
+  {
+    if (remaining() != 0)
+      return false;
 
-  if (m_offset != 0 && remaining() == 0)
     consumePacket();
+  }
 
   if (m_buffer.size() < HeaderSize)
     return false;
 
-  std::memcpy(&m_header,
-              m_buffer.data(),
-              HeaderSize);
+  std::memcpy(
+    &m_header,
+    m_buffer.data(),
+    HeaderSize);
 
   if (m_header.magic != ProtocolMagic ||
       m_header.version != ProtocolVersion)
@@ -49,38 +63,26 @@ bool PacketReader::nextPacket() {
   return true;
 }
 
-bool PacketReader::readRaw(void* dst, std::size_t size)
+const PacketHeader& PacketReader::header() const noexcept
 {
-  if (size > remaining())
-    return false;
-
-  const std::byte* src =
-    m_buffer.data()
-    + HeaderSize
-    + m_offset;
-
-  std::memcpy(dst, src, size);
-
-  m_offset += size;
-
-  return true;
+  return m_header;
 }
 
-PacketType PacketReader::packetType() const
+PacketType PacketReader::packetType() const noexcept
 {
   return m_header.type;
 }
 
-//[[nodiscard]]
-size_t PacketReader::remaining() const noexcept
+std::size_t PacketReader::remaining() const noexcept
 {
   Q_ASSERT(m_offset <= m_header.payloadSize);
+
   return m_header.payloadSize - m_offset;
 }
 
-size_t PacketReader::trailingBytes() const noexcept
+std::size_t PacketReader::trailingBytes() const noexcept
 {
-  const size_t packetSize =
+  const std::size_t packetSize =
     HeaderSize + m_header.payloadSize;
 
   Q_ASSERT(m_buffer.size() >= packetSize);
@@ -88,9 +90,24 @@ size_t PacketReader::trailingBytes() const noexcept
   return m_buffer.size() - packetSize;
 }
 
-const PacketHeader& PacketReader::header() const noexcept
+const std::byte* PacketReader::payloadData() const noexcept
 {
-  return m_header;
+  return m_buffer.data() + HeaderSize;
+}
+
+bool PacketReader::readBytes(std::span<std::byte> dst)
+{
+  if (dst.size() > remaining())
+    return false;
+
+  std::memcpy(
+    dst.data(),
+    payloadData() + m_offset,
+    dst.size());
+
+  m_offset += dst.size();
+
+  return true;
 }
 
 void PacketReader::consumePacket()

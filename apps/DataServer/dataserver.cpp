@@ -10,8 +10,9 @@ DataServer::DataServer(qds::SystemConfiguration cfg, QObject *parent)
   , m_cfg(std::move(cfg))
   , m_storage(m_cfg)
   , m_scheduler(m_storage, m_subscritions, m_publisher, m_sender)
-  , m_server(m_cfg, m_subscritions, m_scheduler)
   , m_engine(m_manager, m_scheduler)
+  , m_dispatcher(m_cfg, m_subscritions, m_scheduler, m_sender)
+  , m_server(m_dispatcher)
 {
   qds::ModuleLoader loader(
     m_cfg,

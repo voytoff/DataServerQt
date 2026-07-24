@@ -9,6 +9,7 @@
 #include "livescheduler.h"
 #include "systemconfiguration.h"
 #include "taginfo.h"
+#include "udpsender.h"
 #include "udpserver.h"
 
 using namespace qds;
@@ -19,10 +20,18 @@ public:
   explicit TestSrv(const SystemConfiguration& cfg, QObject *parent = nullptr);
 
   SubscriptionManager manager;
-  Publisher publisher;
+
   LiveStorage storage;
-  TestSender sender;
+
+  Publisher publisher;
+
+  TestPublisherSender publisherSender;
+  UdpSender udpSender;
+
   LiveScheduler scheduler;
+
+  PacketDispatcher dispatcher;
+
   UdpServer server;
 };
 

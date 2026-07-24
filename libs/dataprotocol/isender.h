@@ -3,6 +3,7 @@
 
 #include "endpoint.h"
 #include <cstddef>
+#include <span>
 #include <vector>
 
 namespace qds
@@ -15,29 +16,42 @@ public:
 
   virtual bool send(
     const Endpoint& endpoint,
-    const std::byte* data,
-    std::size_t size) = 0;
+    std::span<const std::byte> data) = 0;
 };
 
-class TestSender : public ISender
+class TestPublisherSender : public ISender
 {
 public:
-  bool send(const Endpoint&,
-            const std::byte* data,
-            std::size_t size) override
+  bool send(
+    const Endpoint&,
+    std::span<const std::byte> data) override
   {
+    if (data.empty())
+      return false;
+
     ++sendCount;
 
-    packets.emplace_back(
-      data,
-      data + size);
+    m_packets.emplace_back(
+      data.begin(),
+      data.end());
 
     return true;
   }
 
-  uint32_t sendCount = 0;
+  void clear()
+  {
+    m_packets.clear();
+    sendCount = 0;
+  }
 
-  std::vector<std::vector<std::byte>> packets;
+  const auto& lastPacket() const
+  {
+    return m_packets.back();
+  }
+
+public:
+  std::size_t sendCount = 0;
+  std::vector<std::vector<std::byte>> m_packets;
 };
 
 }

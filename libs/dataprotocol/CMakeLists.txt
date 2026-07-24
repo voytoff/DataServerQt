@@ -18,6 +18,8 @@ add_library(DataProtocol SHARED
   protocol/subscriptionpackets.h protocol/subscriptionpackets.cpp
   protocol/errorpackets.h
   protocol/publishheader.h protocol/publishheader.cpp
+  endpoint.cpp
+
 )
 target_include_directories(DataProtocol
     PUBLIC

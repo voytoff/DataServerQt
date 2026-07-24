@@ -35,8 +35,7 @@ void tst_udpsender::test_send()
   QVERIFY(
     sender.send(
       ep,
-      data.data(),
-      data.size()));
+      data));
 
   QVERIFY(
     receiver.waitForReadyRead(
@@ -87,17 +86,18 @@ void tst_udpsender::test_send_bad_address()
 
   UdpSender sender;
 
-  Endpoint ep;
-  ep.address = "abc.def.xyz";
-  ep.port = 12345;
+  Endpoint ep{
+    .address = "abc.def.xyz",
+    .port = 12345
+  };
 
   std::byte b{0};
+  std::array<std::byte, 1> data{std::byte{0}};
 
   QVERIFY(
     !sender.send(
       ep,
-      &b,
-      1));
+      data/*std::span{&b, 1}*/));
 }
 
 void tst_udpsender::test_send_empty()
@@ -106,17 +106,15 @@ void tst_udpsender::test_send_empty()
 
   UdpSender sender;
 
-  Endpoint ep;
-  ep.address = "127.0.0.1";
-  ep.port = 12345;
+  Endpoint ep{
+    .address = "127.0.0.1",
+    .port = 12345
+  };
 
-  std::byte b{};
+  std::span<const std::byte> data;
 
   QVERIFY(
-    !sender.send(
-      ep,
-      &b,
-      0));
+    !sender.send(ep, data));
 }
 
 

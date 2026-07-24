@@ -1,3 +1,12 @@
 #include "endpoint.h"
+#include <format>
 
-Endpoint::Endpoint() { }
+namespace qds
+{
+
+std::string Endpoint::toString() const
+{
+  return std::format("{}:{}", address, port);
+}
+
+}

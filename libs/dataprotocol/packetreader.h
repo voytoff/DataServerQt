@@ -1,8 +1,9 @@
 #ifndef PACKETREADER_H
 #define PACKETREADER_H
 
-#include <vector>
 #include <cstddef>
+#include <span>
+#include <vector>
 
 #include "protocol/packetheader.h"
 
@@ -15,31 +16,46 @@ public:
   PacketReader() = default;
 
   void clear();
+
+  void append(std::span<const std::byte> data);
+
   void append(const std::byte* data, std::size_t size);
 
+  [[nodiscard]]
   bool nextPacket();
 
+  [[nodiscard]]
   const PacketHeader& header() const noexcept;
 
-  template<typename T>
-  bool read(T& value) {
-    return readRaw(&value, sizeof(T));
+  [[nodiscard]]
+  PacketType packetType() const noexcept;
+
+  [[nodiscard]]
+  std::size_t remaining() const noexcept;
+
+  [[nodiscard]]
+  std::size_t trailingBytes() const noexcept;
+
+  [[nodiscard]]
+  const std::byte* payloadData() const noexcept;
+
+  bool readBytes(std::span<std::byte> dst);
+
+  template<class T>
+  bool read(T& value)
+  {
+    return readBytes(
+      std::as_writable_bytes(
+        std::span{&value, 1}));
   }
 
-  template<typename T>
-  bool readArray(T* values, std::size_t count) {
-    return readRaw(values, sizeof(T) * count);
+  template<class T>
+  bool readArray(T* values, std::size_t count)
+  {
+    return readBytes(
+      std::as_writable_bytes(
+        std::span{values, count}));
   }
-
-  bool readRaw(void* dst, std::size_t size);
-
-  PacketType packetType() const;
-
-  [[nodiscard]] size_t remaining() const noexcept;
-  /// Количество байтов в буфере после конца текущего пакета.
-  /// Обычно равно 0.
-  /// Может быть больше 0 при нескольких пакетах в одном буфере.
-  [[nodiscard]] size_t trailingBytes() const noexcept;
 
 private:
   void consumePacket();
@@ -49,11 +65,12 @@ private:
 
   PacketHeader m_header{};
 
-  std::size_t m_offset = 0;   // позиция внутри текущего пакета
+  std::size_t m_offset = 0;
 
   static constexpr std::size_t HeaderSize =
     sizeof(PacketHeader);
 };
 
 }
+
 #endif // PACKETREADER_H

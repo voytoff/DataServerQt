@@ -11,28 +11,25 @@ UdpSender::UdpSender()
 
 bool UdpSender::send(
   const Endpoint& endpoint,
-  const std::byte* data,
-  std::size_t size)
+  std::span<const std::byte> data)
 {
-  const QHostAddress address =
-    QHostAddress(
-      QString::fromStdString(
-        endpoint.address));
+  const QHostAddress address(
+    QString::fromStdString(endpoint.address));
 
   if (address.isNull())
     return false;
 
-  if (!data || size == 0)
+  if (data.empty())
     return false;
 
   const qint64 sent =
     m_socket.writeDatagram(
-      reinterpret_cast<const char*>(data),
-      static_cast<qint64>(size),
+      reinterpret_cast<const char*>(data.data()),
+      static_cast<qint64>(data.size()),
       address,
       endpoint.port);
 
-  return sent == static_cast<qint64>(size);
+  return sent == static_cast<qint64>(data.size());
 }
 
 }
