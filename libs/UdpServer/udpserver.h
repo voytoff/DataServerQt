@@ -11,6 +11,8 @@
 #include "packetreader.h"
 #include "protocol/errorpackets.h"
 #include "systemconfiguration.h"
+#include "packetdispatcher.h"
+
 
 namespace qds
 {
@@ -34,6 +36,10 @@ public:
 
   uint16_t port() const noexcept;
   bool isRunning() const noexcept;
+
+private:
+private:
+  PacketDispatcher& m_dispatcher;
 
 private slots:
   // Приём датаграмм

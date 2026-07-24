@@ -18,6 +18,10 @@ private slots:
   void test_dataSourceManager_withoutSources();
   void test_dataSourceManager_withFakeSource();
 
+  // TODO перенестив tst_hardware, если тестов hardware станет много
+  void test_hardwareFactory_createFake();
+  void test_hardwareFactory_unknownType();
+
 };
 
 #endif // TST_DATASOURCE_H

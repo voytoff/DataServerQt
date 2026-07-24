@@ -1,0 +1,12 @@
+#ifndef MODULELOADER_GLOBAL_H
+#define MODULELOADER_GLOBAL_H
+
+#include <QtCore/qglobal.h>
+
+#if defined(MODULELOADER_LIBRARY)
+#define MODULELOADER_EXPORT Q_DECL_EXPORT
+#else
+#define MODULELOADER_EXPORT Q_DECL_IMPORT
+#endif
+
+#endif // MODULELOADER_GLOBAL_H

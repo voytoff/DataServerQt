@@ -18,9 +18,10 @@ target_link_libraries(dataserver PRIVATE
     Qt6::Network
     Core
     Engine
-    Hardware
+    HardwareFactory
     Configuration
     LiveStorage
     UdpSender
     UdpServer
+    ModuleLoader
 )

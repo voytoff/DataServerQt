@@ -14,15 +14,13 @@ add_library(UdpSender SHARED
 target_include_directories(Subscriptions
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
-        ../datatypes
-        ../livescheduler
-        ../dataprotocol
 )
 
 target_link_libraries(UdpSender PRIVATE
   PUBLIC
     LiveScheduler
     DataProtocol
+
   PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Network

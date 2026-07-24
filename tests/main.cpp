@@ -1,7 +1,7 @@
 #include <QCoreApplication>
 #include <QTest>
 
-#include "test_dataprotocol.h"
+#include "tst_dataprotocol.h"
 #include "tst_common.h"
 #include "tst_core.h"
 #include "tst_datasource.h"

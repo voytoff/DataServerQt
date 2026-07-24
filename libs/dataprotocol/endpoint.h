@@ -13,7 +13,6 @@ struct Endpoint
   uint16_t port = 0;
 
   auto operator<=>(const Endpoint&) const = default;
-  //mutable std::optional<QHostAddress> cache;
 };
 
 }

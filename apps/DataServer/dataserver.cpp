@@ -2,26 +2,32 @@
 #include "dataengine.h"
 #include "livescheduler.h"
 #include "livestorage.h"
-#include "moduledatasource.h"
+#include "moduleloader.h"
+#include <qdebug.h>
 
-#include <QTimer>
-
-DataServer::DataServer(const qds::SystemConfiguration &config, QObject *parent)
+DataServer::DataServer(qds::SystemConfiguration cfg, QObject *parent)
   : QObject{parent}
-  , m_config(config)
-  , m_storage(config)
+  , m_cfg(std::move(cfg))
+  , m_storage(m_cfg)
   , m_scheduler(m_storage, m_subscritions, m_publisher, m_sender)
-  , m_server(config, m_subscritions, m_scheduler)
-  , m_engine(m_source, m_scheduler)
+  , m_server(m_cfg, m_subscritions, m_scheduler)
+  , m_engine(m_manager, m_scheduler)
 {
-  auto ptr = std::make_unique<qds::ModuleDataSource>(
+  qds::ModuleLoader loader(
+    m_cfg,
     m_storage,
-    m_config,
-    m_config.modules()[0].id,
-    m_device,
-    m_clock);
+    m_clock,
+    m_factory,
+    m_manager);
 
-  m_source.add(std::move(ptr));
+  if (!loader.load())
+    throw std::runtime_error("Cannot load hardware modules");
+
+  connect(
+    &m_timer,
+    &QTimer::timeout,
+    this,
+    &DataServer::onTimer);
 }
 
 bool DataServer::start()
@@ -29,24 +35,27 @@ bool DataServer::start()
   if (!m_engine.start())
     return false;
 
-  QTimer timer;
-
-  connect(
-    &timer,
-    &QTimer::timeout,
-    [&]()
-    {
-      if (!m_engine.step()) {
-        m_engine.stop();
-        QCoreApplication::exit(-1);
-      }
-    });
-
-  timer.start(1);
+  m_timer.start(1);
   return true;
 }
 
 void DataServer::stop()
 {
+  m_timer.stop();
   m_engine.stop();
+}
+
+void DataServer::onTimer()
+{
+  if (!m_engine.step()) {
+    m_engine.stop();
+    QCoreApplication::exit(-1);
+  }
+
+  qds::Sample sample0, sample1, sample2;
+  if (!m_storage.read({0}, sample0)) return;
+  if (!m_storage.read({1}, sample1)) return;
+  if (!m_storage.read({2}, sample2)) return;
+
+  qDebug() << "вывод" << sample0.value << sample1.value << sample2.value;
 }

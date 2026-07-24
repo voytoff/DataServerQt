@@ -65,6 +65,15 @@ void UdpServer::onReadyRead()
       .port = port
     };
 
+    {
+      /// !!!
+      std::span<const std::byte> data1(
+        reinterpret_cast<const std::byte*>(data.constData()),
+        data.size());
+
+      m_dispatcher.dispatch(data1, endpoint);
+    }
+
     PacketReader reader;
 
     reader.append(

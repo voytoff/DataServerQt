@@ -9,16 +9,15 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
 
 add_library(Subscriptions SHARED
   subscription.cpp subscription.h
-
   subscriptionmanager.h subscriptionmanager.cpp
 )
 
 target_include_directories(Subscriptions
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
-        ../datatypes
 )
 
 target_link_libraries(Subscriptions PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
+    DataProtocol
 )

@@ -16,12 +16,6 @@ add_library(UdpServer
 target_include_directories(Subscriptions
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
-        ../datatypes
-        ../dataprotocol
-        ../subscriptions
-        ../livescheduler
-        ../configuration
-        ../datasource
 )
 
 target_link_libraries(UdpServer PRIVATE
@@ -30,6 +24,7 @@ target_link_libraries(UdpServer PRIVATE
     Subscriptions
     LiveScheduler
     Configuration
+    PacketDispatcher
 
   PRIVATE
     Qt${QT_VERSION_MAJOR}::Core

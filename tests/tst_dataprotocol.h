@@ -1,5 +1,5 @@
-#ifndef TEST_DATAPROTOCOL_H
-#define TEST_DATAPROTOCOL_H
+#ifndef TST_DATAPROTOCOL_H
+#define TST_DATAPROTOCOL_H
 
 #include <QObject>
 
@@ -16,4 +16,4 @@ private slots:
 
 };
 
-#endif // TEST_DATAPROTOCOL_H
+#endif // TST_DATAPROTOCOL_H

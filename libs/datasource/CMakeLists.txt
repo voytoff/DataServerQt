@@ -9,15 +9,15 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
 
 add_library(DataSource SHARED
-
   idatasource.h
   imoduledatasink.h
-  generatordatasource.h generatordatasource.cpp
   imodulegenerator.h
+  generatordatasource.h generatordatasource.cpp
   countergenerator.h countergenerator.cpp
   periodicdatasourcerunner.h periodicdatasourcerunner.cpp
   datasourcemanager.h datasourcemanager.cpp
   fakedatasource.h fakedatasource.cpp
+  moduledatasource.h moduledatasource.cpp
 )
 
 target_include_directories(DataSource
@@ -26,12 +26,14 @@ target_include_directories(DataSource
         ../datatypes
         ../core
         ../configuration
+        ../hardware
 )
 
 target_link_libraries(DataSource PRIVATE
   PUBLIC
     Core
     Configuration
+    Hardware
 
   PRIVATE
     Qt${QT_VERSION_MAJOR}::Core

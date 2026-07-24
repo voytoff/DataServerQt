@@ -1,13 +1,15 @@
 #include "tst_datasource.h"
 #include "datasourcemanager.h"
 #include "fakedatasource.h"
+#include "fakelcardmodule.h"
 #include "generatordatasource.h"
+#include "hardwaremodulefactory.h"
 #include "periodicdatasourcerunner.h"
 #include "testsrv.h"
 #include <qtestcase.h>
 #include <qtestsupport_core.h>
 #include "systemclock.h"
-
+#include "QPointer"
 
 tst_datasource::tst_datasource() { }
 tst_datasource::~tst_datasource() = default;
@@ -262,4 +264,36 @@ void tst_datasource::test_dataSourceManager_withFakeSource()
   QCOMPARE(source->startCalls, 1);
   QCOMPARE(source->stepCalls, 1);
   QCOMPARE(source->stopCalls, 1);
+}
+
+void tst_datasource::test_hardwareFactory_createFake()
+{
+  using namespace qds;
+
+  HardwareModuleFactory factory;
+
+  ModuleInfo module;
+  module.type = ModuleType::Fake;
+
+  auto device = factory.create(module);
+
+  QVERIFY(device != nullptr);
+
+  auto* fake = dynamic_cast<FakeLCardModule*>(device.get());
+
+  QVERIFY(fake != nullptr);
+}
+
+void tst_datasource::test_hardwareFactory_unknownType()
+{
+  using namespace qds;
+
+  HardwareModuleFactory factory;
+
+  ModuleInfo module;
+  module.type = ModuleType::Unknown;
+
+  auto device = factory.create(module);
+
+  QVERIFY(device == nullptr);
 }

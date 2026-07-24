@@ -21,9 +21,11 @@ void tst_hardware::test_hardware_schedulerPipeline()
   // часы
   FakeClock clock;
   // источник данных
-  FakeLCardModule lcmodule;
-  auto ptr = std::make_unique<ModuleDataSource>(srv.storage, cfg, cfg.modules()[0].id, lcmodule, clock);
-  auto source = ptr.get();
+  //FakeLCardModule lcmodule;
+  auto lcmodule = std::make_unique<FakeLCardModule>();
+  auto module = lcmodule.get();
+  auto ptr = std::make_unique<ModuleDataSource>(srv.storage, cfg, cfg.modules()[0], std::move(lcmodule), clock);
+  //auto source = ptr.get();
   // диспетчер данных
   DataSourceManager manager;
   QVERIFY(manager.add(std::move(ptr)));
@@ -50,8 +52,8 @@ void tst_hardware::test_hardware_schedulerPipeline()
 
   QVERIFY(engine.step());
 
-  QCOMPARE(lcmodule.startCalls, 1u);
-  QCOMPARE(lcmodule.readCalls, 1u);
+  QCOMPARE(module->startCalls, 1u);
+  QCOMPARE(module->readCalls, 1u);
 
   Sample sample;
 
@@ -97,5 +99,5 @@ void tst_hardware::test_hardware_schedulerPipeline()
   engine.stop();
   QVERIFY(!engine.isRunning());
 
-  QCOMPARE(lcmodule.stopCalls, 1u);
+  QCOMPARE(module->stopCalls, 1u);
 }

@@ -12,6 +12,7 @@ add_library(Configuration SHARED
     moduleinfo.cpp moduleinfo.h
     crateinfo.cpp crateinfo.h
     systemconfiguration.cpp systemconfiguration.h
+    moduletype.h
 )
 
 target_include_directories(Configuration

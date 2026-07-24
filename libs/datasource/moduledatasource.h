@@ -3,9 +3,10 @@
 
 #include "iclock.h"
 #include "idatasource.h"
-#include "imoduledevice.h"
+#include "ihardwaremodule.h"
 #include "imoduledatasink.h"
 #include "systemconfiguration.h"
+#include <memory>
 
 namespace qds
 {
@@ -16,8 +17,8 @@ public:
   ModuleDataSource(
     IModuleDataSink& sink,
     const SystemConfiguration& cfg,
-    ModuleId module,
-    IModuleDevice& device,
+    const ModuleInfo& module,
+    std::unique_ptr<IHardwareModule> device,
     IClock& clock);
 
   bool start() override;
@@ -32,8 +33,8 @@ private:
 
   const SystemConfiguration& m_cfg;
   IModuleDataSink& m_sink;
-  ModuleId m_module;
-  IModuleDevice& m_device;
+  ModuleInfo m_module;
+  std::unique_ptr<IHardwareModule> m_device;
   IClock& m_clock;
 
   std::vector<float> m_buffer;

@@ -19,7 +19,7 @@ add_executable(unit_tests
     tst_livestorage.h tst_livestorage.cpp
     tst_livescheduler.h tst_livescheduler.cpp
     tst_udpserver.h tst_udpserver.cpp
-    test_dataprotocol.h test_dataprotocol.cpp
+    tst_dataprotocol.h tst_dataprotocol.cpp
     testsrv.h testsrv.cpp
     tst_publisher.h tst_publisher.cpp
     tst_datasource.h tst_datasource.cpp
@@ -43,7 +43,7 @@ target_link_libraries(unit_tests PRIVATE
     UdpServer
     DataSource
     Engine
-    Hardware
+    HardwareFactory
 )
 
 add_test(NAME unit_tests COMMAND unit_tests)

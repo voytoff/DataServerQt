@@ -1,13 +1,13 @@
 #ifndef FAKELCARDMODULE_H
 #define FAKELCARDMODULE_H
 
-#include "imoduledevice.h"
+#include "ihardwaremodule.h"
 #include <cstdint>
 
 namespace qds
 {
 
-class FakeLCardModule : public IModuleDevice
+class FakeLCardModule : public IHardwareModule
 {
 public:
   bool start() override;
