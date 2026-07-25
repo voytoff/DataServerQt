@@ -26,6 +26,7 @@ add_executable(unit_tests
     tst_core.h tst_core.cpp
     tst_engine.h tst_engine.cpp
     tst_hardware.h tst_hardware.cpp
+    tst_packetdispatcher.h tst_packetdispatcher.cpp
 )
 
 target_link_libraries(unit_tests PRIVATE

@@ -23,7 +23,7 @@ private slots:
   void test_scheduler_send_subscriptions_sequence2();
 
 
-  void test_publishFailed_sequenceNotIncremented();
+  //void test_publishFailed_sequenceNotIncremented();
   void test_emptySubscription_sequenceIncremented();
   void test_publishPacket_singleTag();
 

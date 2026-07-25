@@ -26,11 +26,11 @@ void PacketWriter::begin(PacketType type)
 void PacketWriter::clear()
 {
   m_buffer.clear();
-  m_buffer.resize(0);
 }
 
-void PacketWriter::writeRaw(const void* data,
-                            std::size_t size)
+void PacketWriter::writeRaw(
+  const void* data,
+  std::size_t size)
 {
   Q_ASSERT(m_buffer.size() >= sizeof(PacketHeader));
 
@@ -54,7 +54,7 @@ void PacketWriter::writeRaw(const void* data,
 
 const std::byte* PacketWriter::data() const noexcept
 {
-  return reinterpret_cast<const std::byte*>(m_buffer.data());
+  return m_buffer.data();
 }
 
 std::byte *PacketWriter::rawData() noexcept
@@ -69,9 +69,7 @@ std::size_t PacketWriter::size() const noexcept
 
 std::span<const std::byte> PacketWriter::span() const noexcept
 {
-  return std::span<const std::byte>(
-    m_buffer.data(),
-    m_buffer.size());
+  return m_buffer;
 }
 
 PacketHeader* PacketWriter::header() noexcept

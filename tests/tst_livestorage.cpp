@@ -465,39 +465,6 @@ void tst_livestorage::test_updateModule_invalidSize_keepsPreviousValues()
   QVERIFY(reader.remaining() == 0);
 }
 
-void tst_livestorage::test_read_invalidTag()
-{
-  using namespace qds;
-  // 1. Configuration
-  SystemConfiguration cfg;
-
-  ModuleInfo m;
-  m.id.value = 0;
-  cfg.addModule(m);
-
-  TagInfo t1{.tag = {0}, .module = {0}, .channel = {0}};
-  cfg.addTag(t1);
-  TagInfo t2{.tag = {1}, .module = {0}, .channel = {1}};
-  cfg.addTag(t2);
-
-  // 2. LiveStorage
-  LiveStorage storage(cfg);
-
-  float values[] = {110.0f, 0.222f};
-
-  uint64_t t = 1234567;
-  // модуль 0 обновил данные в livestorage с временем 1234567
-  QVERIFY(storage.updateModule(ModuleId{0}, values, t));
-
-  Sample sample;
-
-  QVERIFY(storage.read(TagId{1}, sample));
-  QCOMPARE(sample.value, values[1]);
-
-  QVERIFY(!storage.read(TagId{3}, sample));
-  QCOMPARE(sample.value, values[1]);
-}
-
 void tst_livestorage::test_updateModule_multipleUpdates()
 {
   using namespace qds;

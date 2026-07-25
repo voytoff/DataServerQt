@@ -20,7 +20,7 @@ public:
   bool updateModule(ModuleId module, std::span<const float> values, uint64_t timestamp);
 
   [[nodiscard]] const Sample& sample(TagId id) const;
-  [[nodiscard]] bool read(TagId tag, Sample& sample) const;
+  //[[nodiscard]] bool read(TagId tag, Sample& sample) const;
 
   [[nodiscard]] uint64_t moduleTimestamp(ModuleId id) const noexcept;
   [[nodiscard]] uint64_t timestamp(TagId tag) const noexcept;

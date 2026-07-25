@@ -54,9 +54,9 @@ void DataServer::onTimer()
   }
 
   qds::Sample sample0, sample1, sample2;
-  if (!m_storage.read({0}, sample0)) return;
-  if (!m_storage.read({1}, sample1)) return;
-  if (!m_storage.read({2}, sample2)) return;
+  sample0 = m_storage.sample({0});
+  sample1 = m_storage.sample({1});
+  sample2 = m_storage.sample({2});
 
   qDebug() << "вывод" << sample0.value << sample1.value << sample2.value;
 }

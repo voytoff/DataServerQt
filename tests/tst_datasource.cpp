@@ -37,10 +37,9 @@ void tst_datasource::test_generatorDataSource_once()
   QVERIFY(source.generateOnce(t));
 
   Sample sample;
-  QVERIFY(srv.storage.read(tags[0], sample));
-  QCOMPARE(sample.value, 0.f);
-  QVERIFY(srv.storage.read(tags[1], sample));
-  QCOMPARE(sample.value, 1.f);
+  QCOMPARE(srv.storage.sample(tags[0]).value, 0.f);
+  QCOMPARE(srv.storage.sample(tags[1]).value, 1.f);
+
   QCOMPARE(srv.storage.timestamp(tags[0]), t);
   QCOMPARE(srv.storage.timestamp(tags[1]), t);
 
@@ -48,11 +47,8 @@ void tst_datasource::test_generatorDataSource_once()
 
   QVERIFY(source.generateOnce(t2));
 
-  QVERIFY(srv.storage.read(tags[0], sample));
-  QCOMPARE(sample.value, 2.f);
-
-  QVERIFY(srv.storage.read(tags[1], sample));
-  QCOMPARE(sample.value, 3.f);
+  QCOMPARE(srv.storage.sample(tags[0]).value, 2.f);
+  QCOMPARE(srv.storage.sample(tags[1]).value, 3.f);
 
   QCOMPARE(srv.storage.timestamp(tags[0]), t2);
   QCOMPARE(srv.storage.timestamp(tags[1]), t2);
@@ -81,21 +77,16 @@ void tst_datasource::test_generatorDataSource_onceTwoModule()
 
   // проверки
   const auto& tags = cfg.moduleTags({0}); // 2 тега
-  QVERIFY(srv.storage.read(tags[0], sample));
-  QCOMPARE(sample.value, 0.f);
-  QVERIFY(srv.storage.read(tags[1], sample));
-  QCOMPARE(sample.value, 1.f);
+  QCOMPARE(srv.storage.sample(tags[0]).value, 0.f);
+  QCOMPARE(srv.storage.sample(tags[1]).value, 1.f);
 
   QCOMPARE(srv.storage.timestamp(tags[0]), t);
   QCOMPARE(srv.storage.timestamp(tags[1]), t);
 
   const auto& tags2 = cfg.moduleTags({1}); // 3 тега
-  QVERIFY(srv.storage.read(tags2[0], sample));
-  QCOMPARE(sample.value, 0.f);
-  QVERIFY(srv.storage.read(tags2[1], sample));
-  QCOMPARE(sample.value, 1.f);
-  QVERIFY(srv.storage.read(tags2[2], sample));
-  QCOMPARE(sample.value, 2.f);
+  QCOMPARE(srv.storage.sample(tags2[0]).value, 0.f);
+  QCOMPARE(srv.storage.sample(tags2[1]).value, 1.f);
+  QCOMPARE(srv.storage.sample(tags2[2]).value, 2.f);
 
   QCOMPARE(srv.storage.timestamp(tags2[0]), t);
   QCOMPARE(srv.storage.timestamp(tags2[1]), t);
@@ -109,20 +100,15 @@ void tst_datasource::test_generatorDataSource_onceTwoModule()
   QVERIFY(source.generateOnce(t2));
 
   // проверки
-  QVERIFY(srv.storage.read(tags[0], sample));
-  QCOMPARE(sample.value, 2.f);
-  QVERIFY(srv.storage.read(tags[1], sample));
-  QCOMPARE(sample.value, 3.f);
+  QCOMPARE(srv.storage.sample(tags[0]).value, 2.f);
+  QCOMPARE(srv.storage.sample(tags[1]).value, 3.f);
 
   QCOMPARE(srv.storage.timestamp(tags[0]), t2);
   QCOMPARE(srv.storage.timestamp(tags[1]), t2);
 
-  QVERIFY(srv.storage.read(tags2[0], sample));
-  QCOMPARE(sample.value, 3.f);
-  QVERIFY(srv.storage.read(tags2[1], sample));
-  QCOMPARE(sample.value, 4.f);
-  QVERIFY(srv.storage.read(tags2[2], sample));
-  QCOMPARE(sample.value, 5.f);
+  QCOMPARE(srv.storage.sample(tags2[0]).value, 3.f);
+  QCOMPARE(srv.storage.sample(tags2[1]).value, 4.f);
+  QCOMPARE(srv.storage.sample(tags2[2]).value, 5.f);
 
   QCOMPARE(srv.storage.timestamp(tags2[0]), t2);
   QCOMPARE(srv.storage.timestamp(tags2[1]), t2);
@@ -150,11 +136,11 @@ void tst_datasource::test_generatorDataSource_periodicCall()
   QTest::qWait(1000);
 
   Sample beforeSample;
-  QVERIFY(srv.storage.read(tags[0], beforeSample));
+  beforeSample = srv.storage.sample(tags[0]);
   QVERIFY(beforeSample.value > 0.f);
   qDebug() << "тег 0 before:" << beforeSample.value;
 
-  QVERIFY(srv.storage.read(tags[1], beforeSample));
+  beforeSample = srv.storage.sample(tags[1]);
   QVERIFY(beforeSample.value > 0.f);
   qDebug() << "тег 1 before:" << beforeSample.value;
 
@@ -174,11 +160,11 @@ void tst_datasource::test_generatorDataSource_periodicCall()
 
   Sample afterSample;
 
-  QVERIFY(srv.storage.read(tags[0], afterSample));
+  afterSample = srv.storage.sample(tags[0]);
   QVERIFY(afterSample.value > beforeSample.value);
   qDebug() << "тег 0 after:" << afterSample.value;
 
-  QVERIFY(srv.storage.read(tags[1], afterSample));
+  afterSample = srv.storage.sample(tags[1]);
   QVERIFY(afterSample.value > beforeSample.value);
   qDebug() << "  тег 1 after:" << afterSample.value;
 
@@ -201,12 +187,12 @@ void tst_datasource::test_generatorDataSource_periodicCall()
   // проверка после остановки
   Sample s1, s2;
   const auto count = source.generationCount();
-  QVERIFY(srv.storage.read(tags[0], s1));
+  s1 = srv.storage.sample(tags[0]);
 
   QTest::qWait(100);
 
   QCOMPARE(source.generationCount(), count);
-  QVERIFY(srv.storage.read(tags[0], s2));
+  s2 = srv.storage.sample(tags[0]);
 
   QCOMPARE(s1.value, s2.value);
 }

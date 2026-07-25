@@ -24,14 +24,14 @@ const Sample& LiveStorage::sample(TagId id) const
   return m_samples[id.value];
 }
 
-bool LiveStorage::read(TagId tag, Sample& sample) const
+/*bool LiveStorage::read(TagId tag, Sample& sample) const
 {
   if (tag.value >= size())
     return false;
 
   sample = m_samples[tag.value];
   return true;
-}
+}*/
 
 uint64_t LiveStorage::moduleTimestamp(ModuleId id) const noexcept
 {

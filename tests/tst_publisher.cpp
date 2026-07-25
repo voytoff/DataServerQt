@@ -38,49 +38,6 @@ static qds::LiveStorage createLiveStorage() {
   return storage;
 }
 
-void tst_publisher::test_publish_invalidTag()
-{
-  using namespace qds;
-  SystemConfiguration cfg;
-
-  ModuleInfo m;
-  m.id.value = 0;
-  cfg.addModule(m);
-
-  TagInfo t1;
-  t1.tag.value = 0;
-  t1.module.value = 0;
-  t1.channel.value = 0;
-  cfg.addTag(t1);
-
-  TagInfo t2;
-  t2.tag.value = 1;
-  t2.module.value = 0;
-  t2.channel.value = 1;
-  cfg.addTag(t2);
-
-  LiveStorage storage(cfg);
-
-  float values[] = {1.1f, 2.2f};
-
-  uint64_t t = 1234321;
-  // модуль 0 обновил данные в livestorage с временем 1234321
-  QVERIFY(storage.updateModule(ModuleId{0}, values, t));
-
-  // 3. Подписка
-  Subscription s1;
-  s1.endpoint.address = "127.0.0.1";
-  s1.endpoint.port = 35015;
-  s1.rate = PublishRate::Hz10;
-  s1.tags = { {0}, {2} }; // 2 тег отсутствует в LiveStorage
-
-  PacketWriter writer;
-  Publisher pub;
-
-  QVERIFY(!pub.publish(storage, s1, t, writer));
-  QCOMPARE(writer.size(), std::size_t(0));
-}
-
 void tst_publisher::test_publish_sequence()
 {
   using namespace qds;

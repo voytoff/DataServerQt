@@ -55,16 +55,12 @@ void tst_hardware::test_hardware_schedulerPipeline()
   QCOMPARE(module->startCalls, 1u);
   QCOMPARE(module->readCalls, 1u);
 
-  Sample sample;
 
-  QVERIFY(srv.storage.read(tags[0], sample));
-  QCOMPARE(sample.value, 0.f);
+  QCOMPARE(srv.storage.sample(tags[0]).value, 0.f);
 
-  QVERIFY(srv.storage.read(tags[1], sample));
-  QCOMPARE(sample.value, 1.f);
+  QCOMPARE(srv.storage.sample(tags[1]).value, 1.f);
 
-  QVERIFY(srv.storage.read(tags[2], sample));
-  QCOMPARE(sample.value, 2.f);
+  QCOMPARE(srv.storage.sample(tags[2]).value, 2.f);
 
   QCOMPARE(srv.storage.timestamp(tags[0]), t);
 

@@ -449,44 +449,6 @@ void tst_livescheduler::test_scheduler_send_subscriptions_sequence2() {
   //QVERIFY(checkS2 == nullptr);
 }
 
-void tst_livescheduler::test_publishFailed_sequenceNotIncremented()
-{
-  using namespace qds;
-
-  SystemConfiguration cfg;
-  SubscriptionManager manager;
-  Publisher publisher;
-
-  LiveStorage storage(cfg);
-  TestPublisherSender sender;
-
-  LiveScheduler scheduler(
-    storage,
-    manager,
-    publisher,
-    sender);
-
-  Subscription sub;
-  sub.rate = PublishRate::Hz10;
-  sub.tags = {{999}};
-
-  auto id = manager.add(sub);
-
-  scheduler.addSubscription(
-    id,
-    PublishRate::Hz10);
-
-  QCOMPARE(manager.size(), 1u);
-  QCOMPARE(id.value, 1u);
-  QCOMPARE(manager.find(id)->sequence, 0u);
-
-  QVERIFY(scheduler.step());
-
-  // после неудачной публикации состояние подписки не изменилось.
-  QCOMPARE(sender.sendCount, 0u);
-  QCOMPARE(manager.find(id)->sequence, 0u);
-}
-
 void tst_livescheduler::test_emptySubscription_sequenceIncremented()
 {
   using namespace qds;
@@ -555,12 +517,12 @@ void tst_livescheduler::test_publishPacket_singleTag()
   QVERIFY(srv.scheduler.step());
 
   // после публикации состояние подписки изменилось.
-  QCOMPARE(srv.sender.sendCount, 1u);
+  QCOMPARE(srv.publisherSender.sendCount, 1u);
   QCOMPARE(srv.manager.find(id)->sequence, 1u);
 
   PacketReader reader;
-  reader.append(srv.sender.m_packets.front().data(),
-                srv.sender.m_packets.front().size());
+  reader.append(srv.publisherSender.m_packets.front().data(),
+                srv.publisherSender.m_packets.front().size());
 
   QVERIFY(reader.nextPacket());
   QCOMPARE(reader.packetType(), PacketType::LiveData);

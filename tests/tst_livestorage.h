@@ -20,7 +20,6 @@ private slots:
 
   void test_updateModule_read();
   void test_updateModule_invalidSize_keepsPreviousValues();
-  void test_read_invalidTag();
   void test_updateModule_multipleUpdates();
 
 };

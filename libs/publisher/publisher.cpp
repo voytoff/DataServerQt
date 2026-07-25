@@ -4,10 +4,11 @@
 namespace qds
 {
 
-bool Publisher::publish(const LiveStorage& storage,
-                        const Subscription& sub,
-                        uint32_t sequence,
-                        PacketWriter& writer) const
+bool Publisher::publish(
+  const LiveStorage& storage,
+  const Subscription& sub,
+  uint32_t sequence,
+  PacketWriter& writer) const
 {
   writer.begin(PacketType::LiveData);
 
@@ -18,14 +19,6 @@ bool Publisher::publish(const LiveStorage& storage,
 
   if (!sub.tags.empty())
   {
-    Sample dummy;
-
-    if (!storage.read(sub.tags.front(), dummy))
-    {
-      writer.clear();
-      return false;
-    }
-
     hdr.timestamp = storage.timestamp(sub.tags.front());
   }
 
@@ -33,15 +26,7 @@ bool Publisher::publish(const LiveStorage& storage,
 
   for (TagId tag : sub.tags)
   {
-    Sample sample;
-
-    if (!storage.read(tag, sample))
-    {
-      writer.clear();
-      return false;
-    }
-
-    writer.write(sample);
+    writer.write(storage.sample(tag));
   }
 
   return true;

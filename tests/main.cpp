@@ -7,6 +7,7 @@
 #include "tst_datasource.h"
 #include "tst_engine.h"
 #include "tst_hardware.h"
+#include "tst_packetdispatcher.h"
 #include "tst_publisher.h"
 #include "tst_udpsender.h"
 #include "tst_subscriptions.h"
@@ -66,6 +67,10 @@ int main(int argc, char *argv[])
   }
   {
     tst_udpserver tc;
+    rc |= QTest::qExec(&tc, argc, argv);
+  }
+  {
+    tst_packetdispatcher tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
 

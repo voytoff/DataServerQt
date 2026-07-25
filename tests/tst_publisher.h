@@ -11,8 +11,6 @@ public:
   ~tst_publisher() override;
 
 private slots:
-  // Подписка содержит TagId, которого нет в LiveStorage.
-  void test_publish_invalidTag();
   // publish(... sequence = 10 ...) и проверить
   void test_publish_sequence();
   // проверка пустой подписки

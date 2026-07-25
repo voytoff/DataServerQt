@@ -169,16 +169,12 @@ void tst_engine::test_dataEngine_storagePipeline()
 
   QCOMPARE(source->generationCount(), 1u);
 
-  Sample sample;
 
-  QVERIFY(srv.storage.read(tags[0], sample));
-  QCOMPARE(sample.value, 0.f);
+  QCOMPARE(srv.storage.sample(tags[0]).value, 0.f);
 
-  QVERIFY(srv.storage.read(tags[1], sample));
-  QCOMPARE(sample.value, 1.f);
+  QCOMPARE(srv.storage.sample(tags[1]).value, 1.f);
 
-  QVERIFY(srv.storage.read(tags[2], sample));
-  QCOMPARE(sample.value, 2.f);
+  QCOMPARE(srv.storage.sample(tags[2]).value, 2.f);
 
   QCOMPARE(srv.storage.timestamp(tags[0]), t);
 
@@ -256,14 +252,11 @@ void tst_engine::test_dataEngine_completePipeline()
 
   Sample sample;
 
-  QVERIFY(srv.storage.read(tags[0], sample));
-  QCOMPARE(sample.value, 0.f);
+  QCOMPARE(srv.storage.sample(tags[0]).value, 0.f);
 
-  QVERIFY(srv.storage.read(tags[1], sample));
-  QCOMPARE(sample.value, 1.f);
+  QCOMPARE(srv.storage.sample(tags[1]).value, 1.f);
 
-  QVERIFY(srv.storage.read(tags[2], sample));
-  QCOMPARE(sample.value, 2.f);
+  QCOMPARE(srv.storage.sample(tags[2]).value, 2.f);
 
   QCOMPARE(srv.storage.timestamp(tags[0]), t);
 
