@@ -5,9 +5,9 @@
 namespace qds
 {
 
-PacketWriter::PacketWriter()
+PacketWriter::PacketWriter(std::size_t capacity)
 {
-  m_buffer.reserve(DefaultPacketCapacity);
+  m_buffer.reserve(capacity);
 }
 
 void PacketWriter::begin(PacketType type)
@@ -33,6 +33,9 @@ void PacketWriter::writeRaw(
   std::size_t size)
 {
   Q_ASSERT(m_buffer.size() >= sizeof(PacketHeader));
+
+  if (m_buffer.size() < sizeof(PacketHeader))
+    return;
 
   if (!data || size == 0)
     return;
@@ -70,6 +73,17 @@ std::size_t PacketWriter::size() const noexcept
 std::span<const std::byte> PacketWriter::span() const noexcept
 {
   return m_buffer;
+}
+
+void PacketWriter::clearPayload()
+{
+  Q_ASSERT(m_buffer.size() >= sizeof(PacketHeader));
+
+  if (m_buffer.size() < sizeof(PacketHeader))
+    return;
+
+  m_buffer.resize(sizeof(PacketHeader));
+  header()->payloadSize = 0;
 }
 
 PacketHeader* PacketWriter::header() noexcept

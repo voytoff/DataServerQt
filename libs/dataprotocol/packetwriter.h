@@ -21,7 +21,7 @@ public:
 
 public:
 
-  PacketWriter();
+  PacketWriter(std::size_t capacity = DefaultPacketCapacity);
 
   PacketWriter(const PacketWriter&) = delete;
   PacketWriter& operator=(const PacketWriter&) = delete;
@@ -46,6 +46,8 @@ public:
 
   [[nodiscard]]
   std::span<const std::byte> span() const noexcept;
+
+  void clearPayload();
 
 private:
 

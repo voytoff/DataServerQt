@@ -31,6 +31,23 @@ private:
   uint32_t m_nextId = 1;
   std::vector<Subscription> m_subscriptions;
 
+private:
+
+  template<class Self>
+  static auto findImpl(Self& self, SubscriptionId id)
+  {
+    auto it = std::find_if(
+      self.m_subscriptions.begin(),
+      self.m_subscriptions.end(),
+      [id](const Subscription& sub)
+      {
+        return sub.id == id;
+      });
+
+    return it != self.m_subscriptions.end()
+             ? &*it
+             : nullptr;
+  }
 };
 
 } // namespace qds

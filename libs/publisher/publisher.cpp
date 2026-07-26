@@ -13,6 +13,7 @@ bool Publisher::publish(
   writer.begin(PacketType::LiveData);
 
   PublishHeader hdr{};
+
   hdr.subscriptionId = sub.id;
   hdr.sequence = sequence;
   hdr.valueCount = uint32_t(sub.tags.size());
@@ -24,8 +25,11 @@ bool Publisher::publish(
 
   writer.write(hdr);
 
-  for (TagId tag : sub.tags)
+  for(TagId tag : sub.tags)
   {
+    if (!storage.contains(tag))
+      return false;
+
     writer.write(storage.sample(tag));
   }
 

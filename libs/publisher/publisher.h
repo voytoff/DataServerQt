@@ -18,6 +18,7 @@ public:
     const Subscription& sub,
     uint32_t sequence,
     PacketWriter& writer) const;
+
 };
 
 }

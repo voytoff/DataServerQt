@@ -7,11 +7,9 @@ namespace qds
 
 SubscriptionId SubscriptionManager::add(const Subscription& subscription)
 {
-  Subscription sub = subscription;
+  m_subscriptions.push_back(subscription);
 
-  sub.id = SubscriptionId{m_nextId++};
-
-  m_subscriptions.push_back(std::move(sub));
+  m_subscriptions.back().id = SubscriptionId{m_nextId++};
 
   return m_subscriptions.back().id;
 }
@@ -35,28 +33,12 @@ bool SubscriptionManager::remove(SubscriptionId id)
 
 Subscription* SubscriptionManager::find(SubscriptionId id)
 {
-  auto it = std::find_if(
-    m_subscriptions.begin(),
-    m_subscriptions.end(),
-    [id](const Subscription& sub)
-    {
-      return sub.id == id;
-    });
-
-  return (it != m_subscriptions.end()) ? &(*it) : nullptr;
+  return findImpl(*this, id);
 }
 
 const Subscription* SubscriptionManager::find(SubscriptionId id) const
 {
-  auto it = std::find_if(
-    m_subscriptions.begin(),
-    m_subscriptions.end(),
-    [id](const Subscription& sub)
-    {
-      return sub.id == id;
-    });
-
-  return (it != m_subscriptions.end()) ? &(*it) : nullptr;
+  return findImpl(*this, id);
 }
 
 const std::vector<Subscription>& SubscriptionManager::subscriptions() const
@@ -67,6 +49,7 @@ const std::vector<Subscription>& SubscriptionManager::subscriptions() const
 void SubscriptionManager::clear()
 {
   m_subscriptions.clear();
+  m_nextId = 1;
 }
 
 bool SubscriptionManager::empty() const

@@ -70,8 +70,6 @@ bool LiveScheduler::step()
 
 void LiveScheduler::publish(std::span<const SubscriptionId> ids)
 {
-  PacketWriter writer;
-
   for (SubscriptionId id : ids)
   {
     Subscription* sub = m_subscriptions.find(id);
@@ -79,20 +77,22 @@ void LiveScheduler::publish(std::span<const SubscriptionId> ids)
     if (!sub)
       continue;
 
-    const uint64_t timestamp = 0; // TODO
+    const uint32_t sequence = sub->sequence;
 
-    if (!m_publisher.publish(
-          m_storage,
-          *sub,
-          sub->sequence,
-          writer))
+    if (!send(
+          sub->endpoint,
+          PacketType::LiveData,
+          [&](PacketWriter& writer)
+          {
+            return m_publisher.publish(
+              m_storage,
+              *sub,
+              sequence,
+              writer);
+          }))
     {
       continue;
     }
-
-    m_sender.send(
-      sub->endpoint,
-      writer.span());
 
     ++sub->sequence;
   }

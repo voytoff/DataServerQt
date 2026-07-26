@@ -11,10 +11,10 @@ PacketDispatcher::PacketDispatcher(
   SubscriptionManager& subscriptions,
   LiveScheduler& scheduler,
   ISender& sender)
-  : m_subscriptions(subscriptions)
-  , m_configuration(configuration)
+  : m_configuration(configuration)
+  , m_subscriptions(subscriptions)
   , m_scheduler(scheduler)
-  , m_sender(sender) { }
+  , m_sender(sender) {}
 
 bool PacketDispatcher::dispatch(
   std::span<const std::byte> packet,
@@ -51,17 +51,20 @@ bool PacketDispatcher::dispatch(
     ErrorCode::UnsupportedPacket);
 
   return false;
-
 }
 
-bool PacketDispatcher::sendErrorResponse(const Endpoint &endpoint, ErrorCode code, uint32_t info)
+bool PacketDispatcher::sendErrorResponse(
+  const Endpoint& endpoint,
+  ErrorCode code,
+  uint32_t info)
 {
-  PacketWriter writer;
-  writer.begin(PacketType::ErrorResponse);
-  ErrorResponse response{.code = code, .info = info};
-  writer.write(response);
-
-  return sendPacket(endpoint, writer);
+  return reply(
+    endpoint,
+    PacketType::ErrorResponse,
+    ErrorResponse{
+      .code = code,
+      .info = info
+    });
 }
 
 bool PacketDispatcher::processSubscribeList(PacketReader &reader, const Endpoint &endpoint)
@@ -182,49 +185,35 @@ bool PacketDispatcher::processUnsubscribe(PacketReader &reader, const Endpoint &
   return sendUnsubscribeResponse(endpoint, UnsubscribeResult::Ok);
 }
 
-bool PacketDispatcher::processPing(PacketReader &reader, const Endpoint &endpoint)
+bool PacketDispatcher::processPing(
+  PacketReader& reader,
+  const Endpoint& endpoint)
 {
   if (!checkEof(reader, endpoint))
     return false;
 
-  PacketWriter writer;
-  writer.begin(PacketType::Pong);
-
-  return sendPacket(endpoint, writer);
-}
-
-bool PacketDispatcher::sendPacket(const Endpoint &endpoint, const PacketWriter &writer)
-{
-  return m_sender.send(endpoint, writer.span());
+  return reply(endpoint, PacketType::Pong);
 }
 
 bool PacketDispatcher::sendSubscribeResponse(const Endpoint &endpoint, SubscribeResult result, SubscriptionId id)
 {
-  PacketWriter writer;
-
-  writer.begin(PacketType::SubscribeResponse);
-
-  SubscribeResponse response;
-  response.result = result;
-  response.id = id;
-
-  writer.write(response);
-
-  return sendPacket(endpoint, writer);
+  return reply(
+    endpoint,
+    PacketType::SubscribeResponse,
+    SubscribeResponse{
+      .result = result,
+      .id = id
+   });
 }
 
 bool PacketDispatcher::sendUnsubscribeResponse(const Endpoint &endpoint, UnsubscribeResult result)
 {
-  PacketWriter writer;
-
-  writer.begin(PacketType::UnsubscribeResponse);
-
-  UnsubscribeResponse response;
-  response.result = result;
-
-  writer.write(response);
-
-  return sendPacket(endpoint, writer);
+  return reply(
+    endpoint,
+    PacketType::UnsubscribeResponse,
+    UnsubscribeResponse{
+      .result = result,
+    });
 }
 
 bool PacketDispatcher::checkEof(PacketReader &reader, const Endpoint &endpoint)

@@ -18,20 +18,16 @@ LiveStorage::LiveStorage(const SystemConfiguration& cfg)
       m_tagModules[tag.tag.value] = tag.module;
 }
 
-const Sample& LiveStorage::sample(TagId id) const
+const Sample& LiveStorage::sample(TagId id) const noexcept
 {
   Q_ASSERT(id.value < size());
   return m_samples[id.value];
 }
 
-/*bool LiveStorage::read(TagId tag, Sample& sample) const
+bool LiveStorage::contains(TagId id) const noexcept
 {
-  if (tag.value >= size())
-    return false;
-
-  sample = m_samples[tag.value];
-  return true;
-}*/
+  return id.value < size();
+}
 
 uint64_t LiveStorage::moduleTimestamp(ModuleId id) const noexcept
 {

@@ -8,9 +8,14 @@
 #include "subscriptionmanager.h"
 #include "livescheduler.h"
 #include "systemconfiguration.h"
+#include <concepts>
 
 namespace qds
 {
+
+template<typename T>
+concept PacketBuilder =
+  std::invocable<T&, PacketWriter&>;
 
 class PacketDispatcher
 {
@@ -46,10 +51,6 @@ private:
     PacketReader& reader,
     const Endpoint& endpoint);
 
-  bool sendPacket(
-    const Endpoint& endpoint,
-    const PacketWriter& writer);
-
   bool sendSubscribeResponse(
     const Endpoint& endpoint,
     SubscribeResult result,
@@ -84,10 +85,53 @@ private:
   }
 
 private:
+
+  template<typename T>
+    requires std::is_trivially_copyable_v<T>
+  bool reply(
+    const Endpoint& endpoint,
+    PacketType type,
+    const T& packet)
+  {
+    m_writer.begin(type);
+    m_writer.write(packet);
+
+    return m_sender.send(endpoint, m_writer.span());
+  }
+
+  bool reply(
+    const Endpoint& endpoint,
+    PacketType type)
+  {
+    m_writer.begin(type);
+
+    return m_sender.send(
+      endpoint,
+      m_writer.span());
+  }
+
+  template<PacketBuilder Builder>
+  bool reply(
+    const Endpoint& endpoint,
+    PacketType type,
+    Builder&& builder)
+  {
+    m_writer.begin(type);
+
+    builder(m_writer);
+
+    return m_sender.send(
+      endpoint,
+      m_writer.span());
+  }
+
+private:
   const SystemConfiguration& m_configuration;
   SubscriptionManager& m_subscriptions;
   LiveScheduler& m_scheduler;
   ISender& m_sender;
+  PacketWriter m_writer;
+
 };
 
 }
