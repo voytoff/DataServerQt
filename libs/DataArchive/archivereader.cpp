@@ -2,5 +2,11 @@
 
 namespace qds
 {
-ArchiveReader::ArchiveReader() { }
+
+bool ArchiveReader::open()
+{
+  //if (!header.isValid())
+    return false;
+}
+
 }

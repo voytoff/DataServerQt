@@ -3,17 +3,20 @@
 namespace qds
 {
 
-bool ArchiveWriter::open(const DataFileHeader &header, const std::filesystem::path &file)
+
+
+bool ArchiveWriter::open(const std::filesystem::path &path, const DataFileHeader &header)
 {
-  auto recordSize =
-    sizeof(uint64_t) +
-    m_header.channelCount * sizeof(float);
+  return true;
 }
 
 bool ArchiveWriter::write(uint64_t timestamp, std::span<const float> values)
 {
-  if (values.size() != m_header.channelCount)
-    return false;
+  return true;
+}
+
+void ArchiveWriter::close()
+{
 
 }
 

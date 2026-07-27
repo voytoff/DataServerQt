@@ -1,9 +1,11 @@
 #ifndef ARCHIVEWRITER_H
 #define ARCHIVEWRITER_H
 
-#include "datafileheader.h"
 #include <filesystem>
 #include <span>
+
+#include "archiveformat.h"
+#include "archivefile.h"
 
 namespace qds
 {
@@ -11,21 +13,24 @@ namespace qds
 class ArchiveWriter
 {
 public:
-
   bool open(
-    const DataFileHeader& header,
-    const std::filesystem::path& file);
+    const std::filesystem::path& file,
+    const DataFileHeader& header);
 
-  void close();
-
-  bool write(
+  bool append(
     uint64_t timestamp,
     std::span<const float> values);
 
-private:
+  bool flush();
 
-  std::ofstream *m_file;
-  DataFileHeader m_header{};
+  void close();
+
+private:
+  bool writeHeader();
+
+private:
+  ArchiveFile m_file;
+  DataFileHeader m_header;
 };
 
 }

@@ -1,6 +1,7 @@
 #include <QCoreApplication>
 #include <QTest>
 
+#include "tst_dataarchive.h"
 #include "tst_dataprotocol.h"
 #include "tst_common.h"
 #include "tst_core.h"
@@ -71,6 +72,10 @@ int main(int argc, char *argv[])
   }
   {
     tst_packetdispatcher tc;
+    rc |= QTest::qExec(&tc, argc, argv);
+  }
+  {
+    tst_dataarchive tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
 
