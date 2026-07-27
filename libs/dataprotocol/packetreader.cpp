@@ -1,5 +1,5 @@
 #include "packetreader.h"
-#include <QtCore/qassert.h>
+//#include <QtCore/qassert.h>
 #include <cstring>
 
 namespace qds
@@ -45,9 +45,12 @@ bool PacketReader::nextPacket()
     m_buffer.data(),
     HeaderSize);
 
-  if (m_header.magic != ProtocolMagic ||
-      m_header.version != ProtocolVersion)
+  if (!isHeaderValid())
   {
+    // Она копирует весь буфер на один байт.
+    // Пока это нормально.
+    // Но если когда-нибудь начнете принимать поток с большим количеством мусора перед пакетом, может оказаться выгоднее хранить индекс начала буфера и периодически выполнять компактирование.
+    // Это уже микрооптимизация, и сейчас трогать её точно не стоит.
     m_buffer.erase(m_buffer.begin());
     return false;
   }
@@ -63,6 +66,12 @@ bool PacketReader::nextPacket()
   return true;
 }
 
+bool PacketReader::isHeaderValid() const
+{
+  return m_header.magic == ProtocolMagic &&
+    m_header.version == ProtocolVersion;
+}
+
 const PacketHeader& PacketReader::header() const noexcept
 {
   return m_header;
@@ -75,7 +84,8 @@ PacketType PacketReader::packetType() const noexcept
 
 std::size_t PacketReader::remaining() const noexcept
 {
-  Q_ASSERT(m_offset <= m_header.payloadSize);
+  //Q_ASSERT(m_offset <= m_header.payloadSize);
+  assert(m_offset <= m_header.payloadSize);
 
   return m_header.payloadSize - m_offset;
 }
@@ -85,7 +95,8 @@ std::size_t PacketReader::trailingBytes() const noexcept
   const std::size_t packetSize =
     HeaderSize + m_header.payloadSize;
 
-  Q_ASSERT(m_buffer.size() >= packetSize);
+  //Q_ASSERT(m_buffer.size() >= packetSize);
+  assert(m_buffer.size() >= packetSize);
 
   return m_buffer.size() - packetSize;
 }
@@ -95,7 +106,7 @@ const std::byte* PacketReader::payloadData() const noexcept
   return m_buffer.data() + HeaderSize;
 }
 
-bool PacketReader::readBytes(std::span<std::byte> dst)
+bool PacketReader::readRaw(std::span<std::byte> dst)
 {
   if (dst.size() > remaining())
     return false;

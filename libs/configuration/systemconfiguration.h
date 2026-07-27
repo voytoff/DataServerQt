@@ -32,7 +32,7 @@ private:
   std::vector<TagInfo> m_tags;
 
   std::vector<std::vector<TagId>> m_moduleTags;
-
+  std::vector<const TagInfo*> m_tagIndex;
   std::vector<bool> m_tagExists;
 
 };

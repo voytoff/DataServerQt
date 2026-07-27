@@ -12,6 +12,7 @@
 namespace qds
 {
 
+// периодически запускает публикацию
 class LiveScheduler
 {
 public:
@@ -29,22 +30,6 @@ public:
 
 private:
   void publish(std::span<const SubscriptionId> ids);
-
-  template<typename Builder>
-  bool send(
-    const Endpoint& endpoint,
-    PacketType type,
-    Builder&& builder)
-  {
-    m_writer.begin(type);
-
-    if (!builder(m_writer))
-      return false;
-
-    return m_sender.send(
-      endpoint,
-      m_writer.span());
-  }
 
 private:
   const LiveStorage& m_storage;

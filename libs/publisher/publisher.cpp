@@ -4,6 +4,14 @@
 namespace qds
 {
 
+enum class PublishResult
+{
+  Ok,
+  InvalidTag,
+  EmptySubscription,
+  BufferOverflow
+};
+
 bool Publisher::publish(
   const LiveStorage& storage,
   const Subscription& sub,
@@ -19,17 +27,17 @@ bool Publisher::publish(
   hdr.valueCount = uint32_t(sub.tags.size());
 
   if (!sub.tags.empty())
-  {
     hdr.timestamp = storage.timestamp(sub.tags.front());
-  }
 
   writer.write(hdr);
 
   for(TagId tag : sub.tags)
   {
-    if (!storage.contains(tag))
-      return false;
-
+    //if (!storage.contains(tag))
+    //{
+    //   writer.clear();
+    //  return false;
+    //}
     writer.write(storage.sample(tag));
   }
 

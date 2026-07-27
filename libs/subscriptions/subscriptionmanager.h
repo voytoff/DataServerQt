@@ -1,8 +1,12 @@
 #ifndef SUBSCRIPTIONMANAGER_H
 #define SUBSCRIPTIONMANAGER_H
 
-#include <vector>
+#include <algorithm>
 #include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <vector>
+
 #include "subscription.h"
 
 namespace qds
@@ -25,13 +29,14 @@ public:
   void clear();
 
   [[nodiscard]] bool empty() const;
-  [[nodiscard]] size_t size() const;
+  [[nodiscard]] std::size_t size() const;
 
 private:
   uint32_t m_nextId = 1;
   std::vector<Subscription> m_subscriptions;
 
 private:
+  SubscriptionId nextId();
 
   template<class Self>
   static auto findImpl(Self& self, SubscriptionId id)
@@ -44,9 +49,9 @@ private:
         return sub.id == id;
       });
 
-    return it != self.m_subscriptions.end()
-             ? &*it
-             : nullptr;
+    return it == self.m_subscriptions.end()
+             ? nullptr
+             : std::addressof(*it);
   }
 };
 

@@ -1,7 +1,5 @@
 #include "systemconfiguration.h"
-#include <algorithm>
 #include <cassert>
-#include <qassert.h>
 
 namespace qds
 {
@@ -49,19 +47,15 @@ const std::vector<TagInfo>& SystemConfiguration::tags() const
 
 const std::vector<TagId>& SystemConfiguration::moduleTags(ModuleId id) const
 {
-  Q_ASSERT(id.value < m_moduleTags.size());
+  assert(id.value < m_moduleTags.size());
+
   return m_moduleTags[id.value];
 }
 
 bool SystemConfiguration::containsTag(TagId id) const
 {
-  return std::any_of(
-    m_tags.begin(),
-    m_tags.end(),
-    [id](const TagInfo& t)
-    {
-      return t.tag == id;
-    });
+  return id.value < m_tagExists.size()
+  && m_tagExists[id.value];
 }
 
 const TagInfo *SystemConfiguration::findTag(TagId id) const

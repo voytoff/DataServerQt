@@ -9,7 +9,7 @@ SubscriptionId SubscriptionManager::add(const Subscription& subscription)
 {
   m_subscriptions.push_back(subscription);
 
-  m_subscriptions.back().id = SubscriptionId{m_nextId++};
+  m_subscriptions.back().id = nextId();
 
   return m_subscriptions.back().id;
 }
@@ -49,7 +49,8 @@ const std::vector<Subscription>& SubscriptionManager::subscriptions() const
 void SubscriptionManager::clear()
 {
   m_subscriptions.clear();
-  m_nextId = 1;
+  // ID никогда не повторяются в течение жизни процесса
+  //m_nextId = 1;
 }
 
 bool SubscriptionManager::empty() const
@@ -57,9 +58,17 @@ bool SubscriptionManager::empty() const
   return m_subscriptions.empty();
 }
 
-size_t SubscriptionManager::size() const
+std::size_t SubscriptionManager::size() const
 {
   return m_subscriptions.size();
+}
+
+SubscriptionId SubscriptionManager::nextId()
+{
+  if (m_nextId == 0)
+    m_nextId = 1;
+
+  return {m_nextId++};
 }
 
 } // namespace qds

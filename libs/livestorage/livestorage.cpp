@@ -1,8 +1,6 @@
 #include "livestorage.h"
 #include "systemconfiguration.h"
-#include <qassert.h>
-#include <qdebug.h>
-#include <qlogging.h>
+#include <cassert>
 
 namespace qds
 {
@@ -20,7 +18,8 @@ LiveStorage::LiveStorage(const SystemConfiguration& cfg)
 
 const Sample& LiveStorage::sample(TagId id) const noexcept
 {
-  Q_ASSERT(id.value < size());
+  assert(id.value < size());
+
   return m_samples[id.value];
 }
 
@@ -31,13 +30,21 @@ bool LiveStorage::contains(TagId id) const noexcept
 
 uint64_t LiveStorage::moduleTimestamp(ModuleId id) const noexcept
 {
-  Q_ASSERT(id.value < m_moduleTimestamps.size());
+  assert(id.value < m_moduleTimestamps.size());
+
+  //if (id.value >= m_moduleTimestamps.size())
+  //  return 0;
+
   return m_moduleTimestamps[id.value];
 }
 
 uint64_t LiveStorage::timestamp(TagId tag) const noexcept
 {
-  Q_ASSERT(tag.value < m_tagModules.size());
+  assert(tag.value < m_tagModules.size());
+
+  //if (tag.value >= m_tagModules.size())
+  //  return 0;
+
   return m_moduleTimestamps[m_tagModules[tag.value].value];
 }
 
@@ -54,11 +61,13 @@ bool LiveStorage::updateModule(ModuleId module, std::span<const float> values, u
   //Q_ASSERT(values.size() == tags.size());
   if (values.size() != tags.size())
   {
+    /* TODO перенести наверх
     qWarning()
       << "LiveStorage::updateModule(): ожидалось"
       << tags.size()
       << "значений, получено"
       << values.size();
+    */
     return false;
   }
 

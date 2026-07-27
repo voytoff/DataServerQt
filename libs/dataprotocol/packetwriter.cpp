@@ -1,6 +1,7 @@
 #include "packetwriter.h"
 #include "protocol/packetheader.h"
-#include <qassert.h>
+#include <cassert>
+//#include <qassert.h>
 
 namespace qds
 {
@@ -32,7 +33,8 @@ void PacketWriter::writeRaw(
   const void* data,
   std::size_t size)
 {
-  Q_ASSERT(m_buffer.size() >= sizeof(PacketHeader));
+  //Q_ASSERT(m_buffer.size() >= sizeof(PacketHeader));
+  assert(m_buffer.size() >= sizeof(PacketHeader));
 
   if (m_buffer.size() < sizeof(PacketHeader))
     return;
@@ -77,7 +79,8 @@ std::span<const std::byte> PacketWriter::span() const noexcept
 
 void PacketWriter::clearPayload()
 {
-  Q_ASSERT(m_buffer.size() >= sizeof(PacketHeader));
+  //Q_ASSERT(m_buffer.size() >= sizeof(PacketHeader));
+  assert(m_buffer.size() >= sizeof(PacketHeader));
 
   if (m_buffer.size() < sizeof(PacketHeader))
     return;

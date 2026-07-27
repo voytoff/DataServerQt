@@ -10,6 +10,7 @@
 namespace qds
 {
 
+// строит LiveData пакет
 class Publisher
 {
 public:

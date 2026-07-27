@@ -1,7 +1,10 @@
 #ifndef PACKETREADER_H
 #define PACKETREADER_H
 
+#include <cassert>
 #include <cstddef>
+// не работает в проектах без Qt
+//#include <qassert.h>
 #include <span>
 #include <vector>
 
@@ -24,6 +27,8 @@ public:
   [[nodiscard]]
   bool nextPacket();
 
+  bool isHeaderValid() const;
+
   [[nodiscard]]
   const PacketHeader& header() const noexcept;
 
@@ -39,22 +44,86 @@ public:
   [[nodiscard]]
   const std::byte* payloadData() const noexcept;
 
-  bool readBytes(std::span<std::byte> dst);
+  // низкоуровневый доступ
+  bool readRaw(std::span<std::byte> dst);
 
+  // копия одного объекта
   template<class T>
   bool read(T& value)
   {
-    return readBytes(
+    static_assert(
+      std::is_trivially_copyable_v<T>);
+
+    return readRaw(
       std::as_writable_bytes(
         std::span{&value, 1}));
   }
 
+  // копия массива
   template<class T>
   bool readArray(T* values, std::size_t count)
   {
-    return readBytes(
+    static_assert(std::is_trivially_copyable_v<T>);
+
+    if (count == 0)
+      return true;
+
+    if (!values)
+      return false;
+
+    return readRaw(
       std::as_writable_bytes(
         std::span{values, count}));
+  }
+
+  // посмотреть без чтения
+  template<class T>
+  [[nodiscard]]
+  const T* peek() const
+  {
+    static_assert(std::is_trivially_copyable_v<T>);
+
+    assert(reinterpret_cast<std::uintptr_t>(payloadData() + m_offset) % alignof(T) == 0);
+
+    if (sizeof(T) > remaining())
+      return nullptr;
+
+    return reinterpret_cast<const T*>(
+      payloadData() + m_offset);
+  }
+
+  template<class T>
+  [[nodiscard]]
+  bool readSpan(std::span<const T>& span, std::size_t count)
+  {
+    static_assert(std::is_trivially_copyable_v<T>);
+
+    const std::size_t bytes = sizeof(T) * count;
+
+    if (bytes > remaining())
+      return false;
+
+    span = {
+      reinterpret_cast<const T*>(payloadData() + m_offset),
+      count
+    };
+
+    m_offset += bytes;
+
+    return true;
+  }
+
+  // zero-copy массив
+  template<class T>
+  [[nodiscard]]
+  std::span<const T> readSpan(std::size_t count)
+  {
+    std::span<const T> span;
+
+    if (!readSpan(span, count))
+      return {};
+
+    return span;
   }
 
 private:

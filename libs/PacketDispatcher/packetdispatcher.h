@@ -17,6 +17,9 @@ template<typename T>
 concept PacketBuilder =
   std::invocable<T&, PacketWriter&>;
 
+// принимает команды
+// создает подписки
+// отвечает клиенту
 class PacketDispatcher
 {
 public:
@@ -99,6 +102,7 @@ private:
     return m_sender.send(endpoint, m_writer.span());
   }
 
+  // reply без payload
   bool reply(
     const Endpoint& endpoint,
     PacketType type)

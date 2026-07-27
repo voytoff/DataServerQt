@@ -45,6 +45,7 @@ target_link_libraries(unit_tests PRIVATE
     DataSource
     Engine
     HardwareFactory
+    DataArchive
 )
 
 add_test(NAME unit_tests COMMAND unit_tests)

@@ -229,7 +229,10 @@ bool PacketDispatcher::checkEof(PacketReader &reader, const Endpoint &endpoint)
   return false;
 }
 
-SubscriptionId PacketDispatcher::createSubscription(const Endpoint &endpoint, PublishRate rate, std::span<const TagId> tags)
+SubscriptionId PacketDispatcher::createSubscription(
+  const Endpoint &endpoint,
+  PublishRate rate,
+  std::span<const TagId> tags)
 {
   Subscription s;
   s.endpoint = endpoint;

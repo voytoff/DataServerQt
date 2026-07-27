@@ -13,10 +13,12 @@ target_include_directories(PacketDispatcher
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(PacketDispatcher PRIVATE
-    DataProtocol
-    Subscriptions
-    LiveScheduler
-    Publisher
-    UdpSender
+target_link_libraries(PacketDispatcher
+    PUBLIC
+        DataProtocol
+    PRIVATE
+        Subscriptions
+        LiveScheduler
+        Publisher
+        UdpSender
 )

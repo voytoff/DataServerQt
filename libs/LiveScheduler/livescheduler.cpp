@@ -68,28 +68,33 @@ bool LiveScheduler::step()
   return true;
 }
 
-void LiveScheduler::publish(std::span<const SubscriptionId> ids)
+void LiveScheduler::publish(
+  std::span<const SubscriptionId> ids)
 {
   for (SubscriptionId id : ids)
   {
-    Subscription* sub = m_subscriptions.find(id);
+    Subscription* sub =
+      m_subscriptions.find(id);
 
     if (!sub)
       continue;
 
-    const uint32_t sequence = sub->sequence;
+    const uint32_t sequence =
+      sub->sequence;
 
-    if (!send(
+
+    if (!m_publisher.publish(
+          m_storage,
+          *sub,
+          sequence,
+          m_writer))
+    {
+      continue;
+    }
+
+    if (!m_sender.send(
           sub->endpoint,
-          PacketType::LiveData,
-          [&](PacketWriter& writer)
-          {
-            return m_publisher.publish(
-              m_storage,
-              *sub,
-              sequence,
-              writer);
-          }))
+          m_writer.span()))
     {
       continue;
     }
