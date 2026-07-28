@@ -3,6 +3,20 @@
 namespace qds
 {
 
+ArchiveFile::~ArchiveFile()
+{
+  close();
+}
+
+void ArchiveFile::close()
+{
+  if (m_stream.is_open())
+    m_stream.close();
+
+  m_stream.clear();
+  m_mode = OpenMode::Closed;
+}
+
 bool ArchiveFile::create(
   const std::filesystem::path& path,
   const DataFileHeader& header)
@@ -204,17 +218,13 @@ bool ArchiveFile::seek(uint64_t pos)
   if (isReadable())
   {
     m_stream.seekg(offset);
-
-    if (!m_stream)
-      return false;
+    return bool(m_stream);
   }
 
   if (isWritable())
   {
     m_stream.seekp(offset);
-
-    if (!m_stream)
-      return false;
+    return bool(m_stream);
   }
 
   return true;
@@ -262,9 +272,19 @@ bool ArchiveFile::eof() const
   return isReadable() && m_stream.eof();
 }
 
-bool ArchiveFile::fail() const
+bool ArchiveFile::fail() const noexcept
 {
   return m_stream.fail();
+}
+
+bool ArchiveFile::bad() const noexcept
+{
+  return m_stream.bad();
+}
+
+bool ArchiveFile::good() const noexcept
+{
+  return m_stream.good();
 }
 
 bool ArchiveFile::flush()
@@ -287,6 +307,16 @@ void ArchiveFile::reset()
 ArchiveFile::operator bool() const noexcept
 {
   return isOpen();
+}
+
+void ArchiveFile::setFirstTimestamp(uint64_t ts) noexcept
+{
+  m_header.firstTimestamp = ts;
+}
+
+void ArchiveFile::setLastTimestamp(uint64_t ts) noexcept
+{
+  m_header.lastTimestamp = ts;
 }
 
 bool ArchiveFile::writeHeader() noexcept
@@ -321,20 +351,6 @@ bool ArchiveFile::readHeader() noexcept
     sizeof(DataFileHeader));
 
   return bool(m_stream);
-}
-
-ArchiveFile::~ArchiveFile()
-{
-  close();
-}
-
-void ArchiveFile::close()
-{
-  if (m_stream.is_open())
-    m_stream.close();
-
-  m_stream.clear();
-  m_mode = OpenMode::Closed;
 }
 
 }

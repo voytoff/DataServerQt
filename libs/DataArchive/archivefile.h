@@ -122,14 +122,21 @@ public:
   [[nodiscard]]
   bool eof() const;
 
-  [[nodiscard]]
-  bool fail() const;
+  bool fail() const noexcept;
+
+  bool bad() const noexcept;
+
+  bool good() const noexcept;
 
   bool flush();
 
   void reset();
 
   explicit operator bool() const noexcept;
+
+
+  void setFirstTimestamp(uint64_t ts) noexcept;
+  void setLastTimestamp(uint64_t ts) noexcept;
 
 private:
   bool writeHeader() noexcept;
