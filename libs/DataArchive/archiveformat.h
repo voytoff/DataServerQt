@@ -52,9 +52,12 @@ struct DataFileHeader
   }
 
 };
+
+static constexpr uint64_t HeaderSize =
+  sizeof(DataFileHeader);
+
 static_assert(std::is_trivially_copyable_v<DataFileHeader>);
 static_assert(sizeof(DataFileHeader) % 8 == 0);
-
 
 }
 

@@ -2,6 +2,7 @@
 #define ARCHIVEREADER_H
 
 #include <cstdint>
+#include <filesystem>
 #include <span>
 
 #include "archiveformat.h"
@@ -13,19 +14,18 @@ namespace qds
 class ArchiveReader
 {
 public:
+  bool open(const std::filesystem::path& file);
 
-  bool open();
-
-  const DataFileHeader& header() const;
-
-  bool read(
+  bool readNext(
     uint64_t& timestamp,
     std::span<float> values);
 
+  void close();
+
+  const DataFileHeader& header() const;
+
 private:
-
   ArchiveFile m_file;
-
   DataFileHeader m_header;
 };
 

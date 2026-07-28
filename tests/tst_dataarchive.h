@@ -12,6 +12,11 @@ public:
 
 private slots:
   void test_dataFileHeader_headerSize();
+  void test_dataFileHeader_base();
+
+private:
+  const std::string fileName = "test_file.dat";
+
 };
 
 #endif // TST_DATAARCHIVE_H
