@@ -20,6 +20,15 @@ struct SampleRecordHeader
 static_assert(std::is_trivially_copyable_v<SampleRecordHeader>);
 static_assert(sizeof(SampleRecordHeader) % 8 == 0);
 
+enum class ArchiveDataType : uint32_t
+{
+  Unknown = 0,
+  RawModule,
+  Formula,
+  Calculated,
+  User
+};
+
 struct DataFileHeader
 {
   uint32_t magic = ArchiveMagic;
@@ -35,6 +44,8 @@ struct DataFileHeader
 
   uint64_t firstTimestamp = 0;   // время первой записанной выборки
   uint64_t lastTimestamp  = 0;   // время последней записанной выборки
+
+  uint64_t recordCount = 0;
 
   uint32_t headerSize = uint32_t(sizeof(DataFileHeader));
 

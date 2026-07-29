@@ -135,6 +135,9 @@ bool ArchiveFile::saveHeader()
   if (!isWritable())
     return false;
 
+  if (!m_headerDirty)
+    return true;
+
   const uint64_t pos = position();
 
   if (!writeHeader())
@@ -302,6 +305,7 @@ void ArchiveFile::reset()
   close();
   m_header = {};
   m_path.clear();
+  m_headerDirty = false;
 }
 
 ArchiveFile::operator bool() const noexcept
@@ -311,12 +315,20 @@ ArchiveFile::operator bool() const noexcept
 
 void ArchiveFile::setFirstTimestamp(uint64_t ts) noexcept
 {
-  m_header.firstTimestamp = ts;
+  if (m_header.firstTimestamp != ts)
+  {
+    m_header.firstTimestamp = ts;
+    markHeaderDirty();
+  }
 }
 
 void ArchiveFile::setLastTimestamp(uint64_t ts) noexcept
 {
-  m_header.lastTimestamp = ts;
+  if (m_header.lastTimestamp != ts)
+  {
+    m_header.lastTimestamp = ts;
+    markHeaderDirty();
+  }
 }
 
 bool ArchiveFile::writeHeader() noexcept
@@ -333,7 +345,14 @@ bool ArchiveFile::writeHeader() noexcept
     reinterpret_cast<const char*>(&m_header),
     sizeof(DataFileHeader));
 
-  return bool(m_stream);
+  if (!m_stream)
+  {
+    m_headerDirty = true;
+    return false;
+  }
+
+  m_headerDirty = false;
+  return true;
 }
 
 bool ArchiveFile::readHeader() noexcept
@@ -351,6 +370,11 @@ bool ArchiveFile::readHeader() noexcept
     sizeof(DataFileHeader));
 
   return bool(m_stream);
+}
+
+void ArchiveFile::markHeaderDirty() noexcept
+{
+  m_headerDirty = true;
 }
 
 }

@@ -1,11 +1,8 @@
 #ifndef ARCHIVEWRITER_H
 #define ARCHIVEWRITER_H
 
-#include <filesystem>
-#include <span>
-
-#include "archiveformat.h"
 #include "archivefile.h"
+#include <span>
 
 namespace qds
 {
@@ -13,26 +10,30 @@ namespace qds
 class ArchiveWriter
 {
 public:
+  ArchiveWriter() = default;
+
   bool open(
-    const std::filesystem::path& file,
+    const std::filesystem::path& path,
     const DataFileHeader& header);
 
-  bool append(
+  void close();
+
+  bool isOpen() const noexcept;
+
+  bool write(
     uint64_t timestamp,
     std::span<const float> values);
 
   bool flush();
 
-  void close();
-
-private:
-  bool writeHeader();
+  ArchiveFile& file() noexcept;
+  const ArchiveFile& file() const noexcept;
 
 private:
   ArchiveFile m_file;
-  DataFileHeader m_header;
+
 };
 
 }
 
-#endif // ARCHIVEWRITER_H
+#endif

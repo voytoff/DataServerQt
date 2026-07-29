@@ -1,8 +1,8 @@
-#include "tst_common.h"
 #include <qudpsocket.h>
 
 #include "datatypes.h"
 #include "systemconfiguration.h"
+#include "tst_common.h"
 
 test_common::test_common() { }
 test_common::~test_common() = default;

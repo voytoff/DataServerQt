@@ -6,24 +6,6 @@
 tst_dataarchive::tst_dataarchive() { }
 tst_dataarchive::~tst_dataarchive() = default;
 
-static std::string getCurrentFolder() {
-  return std::filesystem::current_path().generic_string();
-}
-static std::string getFilePath(std::string fileName) {
-  return std::format("{0}/{1}", getCurrentFolder(), fileName);
-}
-static qds::DataFileHeader getDataFileHeader() {
-  auto recordSize = static_cast<uint32_t>(sizeof(qds::SampleRecordHeader) + 32 * sizeof(float));
-  qds::DataFileHeader hdr{
-    .module = {999},
-    .sampleFrequency = 100,
-    .channelCount = 32,
-    .recordSize = recordSize,
-    .firstTimestamp = 1234567
-  };
-  return hdr;
-}
-
 void tst_dataarchive::test_dataFileHeader_headerSize()
 {
   using namespace qds;
@@ -39,8 +21,8 @@ void tst_dataarchive::test_dataFileHeader_base()
 {
   using namespace qds;
   std::string filePath = getFilePath(fileName);
-  auto recordSize = static_cast<uint32_t>(sizeof(SampleRecordHeader) + 32 * sizeof(float));
   DataFileHeader hdr = getDataFileHeader();
+  auto recordSize = static_cast<uint32_t>(sizeof(SampleRecordHeader) + hdr.channelCount * sizeof(float));
 
   QCOMPARE(hdr.headerSize, sizeof(hdr));
   ArchiveFile file;
@@ -56,19 +38,19 @@ void tst_dataarchive::test_dataFileHeader_base()
   QCOMPARE(file.header().sampleFrequency, 100u);
   QCOMPARE(file.header().channelCount, 32u);
   QCOMPARE(file.header().module.value, 999u);
-  QCOMPARE(file.header().firstTimestamp, 1234567u);
+  QCOMPARE(file.header().firstTimestamp, firstTimestamp);
   QCOMPARE(file.header().recordSize, recordSize);
 
   QCOMPARE(file.position(), HeaderSize);
 
   SampleRecordHeader rh{
-    .timestamp = 7654321
+    .timestamp = timestamp
   };
 
   QVERIFY(file.writeObject(rh));
 
   std::array<float, 32> values;
-  for (int n = 0; n < 32; ++n) {
+  for (float n = 0; n < values.size(); ++n) {
     values[n] = n;
   }
 
@@ -93,7 +75,7 @@ void tst_dataarchive::test_dataFileHeader_base()
   QCOMPARE(file.header().sampleFrequency, 100u);
   QCOMPARE(file.header().channelCount, 32u);
   QCOMPARE(file.header().module.value, 999u);
-  QCOMPARE(file.header().firstTimestamp, 1234567u);
+  QCOMPARE(file.header().firstTimestamp, firstTimestamp);
   QCOMPARE(file.header().recordSize, recordSize);
 
   QCOMPARE(file.position(), HeaderSize);
@@ -101,14 +83,14 @@ void tst_dataarchive::test_dataFileHeader_base()
   SampleRecordHeader rh2;
   QVERIFY(file.readObject(rh2));
 
-  QCOMPARE(rh2.timestamp, 7654321u);
+  QCOMPARE(rh2.timestamp, timestamp);
 
   std::array<float, 32> values2;
 
   QVERIFY(file.readArray(values2.data(), values2.size()));
   QCOMPARE(file.position(), file.fileSize());
 
-  for (int n = 0; n < 32; ++n) {
+  for (float n = 0; n < values.size(); ++n) {
     QCOMPARE(values2[n], n);
   }
 
@@ -209,7 +191,7 @@ void tst_dataarchive::test_archiveFile_invalidHeaderSize()
 
   ArchiveFile file;
   QVERIFY(!file.create(filePath, hdr));
-}
+  }
 
 void tst_dataarchive::test_archiveFile_badChannelCount()
 {
@@ -221,6 +203,9 @@ void tst_dataarchive::test_archiveFile_badChannelCount()
 
   ArchiveFile file;
   QVERIFY(!file.create(filePath, hdr));
+
+  file.close();
+  QVERIFY(!file.isOpen());
 }
 
 void tst_dataarchive::test_archiveFile_reCreates()
@@ -234,18 +219,19 @@ void tst_dataarchive::test_archiveFile_reCreates()
   QVERIFY(file.create(filePath, hdr));
   QVERIFY(file.create(filePath, hdr));
   QVERIFY(file.create(filePath, hdr));
+
+  file.close();
+  QVERIFY(!file.isOpen());
 }
 
 void tst_dataarchive::test_archiveFile_saveHeader()
 {
   using namespace qds;
-  DataFileHeader hdr = getDataFileHeader();
-  QCOMPARE(hdr.lastTimestamp, 0);
+  ArchiveFile file = getAfterCreateArchiveFile();
+  QVERIFY(file);
 
-  std::string filePath = getFilePath(fileName);
+  auto filePath = file.path();
 
-  ArchiveFile file;
-  QVERIFY(file.create(filePath, hdr));
   QCOMPARE(file.header().lastTimestamp, 0);
 
   file.setLastTimestamp(777);
@@ -270,4 +256,195 @@ void tst_dataarchive::test_archiveFile_saveHeader()
   QVERIFY(file.open(filePath, OpenMode::Read));
 
   QCOMPARE(file.header().lastTimestamp, 12345678);
+
+  file.close();
+  QVERIFY(!file.isOpen());
+}
+
+void tst_dataarchive::test_archiveFile_saveHeaderInReadMode()
+{
+  using namespace qds;
+  ArchiveFile file = getAfterCreateArchiveFile();
+  QVERIFY(file);
+
+  auto filePath = file.path();
+
+  file.close();
+  QVERIFY(!file.isOpen());
+
+  QVERIFY(file.open(filePath, OpenMode::Read));
+
+  QVERIFY(!file.saveHeader());
+
+  file.close();
+  QVERIFY(!file.isOpen());
+}
+
+void tst_dataarchive::test_archiveFile_seekToZerro()
+{
+  using namespace qds;
+  ArchiveFile file = getAfterCreateArchiveFile();
+  QVERIFY(file);
+
+  QVERIFY(file.seek(0));
+  QCOMPARE(file.position() , 0);
+
+  auto filePath = file.path();
+
+  file.close();
+  QVERIFY(!file.isOpen());
+
+  QVERIFY(file.open(filePath, OpenMode::Read));
+  QCOMPARE(file.position(), HeaderSize);
+
+  QVERIFY(file.seek(0));
+  QCOMPARE(file.position() , 0);
+
+  DataFileHeader hdr;
+  QVERIFY(file.readObject(hdr));
+
+  QCOMPARE(hdr.magic, ArchiveMagic);
+  QCOMPARE(hdr.version, ArchiveVersion);
+
+  file.close();
+  QVERIFY(!file.isOpen());
+}
+
+void tst_dataarchive::test_archiveFile_seekToDataAfterHeader()
+{
+  using namespace qds;
+  ArchiveFile file = getAfterCreateArchiveFile();
+  QVERIFY(file);
+
+  QCOMPARE(file.position(), HeaderSize);
+
+  SampleRecordHeader rh{
+    .timestamp = timestamp
+  };
+
+  QVERIFY(file.writeObject(rh));
+
+  std::array<float, 4> values;
+  for (float n = 0; n < values.size(); ++n) {
+    values[n] = n;
+  }
+
+  QVERIFY(file.writeArray(values.data(), values.size()));
+  auto pos = file.position();
+
+  auto filePath = file.path();
+
+  file.close();
+  QVERIFY(!file.isOpen());
+
+  QVERIFY(file.open(filePath, OpenMode::Read));
+  QCOMPARE(file.position(), HeaderSize);
+
+  QVERIFY(file.seek(0));
+  QCOMPARE(file.position() , 0);
+
+  QVERIFY(file.seek(HeaderSize));
+  QCOMPARE(file.position() , HeaderSize);
+
+  SampleRecordHeader rh2;
+  QVERIFY(file.readObject(rh2));
+
+  QCOMPARE(rh2.timestamp, timestamp);
+
+  std::array<float, values.size()> values2;
+
+  QVERIFY(file.readArray(values2.data(), values2.size()));
+  QCOMPARE(file.position(), file.fileSize());
+
+  for (float n = 0; n < values2.size(); ++n) {
+    QCOMPARE(values2[n], n);
+  }
+
+  QCOMPARE(file.position(), pos);
+
+  file.close();
+  QVERIFY(!file.isOpen());
+}
+
+void tst_dataarchive::test_archiveFile_saveZerroArray()
+{
+  using namespace qds;
+  ArchiveFile file = getAfterCreateArchiveFile();
+  QVERIFY(file);
+
+  QCOMPARE(file.position(), HeaderSize);
+
+  SampleRecordHeader rh{
+    .timestamp = timestamp
+  };
+
+  QVERIFY(file.writeObject(rh));
+
+  std::array<float, 0> values;
+
+  QVERIFY(file.writeArray(values.data(), values.size()));
+
+  QCOMPARE(file.position(), HeaderSize + sizeof(SampleRecordHeader));
+
+
+  file.close();
+  QVERIFY(!file.isOpen());
+}
+
+void tst_dataarchive::test_archiveFile_checkFileSize()
+{
+  using namespace qds;
+  ArchiveFile file = getAfterCreateArchiveFile();
+  QVERIFY(file);
+
+  QCOMPARE(file.position(), HeaderSize);
+
+  SampleRecordHeader rh{
+    .timestamp = timestamp
+  };
+
+  QVERIFY(file.writeObject(rh));
+
+  std::array<float, 32> values;
+
+  QVERIFY(file.writeArray(values.data(), values.size()));
+
+  auto fileSize = HeaderSize + sizeof(SampleRecordHeader) + (values.size() * sizeof(float));
+
+  QCOMPARE(file.position(), fileSize);
+  QCOMPARE(file.fileSize(), fileSize);
+
+
+  file.close();
+  QVERIFY(!file.isOpen());
+}
+
+void tst_dataarchive::test_archiveFile_saveHeaderNotChangePosition()
+{
+  using namespace qds;
+  ArchiveFile file = getAfterCreateArchiveFile();
+  QVERIFY(file);
+
+  QCOMPARE(file.position(), HeaderSize);
+
+  SampleRecordHeader rh{
+    .timestamp = timestamp
+  };
+
+  QVERIFY(file.writeObject(rh));
+
+  std::array<float, 32> values;
+
+  QVERIFY(file.writeArray(values.data(), values.size()));
+
+  auto pos = file.position();
+
+  file.setFirstTimestamp(0xFFFF);
+  file.saveHeader();
+
+  QCOMPARE(file.position(), pos);
+
+
+  file.close();
+  QVERIFY(!file.isOpen());
 }

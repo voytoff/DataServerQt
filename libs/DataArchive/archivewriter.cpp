@@ -3,6 +3,73 @@
 namespace qds
 {
 
+bool ArchiveWriter::open(
+  const std::filesystem::path& path,
+  const DataFileHeader& header)
+{
+  return m_file.create(path, header);
+}
 
+
+void ArchiveWriter::close()
+{
+  m_file.close();
+}
+
+
+bool ArchiveWriter::isOpen() const noexcept
+{
+  return m_file.isOpen();
+}
+
+
+bool ArchiveWriter::write(
+  uint64_t timestamp,
+  std::span<const float> values)
+{
+  if (!m_file.isOpen())
+    return false;
+
+  if(values.size() != m_file.header().channelCount)
+    return false;
+
+
+  SampleRecordHeader record{
+    .timestamp = timestamp
+  };
+
+
+  if (!m_file.writeObject(record))
+    return false;
+
+
+  if (!m_file.writeArray(
+        values.data(),
+        values.size()))
+    return false;
+
+
+  m_file.setLastTimestamp(timestamp);
+
+  return true;
+}
+
+
+bool ArchiveWriter::flush()
+{
+  return m_file.flush();
+}
+
+
+ArchiveFile& ArchiveWriter::file() noexcept
+{
+  return m_file;
+}
+
+
+const ArchiveFile& ArchiveWriter::file() const noexcept
+{
+  return m_file;
+}
 
 }

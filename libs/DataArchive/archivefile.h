@@ -141,12 +141,15 @@ public:
 private:
   bool writeHeader() noexcept;
   bool readHeader() noexcept;
+  void markHeaderDirty() noexcept;
 
 private:
   DataFileHeader m_header{};
   std::fstream m_stream;
   std::filesystem::path m_path;
   OpenMode m_mode = OpenMode::Closed;
+
+  bool m_headerDirty = false;
 
 };
 
