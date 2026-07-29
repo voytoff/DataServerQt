@@ -26,8 +26,11 @@ public:
 
   bool flush();
 
-  ArchiveFile& file() noexcept;
-  const ArchiveFile& file() const noexcept;
+  const DataFileHeader& header() const;
+
+  uint64_t recordCount() const;
+
+  uint64_t fileSize();
 
 private:
   ArchiveFile m_file;

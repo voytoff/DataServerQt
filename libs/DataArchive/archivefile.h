@@ -134,9 +134,9 @@ public:
 
   explicit operator bool() const noexcept;
 
-
   void setFirstTimestamp(uint64_t ts) noexcept;
   void setLastTimestamp(uint64_t ts) noexcept;
+  void recordWritten() noexcept;
 
 private:
   bool writeHeader() noexcept;

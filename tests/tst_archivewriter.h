@@ -21,6 +21,10 @@ private slots:
    */
   void test_archivewriter_create_open();
   void test_archivewriter_writeOneRecord();
+  void test_archivewriter_writeSomeRecords();
+  void test_archivewriter_badChannelCount();
+  void test_archivewriter_writeAfterClose();
+  void test_archivewriter_doubleClose();
 
 };
 

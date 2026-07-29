@@ -10,6 +10,9 @@ ArchiveFile::~ArchiveFile()
 
 void ArchiveFile::close()
 {
+  if (isWritable())
+    saveHeader();
+
   if (m_stream.is_open())
     m_stream.close();
 
@@ -329,6 +332,12 @@ void ArchiveFile::setLastTimestamp(uint64_t ts) noexcept
     m_header.lastTimestamp = ts;
     markHeaderDirty();
   }
+}
+
+void ArchiveFile::recordWritten() noexcept
+{
+  ++m_header.recordCount;
+  markHeaderDirty();
 }
 
 bool ArchiveFile::writeHeader() noexcept

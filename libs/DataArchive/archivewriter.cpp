@@ -30,9 +30,9 @@ bool ArchiveWriter::write(
   if (!m_file.isOpen())
     return false;
 
-  if(values.size() != m_file.header().channelCount)
+  if (values.size() != m_file.header().channelCount ||
+      values.empty())
     return false;
-
 
   SampleRecordHeader record{
     .timestamp = timestamp
@@ -48,28 +48,32 @@ bool ArchiveWriter::write(
         values.size()))
     return false;
 
-
+  m_file.recordWritten();
   m_file.setLastTimestamp(timestamp);
+
 
   return true;
 }
-
 
 bool ArchiveWriter::flush()
 {
   return m_file.flush();
 }
 
-
-ArchiveFile& ArchiveWriter::file() noexcept
+const DataFileHeader &qds::ArchiveWriter::header() const
 {
-  return m_file;
+  return m_file.header();
 }
 
 
-const ArchiveFile& ArchiveWriter::file() const noexcept
+uint64_t ArchiveWriter::recordCount() const
 {
-  return m_file;
+  return header().recordCount;
+}
+
+uint64_t ArchiveWriter::fileSize()
+{
+  return m_file.fileSize();
 }
 
 }
