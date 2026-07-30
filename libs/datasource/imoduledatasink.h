@@ -8,7 +8,7 @@ namespace qds
 {
 
 /** куда источник пишет данные */
-class IModuleDataSink
+class IModuleDataSink // TODO -> IDataSink or ISignalInput
 {
 public:
   virtual ~IModuleDataSink() = default;

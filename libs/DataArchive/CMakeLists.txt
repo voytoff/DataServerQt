@@ -7,17 +7,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(DataArchive SHARED
-
     archiveformat.h
-
-    archivefile.h
-    archivefile.cpp
-
-    archivewriter.h
-    archivewriter.cpp
-
-    archivereader.h
-    archivereader.cpp
+    archivefile.h archivefile.cpp
+    archivewriter.h archivewriter.cpp
+    archivereader.h archivereader.cpp
+    archivemanager.h archivemanager.cpp
 )
 
 target_include_directories(DataArchive

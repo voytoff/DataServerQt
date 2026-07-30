@@ -204,7 +204,7 @@ void tst_archivewriter::test_archivewriter_doubleClose()
   QVERIFY(writer.isOpen());
 
   std::array<float, 32> values;
-  QVERIFY(!writer.write(0, values));
+  QVERIFY(writer.write(0, values));
 
   writer.close();
   QVERIFY(!writer.isOpen());

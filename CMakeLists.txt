@@ -21,6 +21,7 @@ add_subdirectory(libs/hardwarefactory)
 add_subdirectory(libs/moduleloader)
 add_subdirectory(libs/packetdispatcher)
 add_subdirectory(libs/dataarchive)
+add_subdirectory(libs/signalstorage)
 
 enable_testing()
 add_subdirectory(tests)

@@ -15,5 +15,5 @@ add_library(Configuration SHARED
 target_include_directories(Configuration
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
-        ../datatypes
+        ${CMAKE_CURRENT_SOURCE_DIR}/../datatypes
 )
