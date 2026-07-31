@@ -8,6 +8,8 @@
 namespace qds
 {
 
+static constexpr uint32_t InvalidIndex = UINT32_MAX;
+
 struct TagId
 {
   uint32_t value = 0;

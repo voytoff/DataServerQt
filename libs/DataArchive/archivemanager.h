@@ -10,7 +10,7 @@ struct ArchiveTask
 {
   uint32_t divider;
 
-  SignalGroup group;
+  //SignalGroup group;
 
   ArchiveWriter writer;
 };

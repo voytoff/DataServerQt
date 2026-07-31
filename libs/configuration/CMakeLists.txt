@@ -10,6 +10,7 @@ add_library(Configuration SHARED
     crateinfo.cpp crateinfo.h
     systemconfiguration.cpp systemconfiguration.h
     moduletype.h
+    signaldefinition.h signaldefinition.cpp
 )
 
 target_include_directories(Configuration

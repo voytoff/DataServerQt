@@ -5,14 +5,15 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(SignalStorage SHARED
+
+  signalarea.h signalarea.cpp
   signalstorage.cpp signalstorage.h
-  signaldefinition.h
-  signalprocessor.h
-  signalframe.h
+  signalmemorylayout.h signalmemorylayout.cpp
 )
 
 target_include_directories(SignalStorage
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/../datatypes
+        ${CMAKE_CURRENT_SOURCE_DIR}/../configuration
 )
