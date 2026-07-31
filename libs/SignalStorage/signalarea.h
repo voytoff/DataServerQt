@@ -1,18 +1,15 @@
 #ifndef SIGNALAREA_H
 #define SIGNALAREA_H
 
-#include "signalstorage.h"
+#include <cstdint>
 
 namespace qds
 {
 
-class SignalArea
+enum class SignalMemoryArea : uint8_t
 {
-public:
-
-  SignalStorage raw;
-
-  SignalStorage calculated;
+  Raw,
+  Calculated
 };
 
 }

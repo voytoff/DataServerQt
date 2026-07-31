@@ -11,6 +11,12 @@ namespace qds
 
 using SignalId = uint32_t;
 
+enum class SignalKind : uint8_t
+{
+  Raw = 0,
+  Calculated
+};
+
 enum class SignalMemoryArea : uint8_t
 {
   Raw = 0,
@@ -32,7 +38,7 @@ struct SignalDefinition
   std::string name;
 
   // физический или вычисляемый сигнал
-  SignalMemoryArea kind = SignalMemoryArea::Raw;
+  SignalKind kind = SignalKind::Raw;
 
   // источник для RAW сигнала
   // для Calculated может быть пустым

@@ -1,9 +1,12 @@
 #include <cassert>
+#include <vector>
+
 #include "signalmemorylayout.h"
 #include "signaldefinition.h"
 #include "systemconfiguration.h"
 
-namespace  qds {
+namespace qds
+{
 
 void SignalMemoryLayout::build(const SystemConfiguration &configuration)
 {
@@ -15,22 +18,71 @@ void SignalMemoryLayout::build(const SystemConfiguration &configuration)
   uint32_t rawIndex = 0;
   uint32_t calculatedIndex = 0;
 
-  auto signalDefinitions = configuration.signalDefinitions();
-  for(int i = 0; i < signalDefinitions.size(); i++)
-  {
-    SignalDefinition definition = signalDefinitions[i];
+  SignalId maxId = 0;
 
-    if (definition.kind == SignalMemoryArea::Raw)
+  const auto& definitions = configuration.signalDefinitions();
+
+  for (const auto& definition : definitions)
+    maxId = std::max(maxId, definition.id);
+
+  m_locations.assign(maxId + 1, {});
+
+  for (const auto& definition : definitions)
+  {
+    assert(definition.id < m_locations.size());
+
+    switch (definition.kind)
     {
-      m_locations.push_back({.area = SignalMemoryArea::Raw, .index = rawIndex++});
-    }
-    else if (definition.kind == SignalMemoryArea::Calculated)
-    {
-      m_locations.push_back({.area = SignalMemoryArea::Calculated, .index = calculatedIndex++});
+    case SignalKind::Raw:
+      m_locations[definition.id].area = SignalMemoryArea::Raw;
+      m_locations[definition.id].index = rawIndex++;
+      break;
+
+    case SignalKind::Calculated:
+      m_locations[definition.id].area = SignalMemoryArea::Calculated;
+      m_locations[definition.id].index = calculatedIndex++;
+      break;
+
+    default:
+      assert(false);
     }
   }
 
-  m_locations.resize(rawIndex + calculatedIndex);
+#ifndef NDEBUG
+
+  std::printf("\nRAW\n");
+  std::printf("%-8s %-8s %s\n", "Index", "Id", "Name");
+  std::printf("------------------------------------------\n");
+  for (const auto& definition : definitions)
+  {
+    const auto& location = m_locations[definition.id];
+
+    if (location.area != SignalMemoryArea::Raw)
+      continue;
+
+    std::printf("%-8u %-8u %s\n",
+                location.index,
+                definition.id,
+                definition.name.c_str());
+  }
+
+  std::printf("\nCALCULATED\n");
+  std::printf("%-8s %-8s %s\n", "Index", "Id", "Name");
+  std::printf("------------------------------------------\n");
+  for (const auto& definition : definitions)
+  {
+    const auto& location = m_locations[definition.id];
+
+    if (location.area != SignalMemoryArea::Calculated)
+      continue;
+
+    std::printf("%-8u %-8u %s\n",
+                location.index,
+                definition.id,
+                definition.name.c_str());
+  }
+
+#endif
 
   m_rawSignalCount = rawIndex;
   m_calculatedSignalCount = calculatedIndex;

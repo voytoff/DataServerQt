@@ -3,10 +3,11 @@
 
 #include <cstdint>
 #include <vector>
+
 #include "datatypes.h"
 #include "signaldefinition.h"
 
-namespace  qds
+namespace qds
 {
 
 struct SignalLocation
