@@ -3,8 +3,6 @@
 
 #include <cassert>
 #include <cstddef>
-// не работает в проектах без Qt
-//#include <qassert.h>
 #include <span>
 #include <vector>
 

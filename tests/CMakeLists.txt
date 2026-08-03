@@ -29,6 +29,7 @@ add_executable(unit_tests
     tst_packetdispatcher.h tst_packetdispatcher.cpp
     tst_dataarchive.h tst_dataarchive.cpp
     tst_archivewriter.h tst_archivewriter.cpp
+    tst_signalstorage.h tst_signalstorage.cpp
 )
 
 target_link_libraries(unit_tests PRIVATE
@@ -48,6 +49,7 @@ target_link_libraries(unit_tests PRIVATE
     Engine
     HardwareFactory
     DataArchive
+    SignalStorage
 )
 
 add_test(NAME unit_tests COMMAND unit_tests)

@@ -8,6 +8,9 @@ add_library(SignalStorage SHARED
   signalarea.h signalarea.cpp
   signalstorage.cpp signalstorage.h
   signalmemorylayout.h signalmemorylayout.cpp
+  buffermanager.h buffermanager.cpp
+  frame.h frame.cpp
+  rawmemory.h rawmemory.cpp
 )
 
 target_include_directories(SignalStorage

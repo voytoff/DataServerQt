@@ -1,7 +1,6 @@
 #include "packetwriter.h"
 #include "protocol/packetheader.h"
 #include <cassert>
-//#include <qassert.h>
 
 namespace qds
 {

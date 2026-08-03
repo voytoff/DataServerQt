@@ -20,11 +20,11 @@ void SystemConfiguration::addTag(const TagInfo& tag)
   if (tag.tag.value >= m_tagExists.size())
   {
     m_tagExists.resize(tag.tag.value + 1, false);
-    m_tagIndex.resize(tag.tag.value + 1, InvalidIndex);
+    m_tagIndex.resize(tag.tag.value + 1, InvalidIndex32);
   }
 
   assert(!m_tagExists[tag.tag.value]);
-  assert(m_tagIndex[tag.tag.value] == InvalidIndex);
+  assert(m_tagIndex[tag.tag.value] == InvalidIndex32);
   assert(tag.module.value < m_moduleTags.size());
 
   const uint32_t index =
@@ -78,7 +78,7 @@ const TagInfo* SystemConfiguration::findTag(TagId id) const
 
   const uint32_t index = m_tagIndex[id.value];
 
-  if (index == InvalidIndex)
+  if (index == InvalidIndex32)
     return nullptr;
 
   assert(index < m_tags.size());
@@ -92,11 +92,11 @@ void SystemConfiguration::addSignalDefinition(
   if (definition.id >= m_signalDefinitionExists.size())
   {
     m_signalDefinitionExists.resize(definition.id + 1, false);
-    m_signalDefinitionIndex.resize(definition.id + 1, InvalidIndex);
+    m_signalDefinitionIndex.resize(definition.id + 1, InvalidIndex32);
   }
 
   assert(!m_signalDefinitionExists[definition.id]);
-  assert(m_signalDefinitionIndex[definition.id] == InvalidIndex);
+  assert(m_signalDefinitionIndex[definition.id] == InvalidIndex32);
 
   const uint32_t index =
     static_cast<uint32_t>(m_signalDefinitions.size());
@@ -115,7 +115,7 @@ const SignalDefinition* SystemConfiguration::findSignalDefinition(
 
   const uint32_t index = m_signalDefinitionIndex[id];
 
-  if (index == InvalidIndex)
+  if (index == InvalidIndex32)
     return nullptr;
 
   assert(index < m_signalDefinitions.size());

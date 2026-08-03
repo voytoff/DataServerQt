@@ -23,6 +23,7 @@ add_subdirectory(libs/packetdispatcher)
 add_subdirectory(libs/dataarchive)
 add_subdirectory(libs/signalstorage)
 add_subdirectory(libs/signalprocessor)
+add_subdirectory(libs/scheduler)
 
 enable_testing()
 add_subdirectory(tests)

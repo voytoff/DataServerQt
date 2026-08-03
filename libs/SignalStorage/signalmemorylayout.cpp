@@ -106,7 +106,7 @@ uint32_t SignalMemoryLayout::calculatedSignalCount() const
 
 bool SignalMemoryLayout::contains(SignalId id) const
 {
-  return id < m_locations.size() && m_locations[id].index != InvalidIndex;
+  return id < m_locations.size() && m_locations[id].index != InvalidIndex32;
 }
 
 }

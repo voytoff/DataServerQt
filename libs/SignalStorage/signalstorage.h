@@ -3,30 +3,36 @@
 #include <cstdint>
 #include <span>
 #include <vector>
-#include "signalmemorylayout.h"
 
 namespace qds
 {
 
+class SignalMemoryLayout;
+
 class SignalStorage
 {
 public:
-  void initialize(const SignalMemoryLayout& layout);
+  void initialize(const SignalMemoryLayout& layout) ;
 
   [[nodiscard]]
-  float rawValue(uint32_t index) const;
+  double rawValue(uint32_t index) const;
   [[nodiscard]]
-  float calculatedValue(uint32_t index) const;
+  double calculatedValue(uint32_t index) const;
 
-  void setRawValue(uint32_t index, float value);
-  void setCalculatedValue(uint32_t index, float value);
+  void setRawValue(uint32_t index, double value);
+  void setCalculatedValue(uint32_t index, double value);
 
-  std::span<float> rawValues();
-  std::span<float> calculatedValues();
+  [[nodiscard]]
+  std::span<const double> rawValues() const noexcept;
+  [[nodiscard]]
+  std::span<const double> calculatedValues() const noexcept;
+
+  std::span<double> rawValues() noexcept;
+  std::span<double> calculatedValues() noexcept;
 
 private:
-  std::vector<float> m_raw;
-  std::vector<float> m_calculated;
+  std::vector<double> m_raw;
+  std::vector<double> m_calculated;
 
 };
 

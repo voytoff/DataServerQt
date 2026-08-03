@@ -11,11 +11,13 @@ add_library(Core SHARED
     iclock.h
     systemclock.h systemclock.cpp
     fakeclock.h fakeclock.cpp
+    schedulerclock.h schedulerclock.cpp
 )
 
 target_include_directories(Core
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../datatypes
 )
 
 target_link_libraries(Core PRIVATE

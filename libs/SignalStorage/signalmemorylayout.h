@@ -13,7 +13,7 @@ namespace qds
 struct SignalLocation
 {
   SignalMemoryArea area = SignalMemoryArea::Raw;
-  uint32_t index = InvalidIndex;
+  uint32_t index = InvalidIndex32;
 };
 
 class SystemConfiguration;

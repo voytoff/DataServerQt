@@ -8,7 +8,7 @@
 namespace qds
 {
 
-static constexpr uint32_t InvalidIndex = UINT32_MAX;
+static constexpr uint32_t InvalidIndex32 = UINT32_MAX;
 
 struct TagId
 {
@@ -42,7 +42,7 @@ struct SubscriptionId
 
 struct Sample
 {
-  float value = 0.0f;
+  double value = 0.0f;
 };
 
 enum class PublishRate : uint16_t
@@ -56,6 +56,21 @@ constexpr uint32_t toHz(PublishRate r)
 {
   return static_cast<uint32_t>(r);
 }
+
+struct Timestamp
+{
+  uint64_t value = 0;
+};
+
+struct WallClockTime
+{
+  int64_t unixMicroseconds = 0;
+};
+
+struct FrameNumber
+{
+  uint64_t value = 0;
+};
 
 }
 
