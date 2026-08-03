@@ -1,5 +1,4 @@
-#ifndef HARDWAREMODULEFACTORY_H
-#define HARDWAREMODULEFACTORY_H
+#pragma once
 
 #include "ihardwaremodule.h"
 #include "moduleinfo.h"
@@ -17,5 +16,3 @@ public:
 };
 
 }
-
-#endif // HARDWAREMODULEFACTORY_H

@@ -1,5 +1,4 @@
-#ifndef TST_UDPSERVER_H
-#define TST_UDPSERVER_H
+#pragma once
 
 #include <QObject>
 
@@ -37,5 +36,3 @@ private slots:
   void test_pingBurst1000();
 
 };
-
-#endif // TST_UDPSERVER_H

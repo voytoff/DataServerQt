@@ -1,5 +1,4 @@
-#ifndef SIGNALAREA_H
-#define SIGNALAREA_H
+#pragma once
 
 #include <cstdint>
 
@@ -13,5 +12,3 @@ enum class SignalMemoryArea : uint8_t
 };
 
 }
-
-#endif // SIGNALAREA_H

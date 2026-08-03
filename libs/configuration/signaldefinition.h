@@ -1,5 +1,4 @@
-#ifndef SIGNALDEFINITION_H
-#define SIGNALDEFINITION_H
+#pragma once
 
 #include <cstdint>
 #include <string>
@@ -55,5 +54,3 @@ struct SignalDefinition
 };
 
 }
-
-#endif // SIGNALDEFINITION_H

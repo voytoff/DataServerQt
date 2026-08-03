@@ -1,5 +1,4 @@
-#ifndef MODULEDATASOURCE_H
-#define MODULEDATASOURCE_H
+#pragma once
 
 #include "iclock.h"
 #include "idatasource.h"
@@ -41,5 +40,3 @@ private:
 };
 
 }
-
-#endif // MODULEDATASOURCE_H

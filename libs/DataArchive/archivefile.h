@@ -1,5 +1,4 @@
-#ifndef ARCHIVEFILE_H
-#define ARCHIVEFILE_H
+#pragma once
 
 #include "archiveformat.h"
 #include <filesystem>
@@ -154,5 +153,3 @@ private:
 };
 
 }
-
-#endif // ARCHIVEFILE_H

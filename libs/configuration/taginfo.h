@@ -1,5 +1,4 @@
-#ifndef TAGINFO_H
-#define TAGINFO_H
+#pragma once
 
 #include "datatypes.h"
 
@@ -15,5 +14,3 @@ struct TagInfo
 };
 
 }
-
-#endif // TAGINFO_H

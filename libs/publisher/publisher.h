@@ -1,5 +1,4 @@
-#ifndef PUBLISHER_H
-#define PUBLISHER_H
+#pragma once
 
 #include <cstdint>
 
@@ -23,5 +22,3 @@ public:
 };
 
 }
-
-#endif // PUBLISHER_H

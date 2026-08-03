@@ -1,5 +1,4 @@
-#ifndef TST_COMMON_H
-#define TST_COMMON_H
+#pragma once
 
 #include <QObject>
 #include <QTest>
@@ -16,5 +15,3 @@ private slots:
   void test_configuration_moduleTags();
 
 };
-
-#endif // TST_COMMON_H

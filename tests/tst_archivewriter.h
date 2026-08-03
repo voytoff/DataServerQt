@@ -1,5 +1,4 @@
-#ifndef TST_ARCHIVEWRITER_H
-#define TST_ARCHIVEWRITER_H
+#pragma once
 
 #include <QObject>
 
@@ -27,5 +26,3 @@ private slots:
   void test_archivewriter_doubleClose();
 
 };
-
-#endif // TST_ARCHIVEWRITER_H

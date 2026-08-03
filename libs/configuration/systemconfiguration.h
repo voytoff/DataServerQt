@@ -1,5 +1,4 @@
-#ifndef SYSTEMCONFIGURATION_H
-#define SYSTEMCONFIGURATION_H
+#pragma once
 
 #include <vector>
 #include "taginfo.h"
@@ -52,5 +51,3 @@ private:
 };
 
 }
-
-#endif // SYSTEMCONFIGURATION_H

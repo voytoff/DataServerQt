@@ -1,5 +1,4 @@
-#ifndef UDPSERVER_H
-#define UDPSERVER_H
+#pragma once
 
 #include <QObject>
 #include <QUdpSocket>
@@ -38,5 +37,3 @@ private:
 };
 
 }
-
-#endif // UDPSERVER_H

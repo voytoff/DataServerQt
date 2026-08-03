@@ -1,5 +1,4 @@
-#ifndef TST_HARDWARE_H
-#define TST_HARDWARE_H
+#pragma once
 
 #include <QObject>
 
@@ -14,5 +13,3 @@ private slots:
   void test_hardware_schedulerPipeline();
 
 };
-
-#endif // TST_HARDWARE_H

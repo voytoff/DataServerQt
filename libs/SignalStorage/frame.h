@@ -1,5 +1,4 @@
-#ifndef FRAME_H
-#define FRAME_H
+#pragma once
 
 #include "datatypes.h"
 #include "signalstorage.h"
@@ -17,5 +16,3 @@ struct Frame
 };
 
 }
-
-#endif // FRAME_H

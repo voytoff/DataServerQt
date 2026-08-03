@@ -1,5 +1,4 @@
-#ifndef LIVEDATA_H
-#define LIVEDATA_H
+#pragma once
 
 #include <cstdint>
 #include "datatypes.h"
@@ -16,5 +15,3 @@ struct LiveDataHeader
 };
 
 }
-
-#endif // LIVEDATA_H

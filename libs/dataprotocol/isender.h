@@ -1,5 +1,4 @@
-#ifndef ISENDER_H
-#define ISENDER_H
+#pragma once
 
 #include "endpoint.h"
 #include <cstddef>
@@ -55,5 +54,3 @@ public:
 };
 
 }
-
-#endif // ISENDER_H

@@ -1,5 +1,4 @@
-#ifndef PACKETDISPATCHER_H
-#define PACKETDISPATCHER_H
+#pragma once
 
 #include "isender.h"
 #include "packetreader.h"
@@ -139,5 +138,3 @@ private:
 };
 
 }
-
-#endif

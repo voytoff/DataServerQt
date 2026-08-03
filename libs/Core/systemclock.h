@@ -1,5 +1,4 @@
-#ifndef SYSTEMCLOCK_H
-#define SYSTEMCLOCK_H
+#pragma once
 
 #include "iclock.h"
 
@@ -14,5 +13,3 @@ public:
 };
 
 }
-
-#endif // SYSTEMCLOCK_H

@@ -1,5 +1,4 @@
-#ifndef SUBSCRIPTIONS_H
-#define SUBSCRIPTIONS_H
+#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -18,5 +17,3 @@ struct Subscription {
 };
 
 }
-
-#endif // SUBSCRIPTIONS_H

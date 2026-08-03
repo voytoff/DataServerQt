@@ -1,5 +1,4 @@
-#ifndef PERIODICDATASOURCERUNNER_H
-#define PERIODICDATASOURCERUNNER_H
+#pragma once
 
 #include "generatordatasource.h"
 #include <QObject>
@@ -28,5 +27,3 @@ private:
 };
 
 }
-
-#endif // PERIODICDATASOURCERUNNER_H

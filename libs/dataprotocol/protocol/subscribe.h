@@ -1,5 +1,4 @@
-#ifndef SUBSCRIBE_H
-#define SUBSCRIBE_H
+#pragma once
 
 #include "datatypes.h"
 
@@ -14,5 +13,3 @@ struct SubscribeRangeRequest
 static_assert(sizeof(SubscribeRangeRequest) == 8);
 
 }
-
-#endif // SUBSCRIBE_H

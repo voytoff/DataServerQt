@@ -1,5 +1,4 @@
-#ifndef FAKELCARDMODULE_H
-#define FAKELCARDMODULE_H
+#pragma once
 
 #include "ihardwaremodule.h"
 #include <cstdint>
@@ -27,5 +26,3 @@ private:
 };
 
 }
-
-#endif // FAKELCARDMODULE_H

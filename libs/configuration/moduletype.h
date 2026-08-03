@@ -1,5 +1,4 @@
-#ifndef MODULETYPE_H
-#define MODULETYPE_H
+#pragma once
 
 namespace qds
 {
@@ -12,5 +11,3 @@ enum class ModuleType
 };
 
 }
-
-#endif // MODULETYPE_H

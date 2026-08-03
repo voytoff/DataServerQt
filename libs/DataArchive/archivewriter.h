@@ -1,5 +1,4 @@
-#ifndef ARCHIVEWRITER_H
-#define ARCHIVEWRITER_H
+#pragma once
 
 #include "archivefile.h"
 #include <span>
@@ -38,5 +37,3 @@ private:
 };
 
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef TST_ENGINE_H
-#define TST_ENGINE_H
+#pragma once
 
 #include <QObject>
 
@@ -20,5 +19,3 @@ private slots:
   // здесь проверяется буквально вся система
   void test_dataEngine_completePipeline();
 };
-
-#endif // TST_ENGINE_H

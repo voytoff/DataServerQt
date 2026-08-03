@@ -1,5 +1,4 @@
-#ifndef SIGNALMEMORYLAYOUT_H
-#define SIGNALMEMORYLAYOUT_H
+#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -40,5 +39,3 @@ private:
 };
 
 }
-
-#endif // SIGNALMEMORYLAYOUT_H

@@ -1,5 +1,4 @@
-#ifndef LIVESTORAGE_H
-#define LIVESTORAGE_H
+#pragma once
 
 #include "datatypes.h"
 #include <cstdint>
@@ -38,5 +37,3 @@ private:
 };
 
 }
-
-#endif // LIVESTORAGE_H

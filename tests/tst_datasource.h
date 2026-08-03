@@ -1,5 +1,4 @@
-#ifndef TST_DATASOURCE_H
-#define TST_DATASOURCE_H
+#pragma once
 
 #include <QObject>
 
@@ -23,5 +22,3 @@ private slots:
   void test_hardwareFactory_unknownType();
 
 };
-
-#endif // TST_DATASOURCE_H

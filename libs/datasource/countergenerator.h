@@ -1,5 +1,4 @@
-#ifndef COUNTERGENERATOR_H
-#define COUNTERGENERATOR_H
+#pragma once
 
 #include "imodulegenerator.h"
 
@@ -16,5 +15,3 @@ private:
 };
 
 }
-
-#endif // COUNTERGENERATOR_H

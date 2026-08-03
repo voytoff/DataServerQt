@@ -1,5 +1,4 @@
-#ifndef SUBSCRIPTIONPACKETS_H
-#define SUBSCRIPTIONPACKETS_H
+#pragma once
 
 #include "datatypes.h"
 
@@ -48,5 +47,3 @@ struct UnsubscribeResponse
 };
 
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef TST_PACKETDISPATCHER_H
-#define TST_PACKETDISPATCHER_H
+#pragma once
 
 #include <QObject>
 
@@ -14,5 +13,3 @@ private slots:
   void tst_packetdispatcher_InvalidTag();
 
 };
-
-#endif // TST_PACKETDISPATCHER_H

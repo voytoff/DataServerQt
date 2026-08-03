@@ -1,4 +1,2 @@
-#ifndef LCARDMODULE_H
-#define LCARDMODULE_H
+#pragma once
 
-#endif // LCARDMODULE_H

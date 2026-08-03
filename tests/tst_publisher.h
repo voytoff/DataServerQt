@@ -1,5 +1,4 @@
-#ifndef TST_PUBLISHER_H
-#define TST_PUBLISHER_H
+#pragma once
 
 #include <QObject>
 
@@ -18,5 +17,3 @@ private slots:
   void test_publish_reuseWriter();
 
 };
-
-#endif // TST_PUBLISHER_H

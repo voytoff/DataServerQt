@@ -1,5 +1,4 @@
-#ifndef TST_SUBSCRIPTIONS_H
-#define TST_SUBSCRIPTIONS_H
+#pragma once
 
 #include <QObject>
 #include <QTest>
@@ -17,5 +16,3 @@ private slots:
   void test_subscriptions_id_not_reused();
 
 };
-
-#endif // TST_SUBSCRIPTIONS_H

@@ -1,5 +1,4 @@
-#ifndef DATASERVER_H
-#define DATASERVER_H
+#pragma once
 
 #include "dataengine.h"
 #include "hardwaremodulefactory.h"
@@ -43,5 +42,3 @@ private slots:
   void onTimer();
 
 };
-
-#endif // DATASERVER_H

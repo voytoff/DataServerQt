@@ -1,5 +1,4 @@
-#ifndef TST_LIVESTORAGE_H
-#define TST_LIVESTORAGE_H
+#pragma once
 
 #include <QObject>
 
@@ -23,5 +22,3 @@ private slots:
   void test_updateModule_multipleUpdates();
 
 };
-
-#endif // TST_LIVESTORAGE_H

@@ -1,5 +1,4 @@
-#ifndef ARCHIVEREADER_H
-#define ARCHIVEREADER_H
+#pragma once
 
 #include <cstdint>
 #include <filesystem>
@@ -30,6 +29,3 @@ private:
 };
 
 }
-
-
-#endif // ARCHIVEREADER_H

@@ -1,5 +1,4 @@
-#ifndef CRATEINFO_H
-#define CRATEINFO_H
+#pragma once
 
 #include "datatypes.h"
 
@@ -12,5 +11,3 @@ struct CrateInfo
 };
 
 }
-
-#endif // CRATEINFO_H

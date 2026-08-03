@@ -1,5 +1,4 @@
-#ifndef IDATABUFFER_H
-#define IDATABUFFER_H
+#pragma once
 
 #include <span>
 #include "datatypes.h"
@@ -20,5 +19,3 @@ public:
 };
 
 }
-
-#endif // IDATABUFFER_H

@@ -1,5 +1,4 @@
-#ifndef PACKETWRITER_H
-#define PACKETWRITER_H
+#pragma once
 
 #include <cstddef>
 #include <cstring>
@@ -83,5 +82,3 @@ void PacketWriter::writeArray(const T* data, std::size_t count)
 }
 
 } // namespace qds
-
-#endif // PACKETWRITER_H

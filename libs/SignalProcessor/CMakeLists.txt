@@ -5,11 +5,18 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(SignalProcessor SHARED
-  signalprocessor.cpp
-  signalprocessor.h
+    isignalprocessor.h
+    emptysignalprocessor.cpp emptysignalprocessor.h
 )
 
 target_include_directories(SignalProcessor
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../datatypes
+)
+
+target_link_libraries(SignalProcessor
+    PUBLIC
+        SignalStorage
+        Core
 )

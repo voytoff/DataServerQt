@@ -1,5 +1,4 @@
-#ifndef TST_UDPSENDER_H
-#define TST_UDPSENDER_H
+#pragma once
 
 #include <QObject>
 #include <QTest>
@@ -16,5 +15,3 @@ private slots:
   void test_send_bad_address();
   void test_send_empty();
 };
-
-#endif // TST_UDPSENDER_H

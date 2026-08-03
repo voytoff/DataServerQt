@@ -1,5 +1,4 @@
-#ifndef IMODULEDATASINK_H
-#define IMODULEDATASINK_H
+#pragma once
 
 #include "datatypes.h"
 #include <span>
@@ -20,5 +19,3 @@ public:
 };
 
 }
-
-#endif // IMODULEDATASINK_H

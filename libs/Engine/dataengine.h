@@ -1,5 +1,4 @@
-#ifndef DATAENGINE_H
-#define DATAENGINE_H
+#pragma once
 
 #include "datasourcemanager.h"
 #include "livescheduler.h"
@@ -29,5 +28,3 @@ private:
 };
 
 }
-
-#endif // DATAENGINE_H

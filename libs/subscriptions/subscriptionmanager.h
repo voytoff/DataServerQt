@@ -1,5 +1,4 @@
-#ifndef SUBSCRIPTIONMANAGER_H
-#define SUBSCRIPTIONMANAGER_H
+#pragma once
 
 #include <algorithm>
 #include <cstddef>
@@ -56,5 +55,3 @@ private:
 };
 
 } // namespace qds
-
-#endif // SUBSCRIPTIONMANAGER_H

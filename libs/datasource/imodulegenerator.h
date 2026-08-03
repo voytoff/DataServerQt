@@ -1,5 +1,4 @@
-#ifndef IMODULEGENERATOR_H
-#define IMODULEGENERATOR_H
+#pragma once
 
 #include "datatypes.h"
 #include <span>
@@ -22,5 +21,3 @@ public:
 };
 
 }
-
-#endif // IMODULEGENERATOR_H

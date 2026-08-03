@@ -1,5 +1,4 @@
-#ifndef DATASOURCEMANAGER_H
-#define DATASOURCEMANAGER_H
+#pragma once
 
 #include "idatasource.h"
 #include <memory>
@@ -30,5 +29,3 @@ private:
 };
 
 }
-
-#endif // DATASOURCEMANAGER_H

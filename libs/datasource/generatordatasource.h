@@ -1,5 +1,4 @@
-#ifndef GENERATORDATASOURCE_H
-#define GENERATORDATASOURCE_H
+#pragma once
 
 #include "iclock.h"
 #include "imoduledatasink.h"
@@ -82,5 +81,3 @@ private:
 };
 
 }
-
-#endif // GENERATORDATASOURCE_H

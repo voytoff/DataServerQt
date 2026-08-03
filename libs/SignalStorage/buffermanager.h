@@ -1,5 +1,4 @@
-#ifndef BUFFERMANAGER_H
-#define BUFFERMANAGER_H
+#pragma once
 
 #include "frame.h"
 #include "signalmemorylayout.h"
@@ -33,5 +32,3 @@ private:
 };
 
 }
-
-#endif // BUFFERMANAGER_H

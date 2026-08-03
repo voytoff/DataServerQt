@@ -1,5 +1,4 @@
-#ifndef ARCHIVEFORMAT_H
-#define ARCHIVEFORMAT_H
+#pragma once
 
 #include <cstdint>
 
@@ -71,5 +70,3 @@ static_assert(std::is_trivially_copyable_v<DataFileHeader>);
 static_assert(sizeof(DataFileHeader) % 8 == 0);
 
 }
-
-#endif // ARCHIVEFORMAT_H

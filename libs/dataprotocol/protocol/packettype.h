@@ -1,5 +1,4 @@
-#ifndef PACKETTYPE_H
-#define PACKETTYPE_H
+#pragma once
 
 #include <cstdint>
 #include <cstdint>
@@ -28,22 +27,4 @@ enum class PacketType : uint8_t
   LiveData              = 100
 };
 
-/*
-bool isRequest(PacketType type)
-{
-  auto value = static_cast<uint8_t>(type);
-
-  return value < 20;
 }
-
-bool isResponse(PacketType type)
-{
-  auto value = static_cast<uint8_t>(type);
-
-  return value >= 20 && value < 100;
-}
-*/
-
-}
-
-#endif // PACKETTYPE_H

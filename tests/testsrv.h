@@ -1,5 +1,4 @@
-#ifndef TESTSRV_H
-#define TESTSRV_H
+#pragma once
 
 #include <QObject>
 #include "isender.h"
@@ -76,5 +75,3 @@ static SystemConfiguration createTestConfig(const std::vector<std::vector<TagId>
 
   return cfg;
 }
-
-#endif // TESTSRV_H

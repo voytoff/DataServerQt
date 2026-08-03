@@ -1,59 +1,25 @@
-#ifndef SCHEDULER_H
-#define SCHEDULER_H
+#pragma once
 
 #include "buffermanager.h"
 #include "idatasource.h"
-#include "schedulerclock.h"
+#include "isignalprocessor.h"
 
 namespace qds
 {
 
-class IProcessingGraph
-{
-public:
-
-  virtual ~IProcessingGraph() = default;
-
-  virtual void process(Frame&) = 0;
-};
-
-class IArchive
-{
-public:
-
-  virtual ~IArchive() = default;
-
-  virtual void process(const Frame&) = 0;
-};
-
-class IPublisher
-{
-public:
-
-  virtual ~IPublisher() = default;
-
-  virtual void process(const Frame&) = 0;
-};
-
 class Scheduler
 {
 public:
-  Scheduler(
-    SchedulerClock& clock,
-    BufferManager& buffer,
-    IDataSource& dataSource,
-    IProcessingGraph& processing,
-    IArchive& archive,
-    IPublisher& publisher);
+  Scheduler(IDataSource& source,
+            ISignalProcessor& processor,
+            BufferManager& buffers);
 
   void tick();
 
 private:
-  SchedulerClock& m_clock;
-  BufferManager& m_buffer;
-
+  IDataSource& m_source;
+  ISignalProcessor& m_processor;
+  BufferManager& m_buffers;
 };
 
 }
-
-#endif // SCHEDULER_H

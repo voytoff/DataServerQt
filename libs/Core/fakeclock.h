@@ -1,5 +1,4 @@
-#ifndef FAKECLOCK_H
-#define FAKECLOCK_H
+#pragma once
 
 #include "iclock.h"
 
@@ -23,5 +22,3 @@ private:
 };
 
 }
-
-#endif // FAKECLOCK_H

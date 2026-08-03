@@ -26,17 +26,15 @@ target_include_directories(DataSource
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
         ../datatypes
-        ../core
-        ../configuration
-        ../hardware
 )
 
-target_link_libraries(DataSource PRIVATE
+target_link_libraries(DataSource
+  PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+
   PUBLIC
     Core
     Configuration
     Hardware
-
-  PRIVATE
-    Qt${QT_VERSION_MAJOR}::Core
+    SignalStorage
 )

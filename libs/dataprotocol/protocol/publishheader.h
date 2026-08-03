@@ -1,5 +1,4 @@
-#ifndef PUBLISHHEADER_H
-#define PUBLISHHEADER_H
+#pragma once
 
 #include <cstdint>
 #include "datatypes.h"
@@ -19,5 +18,3 @@ struct PublishHeader    // 20 байт
 };
 
 }
-
-#endif // PUBLISHHEADER_H

@@ -1,5 +1,4 @@
-#ifndef PACKETHEADER_H
-#define PACKETHEADER_H
+#pragma once
 
 #include "packettype.h"
 #include <cstdint>
@@ -17,8 +16,6 @@ struct PacketHeader
   PacketType type;
   uint32_t   payloadSize;
 };
-
 static_assert(sizeof(PacketHeader) == 8);
-}
 
-#endif // PACKETHEADER_H
+}

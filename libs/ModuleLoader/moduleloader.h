@@ -1,5 +1,4 @@
-#ifndef MODULELOADER_H
-#define MODULELOADER_H
+#pragma once
 
 #include "datasourcemanager.h"
 #include "iclock.h"
@@ -33,5 +32,3 @@ private:
 };
 
 }
-
-#endif // MODULELOADER_H

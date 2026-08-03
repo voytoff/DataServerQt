@@ -1,5 +1,4 @@
-#ifndef TST_DATAPROTOCOL_H
-#define TST_DATAPROTOCOL_H
+#pragma once
 
 #include <QObject>
 
@@ -15,5 +14,3 @@ private slots:
   void test_subscribeResponsePacket();
 
 };
-
-#endif // TST_DATAPROTOCOL_H

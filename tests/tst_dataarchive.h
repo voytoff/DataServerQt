@@ -1,5 +1,4 @@
-#ifndef TST_DATAARCHIVE_H
-#define TST_DATAARCHIVE_H
+#pragma once
 
 #include "archivefile.h"
 #include "archiveformat.h"
@@ -66,5 +65,3 @@ private slots:
   void test_archiveFile_saveHeaderNotChangePosition();
 
 };
-
-#endif // TST_DATAARCHIVE_H

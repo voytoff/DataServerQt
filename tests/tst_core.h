@@ -1,5 +1,4 @@
-#ifndef TST_CORE_H
-#define TST_CORE_H
+#pragma once
 
 #include <QObject>
 
@@ -15,5 +14,3 @@ private slots:
   void test_systemClock();
 
 };
-
-#endif // TST_CORE_H

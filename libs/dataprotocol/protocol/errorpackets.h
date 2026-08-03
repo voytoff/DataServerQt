@@ -1,5 +1,4 @@
-#ifndef ERRORPACKETS_H
-#define ERRORPACKETS_H
+#pragma once
 
 #include <cstdint>
 
@@ -18,5 +17,3 @@ struct ErrorResponse
   ErrorCode code;
   uint32_t info = 0;
 };
-
-#endif // ERRORPACKETS_H

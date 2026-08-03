@@ -1,5 +1,4 @@
-#ifndef LIVESCHEDULER_H
-#define LIVESCHEDULER_H
+#pragma once
 
 #include <vector>
 
@@ -47,5 +46,3 @@ private:
 };
 
 }
-
-#endif // LIVESCHEDULER_H

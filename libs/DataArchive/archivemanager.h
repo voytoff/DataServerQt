@@ -1,5 +1,4 @@
-#ifndef ARCHIVEMANAGER_H
-#define ARCHIVEMANAGER_H
+#pragma once
 
 #include "archivewriter.h"
 
@@ -22,5 +21,3 @@ public:
 };
 
 }
-
-#endif // ARCHIVEMANAGER_H

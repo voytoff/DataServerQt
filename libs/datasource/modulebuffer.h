@@ -1,5 +1,4 @@
-#ifndef MODULEBUFFER_H
-#define MODULEBUFFER_H
+#pragma once
 
 namespace qds
 {
@@ -11,5 +10,3 @@ public:
 };
 
 }
-
-#endif // MODULEBUFFER_H

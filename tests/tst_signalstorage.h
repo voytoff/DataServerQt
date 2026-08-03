@@ -1,5 +1,4 @@
-#ifndef TST_SIGNALSTORAGE_H
-#define TST_SIGNALSTORAGE_H
+#pragma once
 
 #include <QObject>
 
@@ -16,5 +15,3 @@ private slots:
   void test_raw_memory();
 
 };
-
-#endif // TST_SIGNALSTORAGE_H

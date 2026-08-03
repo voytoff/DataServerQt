@@ -1,5 +1,4 @@
-#ifndef PACKETREADER_H
-#define PACKETREADER_H
+#pragma once
 
 #include <cassert>
 #include <cstddef>
@@ -139,5 +138,3 @@ private:
 };
 
 }
-
-#endif // PACKETREADER_H

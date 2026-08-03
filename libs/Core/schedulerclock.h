@@ -1,5 +1,4 @@
-#ifndef SCHEDULERCLOCK_H
-#define SCHEDULERCLOCK_H
+#pragma once
 
 #include "datatypes.h"
 
@@ -22,5 +21,3 @@ private:
 };
 
 }
-
-#endif // SCHEDULERCLOCK_H

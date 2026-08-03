@@ -1,5 +1,4 @@
-#ifndef MODULEINFO_H
-#define MODULEINFO_H
+#pragma once
 
 #include "datatypes.h"
 #include "moduletype.h"
@@ -16,4 +15,3 @@ struct ModuleInfo
 };
 
 }
-#endif // MODULEINFO_H

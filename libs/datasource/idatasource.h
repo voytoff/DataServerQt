@@ -1,5 +1,6 @@
-#ifndef IDATASOURCE_H
-#define IDATASOURCE_H
+#pragma once
+
+#include "signalmemory.h"
 
 namespace qds
 {
@@ -15,13 +16,13 @@ public:
 
   virtual void stop() noexcept = 0;
 
-  [[nodiscard]]
+  [[nodiscard]] // immidiate
   virtual bool step() = 0;
+  [[nodiscard]]
+  virtual bool read(RawMemory& memory) = 0;
 
   [[nodiscard]]
   virtual bool isRunning() const noexcept = 0;
 };
 
 }
-
-#endif // IDATASOURCE_H

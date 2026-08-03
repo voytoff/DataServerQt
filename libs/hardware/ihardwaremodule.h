@@ -1,5 +1,4 @@
-#ifndef IHARDWAREMODULE_H
-#define IHARDWAREMODULE_H
+#pragma once
 
 #include <span>
 
@@ -19,5 +18,3 @@ public:
 };
 
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef UDPSENDER_H
-#define UDPSENDER_H
+#pragma once
 
 #include <QUdpSocket>
 #include "isender.h"
@@ -22,5 +21,3 @@ private:
 };
 
 }
-
-#endif // UDPSENDER_H

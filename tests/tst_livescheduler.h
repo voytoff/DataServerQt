@@ -1,5 +1,4 @@
-#ifndef TST_LIVESCHEDULER_H
-#define TST_LIVESCHEDULER_H
+#pragma once
 
 #include <QObject>
 
@@ -28,5 +27,3 @@ private slots:
   void test_publishPacket_singleTag();
 
 };
-
-#endif // TST_LIVESCHEDULER_H

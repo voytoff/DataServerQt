@@ -1,5 +1,4 @@
-#ifndef FAKEDATASOURCE_H
-#define FAKEDATASOURCE_H
+#pragma once
 
 #include "idatasource.h"
 #include <cstdint>
@@ -30,5 +29,3 @@ private:
 };
 
 }
-
-#endif // FAKEDATASOURCE_H

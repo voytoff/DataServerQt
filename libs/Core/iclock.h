@@ -1,5 +1,4 @@
-#ifndef ICLOCK_H
-#define ICLOCK_H
+#pragma once
 
 #include <cstdint>
 
@@ -16,5 +15,3 @@ public:
 };
 
 }
-
-#endif // ICLOCK_H
