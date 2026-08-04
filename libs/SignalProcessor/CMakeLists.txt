@@ -7,6 +7,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_library(SignalProcessor SHARED
     isignalprocessor.h
     emptysignalprocessor.cpp emptysignalprocessor.h
+    calculationplan.h calculationplan.cpp
+    calculationplanbuilder.h calculationplanbuilder.cpp
 )
 
 target_include_directories(SignalProcessor

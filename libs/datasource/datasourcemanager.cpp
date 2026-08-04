@@ -3,7 +3,7 @@
 namespace qds
 {
 
-bool DataSourceManager::add(std::unique_ptr<IDataSource> source)
+bool DataSourceManager::add(std::unique_ptr<IActiveDataSource> source)
 {
   if (m_running)
     return false;

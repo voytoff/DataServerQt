@@ -3,28 +3,10 @@
 namespace qds
 {
 
-bool FakeDataSource::start()
+bool FakeDataSource::acquire(RawMemory &memory)
 {
-  ++startCalls;
-  m_running = true;
+  memory.setValue(0, 123.0);
   return true;
-}
-
-void FakeDataSource::stop() noexcept
-{
-  ++stopCalls;
-  m_running = false;
-}
-
-bool FakeDataSource::step() noexcept
-{
-  ++stepCalls;
-  return m_running;
-}
-
-bool FakeDataSource::isRunning() const noexcept
-{
-  return m_running;
 }
 
 }

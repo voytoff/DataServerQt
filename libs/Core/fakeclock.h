@@ -5,20 +5,27 @@
 namespace qds
 {
 
-/**
- * Управляемые часы для unit-тестов.
- */
-class FakeClock : public IClock
+class FakeClock final : public IClock
 {
 public:
-  void set(uint64_t t);
 
-  void advance(uint64_t dt);
+  void setTimestamp(uint64_t value);
+  void setWallClockTime(int64_t value);
 
-  uint64_t now() const noexcept override;
+  void advance(uint64_t microseconds);
+
+  [[nodiscard]]
+  Timestamp timestamp() const noexcept override;
+
+  [[nodiscard]]
+  WallClockTime wallClockTime() const noexcept override;
+
 
 private:
-  uint64_t m_now = 0;
+
+  uint64_t m_timestamp = 0;
+  int64_t m_wallTime = 0;
+
 };
 
 }

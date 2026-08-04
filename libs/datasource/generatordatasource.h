@@ -4,7 +4,7 @@
 #include "imoduledatasink.h"
 #include "imodulegenerator.h"
 #include "systemconfiguration.h"
-#include "idatasource.h"
+#include "iactivedatasource.h"
 #include <memory>
 
 namespace qds
@@ -23,7 +23,7 @@ struct ModuleContext
   {}
 };
 
-class GeneratorDataSource : public IDataSource
+class GeneratorDataSource : public IActiveDataSource
 {
 public:
   GeneratorDataSource(

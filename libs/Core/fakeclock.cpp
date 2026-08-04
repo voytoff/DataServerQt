@@ -3,19 +3,34 @@
 namespace qds
 {
 
-void FakeClock::set(uint64_t t)
+void FakeClock::setTimestamp(uint64_t value)
 {
-  m_now = t;
+  m_timestamp = value;
 }
 
-void FakeClock::advance(uint64_t dt)
+
+void FakeClock::setWallClockTime(int64_t value)
 {
-  m_now += dt;
+  m_wallTime = value;
 }
 
-uint64_t FakeClock::now() const noexcept
+
+void FakeClock::advance(uint64_t microseconds)
 {
-  return m_now;
+  m_timestamp += microseconds;
+  m_wallTime += static_cast<int64_t>(microseconds);
+}
+
+
+Timestamp FakeClock::timestamp() const noexcept
+{
+  return {m_timestamp};
+}
+
+
+WallClockTime FakeClock::wallClockTime() const noexcept
+{
+  return {m_wallTime};
 }
 
 }

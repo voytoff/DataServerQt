@@ -30,6 +30,8 @@ add_executable(unit_tests
     tst_dataarchive.h tst_dataarchive.cpp
     tst_archivewriter.h tst_archivewriter.cpp
     tst_signalstorage.h tst_signalstorage.cpp
+    tst_scheduler.h tst_scheduler.cpp
+    tst_signalprocessor.h tst_signalprocessor.cpp
 )
 
 target_link_libraries(unit_tests PRIVATE
@@ -50,6 +52,7 @@ target_link_libraries(unit_tests PRIVATE
     HardwareFactory
     DataArchive
     SignalStorage
+    Scheduler
 )
 
 add_test(NAME unit_tests COMMAND unit_tests)

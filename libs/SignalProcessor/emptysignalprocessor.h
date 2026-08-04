@@ -8,12 +8,9 @@ namespace qds
 class EmptySignalProcessor : public ISignalProcessor
 {
 public:
-  void process(
-    const RawMemory&,
-    CalculatedMemory&) override
-  {
-    // ничего не делает
-  }
+  bool process(Frame& frame) override;
+  void applyCalibrations(Frame& frame);
+  void evaluateFormulas(Frame& frame);
 };
 
 }

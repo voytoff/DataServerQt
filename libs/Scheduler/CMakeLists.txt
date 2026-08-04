@@ -16,6 +16,8 @@ target_include_directories(Scheduler
 
 target_link_libraries(Scheduler
     PUBLIC
+        Core
         DataSource
         SignalStorage
+        SignalProcessor
 )

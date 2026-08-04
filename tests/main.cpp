@@ -11,6 +11,8 @@
 #include "tst_hardware.h"
 #include "tst_packetdispatcher.h"
 #include "tst_publisher.h"
+#include "tst_scheduler.h"
+#include "tst_signalprocessor.h"
 #include "tst_signalstorage.h"
 #include "tst_udpsender.h"
 #include "tst_subscriptions.h"
@@ -86,6 +88,14 @@ int main(int argc, char *argv[])
   }
   {
     tst_signalstorage tc;
+    rc |= QTest::qExec(&tc, argc, argv);
+  }
+  {
+    tst_scheduler tc;
+    rc |= QTest::qExec(&tc, argc, argv);
+  }
+  {
+    tst_signalprocessor tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
 

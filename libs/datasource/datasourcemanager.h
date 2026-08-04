@@ -1,6 +1,6 @@
 #pragma once
 
-#include "idatasource.h"
+#include "iactivedatasource.h"
 #include <memory>
 #include <vector>
 
@@ -10,7 +10,7 @@ namespace qds
 class DataSourceManager
 {
 public:
-  bool add(std::unique_ptr<IDataSource> source);
+  bool add(std::unique_ptr<IActiveDataSource> source);
 
   [[nodiscard]] bool start();
   void stop() noexcept;
@@ -25,7 +25,7 @@ public:
 
 private:
   bool m_running = false;
-  std::vector<std::unique_ptr<IDataSource>> m_sources;
+  std::vector<std::unique_ptr<IActiveDataSource>> m_sources;
 };
 
 }

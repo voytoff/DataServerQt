@@ -6,11 +6,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(SignalStorage SHARED
   signalarea.h signalarea.cpp
-  signalstorage.cpp signalstorage.h
+
   signalmemorylayout.h signalmemorylayout.cpp
   buffermanager.h buffermanager.cpp
   frame.h frame.cpp
-
   signalmemory.h signalmemory.cpp
 )
 

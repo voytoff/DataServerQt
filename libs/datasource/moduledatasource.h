@@ -1,16 +1,16 @@
 #pragma once
 
+#include <memory>
 #include "iclock.h"
-#include "idatasource.h"
+#include "iactivedatasource.h"
 #include "ihardwaremodule.h"
 #include "imoduledatasink.h"
 #include "systemconfiguration.h"
-#include <memory>
 
 namespace qds
 {
 
-class ModuleDataSource : public IDataSource
+class ModuleDataSource : public IActiveDataSource
 {
 public:
   ModuleDataSource(
@@ -24,7 +24,6 @@ public:
   void stop() noexcept override;
 
   bool step() override;
-
   bool isRunning() const noexcept override;
 
 private:

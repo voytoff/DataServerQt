@@ -12,5 +12,6 @@ public:
 private slots:
   void test_fakeClock();
   void test_systemClock();
+  void test_schedulerClock();
 
 };

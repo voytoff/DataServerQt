@@ -47,7 +47,7 @@ void tst_hardware::test_hardware_schedulerPipeline()
 
   uint64_t t = 1234567;
 
-  clock.set(0);
+  clock.setTimestamp(0);
   clock.advance(t);
 
   QVERIFY(engine.step());

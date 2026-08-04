@@ -49,7 +49,7 @@ bool ModuleDataSource::step()
   if (!m_running)
     return false;
 
-  auto timestamp = m_clock.now();
+  auto timestamp = m_clock.timestamp().value;
 
   const auto& tags = m_cfg.moduleTags(m_module.id);
 

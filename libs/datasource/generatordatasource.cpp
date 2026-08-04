@@ -56,7 +56,7 @@ bool GeneratorDataSource::generateOnce(uint64_t timestamp)
 
 bool GeneratorDataSource::step() noexcept
 {
-  return generateOnce(m_clock.now());
+  return generateOnce(m_clock.timestamp().value);
 }
 
 uint64_t GeneratorDataSource::generationCount() const noexcept

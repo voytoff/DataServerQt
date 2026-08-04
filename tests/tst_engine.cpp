@@ -2,7 +2,7 @@
 #include "dataengine.h"
 #include "datasourcemanager.h"
 #include "fakeclock.h"
-#include "fakedatasource.h"
+#include "fakeactivedatasource.h"
 #include "generatordatasource.h"
 #include "protocol/publishheader.h"
 #include "testsrv.h"
@@ -44,8 +44,8 @@ void tst_engine::test_dataEngine_withFakeSource()
   SystemConfiguration cfg;
   TestSrv srv(cfg);
 
-  auto ptr = std::make_unique<FakeDataSource>();
-  FakeDataSource* src = ptr.get();
+  auto ptr = std::make_unique<FakeActiveDataSource>();
+  FakeActiveDataSource* src = ptr.get();
 
   DataSourceManager manager;
   QVERIFY(manager.add(std::move(ptr)));
@@ -162,7 +162,7 @@ void tst_engine::test_dataEngine_storagePipeline()
 
   uint64_t t = 1234567;
 
-  clock.set(0);
+  clock.setTimestamp(0);
   clock.advance(t);
 
   QVERIFY(engine.step());
@@ -243,7 +243,7 @@ void tst_engine::test_dataEngine_completePipeline()
 
   uint64_t t = 1234567;
 
-  clock.set(0);
+  clock.setTimestamp(0);
   clock.advance(t);
 
   QVERIFY(engine.step()); // m_scheduler.step() -> publish(...)

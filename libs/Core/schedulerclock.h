@@ -1,23 +1,37 @@
 #pragma once
 
-#include "datatypes.h"
+#include "iclock.h"
+#include "ischedulerclock.h"
 
 namespace qds
 {
 
-class SchedulerClock
+class SchedulerClock final : public ISchedulerClock
 {
 public:
+  SchedulerClock(IClock& clock);
 
-  Timestamp now() const;
+  SchedulerClock(const SchedulerClock&) = delete;
+  SchedulerClock& operator=(const SchedulerClock&) = delete;
 
-  WallClockTime wallNow() const;
 
-  //FrameNumber nextFrame();
+  void nextTick() noexcept override;
+
+  [[nodiscard]]
+  FrameNumber frameNumber() const noexcept override;
+
+  [[nodiscard]]
+  Timestamp timestamp() const noexcept override;
+
+  [[nodiscard]]
+  WallClockTime wallClockTime() const noexcept override;
 
 private:
+  FrameNumber m_frame;
+  Timestamp m_timestamp;
+  WallClockTime m_wallTime;
 
-  uint64_t m_frameCounter = 0;
+  IClock& m_clock;
 };
 
 }

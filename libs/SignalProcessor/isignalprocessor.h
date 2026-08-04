@@ -10,7 +10,8 @@ class ISignalProcessor
 public:
   virtual ~ISignalProcessor() = default;
 
-  virtual void process(Frame& frame) = 0;
+  [[nodiscard]]
+  virtual bool process(Frame& frame) = 0;
 };
 
 }

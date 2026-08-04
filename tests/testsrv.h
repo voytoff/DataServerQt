@@ -75,3 +75,32 @@ static SystemConfiguration createTestConfig(const std::vector<std::vector<TagId>
 
   return cfg;
 }
+
+static qds::SystemConfiguration createTestConfigWithSignalDefinitions() {
+  using namespace qds;
+  SystemConfiguration cfg;
+
+  ModuleInfo m{0};
+  cfg.addModule(m);
+
+  TagInfo t1{.tag = {0}, .module = {0}, .channel = {0}};
+  cfg.addTag(t1);
+
+  TagInfo t2{.tag = {1}, .module = {0}, .channel = {0}};
+  cfg.addTag(t2);
+
+  SignalDefinition sd1 {.id = 0, .name = "U000", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100};
+  cfg.addSignalDefinition(sd1);
+
+  SignalDefinition sd2 {.id = 1, .name = "D10", .kind = SignalKind::Calculated, .source = {0}, .archiveFrequency = 10, .calibrationId = 72};
+  cfg.addSignalDefinition(sd2);
+
+  SignalDefinition sd3 {.id = 2, .name = "P100", .kind = SignalKind::Calculated, .source = {0}, .archiveFrequency = 100, .formulaId = 15};
+  cfg.addSignalDefinition(sd3);
+
+  SignalDefinition sd4 {.id = 3, .name = "U001", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 10};
+  cfg.addSignalDefinition(sd4);
+
+  return cfg;
+}
+

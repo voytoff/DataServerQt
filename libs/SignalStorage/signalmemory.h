@@ -1,6 +1,7 @@
 #ifndef SIGNALMEMORY_H
 #define SIGNALMEMORY_H
 
+#include <cstdint>
 #include <span>
 #include <vector>
 

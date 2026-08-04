@@ -59,11 +59,13 @@ constexpr uint32_t toHz(PublishRate r)
 
 struct Timestamp
 {
+  // Внутренняя монотонная шкала времени, микросекунды
   uint64_t value = 0;
 };
 
 struct WallClockTime
 {
+  // Реальное календарное время Unix epoch, микросекунды
   int64_t unixMicroseconds = 0;
 };
 

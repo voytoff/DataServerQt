@@ -16,6 +16,7 @@ struct SampleRecordHeader
 
   uint32_t reserved[2]{};
 };
+
 static_assert(std::is_trivially_copyable_v<SampleRecordHeader>);
 static_assert(sizeof(SampleRecordHeader) % 8 == 0);
 

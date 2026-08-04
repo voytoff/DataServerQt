@@ -2,6 +2,7 @@
 
 #include "buffermanager.h"
 #include "idatasource.h"
+#include "schedulerclock.h"
 #include "isignalprocessor.h"
 
 namespace qds
@@ -10,16 +11,20 @@ namespace qds
 class Scheduler
 {
 public:
-  Scheduler(IDataSource& source,
+  Scheduler(BufferManager& buffers,
             ISignalProcessor& processor,
-            BufferManager& buffers);
+            SchedulerClock& clock);
 
-  void tick();
+  void addDataSource(IDataSource& source);
+
+  bool tick();
 
 private:
-  IDataSource& m_source;
-  ISignalProcessor& m_processor;
   BufferManager& m_buffers;
+  ISignalProcessor& m_processor;
+  SchedulerClock& m_clock;
+
+  std::vector<std::reference_wrapper<IDataSource>> m_sources;
 };
 
 }

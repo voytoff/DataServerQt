@@ -8,8 +8,9 @@ namespace qds
 class SystemClock final : public IClock
 {
 public:
-  [[nodiscard]]
-  uint64_t now() const noexcept override;
+  Timestamp timestamp() const noexcept override;
+
+  WallClockTime wallClockTime() const noexcept override;
 };
 
 }

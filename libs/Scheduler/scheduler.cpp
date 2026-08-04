@@ -1,33 +1,45 @@
 #include "scheduler.h"
-#include "idatasource.h"
+#include "schedulerclock.h"
 
 namespace qds
 {
 
-Scheduler::Scheduler(
-  IDataSource &source,
-  ISignalProcessor &processor,
-  BufferManager &buffers)
-  : m_source(source)
-  , m_processor(processor)
-  , m_buffers(buffers)
-{
 
+Scheduler::Scheduler(
+  BufferManager &buffers,
+  ISignalProcessor &processor,
+  SchedulerClock &clock)
+  : m_buffers(buffers)
+  , m_processor(processor)
+  , m_clock(clock) { }
+
+void Scheduler::addDataSource(IDataSource &source)
+{
+  m_sources.push_back(source);
 }
 
-void Scheduler::tick()
+bool Scheduler::tick()
 {
   Frame& frame = m_buffers.beginWrite();
 
-  m_source.read(frame.rawMemory);
+  m_clock.nextTick();
 
-  m_processor.process(frame);
+  frame.number    = m_clock.frameNumber();
+  frame.timestamp = m_clock.timestamp();
+  frame.wallTime  = m_clock.wallClockTime();
 
-  frame.number = ...;
-  frame.timestamp = ...;
-  frame.wallTime = ...;
+  for (IDataSource& source : m_sources)
+  {
+    if (!source.acquire(frame.raw))
+      return false;
+  }
+
+  if (!m_processor.process(frame))
+    return false;
 
   m_buffers.publish();
+
+  return true;
 }
 
 }

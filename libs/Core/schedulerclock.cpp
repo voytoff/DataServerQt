@@ -3,18 +3,29 @@
 namespace qds
 {
 
-//FrameNumber SchedulerClock::nextFrame()
-//{
-//}
+SchedulerClock::SchedulerClock(IClock &clock)
+  : m_clock(clock) { }
 
-Timestamp SchedulerClock::now() const
+void SchedulerClock::nextTick() noexcept
 {
-  return {0};
+  ++m_frame.value;
+  m_timestamp = m_clock.timestamp();
+  m_wallTime = m_clock.wallClockTime();
 }
 
-WallClockTime SchedulerClock::wallNow() const
+FrameNumber SchedulerClock::frameNumber() const noexcept
 {
-  return {0};
+  return m_frame;
+}
+
+Timestamp SchedulerClock::timestamp() const noexcept
+{
+  return m_timestamp;
+}
+
+WallClockTime SchedulerClock::wallClockTime() const noexcept
+{
+  return m_wallTime;
 }
 
 }
