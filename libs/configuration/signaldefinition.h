@@ -1,14 +1,32 @@
 #pragma once
 
+#include <compare>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include "datatypes.h"
 
 namespace qds
 {
 
-using SignalId = uint32_t;
+struct SignalId
+{
+  uint32_t value = 0;
+  constexpr auto operator<=>(const SignalId&) const = default;
+};
+
+struct FormulaId
+{
+  uint32_t value = 0;
+  constexpr auto operator<=>(const FormulaId&) const = default;
+};
+
+struct CalibrationId
+{
+  uint32_t value = 0;
+  constexpr auto operator<=>(const CalibrationId&) const = default;
+};
 
 enum class SignalKind : uint8_t
 {
@@ -24,14 +42,16 @@ enum class SignalMemoryArea : uint8_t
 
 struct SignalSource
 {
-  // источник RAW сигнала
+  // используется только для SignalKind::Raw
   TagId tag;
 };
+
+
 
 struct SignalDefinition
 {
   // постоянный идентификатор сигнала
-  SignalId id = 0;
+  SignalId id = {0};
 
   // имя, используемое пользователем
   std::string name;
@@ -47,10 +67,19 @@ struct SignalDefinition
   uint32_t archiveFrequency = 0;
 
   // ссылка на таблицу тарировки
-  uint32_t calibrationId = 0;
+  CalibrationId calibrationId = {0};
 
   // ссылка на формулу вычисления
-  uint32_t formulaId = 0;
+  FormulaId formulaId = {0};
+
+  // аргументы формулы
+  std::vector<SignalId> dependencies;
+};
+
+struct SignalReference
+{
+  SignalMemoryArea area;
+  uint32_t index;
 };
 
 }

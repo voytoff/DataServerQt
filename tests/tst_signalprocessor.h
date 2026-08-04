@@ -11,7 +11,8 @@ public:
   ~tst_signalprocessor() override;
 
 private slots:
-  void test_signalprocessor_base();
+  void test_calculation_plan();
+  void test_calculation_order();
 
 };
 

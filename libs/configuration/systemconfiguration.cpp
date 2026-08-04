@@ -89,31 +89,32 @@ const TagInfo* SystemConfiguration::findTag(TagId id) const
 void SystemConfiguration::addSignalDefinition(
   const SignalDefinition& definition)
 {
-  if (definition.id >= m_signalDefinitionExists.size())
+  auto id = definition.id.value;
+  if (id >= m_signalDefinitionExists.size())
   {
-    m_signalDefinitionExists.resize(definition.id + 1, false);
-    m_signalDefinitionIndex.resize(definition.id + 1, InvalidIndex32);
+    m_signalDefinitionExists.resize(id + 1, false);
+    m_signalDefinitionIndex.resize(id + 1, InvalidIndex32);
   }
 
-  assert(!m_signalDefinitionExists[definition.id]);
-  assert(m_signalDefinitionIndex[definition.id] == InvalidIndex32);
+  assert(!m_signalDefinitionExists[id]);
+  assert(m_signalDefinitionIndex[id] == InvalidIndex32);
 
   const uint32_t index =
     static_cast<uint32_t>(m_signalDefinitions.size());
 
   m_signalDefinitions.push_back(definition);
 
-  m_signalDefinitionExists[definition.id] = true;
-  m_signalDefinitionIndex[definition.id] = index;
+  m_signalDefinitionExists[id] = true;
+  m_signalDefinitionIndex[id] = index;
 }
 
 const SignalDefinition* SystemConfiguration::findSignalDefinition(
   SignalId id) const
 {
-  if (id >= m_signalDefinitionIndex.size())
+  if (id.value >= m_signalDefinitionIndex.size())
     return nullptr;
 
-  const uint32_t index = m_signalDefinitionIndex[id];
+  const uint32_t index = m_signalDefinitionIndex[id.value];
 
   if (index == InvalidIndex32)
     return nullptr;
@@ -126,8 +127,8 @@ const SignalDefinition* SystemConfiguration::findSignalDefinition(
 bool SystemConfiguration::containsSignalDefinition(
   SignalId id) const
 {
-  return (id < m_signalDefinitionExists.size()) &&
-         m_signalDefinitionExists[id];
+  return (id.value < m_signalDefinitionExists.size()) &&
+         m_signalDefinitionExists[id.value];
 }
 
 }

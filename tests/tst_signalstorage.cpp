@@ -31,10 +31,10 @@ void tst_signalstorage::test_buffer_manager()
   QCOMPARE(layout.calculatedSignalCount(), 2);
   QCOMPARE(layout.rawSignalCount(), 2);
 
-  QVERIFY(layout.contains(0));
-  QVERIFY(layout.contains(1));
-  QVERIFY(layout.contains(2));
-  QVERIFY(layout.contains(3));
+  QVERIFY(layout.contains({0}));
+  QVERIFY(layout.contains({1}));
+  QVERIFY(layout.contains({2}));
+  QVERIFY(layout.contains({3}));
 
 
   manager.initialize(layout);

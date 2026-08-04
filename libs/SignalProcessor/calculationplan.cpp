@@ -15,12 +15,17 @@ void CalculationPlan::setOrder(std::vector<SignalId> order)
 
 bool CalculationPlan::isEmpty() const noexcept
 {
-  return m_order.size() == 0;
+  return m_order.empty();
 }
 
 std::span<const SignalId> CalculationPlan::order() const noexcept
 {
   return m_order;
+}
+
+size_t CalculationPlan::size() const noexcept
+{
+  return m_order.size();
 }
 
 }

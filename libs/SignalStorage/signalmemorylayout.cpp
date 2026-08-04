@@ -18,29 +18,30 @@ void SignalMemoryLayout::build(const SystemConfiguration &configuration)
   uint32_t rawIndex = 0;
   uint32_t calculatedIndex = 0;
 
-  SignalId maxId = 0;
+  SignalId maxId = {0};
 
   const auto& definitions = configuration.signalDefinitions();
 
   for (const auto& definition : definitions)
     maxId = std::max(maxId, definition.id);
 
-  m_locations.assign(maxId + 1, {});
+  m_locations.assign(maxId.value + 1, {});
 
   for (const auto& definition : definitions)
   {
-    assert(definition.id < m_locations.size());
+    auto id = definition.id.value;
+    assert(id < m_locations.size());
 
     switch (definition.kind)
     {
     case SignalKind::Raw:
-      m_locations[definition.id].area = SignalMemoryArea::Raw;
-      m_locations[definition.id].index = rawIndex++;
+      m_locations[id].area = SignalMemoryArea::Raw;
+      m_locations[id].index = rawIndex++;
       break;
 
     case SignalKind::Calculated:
-      m_locations[definition.id].area = SignalMemoryArea::Calculated;
-      m_locations[definition.id].index = calculatedIndex++;
+      m_locations[id].area = SignalMemoryArea::Calculated;
+      m_locations[id].index = calculatedIndex++;
       break;
 
     default:
@@ -55,14 +56,14 @@ void SignalMemoryLayout::build(const SystemConfiguration &configuration)
   std::printf("------------------------------------------\n");
   for (const auto& definition : definitions)
   {
-    const auto& location = m_locations[definition.id];
+    const auto& location = m_locations[definition.id.value];
 
     if (location.area != SignalMemoryArea::Raw)
       continue;
 
     std::printf("%-8u %-8u %s\n",
                 location.index,
-                definition.id,
+                definition.id.value,
                 definition.name.c_str());
   }
 
@@ -71,14 +72,14 @@ void SignalMemoryLayout::build(const SystemConfiguration &configuration)
   std::printf("------------------------------------------\n");
   for (const auto& definition : definitions)
   {
-    const auto& location = m_locations[definition.id];
+    const auto& location = m_locations[definition.id.value];
 
     if (location.area != SignalMemoryArea::Calculated)
       continue;
 
     std::printf("%-8u %-8u %s\n",
                 location.index,
-                definition.id,
+                definition.id.value,
                 definition.name.c_str());
   }
 
@@ -90,8 +91,8 @@ void SignalMemoryLayout::build(const SystemConfiguration &configuration)
 
 const SignalLocation &SignalMemoryLayout::location(SignalId id) const
 {
-  assert(id < m_locations.size());
-  return m_locations[id];
+  assert(id.value < m_locations.size());
+  return m_locations[id.value];
 }
 
 uint32_t SignalMemoryLayout::rawSignalCount() const
@@ -106,7 +107,8 @@ uint32_t SignalMemoryLayout::calculatedSignalCount() const
 
 bool SignalMemoryLayout::contains(SignalId id) const
 {
-  return id < m_locations.size() && m_locations[id].index != InvalidIndex32;
+  return id.value < m_locations.size() &&
+         m_locations[id.value].index != InvalidIndex32;
 }
 
 }

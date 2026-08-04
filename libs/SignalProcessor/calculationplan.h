@@ -19,6 +19,9 @@ public:
   bool isEmpty() const noexcept;
 
   [[nodiscard]]
+  size_t size() const noexcept;
+
+  [[nodiscard]]
   std::span<const SignalId> order() const noexcept;
 
 private:

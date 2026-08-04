@@ -8,6 +8,17 @@ namespace qds
 
 class CalculationPlanBuilder
 {
+  struct Node
+  {
+    SignalId id;
+
+    std::vector<SignalId> dependencies;
+
+    std::vector<Node*> children;
+
+    uint32_t indegree = 0;
+  };
+
 public:
 
   [[nodiscard]]
