@@ -1,5 +1,6 @@
+#include <strongidhash.h>
 #include <cassert>
-#include <vector>
+#include <unordered_map>
 
 #include "signalmemorylayout.h"
 #include "signaldefinition.h"
@@ -8,45 +9,59 @@
 namespace qds
 {
 
-void SignalMemoryLayout::build(const SystemConfiguration &configuration)
+void SignalMemoryLayout::build(
+  const SystemConfiguration& configuration)
 {
   m_locations.clear();
 
   m_rawSignalCount = 0;
   m_calculatedSignalCount = 0;
 
-  uint32_t rawIndex = 0;
-  uint32_t calculatedIndex = 0;
 
-  SignalId maxId = {0};
-
-  const auto& definitions = configuration.signalDefinitions();
-
-  for (const auto& definition : definitions)
-    maxId = std::max(maxId, definition.id);
-
-  m_locations.assign(maxId.value + 1, {});
-
-  for (const auto& definition : definitions)
+  for (const auto& definition :
+       configuration.signalDefinitions())
   {
-    auto id = definition.id.value;
-    assert(id < m_locations.size());
+    SignalLocation location;
 
-    switch (definition.kind)
+    location.id = definition.id;
+
+
+    switch(definition.kind)
     {
     case SignalKind::Raw:
-      m_locations[id].area = SignalMemoryArea::Raw;
-      m_locations[id].index = rawIndex++;
+
+      location.area =
+        SignalMemoryArea::Raw;
+
+      location.index =
+        m_rawSignalCount++;
+
       break;
 
+
     case SignalKind::Calculated:
-      m_locations[id].area = SignalMemoryArea::Calculated;
-      m_locations[id].index = calculatedIndex++;
+
+      location.area =
+        SignalMemoryArea::Calculated;
+
+      location.index =
+        m_calculatedSignalCount++;
+
       break;
+
 
     default:
       assert(false);
     }
+
+
+    auto [it, inserted] =
+      m_locations.emplace(
+        definition.id,
+        location);
+
+
+    assert(inserted);
   }
 
 #ifndef NDEBUG
@@ -54,9 +69,9 @@ void SignalMemoryLayout::build(const SystemConfiguration &configuration)
   std::printf("\nRAW\n");
   std::printf("%-8s %-8s %s\n", "Index", "Id", "Name");
   std::printf("------------------------------------------\n");
-  for (const auto& definition : definitions)
+  for (const auto& definition : configuration.signalDefinitions())
   {
-    const auto& location = m_locations[definition.id.value];
+    const auto& location = m_locations.at(definition.id);
 
     if (location.area != SignalMemoryArea::Raw)
       continue;
@@ -67,12 +82,13 @@ void SignalMemoryLayout::build(const SystemConfiguration &configuration)
                 definition.name.c_str());
   }
 
+
   std::printf("\nCALCULATED\n");
   std::printf("%-8s %-8s %s\n", "Index", "Id", "Name");
   std::printf("------------------------------------------\n");
-  for (const auto& definition : definitions)
+  for (const auto& definition : configuration.signalDefinitions())
   {
-    const auto& location = m_locations[definition.id.value];
+    const auto& location = m_locations.at(definition.id);
 
     if (location.area != SignalMemoryArea::Calculated)
       continue;
@@ -85,30 +101,36 @@ void SignalMemoryLayout::build(const SystemConfiguration &configuration)
 
 #endif
 
-  m_rawSignalCount = rawIndex;
-  m_calculatedSignalCount = calculatedIndex;
 }
 
-const SignalLocation &SignalMemoryLayout::location(SignalId id) const
-{
-  assert(id.value < m_locations.size());
-  return m_locations[id.value];
-}
-
-uint32_t SignalMemoryLayout::rawSignalCount() const
+uint32_t SignalMemoryLayout::rawSignalCount() const noexcept
 {
   return m_rawSignalCount;
 }
 
-uint32_t SignalMemoryLayout::calculatedSignalCount() const
+uint32_t SignalMemoryLayout::calculatedSignalCount() const noexcept
 {
   return m_calculatedSignalCount;
 }
 
-bool SignalMemoryLayout::contains(SignalId id) const
+bool SignalMemoryLayout::contains(
+  SignalId id) const noexcept
 {
-  return id.value < m_locations.size() &&
-         m_locations[id.value].index != InvalidIndex32;
+  return m_locations.contains(id);
+}
+
+SignalReference SignalMemoryLayout::reference(
+  SignalId id) const
+{
+  auto it =
+    m_locations.find(id);
+  // проверка ошибки конфигурации
+  assert(it != m_locations.end());
+
+  return {
+    .area = it->second.area,
+    .index = it->second.index
+  };
 }
 
 }

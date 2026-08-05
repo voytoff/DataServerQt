@@ -5,27 +5,27 @@ namespace qds
 
 void CalculationPlan::clear() noexcept
 {
-  m_order.clear();
+  m_steps.clear();
 }
 
-void CalculationPlan::setOrder(std::vector<SignalId> order)
+void CalculationPlan::addStep(CalculationStep step)
 {
-  m_order = order;
+  m_steps.push_back(step);
 }
 
-bool CalculationPlan::isEmpty() const noexcept
+std::span<const CalculationStep> CalculationPlan::steps() const noexcept
 {
-  return m_order.empty();
+  return m_steps;
 }
 
-std::span<const SignalId> CalculationPlan::order() const noexcept
+bool CalculationPlan::empty() const noexcept
 {
-  return m_order;
+  return m_steps.empty();
 }
 
-size_t CalculationPlan::size() const noexcept
+uint32_t CalculationPlan::size() const noexcept
 {
-  return m_order.size();
+  return m_steps.size();
 }
 
 }

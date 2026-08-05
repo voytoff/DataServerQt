@@ -15,7 +15,7 @@ void tst_scheduler::test_scheduler_base()
 {
   using namespace qds;
 
-  SystemConfiguration cfg = createTestConfigWithSignalDefinitions();
+  SystemConfiguration cfg = createTestConfig00();
   SignalMemoryLayout layout;
   layout.build(cfg);
 

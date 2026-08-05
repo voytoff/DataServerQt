@@ -1,32 +1,30 @@
 #pragma once
 
-#include <compare>
 #include <cstdint>
 #include <string>
 #include <vector>
 
 #include "datatypes.h"
+#include "strongid.h"
 
 namespace qds
 {
 
-struct SignalId
-{
-  uint32_t value = 0;
-  constexpr auto operator<=>(const SignalId&) const = default;
-};
+struct SignalIdTag {};
+struct FormulaIdTag {};
+struct CalibrationIdTag {};
 
-struct FormulaId
-{
-  uint32_t value = 0;
-  constexpr auto operator<=>(const FormulaId&) const = default;
-};
+using SignalId =
+  StrongId<SignalIdTag>;
 
-struct CalibrationId
-{
-  uint32_t value = 0;
-  constexpr auto operator<=>(const CalibrationId&) const = default;
-};
+using FormulaId =
+  StrongId<FormulaIdTag>;
+
+using CalibrationId =
+  StrongId<CalibrationIdTag>;
+
+static constexpr SignalId InvalidSignalId{UINT32_MAX};
+
 
 enum class SignalKind : uint8_t
 {
@@ -45,7 +43,6 @@ struct SignalSource
   // используется только для SignalKind::Raw
   TagId tag;
 };
-
 
 
 struct SignalDefinition

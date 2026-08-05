@@ -1,40 +1,58 @@
 #pragma once
 
+#include <strongidhash.h>
+//#include "datatypes.h"
 #include <cstdint>
-#include <vector>
+#include <unordered_map>
 
-#include "datatypes.h"
 #include "signaldefinition.h"
+#include "systemconfiguration.h"
 
 namespace qds
 {
 
 struct SignalLocation
 {
-  SignalMemoryArea area = SignalMemoryArea::Raw;
-  uint32_t index = InvalidIndex32;
+  SignalId id;
+
+  SignalMemoryArea area =
+    SignalMemoryArea::Raw;
+
+  uint32_t index = 0;
 };
 
-class SystemConfiguration;
 
 class SignalMemoryLayout
 {
 public:
 
-  void build(const SystemConfiguration& configuration);
+  void build(
+    const SystemConfiguration& configuration);
 
-  const SignalLocation& location(SignalId id) const;
+  [[nodiscard]]
+  bool contains(
+    SignalId id) const noexcept;
 
-  uint32_t rawSignalCount() const;
+  [[nodiscard]]
+  SignalReference reference(
+    SignalId id) const;
 
-  uint32_t calculatedSignalCount() const;
+  [[nodiscard]]
+  uint32_t rawSignalCount() const noexcept;
 
-  bool contains(SignalId id) const;
+  [[nodiscard]]
+  uint32_t calculatedSignalCount() const noexcept;
+
 
 private:
 
-  std::vector<SignalLocation> m_locations;
+  std::unordered_map<
+    SignalId,
+    SignalLocation> m_locations;
+
+
   uint32_t m_rawSignalCount = 0;
+
   uint32_t m_calculatedSignalCount = 0;
 };
 

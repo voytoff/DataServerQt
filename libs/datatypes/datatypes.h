@@ -1,44 +1,39 @@
-#ifndef DATATYPES_H
-#define DATATYPES_H
+#pragma once
 
-#include <compare>
 #include <cstdint>
-#include <string>
+#include "strongid.h"
 
 namespace qds
 {
 
 static constexpr uint32_t InvalidIndex32 = UINT32_MAX;
 
-struct TagId
+template<typename Tag>
+constexpr StrongId<Tag> InvalidId()
 {
-  uint32_t value = 0;
-  constexpr auto operator<=>(const TagId&) const = default;
-};
+  return {UINT32_MAX};
+}
 
-struct ModuleId
-{
-  uint32_t value = 0;
-  constexpr auto operator<=>(const ModuleId&) const = default;
-};
+struct TagIdTag {};
+struct ModuleIdTag {};
+struct CrateIdTag {};
+struct ChannelIdTag {};
+struct SubscriptionIdTag {};
 
-struct CrateId
-{
-  uint32_t value = 0;
-  constexpr auto operator<=>(const CrateId&) const = default;
-};
+using TagId =
+  StrongId<TagIdTag>;
 
-struct ChannelId
-{
-  uint32_t value = 0;
-  constexpr auto operator<=>(const ChannelId&) const = default;
-};
+using ModuleId =
+  StrongId<ModuleIdTag>;
 
-struct SubscriptionId
-{
-  uint32_t value = 0;
-  constexpr auto operator<=>(const SubscriptionId&) const = default;
-};
+using CrateId =
+  StrongId<CrateIdTag>;
+
+using ChannelId =
+  StrongId<ChannelIdTag>;
+
+using SubscriptionId =
+  StrongId<SubscriptionIdTag>;
 
 struct Sample
 {
@@ -75,5 +70,3 @@ struct FrameNumber
 };
 
 }
-
-#endif // DATATYPES_H

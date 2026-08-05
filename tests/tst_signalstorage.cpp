@@ -23,7 +23,7 @@ void tst_signalstorage::test_buffer_manager()
 {
   using namespace qds;
   BufferManager manager;
-  SystemConfiguration cfg = createTestConfigWithSignalDefinitions();
+  SystemConfiguration cfg = createTestConfig00();
   const auto& definitions = cfg.signalDefinitions();
   SignalMemoryLayout layout;
   layout.build(cfg); // TODO сделать bool build(...)
@@ -82,7 +82,7 @@ void tst_signalstorage::test_raw_memory()
 {
   using namespace qds;
 
-  SystemConfiguration cfg = createTestConfigWithSignalDefinitions();
+  SystemConfiguration cfg = createTestConfig00();
 
   SignalMemoryLayout layout;
   layout.build(cfg);
