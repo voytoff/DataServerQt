@@ -1,5 +1,6 @@
 #include "calculationcompiler.h"
 #include <cassert>
+#include <queue>
 
 namespace qds
 {
@@ -39,8 +40,8 @@ bool CalculationCompiler::buildNodes()
       m_nodes.back();
 
     node.id = definition.id;
-
     node.dependencies = definition.dependencies;
+    node.formula = definition.formulaId;
 
     for (auto &p : node.dependencies)
     {
@@ -58,7 +59,7 @@ bool CalculationCompiler::buildNodes()
   return true;
 }
 
-bool CalculationCompiler::connectNodes()
+void CalculationCompiler::connectNodes()
 {
   for (auto &node : m_nodes)
   {
@@ -70,21 +71,72 @@ bool CalculationCompiler::connectNodes()
       auto it = m_index.find(p);
 
       assert(it != m_index.end());
+
       if (it == m_index.end())
-        return false; // неверная конфигурация
+        return; // неверная конфигурация
 
       auto& parent = m_nodes[it->second];
 
-      parent.dependents.push_back(node.id);    }
+      parent.dependents.push_back(&node);
+    }
   }
-
-  return true;
 }
+
 
 bool CalculationCompiler::topologicalSort(CalculationPlan& plan)
 {
-  return true;
+  std::queue<Node*> queue;
+
+  for (auto& node : m_nodes)
+  {
+    if (node.indegree == 0)
+    {
+      queue.push(&node);
+      assert(!node.emitted);
+      node.emitted = true;
+    }
+  }
+
+  size_t processedCount = 0;
+
+  while (!queue.empty())
+  {
+    Node* node = queue.front();
+    queue.pop();
+
+    CalculationStep step;
+
+    step.output = m_layout.reference(node->id);
+    step.formulaId = node->formula;
+
+    for (auto& id : node->dependencies)
+    {
+      step.inputs.push_back(
+        m_layout.reference(id));
+    }
+
+    for (Node* child : node->dependents)
+    {
+      assert(child->indegree > 0);
+
+      --child->indegree;
+
+      if (child->indegree == 0)
+      {
+        queue.push(child);
+        assert(!child->emitted);
+        child->emitted = true;
+      }
+    }
+
+    plan.addStep(step);
+
+    ++processedCount;
+  }
+
+  return processedCount == m_nodes.size();
 }
+
 
 bool CalculationCompiler::isCalculatedSignal(SignalId id) const
 {

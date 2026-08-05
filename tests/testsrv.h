@@ -188,4 +188,26 @@ static qds::SystemConfiguration createTestConfig03()
   return cfg;
 }
 
+static qds::SystemConfiguration createTestConfig04()
+{
+  using namespace qds;
+  SystemConfiguration cfg;
+
+  ModuleInfo m{0};
+  cfg.addModule(m);
+
+  cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
+  cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}});
+
+  SignalDefinition sd0 {.id = {0}, .name = "A", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100};
+  cfg.addSignalDefinition(sd0);
+
+  SignalDefinition sd1 {.id = {1}, .name = "B", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 10};
+  cfg.addSignalDefinition(sd1);
+
+  SignalDefinition sd4 {.id = {10}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {5}, .dependencies = {{0}, {1}}};
+  cfg.addSignalDefinition(sd4);
+
+  return cfg;
+}
 

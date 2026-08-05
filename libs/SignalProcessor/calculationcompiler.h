@@ -29,7 +29,8 @@ private:
     FormulaId formula;
 
     std::vector<SignalId> dependencies;
-    std::vector<SignalId> dependents;
+    std::vector<Node*> dependents;
+    //std::vector<SignalId> dependents;
 
     uint32_t indegree = 0;
 
@@ -42,7 +43,7 @@ private:
 
   bool buildNodes();
 
-  bool connectNodes();
+  void connectNodes();
 
   bool topologicalSort(
     CalculationPlan& plan);

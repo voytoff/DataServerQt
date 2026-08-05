@@ -26,15 +26,17 @@ void tst_signalprocessor::test_calculation_plan()
 void tst_signalprocessor::test_calculation_order()
 {
   using namespace qds;
-  SystemConfiguration cfg = createTestConfig02();
+  SystemConfiguration cfg = createTestConfig04();
+  SignalMemoryLayout layout;
+  layout.build(cfg);
 
   CalculationPlan plan;
 
-  CalculationCompiler builder;
+  CalculationCompiler builder(cfg, layout);
 
-  QVERIFY(builder.build(cfg, plan));
+  QVERIFY(builder.build(plan));
 
-  QCOMPARE(plan.size(), 3);
+  QCOMPARE(plan.size(), 1);
 /*
   const auto &order = plan.steps();
   auto posA = std::find(order.begin(), order.end(), SignalId{2});
