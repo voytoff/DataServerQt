@@ -8,8 +8,7 @@ void BufferManager::initialize(const SignalMemoryLayout &layout)
 {
   for (Frame &frame : m_frames)
   {
-    frame.raw.initialize(layout.rawSignalCount());
-    frame.calculated.initialize(layout.calculatedSignalCount());
+    frame.initialize(layout);
   }
 }
 

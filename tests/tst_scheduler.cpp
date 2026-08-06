@@ -35,20 +35,20 @@ void tst_scheduler::test_scheduler_base()
 
   QVERIFY(buffers.ready());
 
-  auto &frame = buffers.readFrame();
-  QCOMPARE(frame.raw.value(0), 123.);
+  auto frame = buffers.readFrame();
+  QCOMPARE(frame.raw().value(0), 123.);
 
   QCOMPARE(frame.number.value, 1);
   //QCOMPARE(frame.timestamp.value, 1);
 
-  QCOMPARE(frame.calculated.value(0), 0.0);
-  QCOMPARE(frame.calculated.value(1), 0.0);
+  QCOMPARE(frame.calculated().value(0), 0.0);
+  QCOMPARE(frame.calculated().value(1), 0.0);
 
   QVERIFY(scheduler.tick());
 
-  auto& frame2 = buffers.readFrame();
+  auto frame2 = buffers.readFrame();
 
   QCOMPARE(frame2.number.value, 2);
   //QCOMPARE(frame2.timestamp.value, 2);
-  QCOMPARE(frame2.raw.value(0), 123.);
+  QCOMPARE(frame2.raw().value(0), 123.);
 }

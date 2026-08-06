@@ -7,7 +7,7 @@ namespace qds
 
 Scheduler::Scheduler(
   BufferManager &buffers,
-  ISignalProcessor &processor,
+  ICalculationProcessor &processor,
   SchedulerClock &clock)
   : m_buffers(buffers)
   , m_processor(processor)
@@ -30,7 +30,7 @@ bool Scheduler::tick()
 
   for (IDataSource& source : m_sources)
   {
-    if (!source.acquire(frame.raw))
+    if (!source.acquire(frame.raw()))
       return false;
   }
 

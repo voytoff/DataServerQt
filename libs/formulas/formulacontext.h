@@ -1,15 +1,15 @@
 #pragma once
 
-#include "datatypes.h"
+#include <span>
 
 namespace qds
 {
 
 struct FormulaContext
 {
-  Sample* output;
-  const Sample* const* inputs;
-  size_t inputCount;
+  double* output = nullptr;
+
+  std::span<double*> inputs;
 };
 
 }

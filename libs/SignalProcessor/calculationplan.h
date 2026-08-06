@@ -13,8 +13,6 @@ class CalculationPlan
 public:
   void clear() noexcept;
 
-  void addStep(CalculationStep step);
-
   [[nodiscard]]
   std::span<const CalculationStep> steps() const noexcept;
 
@@ -22,11 +20,17 @@ public:
   bool empty() const noexcept;
 
   [[nodiscard]]
-  uint32_t size() const noexcept;
+  std::size_t size() const noexcept;
+
+private:
+  void addStep(CalculationStep&& step);
+
+  void reserve(std::size_t size);
 
 private:
   std::vector<CalculationStep> m_steps;
 
+  friend class CalculationCompiler;
 };
 
 }

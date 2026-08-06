@@ -41,6 +41,17 @@ void SignalMemory::setValues(
     m_values.begin() + firstIndex);
 }
 
+double& SignalMemory::valueRef(uint32_t index) noexcept
+{
+  assert(index < m_values.size());
+  return m_values[index];
+}
+
+const double& SignalMemory::valueRef(uint32_t index) const noexcept
+{
+  assert(index < m_values.size());
+  return m_values[index];
+}
 
 std::span<const double> SignalMemory::values() const noexcept
 {
@@ -86,6 +97,11 @@ bool SignalMemory::equals(std::span<const double> snapshot) const
 void SignalMemory::clear() noexcept
 {
   std::fill(m_values.begin(), m_values.end(), 0.0);
+}
+
+uint32_t SignalMemory::size() const noexcept
+{
+  return m_values.size();
 }
 
 }

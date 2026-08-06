@@ -1,11 +1,15 @@
 #pragma once
 
+#include "iformula.h"
+
 namespace qds
 {
 
-class FormulaAdd
+class FormulaAdd : public IFormula
 {
 public:
+  bool execute(FormulaContext& ctx) const noexcept override;
+
 };
 
 }

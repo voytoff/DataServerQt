@@ -15,7 +15,8 @@ public:
   virtual ~IFormula() noexcept = default;
 
   [[nodiscard]]
-  virtual bool execute(FormulaContext& ctx) = 0;
+  virtual bool execute(
+    FormulaContext& ctx) const noexcept = 0;
 };
 
 }

@@ -3,15 +3,15 @@
 namespace qds
 {
 
-bool FormulaCopy::execute(FormulaContext& ctx)
+bool FormulaCopy::execute(FormulaContext& ctx) const noexcept
 {
   if (ctx.output == nullptr)
     return false;
 
-  if (ctx.inputs == nullptr)
+  if (ctx.inputs.front() == nullptr)
     return false;
 
-  if (ctx.inputCount < 1)
+  if (ctx.inputs.size() < 1)
     return false;
 
   *ctx.output = *ctx.inputs[0];

@@ -101,6 +101,7 @@ bool CalculationCompiler::topologicalSort(CalculationPlan& plan)
 
   size_t processedCount = 0;
   CalculationPlan tmp;
+  tmp.reserve(m_nodes.size());
 
   while (!queue.empty())
   {
@@ -109,12 +110,14 @@ bool CalculationCompiler::topologicalSort(CalculationPlan& plan)
 
     CalculationStep step;
 
+    step.formula = m_repository.find(node->formula);
+
     step.output = m_layout.reference(node->id);
 
-    step.formula = m_repository.find(node->formula);
     if (step.formula == nullptr)
       return false;
 
+    step.inputs.reserve(node->dependencies.size());
     for (auto& id : node->dependencies)
     {
       step.inputs.push_back(
@@ -131,7 +134,7 @@ bool CalculationCompiler::topologicalSort(CalculationPlan& plan)
         queue.push_back(child);
     }
 
-    tmp.addStep(step);
+    tmp.addStep(std::move(step));
 
     ++processedCount;
   }

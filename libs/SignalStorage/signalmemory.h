@@ -22,6 +22,9 @@ public:
 
   void setValues(uint32_t first, std::span<const double> values);
 
+  double& valueRef(uint32_t index) noexcept;
+  const double& valueRef(uint32_t index) const noexcept;
+
   [[nodiscard]]
   std::span<const double> values() const noexcept;
   [[nodiscard]]
@@ -34,6 +37,9 @@ public:
   bool equals(std::span<const double> snapshot) const;
 
   void clear() noexcept;
+
+  [[nodiscard]]
+  uint32_t size() const noexcept;
 
 private:
   std::vector<double> m_values;

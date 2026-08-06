@@ -42,40 +42,40 @@ void tst_signalstorage::test_buffer_manager()
   Frame &frame1 = manager.beginWrite();
 
   //QVERIFY(frame1.number.value == 0);
-  QVERIFY(frame1.raw.values().size() == 2);
-  QVERIFY(frame1.calculated.values().size() == 2);
+  QVERIFY(frame1.raw().values().size() == 2);
+  QVERIFY(frame1.calculated().values().size() == 2);
 
-  frame1.raw.setValue(0, 10);
+  frame1.raw().setValue(0, 10);
   manager.publish();
 
-  auto &read1 = manager.readFrame();
-  QCOMPARE(read1.raw.values()[0], 10);
+  auto read1 = manager.readFrame();
+  QCOMPARE(read1.raw().values()[0], 10);
 
 
   Frame &frame2 = manager.beginWrite();
 
   //QVERIFY(frame2.number.value == 0);
-  QVERIFY(frame2.raw.values().size() == 2);
-  QVERIFY(frame2.calculated.values().size() == 2);
+  QVERIFY(frame2.raw().values().size() == 2);
+  QVERIFY(frame2.calculated().values().size() == 2);
 
-  frame2.calculated.setValue(0, 0xFF);
-  frame2.raw.setValue(1, 11);
+  frame2.calculated().setValue(0, 0xFF);
+  frame2.raw().setValue(1, 11);
   manager.publish();
 
   Frame &frame3 = manager.beginWrite();
 
-  auto &read2 = manager.readFrame();
-  QCOMPARE(read2.raw.values()[0], 0);
-  QCOMPARE(read2.raw.values()[1], 11);
-  QCOMPARE(read2.calculated.values()[0], 0xFF);
+  auto read2 = manager.readFrame();
+  QCOMPARE(read2.raw().values()[0], 0);
+  QCOMPARE(read2.raw().values()[1], 11);
+  QCOMPARE(read2.calculated().values()[0], 0xFF);
 
   manager.publish();
 
   Frame &frame4 = manager.beginWrite();
 
-  auto &read3 = manager.readFrame();
-  QCOMPARE(read3.raw.values()[0], 10);
-  QCOMPARE(read3.calculated.values()[0], 0);
+  auto read3 = manager.readFrame();
+  QCOMPARE(read3.raw().values()[0], 10);
+  QCOMPARE(read3.calculated().values()[0], 0);
 }
 
 void tst_signalstorage::test_raw_memory()

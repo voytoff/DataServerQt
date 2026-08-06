@@ -1,11 +1,11 @@
 #pragma once
 
-#include "isignalprocessor.h"
+#include "icalculationprocessor.h"
 
 namespace qds
 {
 
-class EmptySignalProcessor : public ISignalProcessor
+class EmptySignalProcessor : public ICalculationProcessor
 {
 public:
   bool process(Frame& frame) override;

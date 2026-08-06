@@ -8,7 +8,7 @@ namespace qds
 class FormulaCopy : public IFormula
 {
 public:
-  bool execute(FormulaContext& ctx) override;
+  bool execute(FormulaContext& ctx) const noexcept override;
 
 };
 

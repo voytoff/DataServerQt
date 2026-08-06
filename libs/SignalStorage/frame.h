@@ -1,19 +1,49 @@
 #pragma once
 
-#include "datatypes.h"
+#include <cassert>
+
 #include "signalmemory.h"
+#include "signalmemorylayout.h"
+#include "datatypes.h"
 
 namespace qds
 {
 
-struct Frame
+class Frame
 {
+public:
+
+  void initialize(
+    const SignalMemoryLayout& layout);
+
+
+  [[nodiscard]]
+  double* address(
+    SignalReference ref) noexcept;
+
+
+  [[nodiscard]]
+  const double* address(
+    SignalReference ref) const noexcept;
+
+
+  RawMemory& raw() noexcept;
+
+  CalculatedMemory& calculated() noexcept;
+
+
   FrameNumber number;
+
   Timestamp timestamp;
+
   WallClockTime wallTime;
 
-  RawMemory raw;
-  CalculatedMemory calculated;
+
+private:
+
+  RawMemory m_raw;
+
+  CalculatedMemory m_calculated;
 };
 
 }
