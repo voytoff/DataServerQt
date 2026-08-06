@@ -1,9 +1,12 @@
 #pragma once
 
 #include <QObject>
+#include <qtestcase.h>
+#include "calculationplan.h"
 #include "isender.h"
 #include "moduleinfo.h"
 #include "publisher.h"
+#include "signalmemorylayout.h"
 #include "subscriptionmanager.h"
 #include "livescheduler.h"
 #include "systemconfiguration.h"
@@ -188,7 +191,58 @@ static qds::SystemConfiguration createTestConfig03()
   return cfg;
 }
 
+/** line
+Raw
+ ↓
+A
+ ↓
+B
+ ↓
+C
+=
+A
+B
+C
+ */
 static qds::SystemConfiguration createTestConfig04()
+{
+  using namespace qds;
+  SystemConfiguration cfg;
+
+  ModuleInfo m{0};
+  cfg.addModule(m);
+
+  cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
+
+  SignalDefinition sd0 {.id = {0}, .name = "RAW", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100};
+  cfg.addSignalDefinition(sd0);
+
+  SignalDefinition sd1 {.id = {2}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{0}}};
+  cfg.addSignalDefinition(sd1);
+  SignalDefinition sd2 {.id = {5}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}, .dependencies = {{2}}};
+  cfg.addSignalDefinition(sd2);
+  SignalDefinition sd3 {.id = {10}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 1, .formulaId = {0}, .dependencies = {{5}}};
+  cfg.addSignalDefinition(sd3);
+
+  return cfg;
+}
+
+/** branching
+Raw0 → A
+          \
+           C
+
+Raw1 → B
+ =
+A
+B
+C
+ or
+B
+A
+C
+ */
+static qds::SystemConfiguration createTestConfig05()
 {
   using namespace qds;
   SystemConfiguration cfg;
@@ -199,15 +253,145 @@ static qds::SystemConfiguration createTestConfig04()
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
   cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}});
 
-  SignalDefinition sd0 {.id = {0}, .name = "A", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100};
+  SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 1000};
   cfg.addSignalDefinition(sd0);
+  SignalDefinition sd2 {.id = {7}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{0}}};
+  cfg.addSignalDefinition(sd2);
+  SignalDefinition sd3 {.id = {4}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {2}, .dependencies = {{7}}};
+  cfg.addSignalDefinition(sd3);
 
-  SignalDefinition sd1 {.id = {1}, .name = "B", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 10};
+  SignalDefinition sd1 {.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 100};
   cfg.addSignalDefinition(sd1);
-
-  SignalDefinition sd4 {.id = {10}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {5}, .dependencies = {{0}, {1}}};
+  SignalDefinition sd4 {.id = {11}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{1}}};
   cfg.addSignalDefinition(sd4);
 
   return cfg;
 }
 
+/** independent
+Raw → A
+
+Raw → B
+
+Raw → C
+=
+ */
+static qds::SystemConfiguration createTestConfig06()
+{
+  using namespace qds;
+  SystemConfiguration cfg;
+
+  ModuleInfo m{0};
+  cfg.addModule(m);
+
+  cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
+
+  SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 1000};
+  cfg.addSignalDefinition(sd0);
+
+  SignalDefinition sd1 {.id = {101}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{0}}};
+  cfg.addSignalDefinition(sd1);
+  SignalDefinition sd2 {.id = {70}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 1, .formulaId = {0}, .dependencies = {{0}}};
+  cfg.addSignalDefinition(sd2);
+  SignalDefinition sd3 {.id = {4}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}, .dependencies = {{0}}};
+  cfg.addSignalDefinition(sd3);
+
+  return cfg;
+}
+
+/** cycle
+A → B
+B → A
+ */
+static qds::SystemConfiguration createTestConfig07()
+{
+  using namespace qds;
+  SystemConfiguration cfg;
+
+  ModuleInfo m{0};
+  cfg.addModule(m);
+
+  cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
+
+  SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100};
+  cfg.addSignalDefinition(sd0);
+
+  SignalDefinition sd1 {.id = {10}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{7}}};
+  cfg.addSignalDefinition(sd1);
+  SignalDefinition sd2 {.id = {7}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{10}}};
+  cfg.addSignalDefinition(sd2);
+  SignalDefinition sd3 {.id = {4}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{0}}};
+  cfg.addSignalDefinition(sd3);
+
+  return cfg;
+}
+
+/** selfReference
+  B → B
+*/
+static qds::SystemConfiguration createTestConfig08()
+{
+  using namespace qds;
+  SystemConfiguration cfg;
+
+  ModuleInfo m{0};
+  cfg.addModule(m);
+
+  cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
+
+  SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100};
+  cfg.addSignalDefinition(sd0);
+
+  SignalDefinition sd1 {.id = {10}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{0}}};
+  cfg.addSignalDefinition(sd1);
+  SignalDefinition sd2 {.id = {7}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{7}}};
+  cfg.addSignalDefinition(sd2);
+  SignalDefinition sd3 {.id = {4}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{0}}};
+  cfg.addSignalDefinition(sd3);
+
+  return cfg;
+}
+
+/** bigGraph
+Raw0 → A
+
+Raw1 → B
+
+A,B → C
+
+C → D
+
+B,D → E
+ */
+static qds::SystemConfiguration createTestConfig09()
+{
+  using namespace qds;
+  SystemConfiguration cfg;
+
+  ModuleInfo m{0};
+  cfg.addModule(m);
+
+  cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
+  cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}});
+
+  SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 1000};
+  cfg.addSignalDefinition(sd0);
+  SignalDefinition sd1 {.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 100};
+  cfg.addSignalDefinition(sd1);
+
+  SignalDefinition sd2 {.id = {7}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{0}}};
+  cfg.addSignalDefinition(sd2);
+  SignalDefinition sd3 {.id = {4}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}, .dependencies = {{1}}};
+  cfg.addSignalDefinition(sd3);
+
+  SignalDefinition sd4 {.id = {11}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {17}, .dependencies = {{4}, {7}}};
+  cfg.addSignalDefinition(sd4);
+
+  SignalDefinition sd5 {.id = {10}, .name = "D", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}, .dependencies = {{11}}};
+  cfg.addSignalDefinition(sd5);
+
+  SignalDefinition sd6 {.id = {3}, .name = "E", .kind = SignalKind::Calculated, .archiveFrequency = 1, .formulaId = {10}, .dependencies = {{4}, {10}}};
+  cfg.addSignalDefinition(sd6);
+
+  return cfg;
+}

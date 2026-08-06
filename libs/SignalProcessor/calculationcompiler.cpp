@@ -7,9 +7,10 @@ namespace qds
 
 CalculationCompiler::CalculationCompiler(
   const SystemConfiguration &cfg,
-  const SignalMemoryLayout &layout)
+  const SignalMemoryLayout &layout, const FormulaRepository &repository)
   : m_cfg(cfg)
-  , m_layout(layout) { }
+  , m_layout(layout)
+  , m_repository(repository) { }
 
 bool CalculationCompiler::build(
   CalculationPlan& plan)
@@ -21,10 +22,15 @@ bool CalculationCompiler::build(
   if (!buildNodes())
     return false;
 
-  if (!connectNodes())
-    return false;
+  connectNodes();
 
-  return topologicalSort(plan);
+  if (!topologicalSort(plan))
+  {
+    plan.clear();
+    return false;
+  }
+
+  return true;
 }
 
 bool CalculationCompiler::buildNodes()
@@ -77,7 +83,7 @@ void CalculationCompiler::connectNodes()
 
       auto& parent = m_nodes[it->second];
 
-      parent.dependents.push_back(&node);
+      parent.children.push_back(&node);
     }
   }
 }
@@ -85,29 +91,29 @@ void CalculationCompiler::connectNodes()
 
 bool CalculationCompiler::topologicalSort(CalculationPlan& plan)
 {
-  std::queue<Node*> queue;
+  std::deque<Node*> queue;
 
   for (auto& node : m_nodes)
   {
     if (node.indegree == 0)
-    {
-      queue.push(&node);
-      assert(!node.emitted);
-      node.emitted = true;
-    }
+      queue.push_back(&node);
   }
 
   size_t processedCount = 0;
+  CalculationPlan tmp;
 
   while (!queue.empty())
   {
     Node* node = queue.front();
-    queue.pop();
+    queue.pop_front();
 
     CalculationStep step;
 
     step.output = m_layout.reference(node->id);
-    step.formulaId = node->formula;
+
+    step.formula = m_repository.find(node->formula);
+    if (step.formula == nullptr)
+      return false;
 
     for (auto& id : node->dependencies)
     {
@@ -115,26 +121,26 @@ bool CalculationCompiler::topologicalSort(CalculationPlan& plan)
         m_layout.reference(id));
     }
 
-    for (Node* child : node->dependents)
+    for (Node* child : node->children)
     {
       assert(child->indegree > 0);
 
       --child->indegree;
 
       if (child->indegree == 0)
-      {
-        queue.push(child);
-        assert(!child->emitted);
-        child->emitted = true;
-      }
+        queue.push_back(child);
     }
 
-    plan.addStep(step);
+    tmp.addStep(step);
 
     ++processedCount;
   }
 
-  return processedCount == m_nodes.size();
+  if (processedCount != m_nodes.size())
+    return false;
+
+  plan = tmp;
+  return true;
 }
 
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "formulacontext.h"
+
 namespace qds
 {
 
@@ -13,9 +15,7 @@ public:
   virtual ~IFormula() noexcept = default;
 
   [[nodiscard]]
-  virtual bool execute(
-    Frame& frame,
-    const CalculationStep& step) = 0;
+  virtual bool execute(FormulaContext& ctx) = 0;
 };
 
 }

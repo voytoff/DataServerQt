@@ -18,7 +18,6 @@ void EmptySignalProcessor::applyCalibrations(Frame &frame)
 
 void EmptySignalProcessor::evaluateFormulas(Frame &frame)
 {
-
 }
 
 }

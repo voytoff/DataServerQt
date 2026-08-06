@@ -3,6 +3,7 @@
 #include <strongidhash.h>
 #include <unordered_map>
 #include "calculationplan.h"
+#include "formularepository.h"
 #include "signalmemorylayout.h"
 #include "systemconfiguration.h"
 
@@ -15,7 +16,8 @@ public:
 
   explicit CalculationCompiler(
     const SystemConfiguration& cfg,
-    const SignalMemoryLayout& layout);
+    const SignalMemoryLayout& layout,
+    const FormulaRepository& repository);
 
   bool build(
     CalculationPlan& plan);
@@ -29,14 +31,9 @@ private:
     FormulaId formula;
 
     std::vector<SignalId> dependencies;
-    std::vector<Node*> dependents;
-    //std::vector<SignalId> dependents;
+    std::vector<Node*> children;
 
     uint32_t indegree = 0;
-
-#ifndef NDEBUG
-    bool emitted = false;
-#endif
   };
 
 private:
@@ -55,6 +52,7 @@ private:
 
   const SystemConfiguration& m_cfg;
   const SignalMemoryLayout& m_layout;
+  const FormulaRepository& m_repository;
 
   std::vector<Node> m_nodes;
   std::unordered_map<SignalId, size_t> m_index;

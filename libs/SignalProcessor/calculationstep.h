@@ -1,5 +1,6 @@
 #pragma once
 
+#include "iformula.h"
 #include "signaldefinition.h"
 
 namespace qds
@@ -13,7 +14,7 @@ struct CalculationStep
 
   std::vector<SignalReference> inputs;
 
-  FormulaId formulaId;
+  const IFormula* formula = nullptr;
 };
 
 }

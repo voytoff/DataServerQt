@@ -6,12 +6,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(SignalProcessor SHARED
     isignalprocessor.h
-    iformula.h
     calculationstep.h
     emptysignalprocessor.cpp emptysignalprocessor.h
     calculationplan.h calculationplan.cpp
     calculationcompiler.h calculationcompiler.cpp
-    formularepository.h formularepository.cpp
     frameaccessor.h frameaccessor.cpp
 )
 
@@ -24,5 +22,6 @@ target_include_directories(SignalProcessor
 target_link_libraries(SignalProcessor
     PUBLIC
         SignalStorage
+        Formulas
         Core
 )

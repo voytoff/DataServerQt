@@ -12,7 +12,12 @@ public:
 
 private slots:
   void test_calculation_plan();
-  void test_calculation_order();
+  void test_calculation_line();
+  void test_calculation_branching();
+  void test_calculation_independent();
+  void test_calculation_cycle();
+  void test_calculation_selfReference();
+  void test_calculation_bigGraph();
 
 };
 

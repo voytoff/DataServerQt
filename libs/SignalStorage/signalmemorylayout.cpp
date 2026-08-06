@@ -60,7 +60,6 @@ void SignalMemoryLayout::build(
         definition.id,
         location);
 
-
     assert(inserted);
   }
 
