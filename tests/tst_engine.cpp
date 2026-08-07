@@ -8,13 +8,12 @@
 #include "failingprocessor.h"
 #include "fakeclock.h"
 #include "fakedatasource.h"
+#include "fakeschedulerclock.h"
 #include "formulaadd.h"
 #include "formulacopy.h"
 #include "formularepository.h"
-#include "nullarchivewriter.h"
 #include "nullframepublisher.h"
 #include "schedulerclock.h"
-#include "systemclock.h"
 #include "testarchivewriter.h"
 #include "testdatasource.h"
 #include "testsrv.h"
@@ -23,7 +22,7 @@
 tst_engine::tst_engine() { }
 tst_engine::~tst_engine() = default;
 
-void tst_engine::test_dataEngine_simple_pipeline()
+void tst_engine::test_pipeline_archive_copy()
 {
   using namespace qds;
   SystemConfiguration cfg = createTestConfig_Copy_Add();
@@ -39,13 +38,12 @@ void tst_engine::test_dataEngine_simple_pipeline()
 
   FakeDataSource source;
 
-  NullArchiveWriter archive;
+  TestArchiveWriter archive;
   NullFramePublisher publisher;
 
   DataEngine engine;
 
-  FakeClock fclock;
-  SchedulerClock clock(fclock);
+  FakeSchedulerClock clock;
 
   QVERIFY(engine.initialize(
     source,
@@ -56,6 +54,21 @@ void tst_engine::test_dataEngine_simple_pipeline()
     clock));
 
   QVERIFY(engine.process());
+
+  const auto archived = archive.last();
+
+  QVERIFY(engine.process());
+
+  QCOMPARE(archived.number.value, 1);
+  QCOMPARE(archived.timestamp.value, 10);
+  QCOMPARE(archived.wallTime.unixMicroseconds, 100);
+
+  QCOMPARE(archived.raw().value(0), 123.);
+  QCOMPARE(archived.raw().value(1), 0.);
+
+  QCOMPARE(archived.calculated().value(0), 0.0);
+  QCOMPARE(archived.calculated().value(1), 0.0);
+  QCOMPARE(archived.calculated().value(2), 0.0);
 }
 
 void tst_engine::test_dataEngine_simple_runtime()
@@ -86,10 +99,10 @@ void tst_engine::test_dataEngine_simple_runtime()
 
   DataEngine engine;
 
-  FakeClock fclock;
-  SchedulerClock clock(fclock);
-  fclock.setTimestamp(10u);
-  fclock.setWallClockTime(111u);
+  uint64_t timestampStep = 5;
+  uint64_t wallClockStep = 75;
+
+  FakeSchedulerClock clock(timestampStep, wallClockStep);
 
   QVERIFY(engine.initialize(
     source,
@@ -107,8 +120,11 @@ void tst_engine::test_dataEngine_simple_runtime()
 
     const auto &frame = buffers.readFrame();
 
-    QCOMPARE(frame.timestamp.value, 10u);
-    QCOMPARE(frame.wallTime.unixMicroseconds, 111u);
+    const auto expectedFrame = static_cast<uint64_t>(i + 1);
+
+    QCOMPARE(frame.number.value, expectedFrame);
+    QCOMPARE(frame.timestamp.value, expectedFrame * timestampStep);
+    QCOMPARE(frame.wallTime.unixMicroseconds, expectedFrame * wallClockStep);
 
     QCOMPARE(frame.raw().value(0), i);
     QCOMPARE(frame.raw().value(1), i * 10);
@@ -121,6 +137,10 @@ void tst_engine::test_dataEngine_simple_runtime()
     QCOMPARE(frame.calculated().value(0), p.calculated().value(0));
     QCOMPARE(frame.calculated().value(1), p.calculated().value(1));
     QCOMPARE(frame.calculated().value(2), p.calculated().value(2));
+
+    QCOMPARE(p.number.value, frame.number.value);
+    QCOMPARE(p.timestamp.value, frame.timestamp.value);
+    QCOMPARE(p.wallTime.unixMicroseconds, frame.wallTime.unixMicroseconds);
   }
 }
 

@@ -13,6 +13,7 @@ add_library(Core SHARED
     fakeclock.h fakeclock.cpp
     schedulerclock.h schedulerclock.cpp
     ischedulerclock.h
+    fakeschedulerclock.h fakeschedulerclock.cpp
 )
 
 target_include_directories(Core

@@ -53,7 +53,7 @@ const double& SignalMemory::valueRef(uint32_t index) const noexcept
   return m_values[index];
 }
 
-std::span<const double> SignalMemory::values() const noexcept
+const std::span<const double> SignalMemory::values() const noexcept
 {
   return m_values;
 }
