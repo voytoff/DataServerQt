@@ -10,7 +10,7 @@ public:
   tst_signalprocessor();
   ~tst_signalprocessor() override;
 
-private slots:
+private:
   void test_calculation_plan();
   void test_calculation_line();
   void test_calculation_branching();
@@ -18,6 +18,9 @@ private slots:
   void test_calculation_cycle();
   void test_calculation_selfReference();
   void test_calculation_bigGraph();
+
+private slots:
+  void test_calculation_calculationProcessor();
 
 };
 

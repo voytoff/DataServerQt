@@ -14,6 +14,7 @@ add_library(SignalProcessor SHARED
     calculationruntime.h calculationruntime.cpp
     formulacontextbuilder.h formulacontextbuilder.cpp
     calculationprocessor.h calculationprocessor.cpp
+    failingprocessor.h
 )
 
 target_include_directories(SignalProcessor

@@ -28,12 +28,23 @@ double* Frame::address(
   return nullptr;
 }
 
-RawMemory &Frame::raw() noexcept
+RawMemory& Frame::raw() noexcept
 {
   return m_raw;
 }
 
-CalculatedMemory &Frame::calculated() noexcept
+const RawMemory& Frame::raw() const noexcept
+{
+  return m_raw;
+}
+
+
+CalculatedMemory& Frame::calculated() noexcept
+{
+  return m_calculated;
+}
+
+const CalculatedMemory& Frame::calculated() const noexcept
 {
   return m_calculated;
 }

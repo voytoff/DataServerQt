@@ -28,9 +28,10 @@ public:
 
 
   RawMemory& raw() noexcept;
+  const RawMemory& raw() const noexcept;
 
   CalculatedMemory& calculated() noexcept;
-
+  const CalculatedMemory& calculated() const noexcept;
 
   FrameNumber number;
 

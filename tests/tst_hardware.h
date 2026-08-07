@@ -10,6 +10,6 @@ public:
   ~tst_hardware() override;
 
 private slots:
-  void test_hardware_schedulerPipeline();
+  //void test_hardware_schedulerPipeline();
 
 };

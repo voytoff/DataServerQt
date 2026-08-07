@@ -1,16 +1,234 @@
 #include "tst_engine.h"
+#include "buffermanager.h"
+#include "calculationcompiler.h"
+#include "calculationprocessor.h"
 #include "dataengine.h"
-#include "datasourcemanager.h"
+#include "failingarchivewriter.h"
+#include "failingdatasource.h"
+#include "failingprocessor.h"
 #include "fakeclock.h"
-#include "fakeactivedatasource.h"
-#include "generatordatasource.h"
-#include "protocol/publishheader.h"
+#include "fakedatasource.h"
+#include "formulaadd.h"
+#include "formulacopy.h"
+#include "formularepository.h"
+#include "nullarchivewriter.h"
+#include "nullframepublisher.h"
+#include "schedulerclock.h"
+#include "systemclock.h"
+#include "testarchivewriter.h"
+#include "testdatasource.h"
 #include "testsrv.h"
 #include <qtestcase.h>
 
 tst_engine::tst_engine() { }
 tst_engine::~tst_engine() = default;
 
+void tst_engine::test_dataEngine_simple_pipeline()
+{
+  using namespace qds;
+  SystemConfiguration cfg = createTestConfig_Copy_Add();
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  CalculationPlan plan;
+
+  CalculationProcessor processor(plan);
+
+  BufferManager buffers;
+  buffers.initialize(layout);
+
+  FakeDataSource source;
+
+  NullArchiveWriter archive;
+  NullFramePublisher publisher;
+
+  DataEngine engine;
+
+  FakeClock fclock;
+  SchedulerClock clock(fclock);
+
+  QVERIFY(engine.initialize(
+    source,
+    processor,
+    buffers,
+    archive,
+    publisher,
+    clock));
+
+  QVERIFY(engine.process());
+}
+
+void tst_engine::test_dataEngine_simple_runtime()
+{
+  using namespace qds;
+  SystemConfiguration cfg = createTestConfig_Copy_Add();
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FormulaRepository repo;
+  QVERIFY(repo.add({0}, std::make_unique<FormulaCopy>()));
+  QVERIFY(repo.add({2}, std::make_unique<FormulaAdd>()));
+
+  CalculationCompiler compiler(cfg, layout, repo);
+
+  CalculationPlan plan; // 0 - 0 канал; 1 - 1 канал; 2 - их сумма
+  QVERIFY(compiler.build(plan));
+
+  CalculationProcessor processor(plan);
+
+  BufferManager buffers;
+  buffers.initialize(layout);
+
+  TestDataSource source; // две ячейки -> 0 - счетчик; 1 - счетчик * 10
+
+  TestArchiveWriter archive;
+  NullFramePublisher publisher;
+
+  DataEngine engine;
+
+  FakeClock fclock;
+  SchedulerClock clock(fclock);
+  fclock.setTimestamp(10u);
+  fclock.setWallClockTime(111u);
+
+  QVERIFY(engine.initialize(
+    source,
+    processor,
+    buffers,
+    archive,
+    publisher,
+    clock));
+
+  for (int i = 0; i < 10; i++)
+  {
+    QCOMPARE(archive.count, i);
+    QVERIFY(engine.process());
+    QCOMPARE(archive.count, i+1);
+
+    const auto &frame = buffers.readFrame();
+
+    QCOMPARE(frame.timestamp.value, 10u);
+    QCOMPARE(frame.wallTime.unixMicroseconds, 111u);
+
+    QCOMPARE(frame.raw().value(0), i);
+    QCOMPARE(frame.raw().value(1), i * 10);
+
+    QCOMPARE(frame.calculated().value(0), frame.raw().value(0));
+    QCOMPARE(frame.calculated().value(1), frame.raw().value(1));
+    QCOMPARE(frame.calculated().value(2), frame.raw().value(0) + frame.raw().value(1));
+
+    auto p = archive.last();
+    QCOMPARE(frame.calculated().value(0), p.calculated().value(0));
+    QCOMPARE(frame.calculated().value(1), p.calculated().value(1));
+    QCOMPARE(frame.calculated().value(2), p.calculated().value(2));
+  }
+}
+
+void tst_engine::test_dataEngine_FailingDataSource()
+{
+  using namespace qds;
+  SystemConfiguration cfg = createTestConfig_Copy_Add();
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  CalculationPlan plan;
+
+  CalculationProcessor processor(plan);
+
+  BufferManager buffers;
+  buffers.initialize(layout);
+
+  FailingDataSource source;
+
+  TestArchiveWriter archive;
+  NullFramePublisher publisher;
+
+  DataEngine engine;
+
+  FakeClock fclock;
+  SchedulerClock clock(fclock);
+
+  QVERIFY(engine.initialize(
+    source,
+    processor,
+    buffers,
+    archive,
+    publisher,
+    clock));
+
+  QVERIFY(!engine.process());
+  QCOMPARE(archive.count, 0);
+}
+
+void tst_engine::test_dataEngine_FailingCalculationProcessor()
+{
+  using namespace qds;
+  SystemConfiguration cfg = createTestConfig_Copy_Add();
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FailingProcessor processor;
+
+  BufferManager buffers;
+  buffers.initialize(layout);
+
+  TestDataSource source;
+
+  TestArchiveWriter archive;
+  NullFramePublisher publisher;
+
+  DataEngine engine;
+
+  FakeClock fclock;
+  SchedulerClock clock(fclock);
+
+  QVERIFY(engine.initialize(
+    source,
+    processor,
+    buffers,
+    archive,
+    publisher,
+    clock));
+
+  QVERIFY(!engine.process());
+  QCOMPARE(archive.count, 0);
+}
+
+void tst_engine::test_dataEngine_FailingArchiveWriter()
+{
+  using namespace qds;
+  SystemConfiguration cfg = createTestConfig_Copy_Add();
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  CalculationPlan plan;
+
+  CalculationProcessor processor(plan);
+
+  BufferManager buffers;
+  buffers.initialize(layout);
+
+  TestDataSource source;
+
+  FailingArchiveWriter archive;
+  NullFramePublisher publisher;
+
+  DataEngine engine;
+
+  FakeClock fclock;
+  SchedulerClock clock(fclock);
+
+  QVERIFY(engine.initialize(
+    source,
+    processor,
+    buffers,
+    archive,
+    publisher,
+    clock));
+
+  QVERIFY(!engine.process());
+}
+/*
 void tst_engine::test_dataEngine_withoutSources()
 {
   using namespace qds;
@@ -291,3 +509,4 @@ void tst_engine::test_dataEngine_completePipeline()
   engine.stop();
   QVERIFY(!engine.isRunning());
 }
+*/

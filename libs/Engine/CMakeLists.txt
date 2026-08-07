@@ -4,26 +4,21 @@ project(Engine LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
-
 add_library(Engine SHARED
   dataengine.h dataengine.cpp
 )
 
 target_include_directories(Engine
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}
-        ../datasource
-        ../livescheduler
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../datatypes
 )
 
-target_link_libraries(Engine PRIVATE
+target_link_libraries(Engine
     PUBLIC
         Core
         DataSource
-        LiveScheduler
-
-    PRIVATE
-        Qt${QT_VERSION_MAJOR}::Core
+        SignalProcessor
+        DataArchive
+        Publisher
 )

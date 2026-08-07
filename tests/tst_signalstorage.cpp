@@ -92,29 +92,29 @@ void tst_signalstorage::test_raw_memory()
 
   QCOMPARE(memory.values().size(), 2);
 
-  memory.setValue(0, 10.0f);
+  memory.setValue(0, 10.0);
 
-  QCOMPARE(memory.value(0), 10.0f);
+  QCOMPARE(memory.value(0), 10.0);
 
 
   std::array<double,2> block =
     {
-      20.0f,
-      30.0f
+      20.0,
+      30.0
     };
 
   memory.setValues(
     0,
     block);
 
-  QCOMPARE(memory.value(0), 20.0f);
-  QCOMPARE(memory.value(1), 30.0f);
+  QCOMPARE(memory.value(0), 20.0);
+  QCOMPARE(memory.value(1), 30.0);
 
 
   std::array<double, 2> snapshot{};
 
   memory.snapshot(snapshot);
 
-  QCOMPARE(snapshot[0], 20.0f);
-  QCOMPARE(snapshot[1], 30.0f);
+  QCOMPARE(snapshot[0], 20.0);
+  QCOMPARE(snapshot[1], 30.0);
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "dataengine.h"
+#include "datasourcemanager.h"
 #include "hardwaremodulefactory.h"
 #include "systemclock.h"
 #include "udpserver.h"
@@ -8,6 +9,23 @@
 #include <QObject>
 #include <QCoreApplication>
 #include <QTimer>
+
+/*
+while (running)
+{
+    auto& frame = buffer.beginWrite();
+
+    source.read(frame);
+
+    calculation.process(frame);
+
+    archive.write(frame);
+
+    publisher.publish(frame);
+
+    buffer.publish();
+}
+*/
 
 class DataServer : public QObject
 {

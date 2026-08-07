@@ -19,7 +19,7 @@ bool FormulaAdd::execute(FormulaContext& ctx) const noexcept
   for (size_t i = 0; i < ctx.inputs.size(); ++i)
     sum += *ctx.inputs[i];
 
-  ctx.output = &sum;
+  *ctx.output = sum;
 
   return true;
 }

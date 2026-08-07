@@ -1,7 +1,11 @@
 #include <qtestcase.h>
 #include "tst_signalprocessor.h"
+#include "buffermanager.h"
 #include "calculationplan.h"
 #include "calculationcompiler.h"
+#include "calculationprocessor.h"
+#include "formulaadd.h"
+#include "formulacopy.h"
 #include "systemconfiguration.h"
 #include "testsrv.h"
 
@@ -291,4 +295,51 @@ void tst_signalprocessor::test_calculation_bigGraph()
   QCOMPARE(posE.output.index, 4);
   QCOMPARE(posE.output.area, SignalMemoryArea::Calculated);
   QVERIFY(posE.inputs[0].index != posE.inputs[1].index);
+}
+
+void tst_signalprocessor::test_calculation_calculationProcessor()
+{
+  // build runtime
+  SystemConfiguration cfg = createTestConfig_Copy_Add();
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+  BufferManager manager;
+  manager.initialize(layout);
+
+  FormulaRepository repo;
+  QVERIFY(repo.add({0}, std::make_unique<FormulaCopy>()));
+  QVERIFY(repo.add({2}, std::make_unique<FormulaAdd>()));
+
+  CalculationCompiler compiler(cfg, layout, repo);
+
+  CalculationPlan plan;
+
+  QVERIFY(compiler.build(plan));
+  QCOMPARE(plan.size(), 3);
+
+  // данные попадают в первый блок raw от IDataSource
+  // write raw data
+  auto &memory = manager.beginWrite();
+  std::array<double, 2> block =
+    {
+      20.0,
+      30.0
+    };
+
+  memory.raw().setValues(
+    0,
+    block);
+
+  CalculationProcessor processor(plan);
+  // execute calculation
+  QVERIFY(processor.process(memory));
+
+  manager.publish();
+
+  // verify calculated values
+  auto second = manager.readFrame();
+
+  QCOMPARE(second.calculated().value(0), 20.0);
+  QCOMPARE(second.calculated().value(1), 30.0);
+  QCOMPARE(second.calculated().value(2), 50.0);
 }

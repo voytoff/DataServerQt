@@ -12,10 +12,19 @@ add_library(DataArchive SHARED
     archivewriter.h archivewriter.cpp
     archivereader.h archivereader.cpp
     archivemanager.h archivemanager.cpp
+    iarchivewriter.h
+    nullarchivewriter.h nullarchivewriter.cpp
+    testarchivewriter.h testarchivewriter.cpp
+    failingarchivewriter.h
 )
 
 target_include_directories(DataArchive
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/../datatypes
+)
+
+target_link_libraries(DataArchive
+    PUBLIC
+        SignalStorage
 )

@@ -22,6 +22,8 @@ add_library(DataSource SHARED
   idatabuffer.h
   idatasource.h
   fakedatasource.h fakedatasource.cpp
+  testdatasource.h testdatasource.cpp
+  failingdatasource.h
 )
 
 target_include_directories(DataSource
