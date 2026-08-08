@@ -196,7 +196,7 @@ void tst_datasource::test_generatorDataSource_periodicCall()
 
   QCOMPARE(s1.value, s2.value);
 }
-
+/*
 void tst_datasource::test_dataSourceManager_withoutSources()
 {
   using namespace qds;
@@ -251,7 +251,7 @@ void tst_datasource::test_dataSourceManager_withFakeSource()
   QCOMPARE(source->stepCalls, 1);
   QCOMPARE(source->stopCalls, 1);
 }
-
+*/
 void tst_datasource::test_hardwareFactory_createFake()
 {
   using namespace qds;

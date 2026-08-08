@@ -1,7 +1,8 @@
 #pragma once
 
-#include "iactivedatasource.h"
-#include <memory>
+#include "idatasource.h"
+#include "signalmemorylayout.h"
+#include "systemconfiguration.h"
 #include <vector>
 
 namespace qds
@@ -10,22 +11,29 @@ namespace qds
 class DataSourceManager
 {
 public:
-  bool add(std::unique_ptr<IActiveDataSource> source);
+  bool initialize(
+    const SystemConfiguration& configuration,
+    const SignalMemoryLayout& layout);
 
-  [[nodiscard]] bool start();
-  void stop() noexcept;
-
-  [[nodiscard]] bool step();
+  bool add(
+    ModuleId module,
+    std::unique_ptr<IDataSource> source);
 
   [[nodiscard]]
-  bool isRunning() const noexcept;
+  bool acquire(RawMemory& memory);
 
   [[nodiscard]]
   std::size_t size() const noexcept;
 
 private:
-  bool m_running = false;
-  std::vector<std::unique_ptr<IActiveDataSource>> m_sources;
+  struct Source
+  {
+    ModuleId module;
+    uint32_t offset;
+    std::unique_ptr<IDataSource> source;
+  };
+
+  std::vector<Source> m_sources;
 };
 
 }

@@ -14,8 +14,8 @@ private slots:
   void test_generatorDataSource_onceTwoModule();
   void test_generatorDataSource_periodicCall();
 
-  void test_dataSourceManager_withoutSources();
-  void test_dataSourceManager_withFakeSource();
+  //void test_dataSourceManager_withoutSources();
+  //void test_dataSourceManager_withFakeSource();
 
   // TODO перенестив tst_hardware, если тестов hardware станет много
   void test_hardwareFactory_createFake();

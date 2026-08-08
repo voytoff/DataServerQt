@@ -47,11 +47,9 @@ bool DataEngine::process()
 
   const Frame& published = m_buffers->readFrame();
 
-  auto ok = m_archive->write(published);
-
   m_publisher->publish(published);
 
-  return ok;
+  return m_archive->write(published);
 }
 
 

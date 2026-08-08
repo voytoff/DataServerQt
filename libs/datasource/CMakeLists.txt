@@ -18,7 +18,7 @@ add_library(DataSource SHARED
   datasourcemanager.h datasourcemanager.cpp
   fakeactivedatasource.h fakeactivedatasource.cpp
   moduledatasource.h moduledatasource.cpp
-  modulebuffer.h modulebuffer.cpp
+
   idatabuffer.h
   idatasource.h
   fakedatasource.h fakedatasource.cpp
