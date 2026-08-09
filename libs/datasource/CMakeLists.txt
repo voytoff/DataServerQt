@@ -24,6 +24,7 @@ add_library(DataSource SHARED
   fakedatasource.h fakedatasource.cpp
   testdatasource.h testdatasource.cpp
   failingdatasource.h
+  datasourcefactory.h datasourcefactory.cpp
 )
 
 target_include_directories(DataSource
