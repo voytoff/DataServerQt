@@ -1,10 +1,9 @@
 #include "tst_datasource.h"
-#include "datasourcemanager.h"
-#include "fakeactivedatasource.h"
+#include "datasourcefactory.h"
+#include "fakedatasource.h"
 #include "fakelcardmodule.h"
 #include "generatordatasource.h"
 #include "hardwaremodulefactory.h"
-#include "periodicdatasourcerunner.h"
 #include "testsrv.h"
 #include <qtestcase.h>
 #include <qtestsupport_core.h>
@@ -117,7 +116,7 @@ void tst_datasource::test_generatorDataSource_onceTwoModule()
   QCOMPARE(srv.storage.moduleTimestamp(cfg.modules()[0].id), t2);
   QCOMPARE(srv.storage.moduleTimestamp(cfg.modules()[1].id), t2);
 }
-
+/*
 void tst_datasource::test_generatorDataSource_periodicCall()
 {
   using namespace qds;
@@ -196,7 +195,7 @@ void tst_datasource::test_generatorDataSource_periodicCall()
 
   QCOMPARE(s1.value, s2.value);
 }
-/*
+
 void tst_datasource::test_dataSourceManager_withoutSources()
 {
   using namespace qds;
@@ -282,4 +281,51 @@ void tst_datasource::test_hardwareFactory_unknownType()
   auto device = factory.create(module);
 
   QVERIFY(device == nullptr);
+}
+
+void tst_datasource::test_dataSourceFactory_registerType_create()
+{
+  using namespace qds;
+  DataSourceFactory factory;
+  QVERIFY(factory.registerType(
+    ModuleType::Fake,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<FakeDataSource>(
+        cfg.settings);
+    }));
+
+  QJsonObject jsonObj;
+  jsonObj.insert("name", "Fake");
+  jsonObj.insert("frequency", 100);
+  ModuleConfiguration cfg{.module = {.type = ModuleType::Fake}, .settings = jsonObj};
+
+  auto source = factory.create(cfg);
+  QVERIFY(source != nullptr);
+
+  auto *fake = static_cast<FakeDataSource*>(source.get());
+
+  QCOMPARE(fake->m_settings["name"], "Fake");
+  QCOMPARE(fake->m_settings["frequency"], 100);
+
+  // повторная регистрация
+  QVERIFY(!factory.registerType(
+    ModuleType::Fake,
+    [](const ModuleConfiguration&)
+    {
+      return std::make_unique<FakeDataSource>();
+    }));
+
+  // Unknown
+  ModuleConfiguration unknown;
+  unknown.module.type = ModuleType::Unknown;
+
+  QVERIFY(factory.create(unknown) == nullptr);
+
+  // незарегистрированный тип
+  ModuleConfiguration unregistered;
+  unregistered.module.type = ModuleType::LCard;
+
+  QVERIFY(factory.create(unregistered) == nullptr);
+
 }

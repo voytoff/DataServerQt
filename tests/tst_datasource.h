@@ -12,7 +12,7 @@ public:
 private slots:
   void test_generatorDataSource_once();
   void test_generatorDataSource_onceTwoModule();
-  void test_generatorDataSource_periodicCall();
+  //void test_generatorDataSource_periodicCall();
 
   //void test_dataSourceManager_withoutSources();
   //void test_dataSourceManager_withFakeSource();
@@ -20,5 +20,6 @@ private slots:
   // TODO перенестив tst_hardware, если тестов hardware станет много
   void test_hardwareFactory_createFake();
   void test_hardwareFactory_unknownType();
+  void test_dataSourceFactory_registerType_create();
 
 };

@@ -1,6 +1,4 @@
 #include "moduledatasource.h"
-#include <qdebug.h>
-#include <qlogging.h>
 
 namespace qds
 {

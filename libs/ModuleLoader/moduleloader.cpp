@@ -32,7 +32,7 @@ bool ModuleLoader::load()
       std::move(device),
       m_clock);
 
-    if (!m_manager.add(std::move(source)))
+    //if (!m_manager.add(std::move(source)))
       return false;
   }
 
