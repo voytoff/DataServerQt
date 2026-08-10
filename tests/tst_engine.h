@@ -22,10 +22,10 @@ private:
 
 private slots:
   void test_pipeline_archive_copy();
-  void test_dataEngine_simple_runtime();
   void test_dataEngine_FailingDataSource();
   void test_dataEngine_FailingCalculationProcessor();
   void test_dataEngine_FailingArchiveWriter();
+  void test_dataEngine_simple_runtime();
   void test_dataEngine_simple_pipeline();
 
 };

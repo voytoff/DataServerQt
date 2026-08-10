@@ -18,7 +18,7 @@ public:
   const QJsonObject m_settings;
 
 private:
-  std::size_t m_size = 1;
+  std::size_t m_size = 0;
   double m_value = 0.0;
 };
 

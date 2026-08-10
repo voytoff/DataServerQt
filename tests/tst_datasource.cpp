@@ -627,3 +627,63 @@ void tst_datasource::test_datasource_repeat_initialize()
   QCOMPARE(values[5], 1.0);
   QCOMPARE(values[6], 2.0);
 }
+
+void tst_datasource::test_datasource_acquire_repeat()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Some_Modules();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  BufferManager buffers;
+  buffers.initialize(layout);
+
+  auto& raw =
+    buffers.beginWrite().raw();
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::Fake,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<FakeDataSource>(
+        cfg.settings);
+    }));
+
+  DataSourceManager manager;
+
+  QVERIFY(manager.initialize(
+    cfg,
+    layout,
+    factory));
+
+  std::array<double, 7> values;
+
+  QVERIFY(manager.acquire(raw));
+
+  raw.snapshot(values);
+
+  QCOMPARE(values[0], 1.0);
+  QCOMPARE(values[1], 2.0);
+  QCOMPARE(values[2], 1.0);
+  QCOMPARE(values[3], 2.0);
+  QCOMPARE(values[4], 3.0);
+  QCOMPARE(values[5], 1.0);
+  QCOMPARE(values[6], 2.0);
+
+  QVERIFY(manager.acquire(raw));
+
+  raw.snapshot(values);
+
+  QCOMPARE(values[0], 3.0);
+  QCOMPARE(values[1], 4.0);
+  QCOMPARE(values[2], 4.0);
+  QCOMPARE(values[3], 5.0);
+  QCOMPARE(values[4], 6.0);
+  QCOMPARE(values[5], 3.0);
+  QCOMPARE(values[6], 4.0);
+}

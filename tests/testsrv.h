@@ -411,15 +411,15 @@ Raw1 → B
 C -> A + B
  =
  */
-static qds::SystemConfiguration createTestConfig_Copy_Add()
+static qds::SystemConfiguration createTestConfig_Copy_Add(ModuleType type = ModuleType::Unknown)
 {
   using namespace qds;
   SystemConfiguration cfg;
 
-  ModuleInfo m{0};
+  ModuleInfo m{.id = {0}, .type = type};
   cfg.addModule(m);
 
-  cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}}); !!!
+  cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
   cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}});
 
   SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100};

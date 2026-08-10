@@ -25,7 +25,7 @@ tst_engine::~tst_engine() = default;
 void tst_engine::test_pipeline_archive_copy()
 {
   using namespace qds;
-  SystemConfiguration cfg = createTestConfig_Copy_Add();
+  SystemConfiguration cfg = createTestConfig_Copy_Add(ModuleType::Fake);
   SignalMemoryLayout layout;
   layout.build(cfg);
 
@@ -73,8 +73,8 @@ void tst_engine::test_pipeline_archive_copy()
   QCOMPARE(archived.timestamp.value, 10);
   QCOMPARE(archived.wallTime.unixMicroseconds, 100);
 
-  QCOMPARE(archived.raw().value(0), 123.);
-  QCOMPARE(archived.raw().value(1), 0.);
+  QCOMPARE(archived.raw().value(0), 1.);
+  QCOMPARE(archived.raw().value(1), 2.);
 
   QCOMPARE(archived.calculated().value(0), 0.0);
   QCOMPARE(archived.calculated().value(1), 0.0);
@@ -84,7 +84,7 @@ void tst_engine::test_pipeline_archive_copy()
 void tst_engine::test_dataEngine_simple_runtime()
 {
   using namespace qds;
-  SystemConfiguration cfg = createTestConfig_Copy_Add();
+  SystemConfiguration cfg = createTestConfig_Copy_Add(ModuleType::Test);
   SignalMemoryLayout layout;
   layout.build(cfg);
 
@@ -104,7 +104,7 @@ void tst_engine::test_dataEngine_simple_runtime()
 
   DataSourceFactory factory;
   QVERIFY(factory.registerType(
-    ModuleType::Fake,
+    ModuleType::Test,
     [](const ModuleConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>( // две ячейки -> 0 - счетчик; 1 - счетчик * 10
@@ -146,7 +146,7 @@ void tst_engine::test_dataEngine_simple_runtime()
     QCOMPARE(frame.timestamp.value, expectedFrame * timestampStep);
     QCOMPARE(frame.wallTime.unixMicroseconds, expectedFrame * wallClockStep);
 
-    QCOMPARE(frame.raw().value(0), i); // !!!
+    QCOMPARE(frame.raw().value(0), i);
     QCOMPARE(frame.raw().value(1), i * 10);
 
     QCOMPARE(frame.calculated().value(0), frame.raw().value(0));
@@ -167,7 +167,7 @@ void tst_engine::test_dataEngine_simple_runtime()
 void tst_engine::test_dataEngine_FailingDataSource()
 {
   using namespace qds;
-  SystemConfiguration cfg = createTestConfig_Copy_Add();
+  SystemConfiguration cfg = createTestConfig_Copy_Add(ModuleType::Fail);
   SignalMemoryLayout layout;
   layout.build(cfg);
 
@@ -180,7 +180,7 @@ void tst_engine::test_dataEngine_FailingDataSource()
 
   DataSourceFactory factory;
   QVERIFY(factory.registerType(
-    ModuleType::Fake,
+    ModuleType::Fail,
     [](const ModuleConfiguration& cfg)
     {
       return std::make_unique<FailingDataSource>(
@@ -206,14 +206,14 @@ void tst_engine::test_dataEngine_FailingDataSource()
     publisher,
     clock));
 
-  QVERIFY(!engine.process()); // !!!
+  QVERIFY(!engine.process());
   QCOMPARE(archive.count, 0);
 }
 
 void tst_engine::test_dataEngine_FailingCalculationProcessor()
 {
   using namespace qds;
-  SystemConfiguration cfg = createTestConfig_Copy_Add();
+  SystemConfiguration cfg = createTestConfig_Copy_Add(ModuleType::Test);
   SignalMemoryLayout layout;
   layout.build(cfg);
 
@@ -257,7 +257,7 @@ void tst_engine::test_dataEngine_FailingCalculationProcessor()
 void tst_engine::test_dataEngine_FailingArchiveWriter()
 {
   using namespace qds;
-  SystemConfiguration cfg = createTestConfig_Copy_Add();
+  SystemConfiguration cfg = createTestConfig_Copy_Add(ModuleType::Test);
   SignalMemoryLayout layout;
   layout.build(cfg);
 

@@ -30,5 +30,6 @@ private slots:
   void test_datasource_fail_datasource();
   void test_datasource_missing_datasource();
   void test_datasource_repeat_initialize();
+  void test_datasource_acquire_repeat();
 
 };
