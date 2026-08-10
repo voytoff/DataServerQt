@@ -4,14 +4,14 @@ namespace qds
 {
 
 bool DataEngine::initialize(
-  IDataSource &source,
+  DataSourceManager &manager,
   ICalculationProcessor &processor,
   BufferManager &buffers,
   IArchiveWriter &archive,
   IFramePublisher &publisher,
   ISchedulerClock &clock)
 {
-  m_source = &source;
+  m_manager = &manager;
   m_processor = &processor;
   m_buffers = &buffers;
   m_archive = &archive;
@@ -37,7 +37,7 @@ bool DataEngine::process()
     m_clock->wallClockTime();
 
 
-  if (!m_source->acquire(frame.raw()))
+  if (!m_manager->acquire(frame.raw()))
     return false;
 
   if (!m_processor->process(frame))

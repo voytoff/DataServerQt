@@ -124,6 +124,13 @@ const SignalDefinition* SystemConfiguration::findSignalDefinition(
   return &m_signalDefinitions[index];
 }
 
+uint32_t SystemConfiguration::moduleChannelCount(
+  ModuleId id) const
+{
+  return static_cast<uint32_t>(
+    moduleTags(id).size());
+}
+
 bool SystemConfiguration::containsSignalDefinition(
   SignalId id) const
 {

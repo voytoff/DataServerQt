@@ -3,10 +3,14 @@
 namespace qds
 {
 
-bool TestDataSource::acquire(RawMemory &memory)
+TestDataSource::TestDataSource() { }
+
+TestDataSource::TestDataSource(const QJsonObject &settings) { }
+
+bool TestDataSource::acquire(std::span<double> values)
 {
-  memory.setValue(0, m_counter);
-  memory.setValue(1, m_counter * 10);
+  values[0] = m_counter;
+  values[1] = m_counter * 10;
 
   ++m_counter;
 

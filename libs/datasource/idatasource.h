@@ -1,6 +1,6 @@
 #pragma once
 
-#include "signalmemory.h"
+#include <span>
 
 namespace qds
 {
@@ -11,7 +11,8 @@ public:
   virtual ~IDataSource() noexcept = default;
 
   [[nodiscard]]
-  virtual bool acquire(RawMemory& memory) = 0;
+  virtual bool acquire(
+    std::span<double> values) = 0;
 };
 
 }

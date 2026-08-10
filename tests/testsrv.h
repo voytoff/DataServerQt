@@ -133,6 +133,13 @@ static qds::SystemConfiguration createTestConfig01()
   return cfg;
 }
 
+/**
+Raw0 → A
+
+Raw1 → B
+
+A B → C
+ */
 static qds::SystemConfiguration createTestConfig02()
 {
   using namespace qds;
@@ -412,7 +419,7 @@ static qds::SystemConfiguration createTestConfig_Copy_Add()
   ModuleInfo m{0};
   cfg.addModule(m);
 
-  cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
+  cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}}); !!!
   cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}});
 
   SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100};
@@ -432,4 +439,137 @@ static qds::SystemConfiguration createTestConfig_Copy_Add()
 
   return cfg;
 }
+
+static qds::SystemConfiguration createTestConfig_Some_Modules()
+{
+  using namespace qds;
+  SystemConfiguration cfg;
+
+  QJsonObject jsonObj0;
+  jsonObj0.insert("size", 2);
+
+  ModuleInfo m0{.id = {0}, .type = ModuleType::Fake, .settings = jsonObj0};
+  cfg.addModule(m0);
+
+  cfg.addTag({.tag = {0}, .module = m0.id, .channel = {0}});
+  cfg.addTag({.tag = {1}, .module = m0.id, .channel = {1}});
+
+  QJsonObject jsonObj1;
+  jsonObj1.insert("size", 3);
+
+  ModuleInfo m1{.id = {1}, .type = ModuleType::Fake, .settings = jsonObj1};
+  cfg.addModule(m1);
+
+  cfg.addTag({.tag = {4}, .module = m1.id, .channel = {0}});
+  cfg.addTag({.tag = {6}, .module = m1.id, .channel = {1}});
+  cfg.addTag({.tag = {7}, .module = m1.id, .channel = {2}});
+
+  QJsonObject jsonObj2;
+  jsonObj2.insert("size", 2);
+
+  ModuleInfo m2{.id = {2}, .type = ModuleType::Fake, .settings = jsonObj2};
+  cfg.addModule(m2);
+
+  cfg.addTag({.tag = {8}, .module = m2.id, .channel = {0}});
+  cfg.addTag({.tag = {10}, .module = m2.id, .channel = {1}});
+
+  cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100});
+
+  cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 10});
+
+  cfg.addSignalDefinition({.id = {2}, .name = "Raw2", .kind = SignalKind::Raw, .source = {4}, .archiveFrequency = 1000});
+
+  cfg.addSignalDefinition({.id = {3}, .name = "Raw3", .kind = SignalKind::Raw, .source = {6}, .archiveFrequency = 100});
+
+  cfg.addSignalDefinition({.id = {4}, .name = "Raw4", .kind = SignalKind::Raw, .source = {7}, .archiveFrequency = 1});
+
+  cfg.addSignalDefinition({.id = {5}, .name = "Raw5", .kind = SignalKind::Raw, .source = {8}, .archiveFrequency = 100});
+
+  cfg.addSignalDefinition({.id = {6}, .name = "Raw6", .kind = SignalKind::Raw, .source = {10}, .archiveFrequency = 10});
+
+  return cfg;
+}
+
+static qds::SystemConfiguration createTestConfig_Fail_ModuleType()
+{
+  using namespace qds;
+  SystemConfiguration cfg;
+
+  QJsonObject jsonObj;
+  jsonObj.insert("size", 2);
+
+  ModuleInfo m0{.id = {0}, .type = ModuleType::Fake, .settings = jsonObj};
+  cfg.addModule(m0);
+
+  cfg.addTag({.tag = {0}, .module = m0.id, .channel = {0}});
+  cfg.addTag({.tag = {1}, .module = m0.id, .channel = {1}});
+
+  ModuleInfo m1{.id = {1}, .type = ModuleType::Fail, .settings = jsonObj};
+  cfg.addModule(m1);
+
+  cfg.addTag({.tag = {4}, .module = m1.id, .channel = {0}});
+  cfg.addTag({.tag = {6}, .module = m1.id, .channel = {1}});
+
+  ModuleInfo m2{.id = {2}, .type = ModuleType::Fake, .settings = jsonObj};
+  cfg.addModule(m2);
+
+  cfg.addTag({.tag = {8}, .module = m2.id, .channel = {0}});
+  cfg.addTag({.tag = {10}, .module = m2.id, .channel = {1}});
+
+  cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100});
+
+  cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 10});
+
+  cfg.addSignalDefinition({.id = {2}, .name = "Raw2", .kind = SignalKind::Raw, .source = {4}, .archiveFrequency = 1000});
+
+  cfg.addSignalDefinition({.id = {3}, .name = "Raw3", .kind = SignalKind::Raw, .source = {6}, .archiveFrequency = 100});
+
+  cfg.addSignalDefinition({.id = {5}, .name = "Raw5", .kind = SignalKind::Raw, .source = {8}, .archiveFrequency = 100});
+
+  cfg.addSignalDefinition({.id = {6}, .name = "Raw6", .kind = SignalKind::Raw, .source = {10}, .archiveFrequency = 10});
+
+  return cfg;
+}
+
+static qds::SystemConfiguration createTestConfig_Fail_DataSource()
+{
+  using namespace qds;
+  SystemConfiguration cfg;
+
+  QJsonObject jsonObj;
+  jsonObj.insert("size", 2);
+
+  ModuleInfo m0{.id = {0}, .type = ModuleType::Fake, .settings = jsonObj};
+  cfg.addModule(m0);
+
+  cfg.addTag({.tag = {0}, .module = m0.id, .channel = {0}});
+  cfg.addTag({.tag = {1}, .module = m0.id, .channel = {1}});
+
+  ModuleInfo m1{.id = {1}, .type = ModuleType::LCard, .settings = jsonObj};
+  cfg.addModule(m1);
+
+  cfg.addTag({.tag = {4}, .module = m1.id, .channel = {0}});
+  cfg.addTag({.tag = {6}, .module = m1.id, .channel = {1}});
+
+  ModuleInfo m2{.id = {2}, .type = ModuleType::Fake, .settings = jsonObj};
+  cfg.addModule(m2);
+
+  cfg.addTag({.tag = {8}, .module = m2.id, .channel = {0}});
+  cfg.addTag({.tag = {10}, .module = m2.id, .channel = {1}});
+
+  cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100});
+
+  cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 10});
+
+  cfg.addSignalDefinition({.id = {2}, .name = "Raw2", .kind = SignalKind::Raw, .source = {4}, .archiveFrequency = 1000});
+
+  cfg.addSignalDefinition({.id = {3}, .name = "Raw3", .kind = SignalKind::Raw, .source = {6}, .archiveFrequency = 100});
+
+  cfg.addSignalDefinition({.id = {5}, .name = "Raw5", .kind = SignalKind::Raw, .source = {8}, .archiveFrequency = 100});
+
+  cfg.addSignalDefinition({.id = {6}, .name = "Raw6", .kind = SignalKind::Raw, .source = {10}, .archiveFrequency = 10});
+
+  return cfg;
+}
+
 

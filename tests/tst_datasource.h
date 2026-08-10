@@ -21,5 +21,14 @@ private slots:
   void test_hardwareFactory_createFake();
   void test_hardwareFactory_unknownType();
   void test_dataSourceFactory_registerType_create();
+  void test_datasource_layout();
+  void test_datasource_layout_someModules();
+  void test_datasource_layout_raw_calculated();
+  void test_datasource_layout_two_build();
+
+  void test_datasource_manager();
+  void test_datasource_fail_datasource();
+  void test_datasource_missing_datasource();
+  void test_datasource_repeat_initialize();
 
 };

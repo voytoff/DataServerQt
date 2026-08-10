@@ -26,5 +26,6 @@ private slots:
   void test_dataEngine_FailingDataSource();
   void test_dataEngine_FailingCalculationProcessor();
   void test_dataEngine_FailingArchiveWriter();
+  void test_dataEngine_simple_pipeline();
 
 };

@@ -1,23 +1,30 @@
 #pragma once
 
-#include "idatasource.h"
+#include <vector>
+
+#include "datasourcefactory.h"
+#include "signalmemory.h"
 #include "signalmemorylayout.h"
 #include "systemconfiguration.h"
-#include <vector>
 
 namespace qds
 {
+
+struct DataSourceEntry
+{
+  std::unique_ptr<IDataSource> source;
+
+  uint32_t rawOffset = 0;
+  uint32_t channelCount = 0;
+};
 
 class DataSourceManager
 {
 public:
   bool initialize(
     const SystemConfiguration& configuration,
-    const SignalMemoryLayout& layout);
-
-  bool add(
-    ModuleId module,
-    std::unique_ptr<IDataSource> source);
+    const SignalMemoryLayout& layout,
+    const DataSourceFactory& factory);
 
   [[nodiscard]]
   bool acquire(RawMemory& memory);
@@ -26,14 +33,8 @@ public:
   std::size_t size() const noexcept;
 
 private:
-  struct Source
-  {
-    ModuleId module;
-    uint32_t offset;
-    std::unique_ptr<IDataSource> source;
-  };
+  std::vector<DataSourceEntry> m_sources;
 
-  std::vector<Source> m_sources;
 };
 
 }

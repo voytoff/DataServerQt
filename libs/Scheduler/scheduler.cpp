@@ -30,7 +30,7 @@ bool Scheduler::tick()
 
   for (IDataSource& source : m_sources)
   {
-    if (!source.acquire(frame.raw()))
+    if (!source.acquire(frame.raw().values()))
       return false;
   }
 

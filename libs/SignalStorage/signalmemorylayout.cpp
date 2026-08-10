@@ -17,27 +17,68 @@ void SignalMemoryLayout::build(
   m_rawSignalCount = 0;
   m_calculatedSignalCount = 0;
 
+  m_rawOffsets.clear();
 
-  for (const auto& definition :
-       configuration.signalDefinitions())
+  const auto &definitions = configuration.signalDefinitions();
+
+  // 1. заполняем RawMemory
+  uint32_t rawOffset = 0;
+
+  for (const auto& module : configuration.modules())
+  {
+    auto [it, inserted] =
+      m_rawOffsets.emplace(
+        module.id,
+        rawOffset);
+
+    assert(inserted);
+
+    for (const TagId& tag :
+         configuration.moduleTags(module.id))
+    {
+      auto p =
+        std::find_if(
+          definitions.begin(),
+          definitions.end(),
+          [&](const SignalDefinition& def)
+          {
+            return def.kind == SignalKind::Raw &&
+                   def.source.tag == tag;
+          });
+
+      assert(p != definitions.end());
+
+      SignalLocation location;
+
+      location.id = p->id;
+      location.area = SignalMemoryArea::Raw;
+      location.index = m_rawSignalCount++;
+
+      auto [it, inserted] =
+        m_locations.emplace(
+          p->id,
+          location);
+
+      assert(inserted);
+
+      ++rawOffset;
+    }
+  }
+
+  assert(rawOffset == m_rawSignalCount);
+
+  // 2. заполняем CalculatedMemory
+  for (const auto& definition : definitions)
   {
     SignalLocation location;
 
     location.id = definition.id;
 
-
     switch(definition.kind)
     {
     case SignalKind::Raw:
 
-      location.area =
-        SignalMemoryArea::Raw;
-
-      location.index =
-        m_rawSignalCount++;
-
-      break;
-
+      continue;
 
     case SignalKind::Calculated:
 
@@ -54,7 +95,6 @@ void SignalMemoryLayout::build(
       assert(false);
     }
 
-
     auto [it, inserted] =
       m_locations.emplace(
         definition.id,
@@ -63,12 +103,14 @@ void SignalMemoryLayout::build(
     assert(inserted);
   }
 
+  assert(rawOffset == m_rawSignalCount);
+
 #ifndef NDEBUG
 
   std::printf("\nRAW\n");
   std::printf("%-8s %-8s %s\n", "Index", "Id", "Name");
   std::printf("------------------------------------------\n");
-  for (const auto& definition : configuration.signalDefinitions())
+  for (const auto& definition : definitions)
   {
     const auto& location = m_locations.at(definition.id);
 
@@ -85,7 +127,7 @@ void SignalMemoryLayout::build(
   std::printf("\nCALCULATED\n");
   std::printf("%-8s %-8s %s\n", "Index", "Id", "Name");
   std::printf("------------------------------------------\n");
-  for (const auto& definition : configuration.signalDefinitions())
+  for (const auto& definition : definitions)
   {
     const auto& location = m_locations.at(definition.id);
 
@@ -110,6 +152,25 @@ uint32_t SignalMemoryLayout::rawSignalCount() const noexcept
 uint32_t SignalMemoryLayout::calculatedSignalCount() const noexcept
 {
   return m_calculatedSignalCount;
+}
+
+uint32_t SignalMemoryLayout::rawOffset(ModuleId module) const
+{
+  auto it = m_rawOffsets.find(module);
+
+  if (it == m_rawOffsets.end())
+    return 0;
+
+  return it->second;
+}
+
+const SignalLocation &SignalMemoryLayout::location(SignalId id) const
+{
+  auto it = m_locations.find(id);
+
+  assert(it != m_locations.end());
+
+  return it->second;
 }
 
 bool SignalMemoryLayout::contains(

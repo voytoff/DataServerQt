@@ -45,6 +45,7 @@ public:
 
 private:
   std::unordered_map<ModuleType, Creator> m_creators;
+
 };
 
 }

@@ -7,6 +7,7 @@ enum class ModuleType
 {
   Unknown = 0,
   Fake,
+  Fail,
   LCard
 };
 

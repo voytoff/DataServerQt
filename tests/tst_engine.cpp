@@ -36,7 +36,17 @@ void tst_engine::test_pipeline_archive_copy()
   BufferManager buffers;
   buffers.initialize(layout);
 
-  FakeDataSource source;
+  DataSourceFactory factory;
+  QVERIFY(factory.registerType(
+    ModuleType::Fake,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<FakeDataSource>(
+        cfg.settings);
+    }));
+
+  DataSourceManager manager;
+  manager.initialize(cfg, layout, factory);
 
   TestArchiveWriter archive;
   NullFramePublisher publisher;
@@ -46,7 +56,7 @@ void tst_engine::test_pipeline_archive_copy()
   FakeSchedulerClock clock;
 
   QVERIFY(engine.initialize(
-    source,
+    manager,
     processor,
     buffers,
     archive,
@@ -92,7 +102,17 @@ void tst_engine::test_dataEngine_simple_runtime()
   BufferManager buffers;
   buffers.initialize(layout);
 
-  TestDataSource source; // две ячейки -> 0 - счетчик; 1 - счетчик * 10
+  DataSourceFactory factory;
+  QVERIFY(factory.registerType(
+    ModuleType::Fake,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>( // две ячейки -> 0 - счетчик; 1 - счетчик * 10
+        cfg.settings);
+    }));
+
+  DataSourceManager manager;
+  manager.initialize(cfg, layout, factory);
 
   TestArchiveWriter archive;
   NullFramePublisher publisher;
@@ -105,7 +125,7 @@ void tst_engine::test_dataEngine_simple_runtime()
   FakeSchedulerClock clock(timestampStep, wallClockStep);
 
   QVERIFY(engine.initialize(
-    source,
+    manager,
     processor,
     buffers,
     archive,
@@ -126,7 +146,7 @@ void tst_engine::test_dataEngine_simple_runtime()
     QCOMPARE(frame.timestamp.value, expectedFrame * timestampStep);
     QCOMPARE(frame.wallTime.unixMicroseconds, expectedFrame * wallClockStep);
 
-    QCOMPARE(frame.raw().value(0), i);
+    QCOMPARE(frame.raw().value(0), i); // !!!
     QCOMPARE(frame.raw().value(1), i * 10);
 
     QCOMPARE(frame.calculated().value(0), frame.raw().value(0));
@@ -158,7 +178,17 @@ void tst_engine::test_dataEngine_FailingDataSource()
   BufferManager buffers;
   buffers.initialize(layout);
 
-  FailingDataSource source;
+  DataSourceFactory factory;
+  QVERIFY(factory.registerType(
+    ModuleType::Fake,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<FailingDataSource>(
+        cfg.settings);
+    }));
+
+  DataSourceManager manager;
+  manager.initialize(cfg, layout, factory);
 
   TestArchiveWriter archive;
   NullFramePublisher publisher;
@@ -169,14 +199,14 @@ void tst_engine::test_dataEngine_FailingDataSource()
   SchedulerClock clock(fclock);
 
   QVERIFY(engine.initialize(
-    source,
+    manager,
     processor,
     buffers,
     archive,
     publisher,
     clock));
 
-  QVERIFY(!engine.process());
+  QVERIFY(!engine.process()); // !!!
   QCOMPARE(archive.count, 0);
 }
 
@@ -192,7 +222,17 @@ void tst_engine::test_dataEngine_FailingCalculationProcessor()
   BufferManager buffers;
   buffers.initialize(layout);
 
-  TestDataSource source;
+  DataSourceFactory factory;
+  QVERIFY(factory.registerType(
+    ModuleType::Fake,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  DataSourceManager manager;
+  manager.initialize(cfg, layout, factory);
 
   TestArchiveWriter archive;
   NullFramePublisher publisher;
@@ -203,7 +243,7 @@ void tst_engine::test_dataEngine_FailingCalculationProcessor()
   SchedulerClock clock(fclock);
 
   QVERIFY(engine.initialize(
-    source,
+    manager,
     processor,
     buffers,
     archive,
@@ -228,7 +268,17 @@ void tst_engine::test_dataEngine_FailingArchiveWriter()
   BufferManager buffers;
   buffers.initialize(layout);
 
-  TestDataSource source;
+  DataSourceFactory factory;
+  QVERIFY(factory.registerType(
+    ModuleType::Fake,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  DataSourceManager manager;
+  manager.initialize(cfg, layout, factory);
 
   FailingArchiveWriter archive;
   NullFramePublisher publisher;
@@ -239,7 +289,7 @@ void tst_engine::test_dataEngine_FailingArchiveWriter()
   SchedulerClock clock(fclock);
 
   QVERIFY(engine.initialize(
-    source,
+    manager,
     processor,
     buffers,
     archive,
@@ -247,6 +297,73 @@ void tst_engine::test_dataEngine_FailingArchiveWriter()
     clock));
 
   QVERIFY(!engine.process());
+}
+
+void tst_engine::test_dataEngine_simple_pipeline()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Some_Modules();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  CalculationPlan plan;
+  CalculationProcessor processor(plan);
+
+  BufferManager buffers;
+  buffers.initialize(layout);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::Fake,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<FakeDataSource>(
+        cfg.settings);
+    }));
+
+  DataSourceManager manager;
+
+  QVERIFY(manager.initialize(
+    cfg,
+    layout,
+    factory));
+
+  TestArchiveWriter archive;
+  NullFramePublisher publisher;
+
+  FakeSchedulerClock clock;
+
+  DataEngine engine;
+
+  QVERIFY(engine.initialize(
+    manager,
+    processor,
+    buffers,
+    archive,
+    publisher,
+    clock));
+
+  QVERIFY(engine.process());
+
+  const auto archived = archive.last();
+
+  QVERIFY(engine.process());
+
+  QCOMPARE(archived.number.value, 1u);
+  QCOMPARE(archived.timestamp.value, 10u);
+  QCOMPARE(archived.wallTime.unixMicroseconds, 100u);
+
+  QCOMPARE(archived.raw().value(0), 1.0);
+  QCOMPARE(archived.raw().value(1), 2.0);
+  QCOMPARE(archived.raw().value(2), 1.0);
+  QCOMPARE(archived.raw().value(3), 2.0);
+  QCOMPARE(archived.raw().value(4), 3.0);
+  QCOMPARE(archived.raw().value(5), 1.0);
+  QCOMPARE(archived.raw().value(6), 2.0);
 }
 /*
 void tst_engine::test_dataEngine_withoutSources()

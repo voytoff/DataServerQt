@@ -1,9 +1,9 @@
 #pragma once
 
 #include "buffermanager.h"
+#include "datasourcemanager.h"
 #include "iarchivewriter.h"
 #include "icalculationprocessor.h"
-#include "idatasource.h"
 #include "iframepublisher.h"
 #include "ischedulerclock.h"
 
@@ -17,7 +17,7 @@ public:
   DataEngine() = default;
 
   bool initialize(
-    IDataSource& source,
+    DataSourceManager& manager,
     ICalculationProcessor& processor,
     BufferManager& buffers,
     IArchiveWriter& archive,
@@ -33,7 +33,7 @@ public:
 
 private:
 
-  IDataSource* m_source = nullptr;
+  DataSourceManager* m_manager = nullptr;
   ICalculationProcessor* m_processor = nullptr;
 
   BufferManager* m_buffers = nullptr;

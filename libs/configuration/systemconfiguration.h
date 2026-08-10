@@ -24,11 +24,19 @@ public:
   const std::vector<SignalDefinition>& signalDefinitions() const;
 
   const std::vector<TagId>& moduleTags(ModuleId id) const;
-  [[nodiscard]] bool containsTag(TagId id) const;
-  [[nodiscard]] const TagInfo* findTag(TagId id) const;
 
-  [[nodiscard]] bool containsSignalDefinition(SignalId id) const;
-  [[nodiscard]] const SignalDefinition* findSignalDefinition(SignalId id) const;
+  [[nodiscard]]
+  bool containsTag(TagId id) const;
+  [[nodiscard]]
+  const TagInfo* findTag(TagId id) const;
+
+  [[nodiscard]]
+  bool containsSignalDefinition(SignalId id) const;
+  [[nodiscard]]
+  const SignalDefinition* findSignalDefinition(SignalId id) const;
+
+  [[nodiscard]]
+  uint32_t moduleChannelCount(ModuleId id) const;
 
 private:
 

@@ -35,8 +35,9 @@ void tst_scheduler::test_scheduler_base()
 
   QVERIFY(buffers.ready());
 
-  auto frame = buffers.readFrame();
-  QCOMPARE(frame.raw().value(0), 123.);
+  auto &frame = buffers.readFrame();
+  QCOMPARE(frame.raw().value(0), 1.);
+  QCOMPARE(frame.raw().value(1), 2.);
 
   QCOMPARE(frame.number.value, 1);
   //QCOMPARE(frame.timestamp.value, 1);
@@ -49,6 +50,6 @@ void tst_scheduler::test_scheduler_base()
   auto frame2 = buffers.readFrame();
 
   QCOMPARE(frame2.number.value, 2);
-  //QCOMPARE(frame2.timestamp.value, 2);
-  QCOMPARE(frame2.raw().value(0), 123.);
+  QCOMPARE(frame2.raw().value(0), 3.);
+  QCOMPARE(frame2.raw().value(1), 4.);
 }

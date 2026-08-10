@@ -2,6 +2,7 @@
 
 #include "datatypes.h"
 #include "moduletype.h"
+#include <qjsonobject.h>
 
 namespace qds
 {
@@ -12,6 +13,8 @@ struct ModuleInfo
   CrateId crate;
 
   ModuleType type = ModuleType::Unknown;
+
+  QJsonObject settings;
 };
 
 }

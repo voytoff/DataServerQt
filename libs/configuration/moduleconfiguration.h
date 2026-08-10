@@ -10,6 +10,7 @@ struct ModuleConfiguration
 {
   ModuleInfo module;
   QJsonObject settings;
+  uint32_t channelCount = 0;
 };
 
 }

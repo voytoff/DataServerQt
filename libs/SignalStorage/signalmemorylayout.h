@@ -1,7 +1,6 @@
 #pragma once
 
 #include <strongidhash.h>
-//#include "datatypes.h"
 #include <cstdint>
 #include <unordered_map>
 
@@ -43,6 +42,10 @@ public:
   [[nodiscard]]
   uint32_t calculatedSignalCount() const noexcept;
 
+  [[nodiscard]]
+  uint32_t rawOffset(ModuleId module) const;
+
+  const SignalLocation &location(SignalId id) const;
 
 private:
 
@@ -50,6 +53,9 @@ private:
     SignalId,
     SignalLocation> m_locations;
 
+  std::unordered_map<
+    ModuleId,
+    uint32_t> m_rawOffsets;
 
   uint32_t m_rawSignalCount = 0;
 
