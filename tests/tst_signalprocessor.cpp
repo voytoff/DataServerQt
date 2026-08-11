@@ -8,6 +8,7 @@
 #include "formulaadd.h"
 #include "formulacopy.h"
 #include "formulasqrt.h"
+#include "formulatest.h"
 #include "systemconfiguration.h"
 #include "testsrv.h"
 
@@ -424,7 +425,7 @@ void tst_signalprocessor::test_calculationCompiler_failFormula()
   QCOMPARE(plan.size(), 0);
 }
 
-void tst_signalprocessor::test_calculationCompiler_unknownDependency()
+void tst_signalprocessor::test_calculationCompiler_unknownSignalDependency()
 {
   using namespace qds;
   SystemConfiguration cfg = createTestConfigUnknownDependency();
@@ -440,36 +441,8 @@ void tst_signalprocessor::test_calculationCompiler_unknownDependency()
 
   CalculationPlan plan;
 
-  //QVERIFY(!compiler.build(plan)); // Отсутствует 8 сигнал
+  QVERIFY(!compiler.build(plan)); // Отсутствует 8 сигнал
   QCOMPARE(plan.size(), 0);
-}
-
-void tst_signalprocessor::test_calculationCompiler_unknownSignalMemoryLayout()
-{
-  using namespace qds;
-  SystemConfiguration cfg = createTestConfig04();
-  SignalMemoryLayout layout;
-  layout.build(cfg);
-  BufferManager manager;
-  manager.initialize(layout);
-
-  FormulaRepository repo;
-  QVERIFY(repo.add({0}, std::make_unique<FormulaCopy>()));
-
-  cfg.addSignalDefinition({.id = {77}, .name = "U", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{0}}});
-  CalculationCompiler builder(cfg, layout, repo);
-
-  CalculationPlan plan;
-
-  return;
-  QVERIFY(builder.build(plan));
-  QCOMPARE(plan.size(), 3);
-
-  auto &memory = manager.beginWrite();
-  // Отсутствует ячейка памяти 77
-  CalculationProcessor processor(plan);
-  // execute calculation
-  QVERIFY(!processor.process(memory));
 }
 
 void tst_signalprocessor::test_calculationProcessor_failingFormula()
@@ -518,5 +491,39 @@ void tst_signalprocessor::test_calculationProcessor_emptyCalculationPlan()
 
 void tst_signalprocessor::test_calculationProcessor_formulaContext()
 {
+  using namespace qds;
+  SystemConfiguration cfg = createTestConfig_Copy_Add();
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+  BufferManager manager;
+  manager.initialize(layout);
+
+  FormulaRepository repo;
+  QVERIFY(repo.add({0}, std::make_unique<FormulaCopy>()));
+  QVERIFY(repo.add({2}, std::make_unique<FormulaTest>()));
+
+  CalculationCompiler compiler(cfg, layout, repo);
+
+  CalculationPlan plan;
+
+  QVERIFY(compiler.build(plan));
+  QCOMPARE(plan.size(), 3);
+
+  auto &memory = manager.beginWrite();
+  memory.raw().setValue(0, 1.1);
+  memory.raw().setValue(1, 2.2);
+  // Отсутствует ячейка памяти 77
+  CalculationProcessor processor(plan);
+
+  QVERIFY(processor.process(memory));
+
+  const auto &steps = plan.steps();
+
+  const auto &context2 = static_cast<const FormulaTest*>(steps[2].formula)->context();
+
+  QCOMPARE(context2.inputs.size(), 2);
+  QCOMPARE(*context2.inputs[0], 1.1);
+  QCOMPARE(*context2.inputs[1], 2.2);
+  QCOMPARE(*context2.output, 123.45);
 
 }

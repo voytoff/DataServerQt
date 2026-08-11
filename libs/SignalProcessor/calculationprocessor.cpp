@@ -25,27 +25,3 @@ bool CalculationProcessor::process(
 }
 
 }
-
-/*
- * Следующий логичный шаг после переименования — добавить первый интеграционный тест уже не для CalculationCompiler, а для связки:
-
-Frame
- +
-CalculationPlan
- +
-CalculationProcessor
- +
-FormulaCopy / FormulaAdd
-
-То есть проверить полный цикл:
-
-RAW memory
-   |
-   v
-Formula execution
-   |
-   v
-Calculated memory
-
-Это будет первая проверка, что вся архитектура действительно замкнулась.
- */

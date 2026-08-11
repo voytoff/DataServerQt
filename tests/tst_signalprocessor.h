@@ -24,8 +24,7 @@ private slots:
   void test_formulas_FormulaRepository();
   void test_formulas_CalculationPlan();
   void test_calculationCompiler_failFormula();
-  void test_calculationCompiler_unknownDependency();
-  void test_calculationCompiler_unknownSignalMemoryLayout();
+  void test_calculationCompiler_unknownSignalDependency();
   void test_calculationProcessor_failingFormula();
   void test_calculationProcessor_emptyCalculationPlan();
   void test_calculationProcessor_formulaContext();

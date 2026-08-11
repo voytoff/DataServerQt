@@ -13,7 +13,7 @@ public:
   FormulaContext &context() const;
 
 private:
-  FormulaContext m_context;
+  mutable FormulaContext m_context;
 };
 
 }

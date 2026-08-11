@@ -428,13 +428,13 @@ static qds::SystemConfiguration createTestConfig_Copy_Add(ModuleType type = Modu
   SignalDefinition sd1 {.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 10};
   cfg.addSignalDefinition(sd1);
 
-  SignalDefinition sd2 {.id = {2}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}/*copy*/, .dependencies = {{0}}};
+  SignalDefinition sd2 {.id = {2}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{0}}};
   cfg.addSignalDefinition(sd2);
 
-  SignalDefinition sd3 {.id = {3}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}/*copy*/, .dependencies = {{1}}};
+  SignalDefinition sd3 {.id = {3}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}, .dependencies = {{1}}};
   cfg.addSignalDefinition(sd3);
 
-  SignalDefinition sd4 {.id = {4}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {2}/*add*/, .dependencies = {{2}, {3}}};
+  SignalDefinition sd4 {.id = {4}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {2}, .dependencies = {{2}, {3}}};
   cfg.addSignalDefinition(sd4);
 
   return cfg;
@@ -598,5 +598,4 @@ static qds::SystemConfiguration createTestConfigUnknownDependency()
 
   return cfg;
 }
-
 

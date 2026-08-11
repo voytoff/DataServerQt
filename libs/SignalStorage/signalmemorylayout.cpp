@@ -184,8 +184,9 @@ SignalReference SignalMemoryLayout::reference(
 {
   auto it =
     m_locations.find(id);
-  // проверка ошибки конфигурации
-  assert(it != m_locations.end());
+
+  if (it == m_locations.end())
+    return {};
 
   return {
     .area = it->second.area,

@@ -40,7 +40,7 @@ private:
 
   bool buildNodes();
 
-  void connectNodes();
+  bool connectNodes();
 
   bool topologicalSort(
     CalculationPlan& plan);

@@ -5,7 +5,7 @@
 tst_configuration::tst_configuration() { }
 tst_configuration::~tst_configuration() = default;
 
-void tst_configuration::test_configuration_sparse_module_ids()
+void tst_configuration::test_configuration_parse_module_ids()
 {
   using namespace qds;
 

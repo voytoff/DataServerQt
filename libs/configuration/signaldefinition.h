@@ -34,6 +34,7 @@ enum class SignalKind : uint8_t
 
 enum class SignalMemoryArea : uint8_t
 {
+  Unknown = UINT8_MAX,
   Raw = 0,
   Calculated
 };
@@ -75,8 +76,14 @@ struct SignalDefinition
 
 struct SignalReference
 {
-  SignalMemoryArea area;
-  uint32_t index;
+  SignalMemoryArea area = SignalMemoryArea::Unknown;
+  uint32_t index = 0;
+
+  [[nodiscard]]
+  bool isValid() const noexcept
+  {
+    return area != SignalMemoryArea::Unknown;
+  }
 };
 
 }

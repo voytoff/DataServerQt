@@ -20,9 +20,14 @@ bool CalculationCompiler::build(
   m_index.clear();
 
   if (!buildNodes())
+  {
+    m_nodes.clear();
+    m_index.clear();
     return false;
+  }
 
-  connectNodes();
+  if (!connectNodes())
+    return false;
 
   if (!topologicalSort(plan))
   {
@@ -42,22 +47,34 @@ bool CalculationCompiler::buildNodes()
 
     m_nodes.emplace_back();
 
-    Node& node =
-      m_nodes.back();
+    Node& node = m_nodes.back();
 
     node.id = definition.id;
     node.dependencies = definition.dependencies;
     node.formula = definition.formulaId;
 
-    for (auto &p : node.dependencies)
+    const auto output =
+      m_layout.reference(node.id);
+
+    if (!output.isValid())
+      return false;
+
+    for (const auto& id : node.dependencies)
     {
-      if (isCalculatedSignal(p))
+      const auto ref =
+        m_layout.reference(id);
+
+      if (!ref.isValid())
+        return false;
+
+      if (ref.area == SignalMemoryArea::Calculated)
         ++node.indegree;
     }
 
-    auto [it, inserted] = m_index.emplace(
-      node.id,
-      m_nodes.size() - 1);
+    auto [it, inserted] =
+      m_index.emplace(
+        node.id,
+        m_nodes.size() - 1);
 
     assert(inserted);
   }
@@ -65,27 +82,28 @@ bool CalculationCompiler::buildNodes()
   return true;
 }
 
-void CalculationCompiler::connectNodes()
+bool CalculationCompiler::connectNodes()
 {
   for (auto &node : m_nodes)
   {
-    for (auto &p : node.dependencies)
+    for (auto &id : node.dependencies)
     {
-      if (!isCalculatedSignal(p))
+      if (!isCalculatedSignal(id))
         continue;
 
-      auto it = m_index.find(p);
+      auto it = m_index.find(id);
 
       assert(it != m_index.end());
 
       if (it == m_index.end())
-        return; // неверная конфигурация
+        return false; // неверная конфигурация
 
       auto& parent = m_nodes[it->second];
 
       parent.children.push_back(&node);
     }
   }
+  return true;
 }
 
 
@@ -149,11 +167,9 @@ bool CalculationCompiler::topologicalSort(CalculationPlan& plan)
 
 bool CalculationCompiler::isCalculatedSignal(SignalId id) const
 {
-  const auto ref =
-    m_layout.reference(id);
+  const auto ref = m_layout.reference(id);
 
-  return ref.area ==
-         SignalMemoryArea::Calculated;
+  return ref.area == SignalMemoryArea::Calculated;
 }
 
 }

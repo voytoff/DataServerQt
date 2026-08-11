@@ -5,23 +5,17 @@ namespace qds
 
 bool FormulaTest::execute(FormulaContext& ctx) const noexcept
 {
-  if (ctx.output == nullptr)
-    return false;
+  m_context.inputs = ctx.inputs;
+  m_context.output = ctx.output;
 
-  if (ctx.inputs.front() == nullptr)
-    return false;
-
-  if (ctx.inputs.size() != 1)
-    return false;
-
-  *ctx.output = *ctx.inputs[0];
+  *ctx.output = 123.45;
 
   return true;
 }
 
 FormulaContext &FormulaTest::context() const
 {
-
+  return m_context;
 }
 
 }

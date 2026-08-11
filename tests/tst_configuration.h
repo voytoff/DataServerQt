@@ -11,7 +11,7 @@ public:
   ~tst_configuration() override;
 
 private slots:
-  void test_configuration_sparse_module_ids();
+  void test_configuration_parse_module_ids();
   //void test_configuration_modules();
   //  test_configuration_moduleTags
   void test_configuration_moduleChannelCount();
