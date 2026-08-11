@@ -572,4 +572,31 @@ static qds::SystemConfiguration createTestConfig_Fail_DataSource()
   return cfg;
 }
 
+static qds::SystemConfiguration createTestConfigUnknownDependency()
+{
+  using namespace qds;
+  SystemConfiguration cfg;
+
+  ModuleInfo m{0};
+  cfg.addModule(m);
+
+  cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
+  cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}});
+
+  SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 1000};
+  cfg.addSignalDefinition(sd0);
+  SignalDefinition sd1 {.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 100};
+  cfg.addSignalDefinition(sd1);
+
+  SignalDefinition sd2 {.id = {7}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{0}}};
+  cfg.addSignalDefinition(sd2);
+  SignalDefinition sd3 {.id = {4}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}, .dependencies = {{1}}};
+  cfg.addSignalDefinition(sd3);
+
+  SignalDefinition sd4 {.id = {11}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}, .dependencies = {{4}, {8}}};
+  cfg.addSignalDefinition(sd4);
+
+  return cfg;
+}
+
 

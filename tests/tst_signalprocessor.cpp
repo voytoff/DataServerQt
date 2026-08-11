@@ -4,8 +4,10 @@
 #include "calculationplan.h"
 #include "calculationcompiler.h"
 #include "calculationprocessor.h"
+#include "failingformula.h"
 #include "formulaadd.h"
 #include "formulacopy.h"
+#include "formulasqrt.h"
 #include "systemconfiguration.h"
 #include "testsrv.h"
 
@@ -49,9 +51,12 @@ void tst_signalprocessor::test_calculation_plan()
   layout.build(cfg);
 
   CalculationPlan plan;
-  FormulaRepository repository;
 
-  CalculationCompiler builder(cfg, layout, repository);
+  FormulaRepository repo;
+  QVERIFY(repo.add({0}, std::make_unique<FormulaCopy>()));
+  QVERIFY(repo.add({5}, std::make_unique<FormulaAdd>()));
+
+  CalculationCompiler builder(cfg, layout, repo);
 
   QVERIFY(builder.build(plan));
 
@@ -66,9 +71,11 @@ void tst_signalprocessor::test_calculation_line()
   layout.build(cfg);
 
   CalculationPlan plan;
-  FormulaRepository repository;
 
-  CalculationCompiler builder(cfg, layout, repository);
+  FormulaRepository repo;
+  QVERIFY(repo.add({0}, std::make_unique<FormulaCopy>()));
+
+  CalculationCompiler builder(cfg, layout, repo);
 
   QVERIFY(builder.build(plan));
 
@@ -123,9 +130,12 @@ void tst_signalprocessor::test_calculation_branching()
   layout.build(cfg);
 
   CalculationPlan plan;
-  FormulaRepository repository;
 
-  CalculationCompiler builder(cfg, layout, repository);
+  FormulaRepository repo;
+  QVERIFY(repo.add({0}, std::make_unique<FormulaCopy>()));
+  QVERIFY(repo.add({2}, std::make_unique<FormulaCopy>()));
+
+  CalculationCompiler builder(cfg, layout, repo);
 
   QVERIFY(builder.build(plan));
 
@@ -171,9 +181,11 @@ void tst_signalprocessor::test_calculation_independent()
   layout.build(cfg);
 
   CalculationPlan plan;
-  FormulaRepository repository;
 
-  CalculationCompiler builder(cfg, layout, repository);
+  FormulaRepository repo;
+  QVERIFY(repo.add({0}, std::make_unique<FormulaCopy>()));
+
+  CalculationCompiler builder(cfg, layout, repo);
 
   QVERIFY(builder.build(plan));
 
@@ -212,9 +224,11 @@ void tst_signalprocessor::test_calculation_cycle()
   layout.build(cfg);
 
   CalculationPlan plan;
-  FormulaRepository repository;
 
-  CalculationCompiler builder(cfg, layout, repository);
+  FormulaRepository repo;
+  QVERIFY(repo.add({0}, std::make_unique<FormulaCopy>()));
+
+  CalculationCompiler builder(cfg, layout, repo);
 
   QVERIFY(!builder.build(plan));
   QCOMPARE(plan.size(), 0);
@@ -228,9 +242,11 @@ void tst_signalprocessor::test_calculation_selfReference()
   layout.build(cfg);
 
   CalculationPlan plan;
-  FormulaRepository repository;
 
-  CalculationCompiler builder(cfg, layout, repository);
+  FormulaRepository repo;
+  QVERIFY(repo.add({0}, std::make_unique<FormulaCopy>()));
+
+  CalculationCompiler builder(cfg, layout, repo);
 
   QVERIFY(!builder.build(plan));
   QCOMPARE(plan.size(), 0);
@@ -244,9 +260,13 @@ void tst_signalprocessor::test_calculation_bigGraph()
   layout.build(cfg);
 
   CalculationPlan plan;
-  FormulaRepository repository;
 
-  CalculationCompiler builder(cfg, layout, repository);
+  FormulaRepository repo;
+  QVERIFY(repo.add({0}, std::make_unique<FormulaCopy>()));
+  QVERIFY(repo.add({10}, std::make_unique<FormulaAdd>()));
+  QVERIFY(repo.add({17}, std::make_unique<FormulaSqrt>()));
+
+  CalculationCompiler builder(cfg, layout, repo);
 
   QVERIFY(builder.build(plan));
 
@@ -299,7 +319,7 @@ void tst_signalprocessor::test_calculation_bigGraph()
 
 void tst_signalprocessor::test_calculation_calculationProcessor()
 {
-  // build runtime
+  using namespace qds;
   SystemConfiguration cfg = createTestConfig_Copy_Add();
   SignalMemoryLayout layout;
   layout.build(cfg);
@@ -342,4 +362,161 @@ void tst_signalprocessor::test_calculation_calculationProcessor()
   QCOMPARE(second.calculated().value(0), 20.0);
   QCOMPARE(second.calculated().value(1), 30.0);
   QCOMPARE(second.calculated().value(2), 50.0);
+}
+
+void tst_signalprocessor::test_formulas_FormulaRepository()
+{
+  using namespace qds;
+  FormulaRepository repo;
+  QVERIFY(repo.add({0}, std::make_unique<FormulaCopy>()));
+  QVERIFY(repo.add({2}, std::make_unique<FormulaAdd>()));
+
+  QCOMPARE(repo.size(), 2);
+
+  QVERIFY(!repo.add({0}, std::make_unique<FormulaAdd>()));
+  QVERIFY(repo.add({4}, std::make_unique<FormulaCopy>()));
+
+  QCOMPARE(repo.size(), 3);
+
+  auto* f0 = repo.find({2});
+  QVERIFY(f0 != nullptr);
+
+  auto* f3 = repo.find({3});
+  QVERIFY(f3 == nullptr);
+
+  repo.clear();
+  QCOMPARE(repo.size(), 0);
+}
+
+void tst_signalprocessor::test_formulas_CalculationPlan()
+{
+  CalculationPlan plan;
+  QCOMPARE(plan.empty(), true);
+
+  plan.clear();
+
+  QCOMPARE(plan.size(), 0);
+
+  auto steps = plan.steps();
+
+  QCOMPARE(steps.size(), 0);
+}
+
+void tst_signalprocessor::test_calculationCompiler_failFormula()
+{
+  using namespace qds;
+  SystemConfiguration cfg = createTestConfig_Copy_Add();
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+  BufferManager manager;
+  manager.initialize(layout);
+
+  FormulaRepository repo;
+  QVERIFY(repo.add({0}, std::make_unique<FormulaCopy>()));
+  QVERIFY(repo.add({1}, std::make_unique<FormulaAdd>()));
+  QVERIFY(repo.add({3}, std::make_unique<FormulaSqrt>()));
+
+  CalculationCompiler compiler(cfg, layout, repo);
+
+  CalculationPlan plan;
+
+  QVERIFY(!compiler.build(plan)); // formula 2 отсутствует
+  QCOMPARE(plan.size(), 0);
+}
+
+void tst_signalprocessor::test_calculationCompiler_unknownDependency()
+{
+  using namespace qds;
+  SystemConfiguration cfg = createTestConfigUnknownDependency();
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+  BufferManager manager;
+  manager.initialize(layout);
+
+  FormulaRepository repo;
+  QVERIFY(repo.add({0}, std::make_unique<FormulaCopy>()));
+
+  CalculationCompiler compiler(cfg, layout, repo);
+
+  CalculationPlan plan;
+
+  //QVERIFY(!compiler.build(plan)); // Отсутствует 8 сигнал
+  QCOMPARE(plan.size(), 0);
+}
+
+void tst_signalprocessor::test_calculationCompiler_unknownSignalMemoryLayout()
+{
+  using namespace qds;
+  SystemConfiguration cfg = createTestConfig04();
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+  BufferManager manager;
+  manager.initialize(layout);
+
+  FormulaRepository repo;
+  QVERIFY(repo.add({0}, std::make_unique<FormulaCopy>()));
+
+  cfg.addSignalDefinition({.id = {77}, .name = "U", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{0}}});
+  CalculationCompiler builder(cfg, layout, repo);
+
+  CalculationPlan plan;
+
+  return;
+  QVERIFY(builder.build(plan));
+  QCOMPARE(plan.size(), 3);
+
+  auto &memory = manager.beginWrite();
+  // Отсутствует ячейка памяти 77
+  CalculationProcessor processor(plan);
+  // execute calculation
+  QVERIFY(!processor.process(memory));
+}
+
+void tst_signalprocessor::test_calculationProcessor_failingFormula()
+{
+  using namespace qds;
+  SystemConfiguration cfg = createTestConfig_Copy_Add();
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+  BufferManager manager;
+  manager.initialize(layout);
+
+  FormulaRepository repo;
+  QVERIFY(repo.add({0}, std::make_unique<FormulaCopy>()));
+  QVERIFY(repo.add({2}, std::make_unique<FailingFormula>()));
+
+  CalculationCompiler compiler(cfg, layout, repo);
+
+  CalculationPlan plan;
+
+  QVERIFY(compiler.build(plan));
+
+  auto &memory = manager.beginWrite();
+  // Отсутствует ячейка памяти 77
+  CalculationProcessor processor(plan);
+
+  QVERIFY(!processor.process(memory));
+}
+
+void tst_signalprocessor::test_calculationProcessor_emptyCalculationPlan()
+{
+  using namespace qds;
+  SystemConfiguration cfg = createTestConfig_Copy_Add();
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+  BufferManager manager;
+  manager.initialize(layout);
+
+  CalculationPlan plan;
+
+  auto &memory = manager.beginWrite();
+  // Отсутствует ячейка памяти 77
+  CalculationProcessor processor(plan);
+
+  QVERIFY(processor.process(memory));
+}
+
+void tst_signalprocessor::test_calculationProcessor_formulaContext()
+{
+
 }

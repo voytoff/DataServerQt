@@ -32,6 +32,7 @@ add_executable(unit_tests
     tst_signalstorage.h tst_signalstorage.cpp
     tst_scheduler.h tst_scheduler.cpp
     tst_signalprocessor.h tst_signalprocessor.cpp
+    tst_configuration.h tst_configuration.cpp
 )
 
 target_link_libraries(unit_tests PRIVATE

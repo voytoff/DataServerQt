@@ -7,6 +7,11 @@ bool FormulaRepository::add(
   FormulaId id,
   std::unique_ptr<IFormula> formula)
 {
+  auto exists = find(id);
+
+  if (exists)
+    return false;
+
   auto [it, inserted] =
     m_formulas.emplace(id, std::move(formula));
 
@@ -28,6 +33,11 @@ FormulaRepository::find(
 void FormulaRepository::clear()
 {
   m_formulas.clear();
+}
+
+std::size_t FormulaRepository::size() const noexcept
+{
+  return m_formulas.size();
 }
 
 }

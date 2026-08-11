@@ -1,9 +1,9 @@
-#include "formulacopy.h"
+#include "formulatest.h"
 
 namespace qds
 {
 
-bool FormulaCopy::execute(FormulaContext& ctx) const noexcept
+bool FormulaTest::execute(FormulaContext& ctx) const noexcept
 {
   if (ctx.output == nullptr)
     return false;
@@ -17,6 +17,11 @@ bool FormulaCopy::execute(FormulaContext& ctx) const noexcept
   *ctx.output = *ctx.inputs[0];
 
   return true;
+}
+
+FormulaContext &FormulaTest::context() const
+{
+
 }
 
 }

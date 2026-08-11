@@ -14,7 +14,7 @@ add_library(Configuration SHARED
   moduleinfo.cpp moduleinfo.h
   crateinfo.cpp crateinfo.h
   systemconfiguration.cpp systemconfiguration.h
-  signaldefinition.h signaldefinition.cpp
+  signaldefinition.h
   moduleconfiguration.h
 )
 

@@ -22,6 +22,9 @@ public:
 
   void clear();
 
+  [[nodiscard]]
+  std::size_t size() const noexcept;
+
 private:
 
   std::unordered_map<

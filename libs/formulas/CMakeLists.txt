@@ -10,6 +10,9 @@ add_library(Formulas SHARED
   formulacopy.cpp formulacopy.h
   formulaadd.h formulaadd.cpp
   formulacontext.h
+  formulasqrt.h formulasqrt.cpp
+  failingformula.h
+  formulatest.h formulatest.cpp
 )
 
 target_include_directories(Formulas

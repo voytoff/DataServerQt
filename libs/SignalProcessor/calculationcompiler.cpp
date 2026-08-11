@@ -112,10 +112,10 @@ bool CalculationCompiler::topologicalSort(CalculationPlan& plan)
 
     step.formula = m_repository.find(node->formula);
 
-    step.output = m_layout.reference(node->id);
-
     if (step.formula == nullptr)
       return false;
+
+    step.output = m_layout.reference(node->id);
 
     step.inputs.reserve(node->dependencies.size());
     for (auto& id : node->dependencies)

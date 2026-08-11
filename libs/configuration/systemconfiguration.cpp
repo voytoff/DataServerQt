@@ -12,7 +12,11 @@ void SystemConfiguration::addCrate(const CrateInfo& crate)
 void SystemConfiguration::addModule(const ModuleInfo& module)
 {
   m_modules.push_back(module);
-  m_moduleTags.emplace_back();
+
+  auto [it, inserted] =
+    m_moduleTags.emplace(module.id, std::vector<TagId>{});
+
+  assert(inserted);
 }
 
 void SystemConfiguration::addTag(const TagInfo& tag)
@@ -25,7 +29,10 @@ void SystemConfiguration::addTag(const TagInfo& tag)
 
   assert(!m_tagExists[tag.tag.value]);
   assert(m_tagIndex[tag.tag.value] == InvalidIndex32);
-  assert(tag.module.value < m_moduleTags.size());
+
+  auto it = m_moduleTags.find(tag.module);
+
+  assert(it != m_moduleTags.end());
 
   const uint32_t index =
     static_cast<uint32_t>(m_tags.size());
@@ -35,7 +42,7 @@ void SystemConfiguration::addTag(const TagInfo& tag)
   m_tagExists[tag.tag.value] = true;
   m_tagIndex[tag.tag.value] = index;
 
-  m_moduleTags[tag.module.value].push_back(tag.tag);
+  it->second.push_back(tag.tag);
 }
 
 const std::vector<CrateInfo>& SystemConfiguration::crates() const
@@ -60,9 +67,11 @@ const std::vector<SignalDefinition>& SystemConfiguration::signalDefinitions() co
 
 const std::vector<TagId>& SystemConfiguration::moduleTags(ModuleId id) const
 {
-  assert(id.value < m_moduleTags.size());
+  auto it = m_moduleTags.find(id);
 
-  return m_moduleTags[id.value];
+  assert(it != m_moduleTags.end());
+
+  return it->second;
 }
 
 bool SystemConfiguration::containsTag(TagId id) const

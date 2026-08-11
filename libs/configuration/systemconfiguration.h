@@ -1,5 +1,6 @@
 #pragma once
 
+#include<strongidhash.h>
 #include <vector>
 #include "taginfo.h"
 #include "moduleinfo.h"
@@ -10,10 +11,49 @@
 namespace qds
 {
 
+/*
+crate
+ ├── id
+ ├── type
+ ├── serial
+ ├── host
+ ├── port
+ └── description
+
+module
+ ├── id
+ ├── crate_id
+ ├── type
+ ├── serial
+ └── description
+
+configuration
+ └── ...
+
+configuration_module
+ ├── configuration_id
+ ├── module_id
+ └── settings JSON
+
+configuration_tag
+ ├── configuration_id
+ ├── id
+ ├── module_id
+ └── channel
+
+configuration_signal_definition
+ ├── configuration_id
+ ├── id
+ ├── ...
+ └── dependencies
+*/
+
 class SystemConfiguration
 {
 public:
   void addCrate(const CrateInfo& crate);
+  /// предполагает последовательные ModuleId.
+  /// ModuleId.value должен соответствовать индексу модуля в m_modules.
   void addModule(const ModuleInfo& module);
   void addTag(const TagInfo& tag);
   void addSignalDefinition(const SignalDefinition& definition);
@@ -41,17 +81,16 @@ public:
 private:
 
   std::vector<CrateInfo> m_crates;
+
   std::vector<ModuleInfo> m_modules;
+  std::unordered_map<ModuleId, std::vector<TagId>> m_moduleTags;
+
   std::vector<TagInfo> m_tags;
-
-  std::vector<SignalDefinition> m_signalDefinitions;
-
-  std::vector<std::vector<TagId>> m_moduleTags;
-
   // быстрый поиск TagId -> индекс в m_tags
   std::vector<uint32_t> m_tagIndex;
   std::vector<bool> m_tagExists;
 
+  std::vector<SignalDefinition> m_signalDefinitions;
   // быстрый поиск SignalId -> индекс в m_signals
   std::vector<uint32_t> m_signalDefinitionIndex;
   std::vector<bool> m_signalDefinitionExists;
