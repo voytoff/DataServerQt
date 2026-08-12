@@ -9,6 +9,7 @@
 #include "tst_core.h"
 #include "tst_datasource.h"
 #include "tst_engine.h"
+#include "tst_formulas.h"
 #include "tst_hardware.h"
 #include "tst_packetdispatcher.h"
 #include "tst_publisher.h"
@@ -27,6 +28,10 @@ int main(int argc, char *argv[])
 
   int rc = 0;
 
+  {
+    tst_formulas tc;
+    rc |= QTest::qExec(&tc, argc, argv);
+  }
   {
     tst_signalprocessor tc;
     rc |= QTest::qExec(&tc, argc, argv);

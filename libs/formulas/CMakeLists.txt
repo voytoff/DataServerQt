@@ -15,6 +15,7 @@ add_library(Formulas SHARED
   formulatest.h formulatest.cpp
   parser/formulalexer.h parser/formulalexer.cpp
   parser/formulatoken.h
+  parser/formulaparser.h parser/formulaparser.cpp
 )
 
 target_include_directories(Formulas

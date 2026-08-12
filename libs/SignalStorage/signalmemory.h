@@ -1,5 +1,4 @@
-#ifndef SIGNALMEMORY_H
-#define SIGNALMEMORY_H
+#pragma once
 
 #include <cstdint>
 #include <span>
@@ -53,4 +52,3 @@ using CalculatedMemory = SignalMemory;
 
 }
 
-#endif // SIGNALMEMORY_H

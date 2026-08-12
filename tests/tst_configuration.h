@@ -1,5 +1,4 @@
-#ifndef TST_CONFIGURATION_H
-#define TST_CONFIGURATION_H
+#pragma once
 
 #include <QObject>
 
@@ -28,4 +27,3 @@ private slots:
 
 };
 
-#endif // TST_CONFIGURATION_H
