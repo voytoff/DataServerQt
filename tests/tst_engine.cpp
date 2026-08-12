@@ -46,7 +46,7 @@ void tst_engine::test_pipeline_archive_copy()
     }));
 
   DataSourceManager manager;
-  manager.initialize(cfg, layout, factory);
+  QVERIFY(manager.initialize(cfg, layout, factory));
 
   TestArchiveWriter archive;
   NullFramePublisher publisher;
@@ -112,7 +112,7 @@ void tst_engine::test_dataEngine_simple_runtime()
     }));
 
   DataSourceManager manager;
-  manager.initialize(cfg, layout, factory);
+  QVERIFY(manager.initialize(cfg, layout, factory));
 
   TestArchiveWriter archive;
   NullFramePublisher publisher;
@@ -188,7 +188,7 @@ void tst_engine::test_dataEngine_FailingDataSource()
     }));
 
   DataSourceManager manager;
-  manager.initialize(cfg, layout, factory);
+  QVERIFY(manager.initialize(cfg, layout, factory));
 
   TestArchiveWriter archive;
   NullFramePublisher publisher;
@@ -232,7 +232,7 @@ void tst_engine::test_dataEngine_FailingCalculationProcessor()
     }));
 
   DataSourceManager manager;
-  manager.initialize(cfg, layout, factory);
+  QVERIFY(manager.initialize(cfg, layout, factory));
 
   TestArchiveWriter archive;
   NullFramePublisher publisher;
@@ -278,7 +278,7 @@ void tst_engine::test_dataEngine_FailingArchiveWriter()
     }));
 
   DataSourceManager manager;
-  manager.initialize(cfg, layout, factory);
+  QVERIFY(manager.initialize(cfg, layout, factory));
 
   FailingArchiveWriter archive;
   NullFramePublisher publisher;

@@ -34,9 +34,9 @@ enum class SignalKind : uint8_t
 
 enum class SignalMemoryArea : uint8_t
 {
-  Unknown = UINT8_MAX,
   Raw = 0,
-  Calculated
+  Calculated,
+  Unknown = UINT8_MAX
 };
 
 struct SignalSource

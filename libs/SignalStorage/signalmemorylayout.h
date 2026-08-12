@@ -43,7 +43,7 @@ public:
   uint32_t calculatedSignalCount() const noexcept;
 
   [[nodiscard]]
-  uint32_t rawOffset(ModuleId module) const;
+  std::optional<uint32_t> rawOffset(ModuleId module) const;
 
   const SignalLocation &location(SignalId id) const;
 

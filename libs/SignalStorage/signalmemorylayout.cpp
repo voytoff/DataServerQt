@@ -154,12 +154,12 @@ uint32_t SignalMemoryLayout::calculatedSignalCount() const noexcept
   return m_calculatedSignalCount;
 }
 
-uint32_t SignalMemoryLayout::rawOffset(ModuleId module) const
+std::optional<uint32_t> SignalMemoryLayout::rawOffset(ModuleId module) const
 {
   auto it = m_rawOffsets.find(module);
 
   if (it == m_rawOffsets.end())
-    return 0;
+    return std::nullopt;
 
   return it->second;
 }

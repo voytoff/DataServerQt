@@ -27,13 +27,22 @@ bool DataSourceManager::initialize(
       return false;
     }
 
+    const auto rawOffset = layout.rawOffset(module.id);
+
+    if (!rawOffset)
+    {
+      m_sources.clear();
+      return false;
+    }
+
     m_sources.push_back(
       DataSourceEntry{
         .source = std::move(source),
-        .rawOffset = layout.rawOffset(module.id),
+        .rawOffset = rawOffset.value(),
         .channelCount = mc.channelCount
       });
   }
+
   return true;
 }
 

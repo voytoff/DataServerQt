@@ -52,11 +52,9 @@ class SystemConfiguration
 {
 public:
   void addCrate(const CrateInfo& crate);
-  /// предполагает последовательные ModuleId.
-  /// ModuleId.value должен соответствовать индексу модуля в m_modules.
   void addModule(const ModuleInfo& module);
-  void addTag(const TagInfo& tag);
-  void addSignalDefinition(const SignalDefinition& definition);
+  bool addTag(const TagInfo& tag);
+  bool addSignalDefinition(const SignalDefinition& definition);
 
   const std::vector<CrateInfo>& crates() const;
   const std::vector<ModuleInfo>& modules() const;

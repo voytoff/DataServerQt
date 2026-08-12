@@ -118,3 +118,94 @@ void tst_signalstorage::test_raw_memory()
   QCOMPARE(snapshot[0], 20.0);
   QCOMPARE(snapshot[1], 30.0);
 }
+
+void tst_signalstorage::test_datasource_layout_contains()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg = createTestConfig_Copy_Add();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  QVERIFY(layout.contains(SignalId{0}));
+  QVERIFY(layout.contains(SignalId{1}));
+  QVERIFY(layout.contains(SignalId{2}));
+  QVERIFY(layout.contains(SignalId{3}));
+  QVERIFY(layout.contains(SignalId{4}));
+
+  QVERIFY(!layout.contains({100}));
+}
+
+void tst_signalstorage::test_datasource_layout_reference()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg = createTestConfig_Copy_Add();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  const auto raw = layout.reference({0});
+  QVERIFY(raw.isValid());
+  QCOMPARE(raw.area, SignalMemoryArea::Raw);
+  QCOMPARE(raw.index, 0u);
+
+  const auto calculated = layout.reference({2});
+  QVERIFY(calculated.isValid());
+  QCOMPARE(calculated.area, SignalMemoryArea::Calculated);
+  QCOMPARE(calculated.index, 0u);
+
+  const auto unknown = layout.reference({100});
+  QVERIFY(!unknown.isValid());
+}
+
+void tst_signalstorage::test_datasource_layout_unknownModule()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg = createTestConfig_Some_Modules();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  QCOMPARE(layout.rawOffset(ModuleId{999}), std::nullopt);
+}
+
+void tst_signalstorage::test_datasource_layout_rebuild()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg = createTestConfig_Copy_Add();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  QCOMPARE(layout.rawSignalCount(), 2u);
+  QCOMPARE(layout.calculatedSignalCount(), 3u);
+
+  // Добавляем новый raw signal.
+  QVERIFY(cfg.addTag({
+    .tag = {10},
+    .module = {0},
+    .channel = {2}
+  }));
+
+  QVERIFY(cfg.addSignalDefinition({
+    .id = {5},
+    .name = "RAW5",
+    .kind = SignalKind::Raw,
+    .source = {10},
+    .archiveFrequency = 100
+  }));
+
+  layout.build(cfg);
+
+  QCOMPARE(layout.rawSignalCount(), 3u);
+  QCOMPARE(layout.calculatedSignalCount(), 3u);
+
+  const auto ref = layout.reference({5});
+  QVERIFY(ref.isValid());
+  QCOMPARE(ref.area, SignalMemoryArea::Raw);
+  QCOMPARE(ref.index, 2u);
+}

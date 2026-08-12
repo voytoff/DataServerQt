@@ -19,20 +19,21 @@ void SystemConfiguration::addModule(const ModuleInfo& module)
   assert(inserted);
 }
 
-void SystemConfiguration::addTag(const TagInfo& tag)
+bool SystemConfiguration::addTag(const TagInfo& tag)
 {
+  auto it = m_moduleTags.find(tag.module);
+
+  if (it == m_moduleTags.end())
+    return false;
+
   if (tag.tag.value >= m_tagExists.size())
   {
     m_tagExists.resize(tag.tag.value + 1, false);
     m_tagIndex.resize(tag.tag.value + 1, InvalidIndex32);
   }
 
-  assert(!m_tagExists[tag.tag.value]);
-  assert(m_tagIndex[tag.tag.value] == InvalidIndex32);
-
-  auto it = m_moduleTags.find(tag.module);
-
-  assert(it != m_moduleTags.end());
+  if (m_tagExists[tag.tag.value])
+    return false;
 
   const uint32_t index =
     static_cast<uint32_t>(m_tags.size());
@@ -43,6 +44,8 @@ void SystemConfiguration::addTag(const TagInfo& tag)
   m_tagIndex[tag.tag.value] = index;
 
   it->second.push_back(tag.tag);
+
+  return true;
 }
 
 const std::vector<CrateInfo>& SystemConfiguration::crates() const
@@ -95,17 +98,23 @@ const TagInfo* SystemConfiguration::findTag(TagId id) const
   return &m_tags[index];
 }
 
-void SystemConfiguration::addSignalDefinition(
+bool SystemConfiguration::addSignalDefinition(
   const SignalDefinition& definition)
 {
+  if (definition.kind == SignalKind::Raw && !containsTag(definition.source.tag))
+    return false; // отсутствует источник
+
   auto id = definition.id.value;
+
   if (id >= m_signalDefinitionExists.size())
   {
     m_signalDefinitionExists.resize(id + 1, false);
     m_signalDefinitionIndex.resize(id + 1, InvalidIndex32);
   }
 
-  assert(!m_signalDefinitionExists[id]);
+  if (m_signalDefinitionExists[id])
+    return false; // дубликат
+
   assert(m_signalDefinitionIndex[id] == InvalidIndex32);
 
   const uint32_t index =
@@ -115,6 +124,8 @@ void SystemConfiguration::addSignalDefinition(
 
   m_signalDefinitionExists[id] = true;
   m_signalDefinitionIndex[id] = index;
+
+  return true;
 }
 
 const SignalDefinition* SystemConfiguration::findSignalDefinition(

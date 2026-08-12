@@ -8,7 +8,7 @@ bool FormulaAdd::execute(FormulaContext& ctx) const noexcept
   if (ctx.output == nullptr)
     return false;
 
-  if (ctx.inputs.front() == nullptr)
+  if (ctx.inputs.empty())
     return false;
 
   if (ctx.inputs.size() < 1)

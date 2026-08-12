@@ -440,6 +440,55 @@ static qds::SystemConfiguration createTestConfig_Copy_Add(ModuleType type = Modu
   return cfg;
 }
 
+static qds::SystemConfiguration createTestConfig_Copy_Add_WithoutC()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg;
+
+  ModuleInfo m{.id = {0}, .type = ModuleType::Unknown};
+  cfg.addModule(m);
+
+  cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
+  cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}});
+
+  cfg.addSignalDefinition({
+    .id = {0},
+    .name = "Raw0",
+    .kind = SignalKind::Raw,
+    .source = {0},
+    .archiveFrequency = 100
+  });
+
+  cfg.addSignalDefinition({
+    .id = {1},
+    .name = "Raw1",
+    .kind = SignalKind::Raw,
+    .source = {1},
+    .archiveFrequency = 10
+  });
+
+  cfg.addSignalDefinition({
+    .id = {2},
+    .name = "A",
+    .kind = SignalKind::Calculated,
+    .archiveFrequency = 100,
+    .formulaId = {0},
+    .dependencies = {{0}}
+  });
+
+  cfg.addSignalDefinition({
+    .id = {3},
+    .name = "B",
+    .kind = SignalKind::Calculated,
+    .archiveFrequency = 10,
+    .formulaId = {0},
+    .dependencies = {{1}}
+  });
+
+  return cfg;
+}
+
 static qds::SystemConfiguration createTestConfig_Some_Modules()
 {
   using namespace qds;

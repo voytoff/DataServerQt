@@ -14,4 +14,9 @@ private slots:
   void test_buffer_manager();
   void test_raw_memory();
 
+  void test_datasource_layout_contains();
+  void test_datasource_layout_reference();
+  void test_datasource_layout_unknownModule();
+  void test_datasource_layout_rebuild();
+
 };

@@ -17,7 +17,7 @@ private slots:
   //void test_dataSourceManager_withoutSources();
   //void test_dataSourceManager_withFakeSource();
 
-  // TODO перенестив tst_hardware, если тестов hardware станет много
+  // TODO перенести в tst_hardware, если тестов hardware станет много
   void test_hardwareFactory_createFake();
   void test_hardwareFactory_unknownType();
   void test_dataSourceFactory_registerType_create();
@@ -28,8 +28,13 @@ private slots:
 
   void test_datasource_manager();
   void test_datasource_fail_datasource();
+  void test_datasource_absent_datasource();
   void test_datasource_missing_datasource();
   void test_datasource_repeat_initialize();
   void test_datasource_acquire_repeat();
+  void test_datasource_empty_config();
+
+  void test_dataSourceManager_successInit();
+  void test_datasource_fail_repeat();
 
 };

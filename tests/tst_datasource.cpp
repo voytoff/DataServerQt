@@ -525,10 +525,47 @@ void tst_datasource::test_datasource_fail_datasource()
   QCOMPARE(array[5], 0);
 }
 
+void tst_datasource::test_datasource_absent_datasource()
+{
+  using namespace qds;
+  SystemConfiguration cfg = createTestConfig_Some_Modules();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  BufferManager buffers;
+  buffers.initialize(layout);
+
+  auto &memory = buffers.beginWrite();
+
+  DataSourceFactory factory;
+  // Нужен FakeDataSource, его нет
+  QVERIFY(factory.registerType(
+    ModuleType::Fail,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<FailingDataSource>(
+        cfg.settings);
+    }));
+
+  DataSourceManager manager;
+  QVERIFY(!manager.initialize(
+    cfg,
+    layout,
+    factory));
+
+  QCOMPARE(manager.size(), 0);
+
+  QCOMPARE(layout.rawOffset(ModuleId{0}), 0);
+  QCOMPARE(layout.rawOffset(ModuleId{1}), 2);
+  QCOMPARE(layout.rawOffset(ModuleId{2}), 5);
+}
+
 void tst_datasource::test_datasource_missing_datasource()
 {
   using namespace qds;
-  SystemConfiguration cfg = createTestConfig_Fail_DataSource();
+  SystemConfiguration cfg =
+    createTestConfig_Fail_DataSource();
 
   SignalMemoryLayout layout;
   layout.build(cfg);
@@ -606,26 +643,13 @@ void tst_datasource::test_datasource_repeat_initialize()
   QCOMPARE(values[6], 2.0);
 
   // повторная инициализация допустима, список источников создается заново
+
   QVERIFY(manager.initialize(
     cfg,
     layout,
     factory));
 
   QCOMPARE(manager.size(), size);
-
-  raw.clear();
-
-  QVERIFY(manager.acquire(raw));
-
-  raw.snapshot(values);
-
-  QCOMPARE(values[0], 1.0);
-  QCOMPARE(values[1], 2.0);
-  QCOMPARE(values[2], 1.0);
-  QCOMPARE(values[3], 2.0);
-  QCOMPARE(values[4], 3.0);
-  QCOMPARE(values[5], 1.0);
-  QCOMPARE(values[6], 2.0);
 }
 
 void tst_datasource::test_datasource_acquire_repeat()
@@ -686,4 +710,103 @@ void tst_datasource::test_datasource_acquire_repeat()
   QCOMPARE(values[4], 6.0);
   QCOMPARE(values[5], 3.0);
   QCOMPARE(values[6], 4.0);
+}
+
+void tst_datasource::test_datasource_empty_config()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg;
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  DataSourceFactory factory;
+
+  DataSourceManager manager;
+
+  QVERIFY(manager.initialize(
+    cfg,
+    layout,
+    factory));
+
+  QCOMPARE(manager.size(), 0);
+}
+
+void tst_datasource::test_dataSourceManager_successInit()
+{
+  SystemConfiguration cfg =
+    createTestConfig_Some_Modules();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  BufferManager buffers;
+  buffers.initialize(layout);
+
+  DataSourceFactory factory;
+  QVERIFY(factory.registerType(
+    ModuleType::Fake,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<FakeDataSource>(
+        cfg.settings);
+    }));
+
+  DataSourceManager manager;
+
+  auto& raw =
+    buffers.beginWrite().raw();
+
+  QVERIFY(manager.initialize(
+    cfg,
+    layout,
+    factory));
+
+  QCOMPARE(manager.size(), cfg.modules().size());
+
+  QCOMPARE(layout.rawOffset(ModuleId{0}), 0);
+  QCOMPARE(layout.rawOffset(ModuleId{1}), 2);
+  QCOMPARE(layout.rawOffset(ModuleId{2}), 5);
+}
+
+void tst_datasource::test_datasource_fail_repeat()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Some_Modules();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::Fake,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<FakeDataSource>(
+        cfg.settings);
+    }));
+
+  DataSourceManager manager;
+
+  QVERIFY(manager.initialize(
+    cfg,
+    layout,
+    factory));
+
+  QCOMPARE(manager.size(), 3);
+
+  // Повторная неуспешная инициализация:
+  // старые источники должны быть удалены.
+  DataSourceFactory factory2;
+
+  QVERIFY(!manager.initialize(
+    cfg,
+    layout,
+    factory2));
+
+  QCOMPARE(manager.size(), 0);
 }

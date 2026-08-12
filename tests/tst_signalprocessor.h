@@ -28,4 +28,6 @@ private slots:
   void test_calculationProcessor_failingFormula();
   void test_calculationProcessor_emptyCalculationPlan();
   void test_calculationProcessor_formulaContext();
+  void test_calculationCompiler_unknownSignalOutput();
+
 };

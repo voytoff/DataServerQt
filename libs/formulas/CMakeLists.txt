@@ -13,6 +13,8 @@ add_library(Formulas SHARED
   formulasqrt.h formulasqrt.cpp
   failingformula.h
   formulatest.h formulatest.cpp
+  parser/formulalexer.h parser/formulalexer.cpp
+  parser/formulatoken.h
 )
 
 target_include_directories(Formulas

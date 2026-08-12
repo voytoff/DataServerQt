@@ -527,3 +527,37 @@ void tst_signalprocessor::test_calculationProcessor_formulaContext()
   QCOMPARE(*context2.output, 123.45);
 
 }
+
+void tst_signalprocessor::test_calculationCompiler_unknownSignalOutput()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Copy_Add();
+
+  SystemConfiguration layoutCfg =
+    createTestConfig_Copy_Add_WithoutC();
+
+  SignalMemoryLayout layout;
+  layout.build(layoutCfg);
+
+  FormulaRepository repo;
+
+  QVERIFY(repo.add(
+    {0},
+    std::make_unique<FormulaCopy>()));
+
+  QVERIFY(repo.add(
+    {2},
+    std::make_unique<FormulaAdd>()));
+
+  CalculationCompiler compiler(
+    cfg,
+    layout,
+    repo);
+
+  CalculationPlan plan;
+
+  QVERIFY(!compiler.build(plan));
+  QCOMPARE(plan.size(), 0);
+}
