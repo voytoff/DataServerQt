@@ -2,11 +2,9 @@
 
 #include <QObject>
 #include <qtestcase.h>
-#include "calculationplan.h"
 #include "isender.h"
 #include "moduleinfo.h"
 #include "publisher.h"
-#include "signalmemorylayout.h"
 #include "subscriptionmanager.h"
 #include "livescheduler.h"
 #include "systemconfiguration.h"

@@ -224,7 +224,7 @@ void tst_engine::test_dataEngine_FailingCalculationProcessor()
 
   DataSourceFactory factory;
   QVERIFY(factory.registerType(
-    ModuleType::Fake,
+    ModuleType::Test,
     [](const ModuleConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
@@ -270,7 +270,7 @@ void tst_engine::test_dataEngine_FailingArchiveWriter()
 
   DataSourceFactory factory;
   QVERIFY(factory.registerType(
-    ModuleType::Fake,
+    ModuleType::Test,
     [](const ModuleConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(

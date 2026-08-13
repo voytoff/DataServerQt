@@ -1,5 +1,6 @@
 #include "tst_configuration.h"
 #include "systemconfiguration.h"
+#include "testsrv.h"
 #include <qtestcase.h>
 
 tst_configuration::tst_configuration() { }
@@ -472,4 +473,38 @@ void tst_configuration::test_configuration_orderIds()
   QCOMPARE(defs[0].id, SignalId{0});
   QCOMPARE(defs[1].id, SignalId{4});
   QCOMPARE(defs[2].id, SignalId{2});
+}
+
+void tst_configuration::test_configuration_findSignalDefinition()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg = createTestConfig_Copy_Add();
+
+  const auto* raw0 = cfg.findSignalDefinition("Raw0");
+  QVERIFY(raw0 != nullptr);
+  QCOMPARE(raw0->kind, SignalKind::Raw);
+  QCOMPARE(raw0->id, SignalId{0});
+
+  const auto *raw1 = cfg.findSignalDefinition("Raw1");
+  QVERIFY(raw1 != nullptr);
+  QCOMPARE(raw1->kind, SignalKind::Raw);
+  QCOMPARE(raw1->id, SignalId{1});
+
+  const auto *a = cfg.findSignalDefinition("A");
+  QVERIFY(a != nullptr);
+  QCOMPARE(a->kind, SignalKind::Calculated);
+  QCOMPARE(a->id, SignalId{2});
+
+  const auto *b = cfg.findSignalDefinition("B");
+  QVERIFY(b != nullptr);
+  QCOMPARE(b->kind, SignalKind::Calculated);
+  QCOMPARE(b->id, SignalId{3});
+
+  const auto *c = cfg.findSignalDefinition("C");
+  QVERIFY(c != nullptr);
+  QCOMPARE(c->kind, SignalKind::Calculated);
+  QCOMPARE(c->id, SignalId{4});
+
+  QVERIFY(cfg.findSignalDefinition("NONE") == nullptr);
 }

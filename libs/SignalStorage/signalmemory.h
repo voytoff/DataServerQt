@@ -10,8 +10,6 @@ namespace qds
 class SignalMemory
 {
 public:
-  // initialize() полностью пересоздает память.
-  // Старые значения уничтожаются.
   void initialize(uint32_t count) noexcept;
 
   [[nodiscard]]

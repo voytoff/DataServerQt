@@ -1164,9 +1164,13 @@ void tst_formulas::test_formulas_identifierResolverCalculated()
     root->type,
     FormulaNodeType::Add);
 
+  QVERIFY(root->left != nullptr);
+
   QCOMPARE(
     root->left->type,
     FormulaNodeType::Multiply);
+
+  QVERIFY(root->left->left != nullptr);
 
   QCOMPARE(
     root->left->left->type,
@@ -1177,8 +1181,10 @@ void tst_formulas::test_formulas_identifierResolverCalculated()
     SignalMemoryArea::Raw);
 
   QCOMPARE(
-    root->left->left->signal.index,
+    root->left->left->signal.index, // Raw0
     0u);
+
+  QVERIFY(root->left->right != nullptr);
 
   QCOMPARE(
     root->left->right->type,
@@ -1189,11 +1195,40 @@ void tst_formulas::test_formulas_identifierResolverCalculated()
     SignalMemoryArea::Calculated);
 
   QCOMPARE(
-    root->left->right->signal.index,
+    root->left->right->signal.index, // B
     1u);
+
+  QVERIFY(root->right != nullptr);
 
   QCOMPARE(
     root->right->type,
     FormulaNodeType::Add);
 
+  QVERIFY(root->right->left != nullptr);
+
+  QCOMPARE(
+    root->right->left->type,
+    FormulaNodeType::Signal);
+
+  QCOMPARE(
+    root->right->left->signal.area,
+    SignalMemoryArea::Calculated);
+
+  QCOMPARE(
+    root->right->left->signal.index, // A
+    0u);
+
+  QVERIFY(root->right->right != nullptr);
+
+  QCOMPARE(
+    root->right->right->type,
+    FormulaNodeType::Signal);
+
+  QCOMPARE(
+    root->right->right->signal.area,
+    SignalMemoryArea::Calculated);
+
+  QCOMPARE(
+    root->right->right->signal.index, // C
+    2u);
 }
