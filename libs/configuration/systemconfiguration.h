@@ -1,6 +1,7 @@
 #pragma once
 
-#include<strongidhash.h>
+#include <string_view>
+#include <strongidhash.h>
 #include <vector>
 #include "taginfo.h"
 #include "moduleinfo.h"
@@ -72,6 +73,9 @@ public:
   bool containsSignalDefinition(SignalId id) const;
   [[nodiscard]]
   const SignalDefinition* findSignalDefinition(SignalId id) const;
+
+  [[nodiscard]]
+  const SignalDefinition* findSignalDefinition(std::string_view name) const;
 
   [[nodiscard]]
   uint32_t moduleChannelCount(ModuleId id) const;

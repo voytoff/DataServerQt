@@ -102,7 +102,7 @@ FormulaToken FormulaLexer::next()
     };
   }
 
-  // Односимвольные операторы
+  // Односимвольные токены
   ++m_position;
 
   switch (ch)
@@ -141,6 +141,12 @@ FormulaToken FormulaLexer::next()
     return {
       .type = FormulaTokenType::RightParen,
       .text = ")"
+    };
+
+  case ',':
+    return {
+      .type = FormulaTokenType::Comma,
+      .text = ","
     };
 
   default:

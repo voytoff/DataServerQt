@@ -207,7 +207,7 @@ void tst_configuration::test_configuration_signalDefinitions()
   auto &defs = cfg.signalDefinitions();
   QCOMPARE(defs.size(), 5);
 
-  auto def0 = cfg.findSignalDefinition({0});
+  auto def0 = cfg.findSignalDefinition(SignalId{0});
   QVERIFY(def0 != nullptr);
   QCOMPARE(def0->id.value, 0);
   QCOMPARE(def0->kind, SignalKind::Raw);
@@ -252,7 +252,7 @@ void tst_configuration::test_configuration_empty()
   QVERIFY(cfg.findTag({0}) == nullptr);
 
   QVERIFY(!cfg.containsSignalDefinition({0}));
-  QVERIFY(cfg.findSignalDefinition({0}) == nullptr);
+  QVERIFY(cfg.findSignalDefinition(SignalId{0}) == nullptr);
 }
 
 void tst_configuration::test_configuration_sparseTagIds()

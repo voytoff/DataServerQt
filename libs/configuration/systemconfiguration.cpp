@@ -1,5 +1,6 @@
-#include "systemconfiguration.h"
+#include <algorithm>
 #include <cassert>
+#include "systemconfiguration.h"
 
 namespace qds
 {
@@ -104,6 +105,9 @@ bool SystemConfiguration::addSignalDefinition(
   if (definition.kind == SignalKind::Raw && !containsTag(definition.source.tag))
     return false; // отсутствует источник
 
+  if (findSignalDefinition(definition.name) != nullptr)
+    return false; // дублирование имени
+
   auto id = definition.id.value;
 
   if (id >= m_signalDefinitionExists.size())
@@ -149,6 +153,24 @@ uint32_t SystemConfiguration::moduleChannelCount(
 {
   return static_cast<uint32_t>(
     moduleTags(id).size());
+}
+
+const SignalDefinition*
+SystemConfiguration::findSignalDefinition(
+  std::string_view name) const
+{
+  auto it = std::find_if(
+    m_signalDefinitions.begin(),
+    m_signalDefinitions.end(),
+    [name](const SignalDefinition& definition)
+    {
+      return definition.name == name;
+    });
+
+  if (it == m_signalDefinitions.end())
+    return nullptr;
+
+  return &(*it);
 }
 
 bool SystemConfiguration::containsSignalDefinition(

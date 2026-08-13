@@ -6,16 +6,19 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(Formulas SHARED
   iformula.h
-  formularepository.h formularepository.cpp
+    formularepository.h formularepository.cpp
   formulacopy.cpp formulacopy.h
   formulaadd.h formulaadd.cpp
   formulacontext.h
   formulasqrt.h formulasqrt.cpp
   failingformula.h
   formulatest.h formulatest.cpp
-  parser/formulalexer.h parser/formulalexer.cpp
+  parser/formulanode.h
   parser/formulatoken.h
+  parser/formulalexer.h parser/formulalexer.cpp
   parser/formulaparser.h parser/formulaparser.cpp
+  parser/identifierresolver.h parser/identifierresolver.cpp
+  parser/formulaevaluator.h parser/formulaevaluator.cpp
 )
 
 target_include_directories(Formulas

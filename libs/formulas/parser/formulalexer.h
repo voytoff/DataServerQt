@@ -1,6 +1,6 @@
 #pragma once
 
-#include "parser/formulatoken.h"
+#include "formulatoken.h"
 
 namespace qds
 {

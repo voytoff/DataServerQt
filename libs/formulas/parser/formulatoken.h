@@ -18,11 +18,11 @@ enum class FormulaTokenType
 
   LeftParen,
   RightParen,
+  Comma,
 
   End,
   Invalid
 };
-
 
 struct FormulaToken
 {

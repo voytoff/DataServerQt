@@ -11,13 +11,15 @@ bool FormulaAdd::execute(FormulaContext& ctx) const noexcept
   if (ctx.inputs.empty())
     return false;
 
-  if (ctx.inputs.size() < 1)
-    return false;
-
   double sum = 0.0;
 
-  for (size_t i = 0; i < ctx.inputs.size(); ++i)
-    sum += *ctx.inputs[i];
+  for (double* input : ctx.inputs)
+  {
+    if (input == nullptr)
+      return false;
+
+    sum += *input;
+  }
 
   *ctx.output = sum;
 
