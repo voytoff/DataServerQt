@@ -10,14 +10,6 @@ public:
   ~tst_archivewriter() override;
 
 private slots:
-  /*
-    create/open
-    write один record
-    write несколько records
-    проверить lastTimestamp
-    проверить recordCount (его мы еще добавим в header)
-    проверить чтение через будущий ArchiveReader
-   */
   void test_archivewriter_create_open();
   void test_archivewriter_writeOneRecord();
   void test_archivewriter_writeSomeRecords();

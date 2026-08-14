@@ -90,6 +90,13 @@ private slots:
   void test_formulas_functionRepository_nesteFunctions();
 
   void test_calculationOrder_base();
+  void test_calculationOrder_cba();
+
+  void test_calculationOrder_cycle();
+  void test_calculationOrder_selfReference();
+
+  void test_calculationOrder_chain();
+  void test_calculationOrder_serious();
 
 };
 

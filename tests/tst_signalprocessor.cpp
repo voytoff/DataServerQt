@@ -220,7 +220,7 @@ void tst_signalprocessor::test_calculation_independent()
 void tst_signalprocessor::test_calculation_cycle()
 {
   using namespace qds;
-  SystemConfiguration cfg = createTestConfig07();
+  SystemConfiguration cfg = createTestConfig_cycle();
   SignalMemoryLayout layout;
   layout.build(cfg);
 
@@ -238,7 +238,7 @@ void tst_signalprocessor::test_calculation_cycle()
 void tst_signalprocessor::test_calculation_selfReference()
 {
   using namespace qds;
-  SystemConfiguration cfg = createTestConfig08();
+  SystemConfiguration cfg = createTestConfig_selfReference();
   SignalMemoryLayout layout;
   layout.build(cfg);
 

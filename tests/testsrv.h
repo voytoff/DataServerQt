@@ -54,7 +54,7 @@ static std::unique_ptr<FormulaFunctionRepository> createFormulaFunctionRepositor
   return std::make_unique<FormulaFunctionRepository>(std::move(functions));
 }
 
-static SystemConfiguration createTestConfig(const qds::TagId* tags, int tagCount) {
+static SystemConfiguration createTestConfig(const TagId* tags, int tagCount) {
   using namespace qds;
   // создаем конфигурацию
   SystemConfiguration cfg;
@@ -96,7 +96,7 @@ static SystemConfiguration createTestConfig(const std::vector<std::vector<TagId>
   return cfg;
 }
 
-static qds::SystemConfiguration createTestConfig00() {
+static SystemConfiguration createTestConfig00() {
   using namespace qds;
   SystemConfiguration cfg;
 
@@ -124,12 +124,12 @@ static qds::SystemConfiguration createTestConfig00() {
   return cfg;
 }
 
-static qds::SystemConfiguration createTestConfig01()
+static SystemConfiguration createTestConfig01()
 {
   using namespace qds;
   SystemConfiguration cfg;
 
-  qds::ModuleInfo m{0};
+  ModuleInfo m{0};
   cfg.addModule(m);
 
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
@@ -157,7 +157,7 @@ Raw1 → B
 
 A B → C
  */
-static qds::SystemConfiguration createTestConfig02()
+static SystemConfiguration createTestConfig02()
 {
   using namespace qds;
   SystemConfiguration cfg;
@@ -186,7 +186,7 @@ static qds::SystemConfiguration createTestConfig02()
   return cfg;
 }
 
-static qds::SystemConfiguration createTestConfig03()
+static SystemConfiguration createTestConfig03()
 {
   using namespace qds;
   SystemConfiguration cfg;
@@ -228,7 +228,7 @@ A
 B
 C
  */
-static qds::SystemConfiguration createTestConfig04()
+static SystemConfiguration createTestConfig04()
 {
   using namespace qds;
   SystemConfiguration cfg;
@@ -266,7 +266,7 @@ B
 A
 C
  */
-static qds::SystemConfiguration createTestConfig05()
+static SystemConfiguration createTestConfig05()
 {
   using namespace qds;
   SystemConfiguration cfg;
@@ -300,7 +300,7 @@ Raw → B
 Raw → C
 =
  */
-static qds::SystemConfiguration createTestConfig06()
+static SystemConfiguration createTestConfig06()
 {
   using namespace qds;
   SystemConfiguration cfg;
@@ -325,9 +325,10 @@ static qds::SystemConfiguration createTestConfig06()
 
 /** cycle
 A → B
-B → A
+B → C
+C → A
  */
-static qds::SystemConfiguration createTestConfig07()
+static SystemConfiguration createTestConfig_cycle()
 {
   using namespace qds;
   SystemConfiguration cfg;
@@ -342,9 +343,9 @@ static qds::SystemConfiguration createTestConfig07()
 
   SignalDefinition sd1 {.id = {10}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{7}}};
   cfg.addSignalDefinition(sd1);
-  SignalDefinition sd2 {.id = {7}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{10}}};
+  SignalDefinition sd2 {.id = {7}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{4}}};
   cfg.addSignalDefinition(sd2);
-  SignalDefinition sd3 {.id = {4}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{0}}};
+  SignalDefinition sd3 {.id = {4}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{10}}};
   cfg.addSignalDefinition(sd3);
 
   return cfg;
@@ -353,7 +354,7 @@ static qds::SystemConfiguration createTestConfig07()
 /** selfReference
   B → B
 */
-static qds::SystemConfiguration createTestConfig08()
+static SystemConfiguration createTestConfig_selfReference()
 {
   using namespace qds;
   SystemConfiguration cfg;
@@ -387,7 +388,7 @@ C → D
 
 B,D → E
  */
-static qds::SystemConfiguration createTestConfig09()
+static SystemConfiguration createTestConfig09()
 {
   using namespace qds;
   SystemConfiguration cfg;
@@ -428,7 +429,7 @@ Raw1 → B
 C -> A + B
  =
  */
-static qds::SystemConfiguration createTestConfig_Copy_Add(ModuleType type = ModuleType::Unknown)
+static SystemConfiguration createTestConfig_Copy_Add(ModuleType type = ModuleType::Unknown)
 {
   using namespace qds;
   SystemConfiguration cfg;
@@ -457,7 +458,7 @@ static qds::SystemConfiguration createTestConfig_Copy_Add(ModuleType type = Modu
   return cfg;
 }
 
-static qds::SystemConfiguration createTestConfig_Copy_Add_WithoutC()
+static SystemConfiguration createTestConfig_Copy_Add_WithoutC()
 {
   using namespace qds;
 
@@ -506,7 +507,7 @@ static qds::SystemConfiguration createTestConfig_Copy_Add_WithoutC()
   return cfg;
 }
 
-static qds::SystemConfiguration createTestConfig_Some_Modules()
+static SystemConfiguration createTestConfig_Some_Modules()
 {
   using namespace qds;
   SystemConfiguration cfg;
@@ -556,7 +557,7 @@ static qds::SystemConfiguration createTestConfig_Some_Modules()
   return cfg;
 }
 
-static qds::SystemConfiguration createTestConfig_Fail_ModuleType()
+static SystemConfiguration createTestConfig_Fail_ModuleType()
 {
   using namespace qds;
   SystemConfiguration cfg;
@@ -597,7 +598,7 @@ static qds::SystemConfiguration createTestConfig_Fail_ModuleType()
   return cfg;
 }
 
-static qds::SystemConfiguration createTestConfig_Fail_DataSource()
+static SystemConfiguration createTestConfig_Fail_DataSource()
 {
   using namespace qds;
   SystemConfiguration cfg;
@@ -638,7 +639,7 @@ static qds::SystemConfiguration createTestConfig_Fail_DataSource()
   return cfg;
 }
 
-static qds::SystemConfiguration createTestConfigUnknownDependency()
+static SystemConfiguration createTestConfigUnknownDependency()
 {
   using namespace qds;
   SystemConfiguration cfg;

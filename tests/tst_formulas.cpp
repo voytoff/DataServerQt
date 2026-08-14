@@ -2300,3 +2300,209 @@ void tst_formulas::test_calculationOrder_base()
   QCOMPARE(order.order()[1], SignalId{3}); // B
   QCOMPARE(order.order()[2], SignalId{4}); // C
 }
+
+void tst_formulas::test_calculationOrder_cba()
+{
+  using namespace qds;
+  SystemConfiguration cfg;
+
+  ModuleInfo m{.id = {0}, .type = ModuleType::LCard};
+  cfg.addModule(m);
+
+  cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
+  cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}});
+
+  cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100});
+
+  cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 10});
+
+  cfg.addSignalDefinition({.id = {2}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{5}, {3}}});
+
+  cfg.addSignalDefinition({.id = {5}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .calibrationId = {1}, .dependencies = {{1}}});
+
+  cfg.addSignalDefinition({.id = {3}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {2}, .dependencies = {{0}}});
+
+  CalculationOrder co;
+
+  QVERIFY(co.build(cfg));
+
+  QCOMPARE(co.order().size(), std::size_t(3));
+
+  auto order = co.order();
+
+  auto posA =
+    std::find(order.begin(), order.end(), SignalId{2});
+
+  auto posB =
+    std::find(order.begin(), order.end(), SignalId{5});
+
+  auto posC =
+    std::find(order.begin(), order.end(), SignalId{3});
+
+  QVERIFY(posA != order.end());
+  QVERIFY(posB != order.end());
+  QVERIFY(posC != order.end());
+
+  QVERIFY(posC < posA);
+  QVERIFY(posB < posA);
+}
+
+void tst_formulas::test_calculationOrder_cycle()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_cycle(); // A → B; B → C; C → A
+
+  CalculationOrder order;
+
+  QVERIFY(!order.build(cfg));
+
+  QCOMPARE(order.order().size(), std::size_t(0));
+}
+
+void tst_formulas::test_calculationOrder_selfReference()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_selfReference(); // B → B
+
+  CalculationOrder order;
+
+  QVERIFY(!order.build(cfg));
+
+  QCOMPARE(order.order().size(), std::size_t(0));
+}
+
+void tst_formulas::test_calculationOrder_chain()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg; // A → B → C → Raw0
+
+  ModuleInfo m{
+    .id = {0},
+    .type = ModuleType::LCard
+  };
+
+  cfg.addModule(m);
+
+  cfg.addTag({
+    .tag = {0},
+    .module = {0},
+    .channel = {0}
+  });
+
+  cfg.addSignalDefinition({
+    .id = {0},
+    .name = "Raw0",
+    .kind = SignalKind::Raw,
+    .source = {0},
+    .archiveFrequency = 100
+  });
+
+  // A -> B -> C -> Raw0
+  cfg.addSignalDefinition({
+    .id = {2},
+    .name = "A",
+    .kind = SignalKind::Calculated,
+    .archiveFrequency = 100,
+    .dependencies = {{5}}
+  });
+
+  cfg.addSignalDefinition({
+    .id = {5},
+    .name = "B",
+    .kind = SignalKind::Calculated,
+    .archiveFrequency = 100,
+    .dependencies = {{3}}
+  });
+
+  cfg.addSignalDefinition({
+    .id = {3},
+    .name = "C",
+    .kind = SignalKind::Calculated,
+    .archiveFrequency = 100,
+    .dependencies = {{0}}
+  });
+
+  CalculationOrder order;
+
+  QVERIFY(order.build(cfg));
+
+  QCOMPARE(
+    order.order().size(),
+    std::size_t(3));
+
+  const auto& result = order.order();
+
+  auto posA =
+    std::find(
+      result.begin(),
+      result.end(),
+      SignalId{2});
+
+  auto posB =
+    std::find(
+      result.begin(),
+      result.end(),
+      SignalId{5});
+
+  auto posC =
+    std::find(
+      result.begin(),
+      result.end(),
+      SignalId{3});
+
+  QVERIFY(posA != result.end());
+  QVERIFY(posB != result.end());
+  QVERIFY(posC != result.end());
+
+  QVERIFY(posC < posB);
+  QVERIFY(posB < posA);
+}
+
+void tst_formulas::test_calculationOrder_serious()
+{
+  using namespace qds;
+  SystemConfiguration cfg;
+
+  ModuleInfo m{0};
+  cfg.addModule(m);
+
+  cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
+  cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}});
+
+  cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 1000});
+  cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 100});
+
+  cfg.addSignalDefinition({.id = {7}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{0}}}); // Raw0
+
+  cfg.addSignalDefinition({.id = {4}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}, .dependencies = {{1}}});  // Raw1
+
+  cfg.addSignalDefinition({.id = {11}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}, .dependencies = {{7}}}); // A
+
+  cfg.addSignalDefinition({.id = {14}, .name = "D", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}, .dependencies = {{0}}}); // Raw0
+
+  CalculationOrder co;
+
+  QVERIFY(co.build(cfg));
+
+  QCOMPARE(
+    co.order().size(),
+    std::size_t(4));
+
+  auto order = co.order();
+
+  auto posA =
+    std::find(order.begin(), order.end(), SignalId{7});
+
+  auto posC =
+    std::find(order.begin(), order.end(), SignalId{11});
+
+  QVERIFY(posA != order.end());
+  QVERIFY(posC != order.end());
+
+  QVERIFY(posA < posC);
+}
