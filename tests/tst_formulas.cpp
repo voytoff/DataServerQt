@@ -1,7 +1,11 @@
 #include "tst_formulas.h"
+#include "calculationorder.h"
+#include "parser/formulaevaluator.h"
+#include "formulafunctionsqrt.h"
 #include "parser/formulalexer.h"
 #include "parser/formulaparser.h"
 #include "parser/identifierresolver.h"
+#include "signalmemory.h"
 #include "testsrv.h"
 #include <QtTest/qtestcase.h>
 
@@ -1231,4 +1235,1068 @@ void tst_formulas::test_formulas_identifierResolverCalculated()
   QCOMPARE(
     root->right->right->signal.index, // C
     2u);
+}
+
+void tst_formulas::test_formulas_evaluator_number()
+{
+  using namespace qds;
+
+  FormulaParser parser("42.5");
+
+  auto root = parser.parse();
+
+  QVERIFY(root != nullptr);
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(0);
+  calculated.initialize(0);
+
+  FormulaFunctionRepository functions;
+  FormulaEvaluator evaluator(functions);
+
+  double result = 0.0;
+
+  QVERIFY(evaluator.evaluate(
+    *root,
+    raw,
+    calculated,
+    result));
+
+  QCOMPARE(result, 42.5);
+}
+
+void tst_formulas::test_formulas_evaluator_raw0()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Copy_Add();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FormulaParser parser("Raw0");
+
+  auto root = parser.parse();
+
+  QVERIFY(root != nullptr);
+
+  IdentifierResolver resolver(
+    cfg,
+    layout);
+
+  QVERIFY(resolver.resolve(*root));
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(layout.rawSignalCount());
+
+  raw.setValue(0, 12.34);       // Raw0
+
+  FormulaFunctionRepository functions;
+  FormulaEvaluator evaluator(functions);
+
+  double result = 0.0;
+
+  QVERIFY(evaluator.evaluate(
+    *root,
+    raw,
+    calculated,
+    result));
+
+  QCOMPARE(result, 12.34);
+}
+
+void tst_formulas::test_formulas_evaluator_raw0AndRaw1()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Copy_Add();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FormulaParser parser("Raw0 + Raw1");
+
+  auto root = parser.parse();
+
+  QVERIFY(root != nullptr);
+
+  IdentifierResolver resolver(
+    cfg,
+    layout);
+
+  QVERIFY(resolver.resolve(*root));
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(layout.rawSignalCount());
+
+  raw.setValue(0, 15.0);       // Raw0
+  raw.setValue(1, 30.0);       // Raw1
+
+  FormulaFunctionRepository functions;
+  FormulaEvaluator evaluator(functions);
+
+  double result = 0.0;
+
+  QVERIFY(evaluator.evaluate(
+    *root,
+    raw,
+    calculated,
+    result));
+
+  QCOMPARE(result, 45.0);
+}
+
+void tst_formulas::test_formulaEvaluator_base()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Copy_Add();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FormulaParser parser(
+    "Raw0 * B + (A + C)");
+
+  auto root = parser.parse();
+
+  QVERIFY(root != nullptr);
+
+  IdentifierResolver resolver(
+    cfg,
+    layout);
+
+  QVERIFY(resolver.resolve(*root));
+
+  RawMemory raw;
+  raw.initialize(layout.rawSignalCount());
+
+  CalculatedMemory calculated;
+  calculated.initialize(layout.calculatedSignalCount());
+
+  raw.setValue(0, 2.0);       // Raw0
+
+  calculated.setValue(0, 10.0); // A
+  calculated.setValue(1, 20.0); // B
+  calculated.setValue(2, 30.0); // C
+
+  FormulaFunctionRepository functions;
+  FormulaEvaluator evaluator(functions);
+
+  double result = 0.0;
+
+  QVERIFY(
+    evaluator.evaluate(
+      *root,
+      raw,
+      calculated,
+      result));
+
+  QCOMPARE(result, 80.0);
+}
+
+void tst_formulas::test_formulas_evaluator_divideByZero()
+{
+  using namespace qds;
+
+  FormulaParser parser("Raw0 / Raw1");
+
+  auto root = parser.parse();
+  QVERIFY(root != nullptr);
+
+  SystemConfiguration cfg =
+    createTestConfig_Copy_Add();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  IdentifierResolver resolver(cfg, layout);
+  QVERIFY(resolver.resolve(*root));
+
+  RawMemory raw;
+  raw.initialize(layout.rawSignalCount());
+
+  raw.setValue(0, 10.0);
+  raw.setValue(1, 0.0);
+
+  CalculatedMemory calculated;
+  calculated.initialize(layout.calculatedSignalCount());
+
+  FormulaFunctionRepository functions;
+  FormulaEvaluator evaluator(functions);
+
+  double result = 123.0;
+
+  QVERIFY(!evaluator.evaluate(
+    *root,
+    raw,
+    calculated,
+    result));
+
+  QCOMPARE(result, 123.0);
+}
+
+void tst_formulas::test_formulas_evaluator_failSignalReference()
+{
+  using namespace qds;
+
+  FormulaParser parser("Raw0 + A");
+
+  auto root = parser.parse();
+  QVERIFY(root != nullptr);
+
+  SystemConfiguration cfg =
+    createTestConfig_Copy_Add();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  IdentifierResolver resolver(cfg, layout);
+  QVERIFY(resolver.resolve(*root));
+
+  RawMemory raw;
+  raw.initialize(layout.rawSignalCount());
+
+  raw.setValue(0, 10.0);
+
+  CalculatedMemory calculated;
+  calculated.initialize(layout.calculatedSignalCount());
+
+  calculated.setValue(0, 20.0);
+
+  QCOMPARE(root->right->type, FormulaNodeType::Signal);
+  root->right->signal.index = 1000;
+
+  FormulaFunctionRepository functions;
+  FormulaEvaluator evaluator(functions);
+
+  double result = 123.0;
+
+  QVERIFY(!evaluator.evaluate(
+    *root,
+    raw,
+    calculated,
+    result));
+
+  QCOMPARE(result, 123.0);
+}
+
+void tst_formulas::test_formulas_evaluator_subtract()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Copy_Add();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FormulaParser parser("Raw1 - Raw0 - 5.0");
+
+  auto root = parser.parse();
+
+  QVERIFY(root != nullptr);
+
+  IdentifierResolver resolver(
+    cfg,
+    layout);
+
+  QVERIFY(resolver.resolve(*root));
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(layout.rawSignalCount());
+
+  raw.setValue(0, 15.0);       // Raw0
+  raw.setValue(1, 30.0);       // Raw1
+
+  FormulaFunctionRepository functions;
+  FormulaEvaluator evaluator(functions);
+
+  double result = 0.0;
+
+  QVERIFY(evaluator.evaluate(
+    *root,
+    raw,
+    calculated,
+    result));
+
+  QCOMPARE(result, 10.0);
+}
+
+void tst_formulas::test_formulas_evaluator_multiply()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Copy_Add();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FormulaParser parser("Raw1 * B * 2.0");
+
+  auto root = parser.parse();
+
+  QVERIFY(root != nullptr);
+
+  IdentifierResolver resolver(
+    cfg,
+    layout);
+
+  QVERIFY(resolver.resolve(*root));
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.rawSignalCount());
+
+  raw.setValue(1, 3.0);         // Raw1
+  calculated.setValue(1, 7.0);  // B
+
+  FormulaFunctionRepository functions;
+  FormulaEvaluator evaluator(functions);
+
+  double result = 0.0;
+
+  QVERIFY(evaluator.evaluate(
+    *root,
+    raw,
+    calculated,
+    result));
+
+  QCOMPARE(result, 42.0);
+}
+
+void tst_formulas::test_formulas_evaluator_negate()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Copy_Add();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FormulaParser parser("-C");
+
+  auto root = parser.parse();
+
+  QVERIFY(root != nullptr);
+
+  IdentifierResolver resolver(
+    cfg,
+    layout);
+
+  QVERIFY(resolver.resolve(*root));
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  calculated.initialize(layout.calculatedSignalCount());
+
+  calculated.setValue(2, -112.0);  // C
+
+  FormulaFunctionRepository functions;
+  FormulaEvaluator evaluator(functions);
+
+  double result = 0.0;
+
+  QVERIFY(evaluator.evaluate(
+    *root,
+    raw,
+    calculated,
+    result));
+
+  QCOMPARE(result, 112.0);
+}
+
+void tst_formulas::test_formulas_evaluator_formulaFunctionRepository()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Copy_Add();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FormulaParser parser("sqrt(Raw0 * 4)");
+
+  auto root = parser.parse();
+  QVERIFY(root != nullptr);
+
+  IdentifierResolver resolver(cfg, layout);
+  QVERIFY(resolver.resolve(*root));
+
+  FormulaFunctionRepository functions;
+
+  QVERIFY(functions.add(
+    "sqrt",
+    std::make_unique<FormulaFunctionSqrt>()));
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(layout.rawSignalCount());
+  raw.setValue(0, 4.0);       // Raw0
+
+  FormulaEvaluator evaluator(functions);
+
+  double result = 0.0;
+
+  QVERIFY(evaluator.evaluate(
+    *root,
+    raw,
+    calculated,
+    result));
+
+  QCOMPARE(result, 4.0);
+}
+
+void tst_formulas::test_formulas_formulaFunctionRepository_uniqueNames()
+{
+  FormulaFunctionRepository functions;
+
+  QVERIFY(functions.add(
+    "sqrt",
+    std::make_unique<FormulaFunctionSqrt>()));
+
+  QVERIFY(!functions.add(
+    "sqrt",
+    std::make_unique<FormulaFunctionSqrt>()));
+}
+
+void tst_formulas::test_formulas_formulaFunctionRepository_find()
+{
+  FormulaFunctionRepository functions;
+
+  QVERIFY(functions.add(
+    "sqrt",
+    std::make_unique<FormulaFunctionSqrt>()));
+
+  QVERIFY(functions.find("sqrt") != nullptr);
+
+  QVERIFY(functions.find("unknown") == nullptr);
+}
+
+void tst_formulas::test_formulas_formulaFunctionRepository_clear()
+{
+  FormulaFunctionRepository functions;
+
+  QVERIFY(functions.add(
+    "sqrt",
+    std::make_unique<FormulaFunctionSqrt>()));
+
+  QCOMPARE(functions.size(), std::size_t(1));
+  QVERIFY(functions.find("sqrt") != nullptr);
+
+  functions.clear();
+
+  QCOMPARE(functions.size(), std::size_t(0));
+  QVERIFY(functions.find("sqrt") == nullptr);
+}
+
+void tst_formulas::test_formulas_functionCall_unknown()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Copy_Add();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FormulaParser parser("unknown(Raw0 * 4)");
+
+  auto root = parser.parse();
+  QVERIFY(root != nullptr);
+
+  IdentifierResolver resolver(cfg, layout);
+  QVERIFY(resolver.resolve(*root));
+
+  FormulaFunctionRepository functions;
+
+  QVERIFY(functions.add(
+    "sqrt",
+    std::make_unique<FormulaFunctionSqrt>()));
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  FormulaEvaluator evaluator(functions);
+
+  double result = 123.0;
+
+  QVERIFY(!evaluator.evaluate( // if (function == nullptr) return false;
+    *root,
+    raw,
+    calculated,
+    result));
+
+  QCOMPARE(result, 123.0);
+}
+
+void tst_formulas::test_formulas_functionCall_missingParams()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Copy_Add();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FormulaParser parser("sqrt()");
+
+  auto root = parser.parse();
+  QVERIFY(root != nullptr);
+
+  IdentifierResolver resolver(cfg, layout);
+  QVERIFY(resolver.resolve(*root));
+
+  FormulaFunctionRepository functions;
+
+  QVERIFY(functions.add(
+    "sqrt",
+    std::make_unique<FormulaFunctionSqrt>()));
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  FormulaEvaluator evaluator(functions);
+
+  double result = 123.0;
+
+  QVERIFY(!evaluator.evaluate( // if (arguments.size() != 1) return false;
+    *root,
+    raw,
+    calculated,
+    result));
+
+  QCOMPARE(result, 123.0);
+}
+
+void tst_formulas::test_formulas_functionCall_failCountParams()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Copy_Add();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FormulaParser parser("sqrt(1, 2)");
+
+  auto root = parser.parse();
+  QVERIFY(root != nullptr);
+
+  IdentifierResolver resolver(cfg, layout);
+  QVERIFY(resolver.resolve(*root));
+
+  FormulaFunctionRepository functions;
+
+  QVERIFY(functions.add(
+    "sqrt",
+    std::make_unique<FormulaFunctionSqrt>()));
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  FormulaEvaluator evaluator(functions);
+
+  double result = 123.0;
+
+  QVERIFY(!evaluator.evaluate( // if (arguments.size() != 1) return false;
+    *root,
+    raw,
+    calculated,
+    result));
+
+  QCOMPARE(result, 123.0);
+}
+
+void tst_formulas::test_formulas_functionCall_failValueParams()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Copy_Add();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FormulaParser parser("sqrt(-1)");
+
+  auto root = parser.parse();
+  QVERIFY(root != nullptr);
+
+  IdentifierResolver resolver(cfg, layout);
+  QVERIFY(resolver.resolve(*root));
+
+  FormulaFunctionRepository functions;
+
+  QVERIFY(functions.add(
+    "sqrt",
+    std::make_unique<FormulaFunctionSqrt>()));
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  FormulaEvaluator evaluator(functions);
+
+  double result = 123.0;
+
+  QVERIFY(!evaluator.evaluate( // для sqrt - if (arguments[0] < 0.0) return false;
+    *root,
+    raw,
+    calculated,
+    result));
+
+  QCOMPARE(result, 123.0);
+}
+
+void tst_formulas::test_formulas_functionRepository_invalidAdd()
+{
+  using namespace qds;
+
+  FormulaFunctionRepository functions;
+
+  QVERIFY(!functions.add(
+    "",
+    std::make_unique<FormulaFunctionSqrt>()));
+
+  QVERIFY(!functions.add(
+    "sqrt",
+    nullptr));
+
+  QCOMPARE(
+    functions.size(),
+    std::size_t(0));
+}
+
+void tst_formulas::test_formulas_functionCall_sqrtSignal()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Copy_Add();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FormulaParser parser("sqrt(Raw0)");
+
+  auto root = parser.parse();
+  QVERIFY(root != nullptr);
+
+  IdentifierResolver resolver(cfg, layout);
+  QVERIFY(resolver.resolve(*root));
+
+  FormulaFunctionRepository functions;
+
+  QVERIFY(functions.add(
+    "sqrt",
+    std::make_unique<FormulaFunctionSqrt>()));
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.calculatedSignalCount());
+
+  raw.setValue(0, 16.0);
+
+  FormulaEvaluator evaluator(functions);
+
+  double result = 0.0;
+
+  QVERIFY(evaluator.evaluate(
+    *root,
+    raw,
+    calculated,
+    result));
+
+  QCOMPARE(result, 4.0);
+}
+
+void tst_formulas::test_formulas_functionRepository_abs_negate()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Copy_Add();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FormulaParser parser("abs(-Raw0)");
+
+  auto root = parser.parse();
+  QVERIFY(root != nullptr);
+
+  IdentifierResolver resolver(cfg, layout);
+  QVERIFY(resolver.resolve(*root));
+
+  FormulaFunctionRepository functions;
+
+  QVERIFY(functions.add(
+    "abs",
+    std::make_unique<FormulaFunctionAbs>()));
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.calculatedSignalCount());
+
+  raw.setValue(0, -25.0);
+
+  FormulaEvaluator evaluator(functions);
+
+  double result = 0.0;
+
+  QVERIFY(evaluator.evaluate(
+    *root,
+    raw,
+    calculated,
+    result));
+
+  QCOMPARE(result, 25.0);
+}
+
+void tst_formulas::test_formulas_functionRepository_max()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Copy_Add();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FormulaParser parser("max(Raw0, Raw1, 7)");
+
+  auto root = parser.parse();
+  QVERIFY(root != nullptr);
+
+  IdentifierResolver resolver(cfg, layout);
+  QVERIFY(resolver.resolve(*root));
+
+  FormulaFunctionRepository functions;
+
+  QVERIFY(functions.add(
+    "max",
+    std::make_unique<FormulaFunctionMax>()));
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.calculatedSignalCount());
+
+  raw.setValue(0, 10.0);
+  raw.setValue(1, 20.0);
+
+  FormulaEvaluator evaluator(functions);
+
+  double result = 0.0;
+
+  QVERIFY(evaluator.evaluate(
+    *root,
+    raw,
+    calculated,
+    result));
+
+  QCOMPARE(result, 20.0);
+}
+
+void tst_formulas::test_formulas_functionRepository_min()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Copy_Add();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FormulaParser parser("min(Raw0, 7, Raw1)");
+
+  auto root = parser.parse();
+  QVERIFY(root != nullptr);
+
+  IdentifierResolver resolver(cfg, layout);
+  QVERIFY(resolver.resolve(*root));
+
+  FormulaFunctionRepository functions;
+
+  QVERIFY(functions.add(
+    "min",
+    std::make_unique<FormulaFunctionMin>()));
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.calculatedSignalCount());
+
+  raw.setValue(0, 10.0);
+  raw.setValue(1, 20.0);
+
+  FormulaEvaluator evaluator(functions);
+
+  double result = 0.0;
+
+  QVERIFY(evaluator.evaluate(
+    *root,
+    raw,
+    calculated,
+    result));
+
+  QCOMPARE(result, 7.0);
+}
+
+void tst_formulas::test_formulas_functionRepository_max_missingParams()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Copy_Add();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FormulaParser parser("max()");
+
+  auto root = parser.parse();
+  QVERIFY(root != nullptr);
+
+  IdentifierResolver resolver(cfg, layout);
+  QVERIFY(resolver.resolve(*root));
+
+  FormulaFunctionRepository functions;
+
+  QVERIFY(functions.add(
+    "max",
+    std::make_unique<FormulaFunctionMax>()));
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+  raw.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.calculatedSignalCount());
+
+  FormulaEvaluator evaluator(functions);
+
+  double result = 123.0;
+
+  QVERIFY(!evaluator.evaluate(
+    *root,
+    raw,
+    calculated,
+    result));
+
+  QCOMPARE(result, 123.0);
+}
+
+void tst_formulas::test_formulas_functionRepository_max_failParams()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Copy_Add();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FormulaParser parser("max(1)");
+
+  auto root = parser.parse();
+  QVERIFY(root != nullptr);
+
+  IdentifierResolver resolver(cfg, layout);
+  QVERIFY(resolver.resolve(*root));
+
+  FormulaFunctionRepository functions;
+
+  QVERIFY(functions.add(
+    "max",
+    std::make_unique<FormulaFunctionMax>()));
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+  raw.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.calculatedSignalCount());
+
+  FormulaEvaluator evaluator(functions);
+
+  double result = 123.0;
+
+  QVERIFY(!evaluator.evaluate(
+    *root,
+    raw,
+    calculated,
+    result));
+
+  QCOMPARE(result, 123.0);
+}
+
+void tst_formulas::test_formulas_functionRepository_min_missingParams()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Copy_Add();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FormulaParser parser("min()");
+
+  auto root = parser.parse();
+  QVERIFY(root != nullptr);
+
+  IdentifierResolver resolver(cfg, layout);
+  QVERIFY(resolver.resolve(*root));
+
+  FormulaFunctionRepository functions;
+
+  QVERIFY(functions.add(
+    "min",
+    std::make_unique<FormulaFunctionMin>()));
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+  raw.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.calculatedSignalCount());
+
+  FormulaEvaluator evaluator(functions);
+
+  double result = 123.0;
+
+  QVERIFY(!evaluator.evaluate(
+    *root,
+    raw,
+    calculated,
+    result));
+
+  QCOMPARE(result, 123.0);
+}
+
+void tst_formulas::test_formulas_functionRepository_min_failParams()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Copy_Add();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FormulaParser parser("min(1)");
+
+  auto root = parser.parse();
+  QVERIFY(root != nullptr);
+
+  IdentifierResolver resolver(cfg, layout);
+  QVERIFY(resolver.resolve(*root));
+
+  FormulaFunctionRepository functions;
+
+  QVERIFY(functions.add(
+    "min",
+    std::make_unique<FormulaFunctionMin>()));
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+  raw.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.calculatedSignalCount());
+
+  FormulaEvaluator evaluator(functions);
+
+  double result = 123.0;
+
+  QVERIFY(!evaluator.evaluate(
+    *root,
+    raw,
+    calculated,
+    result));
+
+  QCOMPARE(result, 123.0);
+}
+
+void tst_formulas::test_formulas_functionRepository_nesteFunctions()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Copy_Add();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FormulaParser parser(
+    "max(abs(Raw0), min(Raw1, 10), sqrt(C) * 7)");
+
+  auto root = parser.parse();
+  QVERIFY(root != nullptr);
+
+  IdentifierResolver resolver(cfg, layout);
+  QVERIFY(resolver.resolve(*root));
+
+  auto functions = createFormulaFunctionRepository();
+  QVERIFY(functions != nullptr);
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.calculatedSignalCount());
+
+  raw.setValue(0, -30.0);         // Raw0
+  raw.setValue(1, 16.0);         // Raw1
+  calculated.setValue(2, 25.0);  // C
+
+
+  FormulaEvaluator evaluator(*functions);
+
+  double result = 0.0;
+
+  QVERIFY(evaluator.evaluate(
+    *root,
+    raw,
+    calculated,
+    result));
+
+  QCOMPARE(result, 35.0);
+}
+
+void tst_formulas::test_calculationOrder_base()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Copy_Add();
+
+  CalculationOrder order;
+
+  QVERIFY(order.build(cfg));
+
+  QCOMPARE(order.order().size(), std::size_t(3));
+
+  QCOMPARE(order.order()[0], SignalId{2}); // A
+  QCOMPARE(order.order()[1], SignalId{3}); // B
+  QCOMPARE(order.order()[2], SignalId{4}); // C
 }

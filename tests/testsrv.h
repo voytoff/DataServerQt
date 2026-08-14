@@ -2,6 +2,11 @@
 
 #include <QObject>
 #include <qtestcase.h>
+#include "formulafunctionabs.h"
+#include "formulafunctionmax.h"
+#include "formulafunctionmin.h"
+#include "formulafunctionrepository.h"
+#include "formulafunctionsqrt.h"
 #include "isender.h"
 #include "moduleinfo.h"
 #include "publisher.h"
@@ -34,6 +39,20 @@ public:
 
   UdpServer server;
 };
+
+static std::unique_ptr<FormulaFunctionRepository> createFormulaFunctionRepository()
+{
+  FormulaFunctionRepository functions;
+
+  if (!functions.add("sqrt", std::make_unique<FormulaFunctionSqrt>()) ||
+      !functions.add("abs", std::make_unique<FormulaFunctionAbs>()) ||
+      !functions.add("max", std::make_unique<FormulaFunctionMax>()) ||
+      !functions.add("min", std::make_unique<FormulaFunctionMin>())
+      )
+    return nullptr;
+
+  return std::make_unique<FormulaFunctionRepository>(std::move(functions));
+}
 
 static SystemConfiguration createTestConfig(const qds::TagId* tags, int tagCount) {
   using namespace qds;

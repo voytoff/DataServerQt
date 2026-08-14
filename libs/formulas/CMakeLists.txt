@@ -13,12 +13,19 @@ add_library(Formulas SHARED
   formulasqrt.h formulasqrt.cpp
   failingformula.h
   formulatest.h formulatest.cpp
+  iformulafunction.h
+  formulafunctionrepository.h formulafunctionrepository.cpp
+  formulafunctionsqrt.h formulafunctionsqrt.cpp
   parser/formulanode.h
   parser/formulatoken.h
   parser/formulalexer.h parser/formulalexer.cpp
   parser/formulaparser.h parser/formulaparser.cpp
   parser/identifierresolver.h parser/identifierresolver.cpp
   parser/formulaevaluator.h parser/formulaevaluator.cpp
+  formulafunctionabs.h formulafunctionabs.cpp
+  formulafunctionmin.h formulafunctionmin.cpp
+  formulafunctionmax.h formulafunctionmax.cpp
+  calculationorder.h calculationorder.cpp
 )
 
 target_include_directories(Formulas

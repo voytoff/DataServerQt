@@ -55,5 +55,41 @@ private slots:
   void test_formulas_identifierResolver_unknown();
   void test_formulas_identifierResolverCalculated();
 
+  void test_formulas_evaluator_number();
+  void test_formulas_evaluator_raw0();
+  void test_formulas_evaluator_raw0AndRaw1();
+  void test_formulaEvaluator_base();
+  void test_formulas_evaluator_divideByZero();
+  void test_formulas_evaluator_failSignalReference();
+  void test_formulas_evaluator_subtract();
+  void test_formulas_evaluator_multiply();
+  void test_formulas_evaluator_negate();
+
+  void test_formulas_evaluator_formulaFunctionRepository();
+  void test_formulas_formulaFunctionRepository_uniqueNames();
+  void test_formulas_formulaFunctionRepository_find();
+  void test_formulas_formulaFunctionRepository_clear();
+
+  void test_formulas_functionCall_unknown();
+  void test_formulas_functionCall_missingParams();
+  void test_formulas_functionCall_failCountParams();
+  void test_formulas_functionCall_failValueParams();
+  void test_formulas_functionRepository_invalidAdd();
+
+  void test_formulas_functionCall_sqrtSignal();
+
+  void test_formulas_functionRepository_abs_negate();
+  void test_formulas_functionRepository_max();
+  void test_formulas_functionRepository_min();
+
+  void test_formulas_functionRepository_max_missingParams();
+  void test_formulas_functionRepository_max_failParams();
+  void test_formulas_functionRepository_min_missingParams();
+  void test_formulas_functionRepository_min_failParams();
+
+  void test_formulas_functionRepository_nesteFunctions();
+
+  void test_calculationOrder_base();
+
 };
 
