@@ -19,7 +19,19 @@ bool FormulaAstRepository::add(FormulaId id, std::unique_ptr<FormulaNode> root)
   return inserted;
 }
 
-const FormulaNode *FormulaAstRepository::find(FormulaId id) const
+FormulaNode* FormulaAstRepository::find(
+  FormulaId id) noexcept
+{
+  auto it = m_formulas.find(id);
+
+  if (it == m_formulas.end())
+    return nullptr;
+
+  return it->second.get();
+}
+
+const FormulaNode* FormulaAstRepository::find(
+  FormulaId id) const noexcept
 {
   auto it = m_formulas.find(id);
 

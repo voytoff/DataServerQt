@@ -1,5 +1,7 @@
 #include "tst_formulas.h"
 #include "calculationorder.h"
+#include "formulaastrepository.h"
+#include "formulacalculator.h"
 #include "parser/formulaevaluator.h"
 #include "formulafunctionsqrt.h"
 #include "parser/formulalexer.h"
@@ -1560,7 +1562,7 @@ void tst_formulas::test_formulas_evaluator_multiply()
   CalculatedMemory calculated;
 
   raw.initialize(layout.rawSignalCount());
-  calculated.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.calculatedSignalCount());
 
   raw.setValue(1, 3.0);         // Raw1
   calculated.setValue(1, 7.0);  // B
@@ -2265,7 +2267,7 @@ void tst_formulas::test_formulas_functionRepository_nesteFunctions()
   raw.initialize(layout.rawSignalCount());
   calculated.initialize(layout.calculatedSignalCount());
 
-  raw.setValue(0, -30.0);         // Raw0
+  raw.setValue(0, -30.0);        // Raw0
   raw.setValue(1, 16.0);         // Raw1
   calculated.setValue(2, 25.0);  // C
 
@@ -2471,19 +2473,19 @@ void tst_formulas::test_calculationOrder_serious()
   ModuleInfo m{0};
   cfg.addModule(m);
 
-  cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
-  cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}});
+  QVERIFY(cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}}));
+  QVERIFY(cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}}));
 
-  cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 1000});
-  cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 100});
+  QVERIFY(cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 1000}));
+  QVERIFY(cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 100}));
 
-  cfg.addSignalDefinition({.id = {7}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{0}}}); // Raw0
+  QVERIFY(cfg.addSignalDefinition({.id = {7}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{0}}})); // Raw0
 
-  cfg.addSignalDefinition({.id = {4}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}, .dependencies = {{1}}});  // Raw1
+  QVERIFY(cfg.addSignalDefinition({.id = {4}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}, .dependencies = {{1}}}));  // Raw1
 
-  cfg.addSignalDefinition({.id = {11}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}, .dependencies = {{7}}}); // A
+  QVERIFY(cfg.addSignalDefinition({.id = {11}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}, .dependencies = {{7}}})); // A
 
-  cfg.addSignalDefinition({.id = {14}, .name = "D", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}, .dependencies = {{0}}}); // Raw0
+  QVERIFY(cfg.addSignalDefinition({.id = {14}, .name = "D", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}, .dependencies = {{0}}})); // Raw0
 
   CalculationOrder co;
 
@@ -2505,4 +2507,171 @@ void tst_formulas::test_calculationOrder_serious()
   QVERIFY(posC != order.end());
 
   QVERIFY(posA < posC);
+}
+
+void tst_formulas::test_formulaCalculator_base()
+{
+  using namespace qds;
+  SystemConfiguration cfg;
+
+  ModuleInfo m{0};
+  cfg.addModule(m);
+
+  QVERIFY(cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}}));
+  QVERIFY(cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}}));
+
+  QVERIFY(cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 1000})); // 10
+  QVERIFY(cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 100}));  // 20
+
+  QVERIFY(cfg.addSignalDefinition({.id = {17}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}/*Raw0 + 5*/, .dependencies = {{0}}})); // Raw0
+
+  QVERIFY(cfg.addSignalDefinition({.id = {4}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {1}/*Raw1 * 2*/, .dependencies = {{1}}}));  // Raw1
+
+  QVERIFY(cfg.addSignalDefinition({.id = {23}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {2}/*A + B*/, .dependencies = {{17}, {4}}})); // A
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.calculatedSignalCount());
+
+  raw.setValue(0, 10.0);  // Raw0
+  raw.setValue(1, 20.0);  // Raw1
+
+  FormulaFunctionRepository functions;
+  FormulaEvaluator evaluator(functions);
+
+  IdentifierResolver resolver(
+    cfg,
+    layout);
+
+  FormulaAstRepository formulas;
+
+  FormulaParser parserA("Raw0 + 5");
+  auto nodeA = parserA.parse();
+  resolver.resolve(*nodeA);
+  QVERIFY(formulas.add(FormulaId{0}, std::move(nodeA)));
+
+  FormulaParser parserB("Raw1 * 2");
+  auto nodeB = parserB.parse();
+  resolver.resolve(*nodeB);
+  QVERIFY(formulas.add(FormulaId{1}, std::move(nodeB)));
+
+  FormulaParser parserC("A + B");
+  auto nodeC = parserC.parse();
+  resolver.resolve(*nodeC);
+  QVERIFY(formulas.add(FormulaId{2}, std::move(nodeC)));
+
+  CalculationOrder co;
+
+  QVERIFY(co.build(cfg));
+
+  auto order = co.order();
+
+  QCOMPARE(
+    order.size(),
+    std::size_t(3));
+
+  double result;
+
+  for (SignalId id : order)
+  {
+    auto definition = cfg.findSignalDefinition(id);
+
+    const auto *ast = formulas.find(definition->formulaId);
+
+    QVERIFY(evaluator.evaluate(
+      *ast,
+      raw,
+      calculated,
+      result));
+
+    calculated.setValue(
+      layout.reference(id).index,
+      result);
+  }
+
+  QCOMPARE(calculated.valueRef(0), 15);
+  QCOMPARE(calculated.valueRef(1), 40);
+  QCOMPARE(calculated.valueRef(2), 55);
+}
+
+void tst_formulas::test_formulaCalculator_release()
+{
+  using namespace qds;
+  SystemConfiguration cfg;
+
+  ModuleInfo m{0};
+  cfg.addModule(m);
+
+  QVERIFY(cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}}));
+  QVERIFY(cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}}));
+
+  QVERIFY(cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 1000})); // 10
+  QVERIFY(cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 100}));  // 20
+
+  QVERIFY(cfg.addSignalDefinition({.id = {17}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}/*Raw0 + 5*/, .dependencies = {{0}}})); // Raw0
+
+  QVERIFY(cfg.addSignalDefinition({.id = {4}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {1}/*Raw1 * 2*/, .dependencies = {{1}}}));  // Raw1
+
+  QVERIFY(cfg.addSignalDefinition({.id = {23}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {2}/*A + B*/, .dependencies = {{17}, {4}}})); // A
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.calculatedSignalCount());
+
+  raw.setValue(0, 10.0);  // Raw0
+  raw.setValue(1, 20.0);  // Raw1
+
+  FormulaFunctionRepository functions;
+  FormulaEvaluator evaluator(functions);
+
+  IdentifierResolver resolver(
+    cfg,
+    layout);
+
+  FormulaAstRepository formulas;
+
+  FormulaParser parserA("Raw0 + 5");
+  auto nodeA = parserA.parse();
+  resolver.resolve(*nodeA);
+  QVERIFY(formulas.add(FormulaId{0}, std::move(nodeA)));
+
+  FormulaParser parserB("Raw1 * 2");
+  auto nodeB = parserB.parse();
+  resolver.resolve(*nodeB);
+  QVERIFY(formulas.add(FormulaId{1}, std::move(nodeB)));
+
+  FormulaParser parserC("A + B");
+  auto nodeC = parserC.parse();
+  resolver.resolve(*nodeC);
+  QVERIFY(formulas.add(FormulaId{2}, std::move(nodeC)));
+
+
+  FormulaCalculator calculator;
+
+  QVERIFY(
+    calculator.initialize(
+      cfg,
+      layout,
+      formulas));
+
+  QVERIFY(
+    calculator.calculate(
+      raw,
+      calculated));
+
+
+  QCOMPARE(calculated.valueRef(0), 15);
+  QCOMPARE(calculated.valueRef(1), 40);
+  QCOMPARE(calculated.valueRef(2), 55);
+
 }

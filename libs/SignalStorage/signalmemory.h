@@ -20,9 +20,9 @@ public:
   void setValues(uint32_t first, std::span<const double> values);
 
   [[nodiscard]]
-  double& valueRef(uint32_t index) noexcept;
-  [[nodiscard]]
   const double& valueRef(uint32_t index) const noexcept;
+  [[nodiscard]]
+  double& valueRef(uint32_t index) noexcept;
 
   [[nodiscard]]
   const std::span<const double> values() const noexcept;

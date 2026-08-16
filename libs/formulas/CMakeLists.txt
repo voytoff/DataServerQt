@@ -27,6 +27,7 @@ add_library(Formulas SHARED
   formulafunctionmax.h formulafunctionmax.cpp
   calculationorder.h calculationorder.cpp
   formulaastrepository.h formulaastrepository.cpp
+  formulacalculator.h formulacalculator.cpp
 )
 
 target_include_directories(Formulas

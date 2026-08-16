@@ -98,5 +98,8 @@ private slots:
   void test_calculationOrder_chain();
   void test_calculationOrder_serious();
 
+  void test_formulaCalculator_base();
+  void test_formulaCalculator_release();
+
 };
 

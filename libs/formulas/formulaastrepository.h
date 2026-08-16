@@ -15,11 +15,15 @@ public:
 
   bool add(
     FormulaId id,
-    std::unique_ptr<FormulaNode> root);
+    std::unique_ptr<FormulaNode> node);
+
+  [[nodiscard]]
+  FormulaNode* find(
+    FormulaId id) noexcept;
 
   [[nodiscard]]
   const FormulaNode* find(
-    FormulaId id) const;
+    FormulaId id) const noexcept;
 
   void clear();
 
