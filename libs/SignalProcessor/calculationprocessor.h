@@ -1,28 +1,34 @@
 #pragma once
 
-#include "icalculationprocessor.h"
+#include "formulaastrepository.h"
 #include "calculationplan.h"
 #include "formulacontextbuilder.h"
 
 namespace qds
 {
 
-class CalculationProcessor final : public ICalculationProcessor
+class CalculationProcessor// final : public ICalculationProcessor
 {
 public:
 
   explicit CalculationProcessor(
-    const CalculationPlan& plan);
+    RawMemory& raw,
+    CalculatedMemory& calculated,
+    const CalculationPlan& plan,
+    const FormulaAstRepository& formulas);
 
 
   [[nodiscard]]
   bool process(
-    Frame& frame) override;
+    const RawMemory& raw,
+    CalculatedMemory& calculated);
 
 
 private:
-
+  RawMemory& m_raw;
+  CalculatedMemory m_calculated;
   const CalculationPlan& m_plan;
+  const FormulaAstRepository& m_formulas;
 
   FormulaContextBuilder m_contextBuilder;
 };

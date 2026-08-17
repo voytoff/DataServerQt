@@ -41,6 +41,11 @@ bool CalculationOrder::build(
   return true;
 }
 
+void CalculationOrder::clear()
+{
+  m_order.clear();
+}
+
 bool CalculationOrder::visit(
   SignalId id,
   const SystemConfiguration& configuration,

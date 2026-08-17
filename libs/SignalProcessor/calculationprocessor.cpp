@@ -4,9 +4,16 @@ namespace qds
 {
 
 CalculationProcessor::CalculationProcessor(
-  const CalculationPlan& plan)
-  : m_plan(plan) { }
+  RawMemory &raw,
+  CalculatedMemory &calculated,
+  const CalculationPlan& plan,
+  const FormulaAstRepository &formulas)
+  : m_raw(raw)
+  , m_plan(plan)
+  , m_calculated(calculated)
+  , m_formulas(formulas) { }
 
+/*
 bool CalculationProcessor::process(
   Frame& frame)
 {
@@ -23,5 +30,5 @@ bool CalculationProcessor::process(
 
   return true;
 }
-
+*/
 }

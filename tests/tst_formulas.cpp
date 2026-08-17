@@ -1,5 +1,6 @@
 #include "tst_formulas.h"
 #include "calculationorder.h"
+#include "calculationplan.h"
 #include "formulaastrepository.h"
 #include "formulacalculator.h"
 #include "parser/formulaevaluator.h"
@@ -2512,22 +2513,7 @@ void tst_formulas::test_calculationOrder_serious()
 void tst_formulas::test_formulaCalculator_base()
 {
   using namespace qds;
-  SystemConfiguration cfg;
-
-  ModuleInfo m{0};
-  cfg.addModule(m);
-
-  QVERIFY(cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}}));
-  QVERIFY(cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}}));
-
-  QVERIFY(cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 1000})); // 10
-  QVERIFY(cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 100}));  // 20
-
-  QVERIFY(cfg.addSignalDefinition({.id = {17}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}/*Raw0 + 5*/, .dependencies = {{0}}})); // Raw0
-
-  QVERIFY(cfg.addSignalDefinition({.id = {4}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {1}/*Raw1 * 2*/, .dependencies = {{1}}}));  // Raw1
-
-  QVERIFY(cfg.addSignalDefinition({.id = {23}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {2}/*A + B*/, .dependencies = {{17}, {4}}})); // A
+  SystemConfiguration cfg = createTestConfig_calculate();
 
   SignalMemoryLayout layout;
   layout.build(cfg);
@@ -2552,17 +2538,20 @@ void tst_formulas::test_formulaCalculator_base()
 
   FormulaParser parserA("Raw0 + 5");
   auto nodeA = parserA.parse();
-  resolver.resolve(*nodeA);
+  QVERIFY(nodeA != nullptr);
+  QVERIFY(resolver.resolve(*nodeA));
   QVERIFY(formulas.add(FormulaId{0}, std::move(nodeA)));
 
   FormulaParser parserB("Raw1 * 2");
   auto nodeB = parserB.parse();
-  resolver.resolve(*nodeB);
+  QVERIFY(nodeB != nullptr);
+  QVERIFY(resolver.resolve(*nodeB));
   QVERIFY(formulas.add(FormulaId{1}, std::move(nodeB)));
 
   FormulaParser parserC("A + B");
   auto nodeC = parserC.parse();
-  resolver.resolve(*nodeC);
+  QVERIFY(nodeC != nullptr);
+  QVERIFY(resolver.resolve(*nodeC));
   QVERIFY(formulas.add(FormulaId{2}, std::move(nodeC)));
 
   CalculationOrder co;
@@ -2577,9 +2566,9 @@ void tst_formulas::test_formulaCalculator_base()
 
   double result;
 
-  for (SignalId id : order)
+  for (const SignalId &id : order)
   {
-    auto definition = cfg.findSignalDefinition(id);
+    const auto &definition = cfg.findSignalDefinition(id);
 
     const auto *ast = formulas.find(definition->formulaId);
 
@@ -2599,25 +2588,43 @@ void tst_formulas::test_formulaCalculator_base()
   QCOMPARE(calculated.valueRef(2), 55);
 }
 
-void tst_formulas::test_formulaCalculator_release()
+/*
+                  CONFIGURATION
+                       │
+                       ▼
+              ┌─────────────────┐
+              │ FormulaParser   │
+              └────────┬────────┘
+                       │
+                       ▼
+                    AST
+                       │
+                       ▼
+              IdentifierResolver
+                       │
+                       ▼
+                resolved AST
+                       │
+                       ▼
+              FormulaAstRepository
+                       │
+                       │
+Configuration ─────────┤
+                       ▼
+                CalculationOrder
+                       │
+                       ▼
+              FormulaCalculator
+                       │
+          ┌────────────┴────────────┐
+          ▼                         ▼
+      RawMemory              CalculatedMemory
+*/
+void tst_formulas::test_formulaCalculator_calculate()
 {
   using namespace qds;
-  SystemConfiguration cfg;
 
-  ModuleInfo m{0};
-  cfg.addModule(m);
-
-  QVERIFY(cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}}));
-  QVERIFY(cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}}));
-
-  QVERIFY(cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 1000})); // 10
-  QVERIFY(cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 100}));  // 20
-
-  QVERIFY(cfg.addSignalDefinition({.id = {17}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}/*Raw0 + 5*/, .dependencies = {{0}}})); // Raw0
-
-  QVERIFY(cfg.addSignalDefinition({.id = {4}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {1}/*Raw1 * 2*/, .dependencies = {{1}}}));  // Raw1
-
-  QVERIFY(cfg.addSignalDefinition({.id = {23}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {2}/*A + B*/, .dependencies = {{17}, {4}}})); // A
+  SystemConfiguration cfg = createTestConfig_calculate();
 
   SignalMemoryLayout layout;
   layout.build(cfg);
@@ -2631,30 +2638,70 @@ void tst_formulas::test_formulaCalculator_release()
   raw.setValue(0, 10.0);  // Raw0
   raw.setValue(1, 20.0);  // Raw1
 
-  FormulaFunctionRepository functions;
-  FormulaEvaluator evaluator(functions);
+  FormulaAstRepository formulas;
 
-  IdentifierResolver resolver(
-    cfg,
-    layout);
+  FormulaParser parser("Raw0 + 5");
+  auto node = parser.parse();
+
+  QVERIFY(node != nullptr);
+  QVERIFY(formulas.add(
+    FormulaId{0},
+    std::move(node)));
+
+  IdentifierResolver resolver(cfg, layout);
+
+  auto* ast = formulas.find(FormulaId{0});
+
+  QVERIFY(ast != nullptr);
+  QVERIFY(resolver.resolve(*ast));
+
+  FormulaCalculator calculator;
+
+  double result = 0.0;
+
+  QVERIFY(calculator.calculate(
+    *ast,
+    raw,
+    calculated,
+    result));
+
+  QCOMPARE(result, 15.0);
+}
+
+/*
+void tst_formulas::test_formulaCalculator_initialize_success()
+{
+  using namespace qds;
+  SystemConfiguration cfg = createTestConfig_calculate();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.calculatedSignalCount());
+
+  raw.setValue(0, 10.0);  // Raw0
+  raw.setValue(1, 20.0);  // Raw1
 
   FormulaAstRepository formulas;
 
-  FormulaParser parserA("Raw0 + 5");
+  FormulaParser parserA("Raw0");
   auto nodeA = parserA.parse();
-  resolver.resolve(*nodeA);
+  QVERIFY(nodeA != nullptr);
   QVERIFY(formulas.add(FormulaId{0}, std::move(nodeA)));
 
-  FormulaParser parserB("Raw1 * 2");
+  FormulaParser parserB("Raw1");
   auto nodeB = parserB.parse();
-  resolver.resolve(*nodeB);
+  QVERIFY(nodeB != nullptr);
   QVERIFY(formulas.add(FormulaId{1}, std::move(nodeB)));
 
-  FormulaParser parserC("A + B");
+  FormulaParser parserC("sqrt(A * B + 25)");
   auto nodeC = parserC.parse();
-  resolver.resolve(*nodeC);
+  QVERIFY(nodeC != nullptr);
   QVERIFY(formulas.add(FormulaId{2}, std::move(nodeC)));
-
 
   FormulaCalculator calculator;
 
@@ -2670,8 +2717,482 @@ void tst_formulas::test_formulaCalculator_release()
       calculated));
 
 
-  QCOMPARE(calculated.valueRef(0), 15);
-  QCOMPARE(calculated.valueRef(1), 40);
-  QCOMPARE(calculated.valueRef(2), 55);
-
+  QCOMPARE(calculated.valueRef(0), 10.);
+  QCOMPARE(calculated.valueRef(1), 20.);
+  QCOMPARE(calculated.valueRef(2), 15.);
 }
+
+void tst_formulas::test_formulaCalculator_initialize_missingAst()
+{
+  using namespace qds;
+  SystemConfiguration cfg = createTestConfig_calculate();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.calculatedSignalCount());
+
+  FormulaAstRepository formulas;
+
+  FormulaParser parserA("Raw0");
+  QVERIFY(formulas.add(FormulaId{0}, std::move(parserA.parse())));
+
+  FormulaParser parserB("Raw1");
+  QVERIFY(formulas.add(FormulaId{1}, std::move(parserB.parse())));
+
+  FormulaCalculator calculator;
+
+  QVERIFY(
+    !calculator.initialize( // auto* node = formulas.find(definition.formulaId); вернет null
+      cfg,
+      layout,
+      formulas));
+
+  QVERIFY(
+    !calculator.calculate(
+      raw,
+      calculated));
+}
+
+void tst_formulas::test_formulaCalculator_initialize_unknownSignalAst()
+{
+  using namespace qds;
+  SystemConfiguration cfg = createTestConfig_calculate();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.calculatedSignalCount());
+
+  FormulaAstRepository formulas;
+
+  FormulaParser parserA("Raw0");
+  QVERIFY(formulas.add(FormulaId{0}, std::move(parserA.parse())));
+
+  FormulaParser parserB("Raw1");
+  QVERIFY(formulas.add(FormulaId{1}, std::move(parserB.parse())));
+
+  FormulaParser parserC("unknown + B");
+  QVERIFY(formulas.add(FormulaId{2}, std::move(parserC.parse())));
+
+  FormulaCalculator calculator;
+
+  QVERIFY(
+    !calculator.initialize(
+      cfg,
+      layout,
+      formulas));
+
+  QVERIFY(
+    !calculator.calculate(
+      raw,
+      calculated));
+}
+
+void tst_formulas::test_formulaCalculator_initialize_cycle()
+{
+  using namespace qds;
+  SystemConfiguration cfg = createTestConfig_cycle();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.calculatedSignalCount());
+
+  FormulaAstRepository formulas;
+
+  FormulaParser parserA("abs(B)");
+  QVERIFY(formulas.add(FormulaId{0}, std::move(parserA.parse())));
+
+  FormulaParser parserB("abs(C)");
+  QVERIFY(formulas.add(FormulaId{1}, std::move(parserB.parse())));
+
+  FormulaParser parserC("abs(A)");
+  QVERIFY(formulas.add(FormulaId{2}, std::move(parserC.parse())));
+
+  FormulaCalculator calculator;
+
+  QVERIFY(
+    !calculator.initialize(
+      cfg,
+      layout,
+      formulas));
+
+  QVERIFY(
+    !calculator.calculate(
+      raw,
+      calculated));
+}
+
+void tst_formulas::test_formulaCalculator_initialize_reinitializeError()
+{
+  using namespace qds;
+  SystemConfiguration cfg = createTestConfig_calculate();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.calculatedSignalCount());
+
+  FormulaAstRepository formulas;
+
+  FormulaParser parserA("Raw0");
+  QVERIFY(formulas.add(FormulaId{0}, std::move(parserA.parse())));
+
+  FormulaParser parserB("Raw1");
+  QVERIFY(formulas.add(FormulaId{1}, std::move(parserB.parse())));
+
+  FormulaParser parserC("A + B");
+  QVERIFY(formulas.add(FormulaId{2}, std::move(parserC.parse())));
+
+  FormulaCalculator calculator;
+
+  QVERIFY(
+    calculator.initialize(
+      cfg,
+      layout,
+      formulas));
+
+  QVERIFY(
+    calculator.calculate(
+      raw,
+      calculated));
+
+  // теперь плохой repository
+  FormulaAstRepository brokenFormulas;
+
+  QVERIFY(!calculator.initialize(
+    cfg,
+    layout,
+    brokenFormulas));
+
+  // старое состояние не должно остаться рабочим
+  QVERIFY(!calculator.calculate(
+    raw,
+    calculated));
+}
+
+void tst_formulas::test_formulaCalculator_initialize_reinitializeSuccess()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_calculate();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.calculatedSignalCount());
+
+  raw.setValue(0, 10.0);
+  raw.setValue(1, 20.0);
+
+  FormulaAstRepository brokenFormulas;
+
+  FormulaCalculator calculator;
+
+  QVERIFY(!calculator.initialize(
+    cfg,
+    layout,
+    brokenFormulas));
+
+  QVERIFY(!calculator.calculate(
+    raw,
+    calculated));
+
+  FormulaAstRepository formulas;
+
+  FormulaParser parserA("Raw0");
+  QVERIFY(formulas.add(
+    FormulaId{0},
+    std::move(parserA.parse())));
+
+  FormulaParser parserB("Raw1");
+  QVERIFY(formulas.add(
+    FormulaId{1},
+    std::move(parserB.parse())));
+
+  FormulaParser parserC("sqrt(A * B + 25)");
+  QVERIFY(formulas.add(
+    FormulaId{2},
+    std::move(parserC.parse())));
+
+  QVERIFY(calculator.initialize(
+    cfg,
+    layout,
+    formulas));
+
+  QVERIFY(calculator.calculate(
+    raw,
+    calculated));
+
+  QCOMPARE(calculated.valueRef(0), 10.0);
+  QCOMPARE(calculated.valueRef(1), 20.0);
+  QCOMPARE(calculated.valueRef(2), 15.0);
+}
+
+void tst_formulas::test_formulaCalculator_calculateRepeatedly()
+{
+  using namespace qds;
+  SystemConfiguration cfg = createTestConfig_calculate();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.calculatedSignalCount());
+
+  FormulaAstRepository formulas;
+
+  FormulaParser parserA("Raw0");
+  auto nodeA = parserA.parse();
+  QVERIFY(nodeA != nullptr);
+  QVERIFY(formulas.add(FormulaId{0}, std::move(nodeA)));
+
+  FormulaParser parserB("Raw1");
+  auto nodeB = parserB.parse();
+  QVERIFY(nodeB != nullptr);
+  QVERIFY(formulas.add(FormulaId{1}, std::move(nodeB)));
+
+  FormulaParser parserC("(A + B + 0.5) / (abs(B) + 1)");
+  auto nodeC = parserC.parse();
+  QVERIFY(nodeC != nullptr);
+  QVERIFY(formulas.add(FormulaId{2}, std::move(nodeC)));
+
+  FormulaCalculator calculator;
+
+  QVERIFY(
+    calculator.initialize(
+      cfg,
+      layout,
+      formulas));
+
+  for (int n = 0; n < 1000; n++) {
+
+    double a = n;
+    double b = n * 10.2;
+
+    raw.setValue(0, a);  // Raw0
+    raw.setValue(1, b);  // Raw1
+
+    QVERIFY(
+      calculator.calculate(
+        raw,
+        calculated));
+
+    QCOMPARE(calculated.valueRef(0), a);
+    QCOMPARE(calculated.valueRef(1), b);
+    QCOMPARE(calculated.valueRef(2), (a + b + 0.5) / (std::abs(b) + 1));
+  }
+}
+
+void tst_formulas::test_formulaCalculator_calculate_unknownSignalAst()
+{
+  using namespace qds;
+  SystemConfiguration cfg = createTestConfig_calculate();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.calculatedSignalCount());
+
+  FormulaAstRepository formulas;
+
+  FormulaParser parserA("Raw0");
+  QVERIFY(formulas.add(FormulaId{0}, std::move(parserA.parse())));
+
+  FormulaParser parserB("Raw1");
+  QVERIFY(formulas.add(FormulaId{1}, std::move(parserB.parse())));
+
+  FormulaParser parserC("A + B");
+  QVERIFY(formulas.add(FormulaId{2}, std::move(parserC.parse())));
+
+  FormulaCalculator calculator;
+
+  QVERIFY(calculator.initialize(cfg, layout, formulas));
+
+  QVERIFY(calculator.calculate(raw, calculated));
+
+  auto *def = formulas.find(FormulaId{2});
+  def->right->signal.index = 4;
+
+  QVERIFY(!calculator.calculate(raw, calculated));
+}
+
+void tst_formulas::test_formulaCalculator_calculate_divideByZero()
+{
+  using namespace qds;
+  SystemConfiguration cfg = createTestConfig_calculate();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.calculatedSignalCount());
+
+  raw.setValue(0, 2.0);  // Raw0
+  raw.setValue(1, 0.0);  // Raw1
+
+  FormulaAstRepository formulas;
+
+  FormulaParser parserA("Raw0");
+  QVERIFY(formulas.add(FormulaId{0}, std::move(parserA.parse())));
+
+  FormulaParser parserB("Raw1");
+  QVERIFY(formulas.add(FormulaId{1}, std::move(parserB.parse())));
+
+  FormulaParser parserC("A / B");
+  QVERIFY(formulas.add(FormulaId{2}, std::move(parserC.parse())));
+
+  FormulaCalculator calculator;
+
+  QVERIFY(calculator.initialize(cfg, layout, formulas));
+
+  QVERIFY(!calculator.calculate(raw, calculated));
+}
+
+void tst_formulas::test_formulaCalculator_calculate_partialResult()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_calculate();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.calculatedSignalCount());
+
+  raw.setValue(0, 20.0);  // Raw0
+  raw.setValue(1, 0.0);   // Raw1
+
+  calculated.setValue(1, 123.0);
+
+  FormulaAstRepository formulas;
+
+  FormulaParser parserA("Raw0");
+  QVERIFY(formulas.add(
+    FormulaId{0},
+    std::move(parserA.parse())));
+
+  FormulaParser parserB("Raw1");
+  QVERIFY(formulas.add(
+    FormulaId{1},
+    std::move(parserB.parse())));
+
+  FormulaParser parserC("A / B");
+  QVERIFY(formulas.add(
+    FormulaId{2},
+    std::move(parserC.parse())));
+
+  FormulaCalculator calculator;
+
+  QVERIFY(calculator.initialize(
+    cfg,
+    layout,
+    formulas));
+
+  QVERIFY(!calculator.calculate(
+    raw,
+    calculated));
+
+  QCOMPARE(
+    calculated.valueRef(0),
+    20.0);
+
+  QCOMPARE(
+    calculated.valueRef(1),
+    0.0);
+}
+
+void tst_formulas::test_calculationPlan_base()
+{
+  using namespace qds;
+
+  CalculationPlan plan;
+
+  QVERIFY(plan.empty());
+  QCOMPARE(plan.size(), std::size_t(0));
+
+  plan.add({
+    .signal = SignalId{17},
+    .formula = FormulaId{0}
+  });
+
+  plan.add({
+    .signal = SignalId{4},
+    .formula = FormulaId{1}
+  });
+
+  plan.add({
+    .signal = SignalId{23},
+    .formula = FormulaId{2}
+  });
+
+  QCOMPARE(plan.size(), std::size_t(3));
+
+  auto steps = plan.steps();
+
+  QCOMPARE(steps[0].signal, SignalId{17});
+  QCOMPARE(steps[0].formula, FormulaId{0});
+
+  QCOMPARE(steps[1].signal, SignalId{4});
+  QCOMPARE(steps[1].formula, FormulaId{1});
+
+  QCOMPARE(steps[2].signal, SignalId{23});
+  QCOMPARE(steps[2].formula, FormulaId{2});
+}
+
+void tst_formulas::test_calculationPlan_clear()
+{
+  using namespace qds;
+
+  CalculationPlan plan;
+
+  plan.add({
+    .signal = SignalId{17},
+    .formula = FormulaId{0}
+  });
+
+  QVERIFY(!plan.empty());
+
+  plan.clear();
+
+  QVERIFY(plan.empty());
+  QCOMPARE(plan.size(), std::size_t(0));
+}
+*/

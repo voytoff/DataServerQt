@@ -99,7 +99,25 @@ private slots:
   void test_calculationOrder_serious();
 
   void test_formulaCalculator_base();
-  void test_formulaCalculator_release();
 
+  void test_formulaCalculator_calculate();
+
+  /*
+  void test_formulaCalculator_initialize_success();
+  void test_formulaCalculator_initialize_missingAst();
+  void test_formulaCalculator_initialize_unknownSignalAst();
+  void test_formulaCalculator_initialize_cycle();
+  void test_formulaCalculator_initialize_reinitializeError();
+  void test_formulaCalculator_initialize_reinitializeSuccess();
+
+  void test_formulaCalculator_calculateRepeatedly();
+  void test_formulaCalculator_calculate_unknownSignalAst();
+  void test_formulaCalculator_calculate_divideByZero();
+
+  void test_formulaCalculator_calculate_partialResult();
+
+  void test_calculationPlan_base();
+  void test_calculationPlan_clear();
+*/
 };
 

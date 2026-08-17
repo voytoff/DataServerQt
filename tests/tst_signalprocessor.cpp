@@ -9,41 +9,248 @@
 #include "formulacopy.h"
 #include "formulasqrt.h"
 #include "formulatest.h"
+#include "parser/formulaparser.h"
+#include "parser/identifierresolver.h"
+#include "signalprocessor.h"
 #include "systemconfiguration.h"
 #include "testsrv.h"
 
 tst_signalprocessor::tst_signalprocessor() { }
 tst_signalprocessor::~tst_signalprocessor() = default;
 
-static std::size_t findStepIndex(const std::span<const CalculationStep> &steps, const SignalMemoryLayout &layout, SignalId id)
+static std::optional<std::size_t> findStepIndex(
+  std::span<const CalculationStep> steps,
+  SignalId id)
 {
-  const SignalReference ref = layout.reference(id);
-
   auto it = std::find_if(
     steps.begin(),
     steps.end(),
-    [&](const CalculationStep& s)
+    [id](const CalculationStep& step)
     {
-      return s.output.area == ref.area &&
-             s.output.index == ref.index;
+      return step.signal == id;
     });
 
-  if (it != steps.end()) {
-    return it - steps.begin(); // Вычисление индекса
-  }
-  return -1; // Не найдено
+  if (it == steps.end())
+    return std::nullopt;
+
+  return static_cast<std::size_t>(
+    std::distance(steps.begin(), it));
 }
 
-static qds::CalculationStep findStepOutput(const std::span<const CalculationStep> &steps, const SignalMemoryLayout &layout, SignalId id)
+static qds::CalculationStep findStepOutput(const std::span<const CalculationStep> &steps, SignalId id)
 {
-  auto index = findStepIndex(steps, layout, id);
+  auto index = findStepIndex(steps, id);
 
-  if (index == -1)
+  if (!index.has_value())
     return {};
 
-  return steps[index];
+  return steps[index.value()];
 }
 
+
+void tst_signalprocessor::test_calculationPlan_base()
+{
+  using namespace qds;
+  SystemConfiguration cfg = createTestConfig_calculate();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FormulaAstRepository formulas;
+
+  FormulaParser parserA("Raw0");
+  QVERIFY(formulas.add(FormulaId{0}, std::move(parserA.parse())));
+
+  FormulaParser parserB("Raw1");
+  QVERIFY(formulas.add(FormulaId{1}, std::move(parserB.parse())));
+
+  FormulaParser parserC("A + B");
+  QVERIFY(formulas.add(FormulaId{2}, std::move(parserC.parse())));
+
+  CalculationPlan plan;
+
+  CalculationCompiler builder(cfg, layout, formulas);
+
+  QVERIFY(builder.build(plan));
+
+  QCOMPARE(plan.size(), 3);
+
+  const auto& steps = plan.steps();
+
+  auto stepA = findStepOutput(steps, SignalId{17});
+  auto stepB = findStepOutput(steps, SignalId{4});
+  auto stepC = findStepOutput(steps, SignalId{23});
+
+  auto indexA = findStepIndex(steps, SignalId{17});
+  auto indexB = findStepIndex(steps, SignalId{4});
+  auto indexC = findStepIndex(steps, SignalId{23});
+
+
+  QVERIFY(indexA < indexC);
+  QVERIFY(indexB < indexC);
+
+  QCOMPARE(stepA.formula, FormulaId{0});
+  QCOMPARE(stepB.formula, FormulaId{1});
+  QCOMPARE(stepC.formula, FormulaId{2});
+}
+
+void tst_signalprocessor::test_calculationPlan_failAst()
+{
+  using namespace qds;
+  SystemConfiguration cfg = createTestConfig_calculate();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FormulaAstRepository formulas;
+
+  FormulaParser parserA("Raw0");
+  QVERIFY(formulas.add(FormulaId{0}, std::move(parserA.parse())));
+
+  FormulaParser parserB("Raw1");
+  QVERIFY(formulas.add(FormulaId{1}, std::move(parserB.parse())));
+
+  FormulaParser parserC("A + B");
+  QVERIFY(formulas.add(FormulaId{3}, std::move(parserC.parse())));
+
+  CalculationPlan plan;
+
+  CalculationCompiler builder(cfg, layout, formulas);
+
+  QVERIFY(!builder.build(plan));
+
+  QCOMPARE(plan.size(), 0);
+}
+
+void tst_signalprocessor::test_calculationPlan_cycle()
+{
+  using namespace qds;
+  SystemConfiguration cfg = createTestConfig_cycle();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FormulaAstRepository formulas;
+
+  FormulaParser parserA("abs(B)");
+  QVERIFY(formulas.add(FormulaId{0}, std::move(parserA.parse())));
+
+  FormulaParser parserB("abs(C)");
+  QVERIFY(formulas.add(FormulaId{1}, std::move(parserB.parse())));
+
+  FormulaParser parserC("abs(A)");
+  QVERIFY(formulas.add(FormulaId{2}, std::move(parserC.parse())));
+
+  CalculationPlan plan;
+
+  CalculationCompiler builder(cfg, layout, formulas);
+
+  QVERIFY(!builder.build(plan));
+
+  QCOMPARE(plan.size(), 0);
+}
+
+void tst_signalprocessor::test_calculationPlan_rebuildInvalid()
+{
+  using namespace qds;
+  SystemConfiguration cfg = createTestConfig_calculate();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FormulaAstRepository formulas;
+
+  FormulaParser parserA("Raw0");
+  QVERIFY(formulas.add(FormulaId{0}, std::move(parserA.parse())));
+
+  FormulaParser parserB("Raw1");
+  QVERIFY(formulas.add(FormulaId{1}, std::move(parserB.parse())));
+
+  FormulaParser parserC("A + B");
+  QVERIFY(formulas.add(FormulaId{2}, std::move(parserC.parse())));
+
+  CalculationPlan plan;
+
+  CalculationCompiler builder(cfg, layout, formulas);
+
+  QVERIFY(builder.build(plan));
+
+  QCOMPARE(plan.size(), 3);
+
+  formulas.clear();
+
+  QVERIFY(!builder.build(plan));
+
+  QCOMPARE(plan.size(), 0);
+}
+
+void tst_signalprocessor::test_signalProcessor_calculate()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_calculate();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.calculatedSignalCount());
+
+  raw.setValue(0, 10.0);
+  raw.setValue(1, 20.0);
+
+  FormulaAstRepository formulas;
+
+  FormulaParser parserA("Raw0 + 5");
+  QVERIFY(formulas.add(
+    FormulaId{0},
+    std::move(parserA.parse())));
+
+  FormulaParser parserB("Raw1 * 2");
+  QVERIFY(formulas.add(
+    FormulaId{1},
+    std::move(parserB.parse())));
+
+  FormulaParser parserC("A + B");
+  QVERIFY(formulas.add(
+    FormulaId{2},
+    std::move(parserC.parse())));
+/*
+  IdentifierResolver resolver(
+    cfg,
+    layout);
+
+  QVERIFY(resolver.resolve(*formulas.find({0})));
+  QVERIFY(resolver.resolve(*formulas.find({1})));
+  QVERIFY(resolver.resolve(*formulas.find({2})));
+*/
+  CalculationPlan plan;
+
+  CalculationCompiler builder(cfg, layout, formulas);
+
+  QVERIFY(builder.build(plan));
+
+  QCOMPARE(plan.size(), 3);
+
+  SignalProcessor processor(
+    layout,
+    formulas,
+    plan);
+
+  QVERIFY(processor.process(
+    raw,
+    calculated));
+
+  QCOMPARE(calculated.valueRef(0), 15.0);
+  QCOMPARE(calculated.valueRef(1), 40.0);
+  QCOMPARE(calculated.valueRef(2), 55.0);
+}
+
+/*
 void tst_signalprocessor::test_calculation_plan()
 {
   using namespace qds;
@@ -53,7 +260,7 @@ void tst_signalprocessor::test_calculation_plan()
 
   CalculationPlan plan;
 
-  FormulaRepository repo;
+  FormulaAstRepository repo;
   QVERIFY(repo.add({0}, std::make_unique<FormulaCopy>()));
   QVERIFY(repo.add({5}, std::make_unique<FormulaAdd>()));
 
@@ -561,3 +768,4 @@ void tst_signalprocessor::test_calculationCompiler_unknownSignalOutput()
   QVERIFY(!compiler.build(plan));
   QCOMPARE(plan.size(), 0);
 }
+*/

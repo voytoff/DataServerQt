@@ -19,6 +19,8 @@ public:
   bool build(
     const SystemConfiguration& configuration);
 
+  void clear();
+
   [[nodiscard]]
   std::span<const SignalId> order() const noexcept;
 

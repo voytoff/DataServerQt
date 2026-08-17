@@ -458,6 +458,29 @@ static SystemConfiguration createTestConfig_Copy_Add(ModuleType type = ModuleTyp
   return cfg;
 }
 
+static SystemConfiguration createTestConfig_calculate(ModuleType type = ModuleType::Unknown)
+{
+  using namespace qds;
+  SystemConfiguration cfg;
+
+  ModuleInfo m{0};
+  cfg.addModule(m);
+
+  cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
+  cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}});
+
+  cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 1000});
+  cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 100});
+
+  cfg.addSignalDefinition({.id = {17}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{0}}}); // Raw0
+
+  cfg.addSignalDefinition({.id = {4}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {1}, .dependencies = {{1}}});  // Raw1
+
+  cfg.addSignalDefinition({.id = {23}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {2}, .dependencies = {{17}, {4}}}); // A & B
+
+  return cfg;
+}
+
 static SystemConfiguration createTestConfig_Copy_Add_WithoutC()
 {
   using namespace qds;

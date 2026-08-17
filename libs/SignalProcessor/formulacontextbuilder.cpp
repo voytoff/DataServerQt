@@ -2,7 +2,7 @@
 
 namespace qds
 {
-
+/*
 FormulaContext FormulaContextBuilder::create(
   Frame& frame,
   const CalculationStep& step)
@@ -25,5 +25,5 @@ FormulaContext FormulaContextBuilder::create(
 
   return ctx;
 }
-
+*/
 }

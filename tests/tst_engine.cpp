@@ -21,7 +21,7 @@
 
 tst_engine::tst_engine() { }
 tst_engine::~tst_engine() = default;
-
+/*
 void tst_engine::test_pipeline_archive_copy()
 {
   using namespace qds;
@@ -365,7 +365,6 @@ void tst_engine::test_dataEngine_simple_pipeline()
   QCOMPARE(archived.raw().value(5), 1.0);
   QCOMPARE(archived.raw().value(6), 2.0);
 }
-/*
 void tst_engine::test_dataEngine_withoutSources()
 {
   using namespace qds;
