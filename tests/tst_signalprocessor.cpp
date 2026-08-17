@@ -219,15 +219,7 @@ void tst_signalprocessor::test_signalProcessor_calculate()
   QVERIFY(formulas.add(
     FormulaId{2},
     std::move(parserC.parse())));
-/*
-  IdentifierResolver resolver(
-    cfg,
-    layout);
 
-  QVERIFY(resolver.resolve(*formulas.find({0})));
-  QVERIFY(resolver.resolve(*formulas.find({1})));
-  QVERIFY(resolver.resolve(*formulas.find({2})));
-*/
   CalculationPlan plan;
 
   CalculationCompiler builder(cfg, layout, formulas);

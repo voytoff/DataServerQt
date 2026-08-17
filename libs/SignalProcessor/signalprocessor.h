@@ -18,6 +18,7 @@ public:
     const FormulaAstRepository& formulas,
     const CalculationPlan& plan);
 
+  [[nodiscard]]
   bool process(
     const RawMemory& raw,
     CalculatedMemory& calculated) const noexcept;

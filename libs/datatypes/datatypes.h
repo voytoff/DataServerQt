@@ -37,7 +37,7 @@ using SubscriptionId =
 
 struct Sample
 {
-  double value = 0.0f;
+  double value = 0.0;
 };
 
 enum class PublishRate : uint16_t

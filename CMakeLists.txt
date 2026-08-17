@@ -29,4 +29,4 @@ add_subdirectory(libs/formulas)
 enable_testing()
 add_subdirectory(tests)
 
-#add_subdirectory(apps/dataserver)
+add_subdirectory(apps/dataserver)
