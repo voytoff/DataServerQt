@@ -616,44 +616,18 @@ void tst_signalprocessor::test_signalProcessor_failOnceArchiveWriter()
 
   QCOMPARE(publisher.count, 1);
 
-  QCOMPARE(archive.fail, true);
+  QCOMPARE(archive.fail, false);
   QCOMPARE(archive.attempts, 1);
   QCOMPARE(archive.successes, 0);
 
-  const auto& error = publisher.last();
-  QCOMPARE(error.number, FrameNumber{1});
-  QCOMPARE(error.timestamp, Timestamp{2});
-  QCOMPARE(error.wallTime, WallClockTime{5});
+  const auto& published = publisher.last();
+  QCOMPARE(published.number, FrameNumber{1});
+  QCOMPARE(published.timestamp, Timestamp{2});
+  QCOMPARE(published.wallTime, WallClockTime{5});
 
   auto count = 1;
   double a = 0;
   double b = 0 * 10;
-
-  QCOMPARE(error.raw().valueRef(0), a);
-  QCOMPARE(error.raw().valueRef(1), b);
-
-  QCOMPARE(error.calculated().valueRef(0), a + 5);
-  QCOMPARE(error.calculated().valueRef(1), b * b);
-  QCOMPARE(error.calculated().valueRef(2), b);
-
-
-  QVERIFY(engine.process());
-  QVERIFY(buffers.ready());
-
-  QCOMPARE(publisher.count, 2);
-
-  QCOMPARE(archive.fail, false);
-  QCOMPARE(archive.attempts, 2);
-  QCOMPARE(archive.successes, 1);
-
-  const auto& published = publisher.last();
-  QCOMPARE(published.number, FrameNumber{2});
-  QCOMPARE(published.timestamp, Timestamp{4});
-  QCOMPARE(published.wallTime, WallClockTime{10});
-
-  ++count;
-  a = 1;
-  b = 1 * 10;
 
   QCOMPARE(published.raw().valueRef(0), a);
   QCOMPARE(published.raw().valueRef(1), b);
@@ -661,6 +635,55 @@ void tst_signalprocessor::test_signalProcessor_failOnceArchiveWriter()
   QCOMPARE(published.calculated().valueRef(0), a + 5);
   QCOMPARE(published.calculated().valueRef(1), b * b);
   QCOMPARE(published.calculated().valueRef(2), b);
+
+
+  QVERIFY(engine.process());
+  QVERIFY(buffers.ready());
+
+  QCOMPARE(publisher.count, 2);
+
+  QCOMPARE(archive.attempts, 2);
+  QCOMPARE(archive.successes, 1);
+
+  const auto& published1 = publisher.last();
+  QCOMPARE(published1.number, FrameNumber{2});
+  QCOMPARE(published1.timestamp, Timestamp{4});
+  QCOMPARE(published1.wallTime, WallClockTime{10});
+
+  ++count;
+  a = 1;
+  b = 1 * 10;
+
+  QCOMPARE(published1.raw().valueRef(0), a);
+  QCOMPARE(published1.raw().valueRef(1), b);
+
+  QCOMPARE(published1.calculated().valueRef(0), a + 5);
+  QCOMPARE(published1.calculated().valueRef(1), b * b);
+  QCOMPARE(published1.calculated().valueRef(2), b);
+
+  QVERIFY(engine.process());
+  QVERIFY(buffers.ready());
+
+  QCOMPARE(publisher.count, 3);
+
+  QCOMPARE(archive.attempts, 3);
+  QCOMPARE(archive.successes, 2);
+
+  const auto& published2 = publisher.last();
+  QCOMPARE(published2.number, FrameNumber{3});
+  QCOMPARE(published2.timestamp, Timestamp{6});
+  QCOMPARE(published2.wallTime, WallClockTime{15});
+
+  ++count;
+  a = 2;
+  b = 2 * 10;
+
+  QCOMPARE(published2.raw().valueRef(0), a);
+  QCOMPARE(published2.raw().valueRef(1), b);
+
+  QCOMPARE(published2.calculated().valueRef(0), a + 5);
+  QCOMPARE(published2.calculated().valueRef(1), b * b);
+  QCOMPARE(published2.calculated().valueRef(2), b);
 }
 /*
 void tst_signalprocessor::test_calculation_plan()
