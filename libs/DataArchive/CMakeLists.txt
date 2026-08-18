@@ -16,6 +16,7 @@ add_library(DataArchive SHARED
     nullarchivewriter.h nullarchivewriter.cpp
     testarchivewriter.h testarchivewriter.cpp
     failingarchivewriter.h
+    failoncearchivewriter.h failoncearchivewriter.cpp
 )
 
 target_include_directories(DataArchive

@@ -2,7 +2,7 @@
 
 #include "formulaastrepository.h"
 #include "calculationplan.h"
-#include "formulacontextbuilder.h"
+#include "formulacontextbuilder_NOTUSED.h"
 
 namespace qds
 {

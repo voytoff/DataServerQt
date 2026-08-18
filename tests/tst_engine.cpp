@@ -1,7 +1,7 @@
 #include "tst_engine.h"
 #include "buffermanager.h"
 #include "calculationcompiler.h"
-#include "calculationprocessor.h"
+#include "calculationprocessor_NOTUSED.h"
 #include "dataengine.h"
 #include "failingarchivewriter.h"
 #include "failingdatasource.h"

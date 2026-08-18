@@ -463,7 +463,7 @@ static SystemConfiguration createTestConfig_calculate(ModuleType type = ModuleTy
   using namespace qds;
   SystemConfiguration cfg;
 
-  ModuleInfo m{0};
+  ModuleInfo m{.id = {0}, .type = type};
   cfg.addModule(m);
 
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});

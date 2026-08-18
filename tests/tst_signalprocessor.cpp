@@ -3,16 +3,19 @@
 #include "buffermanager.h"
 #include "calculationplan.h"
 #include "calculationcompiler.h"
-#include "calculationprocessor.h"
-#include "failingformula.h"
-#include "formulaadd.h"
-#include "formulacopy.h"
-#include "formulasqrt.h"
-#include "formulatest.h"
+#include "dataengine.h"
+#include "datasourcefactory.h"
+#include "datasourcemanager.h"
+#include "failoncearchivewriter.h"
+#include "failoncedatasource.h"
+#include "fakedatasource.h"
+#include "fakeschedulerclock.h"
 #include "parser/formulaparser.h"
-#include "parser/identifierresolver.h"
 #include "signalprocessor.h"
 #include "systemconfiguration.h"
+#include "testarchivewriter.h"
+#include "testdatasource.h"
+#include "testpublisher.h"
 #include "testsrv.h"
 
 tst_signalprocessor::tst_signalprocessor() { }
@@ -242,6 +245,423 @@ void tst_signalprocessor::test_signalProcessor_calculate()
   QCOMPARE(calculated.valueRef(2), 55.0);
 }
 
+
+void tst_signalprocessor::test_signalProcessor_failOnceDataSource()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::FakeOnce);
+
+  DataSourceFactory factory;
+  QVERIFY(factory.registerType(
+    ModuleType::FakeOnce,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<FailOnceDataSource>(
+        cfg.settings);
+    }));
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  DataSourceManager manager;
+
+  QVERIFY(manager.initialize(
+    cfg,
+    layout,
+    factory));
+
+  QCOMPARE(manager.size(), 1);
+
+  FormulaAstRepository formulas;
+
+  FormulaParser parserA("Raw0 + 5");
+  QVERIFY(formulas.add(FormulaId{0}, std::move(parserA.parse())));
+
+  FormulaParser parserB("Raw1 * 2");
+  QVERIFY(formulas.add(FormulaId{1}, std::move(parserB.parse())));
+
+  FormulaParser parserC("A + B");
+  QVERIFY(formulas.add(FormulaId{2}, std::move(parserC.parse())));
+
+  CalculationPlan plan;
+  CalculationCompiler builder(cfg, layout, formulas);
+  QVERIFY(builder.build(plan));
+
+  QCOMPARE(plan.size(), 3);
+
+  SignalProcessor processor(layout, formulas, plan);
+
+  BufferManager buffers;
+  buffers.initialize(layout);
+
+  TestArchiveWriter archive;
+  TestPublisher publisher;
+
+  DataEngine engine;
+  FakeSchedulerClock clock;
+
+  QVERIFY(engine.initialize(
+    manager,
+    processor,
+    buffers,
+    archive,
+    publisher,
+    clock));
+
+  QVERIFY(!engine.process());
+
+  QCOMPARE(archive.count, 0);
+  QCOMPARE(publisher.count, 0);
+
+  QVERIFY(!buffers.ready());
+
+  QVERIFY(engine.process());
+
+  QCOMPARE(archive.count, 1);
+  QCOMPARE(publisher.count, 1);
+
+  QVERIFY(buffers.ready());
+
+  const auto& published = publisher.last();
+  const auto& archived = archive.last();
+
+  QCOMPARE(archived.raw().valueRef(0), 42.0);
+  QCOMPARE(archived.raw().valueRef(1), 42.0);
+
+  QCOMPARE(
+    archived.calculated().valueRef(0),
+    47.0);
+
+  QCOMPARE(
+    archived.calculated().valueRef(1),
+    84.0);
+
+  QCOMPARE(
+    archived.calculated().valueRef(2),
+    131.0);
+
+  QCOMPARE(
+    published.raw().valueRef(0),
+    archived.raw().valueRef(0));
+
+  QCOMPARE(
+    published.raw().valueRef(1),
+    archived.raw().valueRef(1));
+
+  QCOMPARE(
+    published.calculated().valueRef(0),
+    archived.calculated().valueRef(0));
+
+  QCOMPARE(
+    published.calculated().valueRef(1),
+    archived.calculated().valueRef(1));
+
+  QCOMPARE(
+    published.calculated().valueRef(2),
+    archived.calculated().valueRef(2));
+}
+
+void tst_signalprocessor::test_signalProcessor_failFormula()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::Fake);
+
+  DataSourceFactory factory;
+  QVERIFY(factory.registerType(
+    ModuleType::Fake,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<FakeDataSource>(
+        cfg.settings);
+    }));
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  DataSourceManager manager;
+
+  QVERIFY(manager.initialize(
+    cfg,
+    layout,
+    factory));
+
+  QCOMPARE(manager.size(), 1);
+
+  FormulaAstRepository formulas;
+
+  FormulaParser parserA("Raw0 + 5");
+  QVERIFY(formulas.add(FormulaId{0}, std::move(parserA.parse())));
+
+  FormulaParser parserB("Raw1 * 2");
+  QVERIFY(formulas.add(FormulaId{1}, std::move(parserB.parse())));
+
+  FormulaParser parserC("abc(A + B)");
+  QVERIFY(formulas.add(FormulaId{2}, std::move(parserC.parse())));
+
+  CalculationPlan plan;
+  CalculationCompiler builder(cfg, layout, formulas);
+  QVERIFY(builder.build(plan));
+
+  QCOMPARE(plan.size(), 3);
+
+  SignalProcessor processor(layout, formulas, plan);
+
+  BufferManager buffers;
+  buffers.initialize(layout);
+
+  TestArchiveWriter archive;
+  TestPublisher publisher;
+
+  DataEngine engine;
+  FakeSchedulerClock clock;
+
+  QVERIFY(engine.initialize(
+    manager,
+    processor,
+    buffers,
+    archive,
+    publisher,
+    clock));
+
+  QVERIFY(!engine.process());
+
+  QCOMPARE(archive.count, 0);
+  QCOMPARE(publisher.count, 0);
+
+  QVERIFY(!buffers.ready());
+}
+
+void tst_signalprocessor::test_signalProcessor_cycle()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::Test);
+
+  DataSourceFactory factory;
+  QVERIFY(factory.registerType(
+    ModuleType::Test,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  DataSourceManager manager;
+
+  QVERIFY(manager.initialize(
+    cfg,
+    layout,
+    factory));
+
+  QCOMPARE(manager.size(), 1);
+
+  FormulaAstRepository formulas;
+
+  FormulaParser parserA("Raw0 + 5");
+  QVERIFY(formulas.add(FormulaId{0}, std::move(parserA.parse())));
+
+  FormulaParser parserB("Raw1 * Raw1");
+  QVERIFY(formulas.add(FormulaId{1}, std::move(parserB.parse())));
+
+  FormulaParser parserC("sqrt(B)");
+  QVERIFY(formulas.add(FormulaId{2}, std::move(parserC.parse())));
+
+  CalculationPlan plan;
+  CalculationCompiler builder(cfg, layout, formulas);
+  QVERIFY(builder.build(plan));
+
+  QCOMPARE(plan.size(), 3);
+
+  SignalProcessor processor(layout, formulas, plan);
+
+  BufferManager buffers;
+  buffers.initialize(layout);
+
+  TestArchiveWriter archive;
+  TestPublisher publisher;
+
+  DataEngine engine;
+  FakeSchedulerClock clock(2, 5);
+
+  QVERIFY(engine.initialize(
+    manager,
+    processor,
+    buffers,
+    archive,
+    publisher,
+    clock));
+
+  for (int n = 0; n < 1000; n++)
+  {
+    QVERIFY(engine.process());
+
+    auto count = n + 1;
+    double a = n;
+    double b = n * 10;
+    QCOMPARE(archive.count, count);
+    QCOMPARE(publisher.count, count);
+
+    const auto& archived = archive.last();
+    const auto& published = publisher.last();
+
+    QCOMPARE(archived.number, FrameNumber{static_cast<uint64_t>(count)});
+
+    QCOMPARE(archived.timestamp, Timestamp{static_cast<uint64_t>(count * 2)});
+
+    QCOMPARE(archived.wallTime, WallClockTime{static_cast<int64_t>(count * 5)});
+
+    QCOMPARE(archived.raw().valueRef(0), a);
+    QCOMPARE(archived.raw().valueRef(1), b);
+
+    QCOMPARE(archived.calculated().valueRef(0), a + 5);
+    QCOMPARE(archived.calculated().valueRef(1), b * b);
+    QCOMPARE(archived.calculated().valueRef(2), b);
+
+    QCOMPARE(
+      published.raw().valueRef(0),
+      archived.raw().valueRef(0));
+
+    QCOMPARE(
+      published.raw().valueRef(1),
+      archived.raw().valueRef(1));
+
+    QCOMPARE(
+      published.calculated().valueRef(0),
+      archived.calculated().valueRef(0));
+
+    QCOMPARE(
+      published.calculated().valueRef(1),
+      archived.calculated().valueRef(1));
+
+    QCOMPARE(
+      published.calculated().valueRef(2),
+      archived.calculated().valueRef(2));
+  }
+}
+
+void tst_signalprocessor::test_signalProcessor_failOnceArchiveWriter()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::Test);
+
+  DataSourceFactory factory;
+  QVERIFY(factory.registerType(
+    ModuleType::Test,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  DataSourceManager manager;
+
+  QVERIFY(manager.initialize(
+    cfg,
+    layout,
+    factory));
+
+  QCOMPARE(manager.size(), 1);
+
+  FormulaAstRepository formulas;
+
+  FormulaParser parserA("Raw0 + 5");
+  QVERIFY(formulas.add(FormulaId{0}, std::move(parserA.parse())));
+
+  FormulaParser parserB("Raw1 * Raw1");
+  QVERIFY(formulas.add(FormulaId{1}, std::move(parserB.parse())));
+
+  FormulaParser parserC("sqrt(B)");
+  QVERIFY(formulas.add(FormulaId{2}, std::move(parserC.parse())));
+
+  CalculationPlan plan;
+  CalculationCompiler builder(cfg, layout, formulas);
+  QVERIFY(builder.build(plan));
+
+  QCOMPARE(plan.size(), 3);
+
+  SignalProcessor processor(layout, formulas, plan);
+
+  BufferManager buffers;
+  buffers.initialize(layout);
+
+  FailOnceArchiveWriter archive;
+  TestPublisher publisher;
+
+  DataEngine engine;
+  FakeSchedulerClock clock(2, 5);
+
+  QVERIFY(engine.initialize(
+    manager,
+    processor,
+    buffers,
+    archive,
+    publisher,
+    clock));
+
+  QVERIFY(engine.process());
+  QVERIFY(buffers.ready());
+
+  QCOMPARE(publisher.count, 1);
+
+  QCOMPARE(archive.fail, true);
+  QCOMPARE(archive.attempts, 1);
+  QCOMPARE(archive.successes, 0);
+
+  const auto& error = publisher.last();
+  QCOMPARE(error.number, FrameNumber{1});
+  QCOMPARE(error.timestamp, Timestamp{2});
+  QCOMPARE(error.wallTime, WallClockTime{5});
+
+  auto count = 1;
+  double a = 0;
+  double b = 0 * 10;
+
+  QCOMPARE(error.raw().valueRef(0), a);
+  QCOMPARE(error.raw().valueRef(1), b);
+
+  QCOMPARE(error.calculated().valueRef(0), a + 5);
+  QCOMPARE(error.calculated().valueRef(1), b * b);
+  QCOMPARE(error.calculated().valueRef(2), b);
+
+
+  QVERIFY(engine.process());
+  QVERIFY(buffers.ready());
+
+  QCOMPARE(publisher.count, 2);
+
+  QCOMPARE(archive.fail, false);
+  QCOMPARE(archive.attempts, 2);
+  QCOMPARE(archive.successes, 1);
+
+  const auto& published = publisher.last();
+  QCOMPARE(published.number, FrameNumber{2});
+  QCOMPARE(published.timestamp, Timestamp{4});
+  QCOMPARE(published.wallTime, WallClockTime{10});
+
+  ++count;
+  a = 1;
+  b = 1 * 10;
+
+  QCOMPARE(published.raw().valueRef(0), a);
+  QCOMPARE(published.raw().valueRef(1), b);
+
+  QCOMPARE(published.calculated().valueRef(0), a + 5);
+  QCOMPARE(published.calculated().valueRef(1), b * b);
+  QCOMPARE(published.calculated().valueRef(2), b);
+}
 /*
 void tst_signalprocessor::test_calculation_plan()
 {

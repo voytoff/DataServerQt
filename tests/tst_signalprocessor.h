@@ -38,4 +38,9 @@ private slots:
 
   void test_signalProcessor_calculate();
 
+  void test_signalProcessor_failOnceDataSource();
+  void test_signalProcessor_failFormula();
+  void test_signalProcessor_cycle();
+  void test_signalProcessor_failOnceArchiveWriter();
+
 };

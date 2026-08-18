@@ -10,8 +10,8 @@ add_library(SignalProcessor SHARED
     emptysignalprocessor.cpp emptysignalprocessor.h
     calculationplan.h calculationplan.cpp
     calculationcompiler.h calculationcompiler.cpp
-    formulacontextbuilder.h formulacontextbuilder.cpp
-    calculationprocessor.h calculationprocessor.cpp
+    formulacontextbuilder_NOTUSED.h formulacontextbuilder_NOTUSED.cpp
+    calculationprocessor_NOTUSED.h calculationprocessor_NOTUSED.cpp
     failingprocessor.h
     signalprocessor.h signalprocessor.cpp
 )

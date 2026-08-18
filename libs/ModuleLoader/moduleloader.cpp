@@ -33,7 +33,7 @@ bool ModuleLoader::load()
       m_clock);
 
     //if (!m_manager.add(std::move(source)))
-      return false;
+    //  return false;
   }
 
   return true;

@@ -41,4 +41,11 @@ bool BufferManager::ready() const noexcept
   return m_ready;
 }
 
+void BufferManager::cancelWrite() noexcept
+{
+  assert(m_building);
+
+  m_building = false;
+}
+
 }

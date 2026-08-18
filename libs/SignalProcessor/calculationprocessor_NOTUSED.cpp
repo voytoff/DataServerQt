@@ -1,4 +1,4 @@
-#include "calculationprocessor.h"
+#include "calculationprocessor_NOTUSED.h"
 
 namespace qds
 {

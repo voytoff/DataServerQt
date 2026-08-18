@@ -18,13 +18,13 @@ add_library(DataSource SHARED
   datasourcemanager.h datasourcemanager.cpp
   fakeactivedatasource.h fakeactivedatasource.cpp
   moduledatasource.h moduledatasource.cpp
-
   idatabuffer.h
   idatasource.h
   fakedatasource.h fakedatasource.cpp
   testdatasource.h testdatasource.cpp
   failingdatasource.h
   datasourcefactory.h datasourcefactory.cpp
+  failoncedatasource.h failoncedatasource.cpp
 )
 
 target_include_directories(DataSource

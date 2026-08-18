@@ -209,3 +209,35 @@ void tst_signalstorage::test_datasource_layout_rebuild()
   QCOMPARE(ref.area, SignalMemoryArea::Raw);
   QCOMPARE(ref.index, 2u);
 }
+
+void tst_signalstorage::test_bufferManager_cancelWrite()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_calculate();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  BufferManager buffers;
+  buffers.initialize(layout);
+
+  QVERIFY(!buffers.ready());
+
+  Frame& frame = buffers.beginWrite();
+
+  frame.number = {123};
+
+  buffers.cancelWrite();
+
+  QVERIFY(!buffers.ready());
+
+  // После cancel можно снова начать запись.
+  Frame& frame2 = buffers.beginWrite();
+
+  QCOMPARE(&frame2, &frame);
+  QCOMPARE(frame2.number, FrameNumber{123});
+
+  buffers.cancelWrite();
+}

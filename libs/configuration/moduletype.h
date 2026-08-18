@@ -6,7 +6,7 @@ namespace qds
 enum class ModuleType
 {
   Unknown = 0,
-  Fake,
+  Fake, FakeOnce,
   Fail,
   Test,
   LCard

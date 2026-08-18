@@ -21,6 +21,8 @@ public:
   [[nodiscard]]
   bool ready() const noexcept;
 
+  void cancelWrite() noexcept;
+
 private:
   Frame m_frames[2];
 

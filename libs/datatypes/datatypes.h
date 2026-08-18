@@ -1,5 +1,6 @@
 #pragma once
 
+#include <compare>
 #include <cstdint>
 #include "strongid.h"
 
@@ -56,17 +57,20 @@ struct Timestamp
 {
   // Внутренняя монотонная шкала времени, микросекунды
   uint64_t value = 0;
+  constexpr auto operator<=>(const Timestamp&) const = default;
 };
 
 struct WallClockTime
 {
   // Реальное календарное время Unix epoch, микросекунды
   int64_t unixMicroseconds = 0;
+  constexpr auto operator<=>(const WallClockTime&) const = default;
 };
 
 struct FrameNumber
 {
   uint64_t value = 0;
+  constexpr auto operator<=>(const FrameNumber&) const = default;
 };
 
 }
