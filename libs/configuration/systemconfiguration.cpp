@@ -49,6 +49,39 @@ bool SystemConfiguration::addTag(const TagInfo& tag)
   return true;
 }
 
+bool SystemConfiguration::addSignalDefinition(
+  const SignalDefinition& definition)
+{
+  if (definition.kind == SignalKind::Raw && !containsTag(definition.source.tag))
+    return false; // отсутствует источник
+
+  if (findSignalDefinition(definition.name) != nullptr)
+    return false; // дублирование имени
+
+  auto id = definition.id.value;
+
+  if (id >= m_signalDefinitionExists.size())
+  {
+    m_signalDefinitionExists.resize(id + 1, false);
+    m_signalDefinitionIndex.resize(id + 1, InvalidIndex32);
+  }
+
+  if (m_signalDefinitionExists[id])
+    return false; // дубликат
+
+  assert(m_signalDefinitionIndex[id] == InvalidIndex32);
+
+  const uint32_t index =
+    static_cast<uint32_t>(m_signalDefinitions.size());
+
+  m_signalDefinitions.push_back(definition);
+
+  m_signalDefinitionExists[id] = true;
+  m_signalDefinitionIndex[id] = index;
+
+  return true;
+}
+
 const std::vector<CrateInfo>& SystemConfiguration::crates() const
 {
   return m_crates;
@@ -99,37 +132,22 @@ const TagInfo* SystemConfiguration::findTag(TagId id) const
   return &m_tags[index];
 }
 
-bool SystemConfiguration::addSignalDefinition(
-  const SignalDefinition& definition)
+SignalDefinition*
+SystemConfiguration::findSignalDefinition(
+  SignalId id)
 {
-  if (definition.kind == SignalKind::Raw && !containsTag(definition.source.tag))
-    return false; // отсутствует источник
-
-  if (findSignalDefinition(definition.name) != nullptr)
-    return false; // дублирование имени
-
-  auto id = definition.id.value;
-
-  if (id >= m_signalDefinitionExists.size())
-  {
-    m_signalDefinitionExists.resize(id + 1, false);
-    m_signalDefinitionIndex.resize(id + 1, InvalidIndex32);
-  }
-
-  if (m_signalDefinitionExists[id])
-    return false; // дубликат
-
-  assert(m_signalDefinitionIndex[id] == InvalidIndex32);
+  if (id.value >= m_signalDefinitionIndex.size())
+    return nullptr;
 
   const uint32_t index =
-    static_cast<uint32_t>(m_signalDefinitions.size());
+    m_signalDefinitionIndex[id.value];
 
-  m_signalDefinitions.push_back(definition);
+  if (index == InvalidIndex32)
+    return nullptr;
 
-  m_signalDefinitionExists[id] = true;
-  m_signalDefinitionIndex[id] = index;
+  assert(index < m_signalDefinitions.size());
 
-  return true;
+  return &m_signalDefinitions[index];
 }
 
 const SignalDefinition* SystemConfiguration::findSignalDefinition(

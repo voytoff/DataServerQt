@@ -45,6 +45,7 @@ configuration_tag
 configuration_signal_definition
  ├── configuration_id
  ├── id
+ ├── formula_expression
  ├── ...
  └── dependencies
 */
@@ -69,6 +70,7 @@ public:
   [[nodiscard]]
   const TagInfo* findTag(TagId id) const;
 
+  SignalDefinition* findSignalDefinition(SignalId id);
   [[nodiscard]]
   bool containsSignalDefinition(SignalId id) const;
   [[nodiscard]]

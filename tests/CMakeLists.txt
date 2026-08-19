@@ -34,6 +34,7 @@ add_executable(unit_tests
     tst_signalprocessor.h tst_signalprocessor.cpp
     tst_configuration.h tst_configuration.cpp
     tst_formulas.h tst_formulas.cpp
+    tst_dataserver.h tst_dataserver.cpp
 )
 
 target_link_libraries(unit_tests PRIVATE
@@ -42,6 +43,7 @@ target_link_libraries(unit_tests PRIVATE
     Qt${QT_VERSION_MAJOR}::Network
     Core
     Configuration
+    DataServerRuntime
     LiveStorage
     Subscriptions
     DataProtocol

@@ -16,12 +16,14 @@ add_executable(dataserver
 target_link_libraries(dataserver PRIVATE
     Qt6::Core
     Qt6::Network
-    Core
+    Configuration
+    Formulas
+    SignalStorage
     Engine
     HardwareFactory
-    Configuration
     LiveStorage
     UdpSender
     UdpServer
     ModuleLoader
+    DataServerRuntime
 )

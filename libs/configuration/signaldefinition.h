@@ -67,8 +67,10 @@ struct SignalDefinition
   // ссылка на таблицу тарировки
   CalibrationId calibrationId = {0};
 
-  // ссылка на формулу вычисления
+  // ссылка на формулу вычисления в репозитории
   FormulaId formulaId = {0};
+  // текст формулы
+  std::string formula;
 
   // аргументы формулы
   std::vector<SignalId> dependencies;

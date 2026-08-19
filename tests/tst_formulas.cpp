@@ -1077,7 +1077,8 @@ void tst_formulas::test_formulas_identifierResolver()
     cfg,
     layout);
 
-  QVERIFY(resolver.resolve(*root));
+  std::vector<SignalId> dependencies;
+  QVERIFY(resolver.resolve(*root, dependencies));
 
   QCOMPARE(
     root->type,
@@ -1140,8 +1141,9 @@ void tst_formulas::test_formulas_identifierResolver_unknown()
   IdentifierResolver resolver(
     cfg,
     layout);
-
-  QVERIFY(!resolver.resolve(*root));
+  
+  std::vector<SignalId> dependencies;
+  QVERIFY(!resolver.resolve(*root, dependencies));
 }
 
 void tst_formulas::test_formulas_identifierResolverCalculated()
@@ -1165,7 +1167,8 @@ void tst_formulas::test_formulas_identifierResolverCalculated()
     cfg,
     layout);
 
-  QVERIFY(resolver.resolve(*root));
+  std::vector<SignalId> dependencies;
+  QVERIFY(resolver.resolve(*root, dependencies));
 
   QCOMPARE(
     root->type,
@@ -1290,7 +1293,8 @@ void tst_formulas::test_formulas_evaluator_raw0()
     cfg,
     layout);
 
-  QVERIFY(resolver.resolve(*root));
+  std::vector<SignalId> dependencies;
+  QVERIFY(resolver.resolve(*root, dependencies));
 
   RawMemory raw;
   CalculatedMemory calculated;
@@ -1333,7 +1337,8 @@ void tst_formulas::test_formulas_evaluator_raw0AndRaw1()
     cfg,
     layout);
 
-  QVERIFY(resolver.resolve(*root));
+  std::vector<SignalId> dependencies;
+  QVERIFY(resolver.resolve(*root, dependencies));
 
   RawMemory raw;
   CalculatedMemory calculated;
@@ -1378,7 +1383,8 @@ void tst_formulas::test_formulaEvaluator_base()
     cfg,
     layout);
 
-  QVERIFY(resolver.resolve(*root));
+  std::vector<SignalId> dependencies;
+  QVERIFY(resolver.resolve(*root, dependencies));
 
   RawMemory raw;
   raw.initialize(layout.rawSignalCount());
@@ -1423,7 +1429,8 @@ void tst_formulas::test_formulas_evaluator_divideByZero()
   layout.build(cfg);
 
   IdentifierResolver resolver(cfg, layout);
-  QVERIFY(resolver.resolve(*root));
+  std::vector<SignalId> dependencies;
+  QVERIFY(resolver.resolve(*root, dependencies));
 
   RawMemory raw;
   raw.initialize(layout.rawSignalCount());
@@ -1464,7 +1471,8 @@ void tst_formulas::test_formulas_evaluator_failSignalReference()
   layout.build(cfg);
 
   IdentifierResolver resolver(cfg, layout);
-  QVERIFY(resolver.resolve(*root));
+  std::vector<SignalId> dependencies;
+  QVERIFY(resolver.resolve(*root, dependencies));
 
   RawMemory raw;
   raw.initialize(layout.rawSignalCount());
@@ -1513,7 +1521,8 @@ void tst_formulas::test_formulas_evaluator_subtract()
     cfg,
     layout);
 
-  QVERIFY(resolver.resolve(*root));
+  std::vector<SignalId> dependencies;
+  QVERIFY(resolver.resolve(*root, dependencies));
 
   RawMemory raw;
   CalculatedMemory calculated;
@@ -1557,7 +1566,8 @@ void tst_formulas::test_formulas_evaluator_multiply()
     cfg,
     layout);
 
-  QVERIFY(resolver.resolve(*root));
+  std::vector<SignalId> dependencies;
+  QVERIFY(resolver.resolve(*root, dependencies));
 
   RawMemory raw;
   CalculatedMemory calculated;
@@ -1602,7 +1612,8 @@ void tst_formulas::test_formulas_evaluator_negate()
     cfg,
     layout);
 
-  QVERIFY(resolver.resolve(*root));
+  std::vector<SignalId> dependencies;
+  QVERIFY(resolver.resolve(*root, dependencies));
 
   RawMemory raw;
   CalculatedMemory calculated;
@@ -1641,7 +1652,8 @@ void tst_formulas::test_formulas_evaluator_formulaFunctionRepository()
   QVERIFY(root != nullptr);
 
   IdentifierResolver resolver(cfg, layout);
-  QVERIFY(resolver.resolve(*root));
+  std::vector<SignalId> dependencies;
+  QVERIFY(resolver.resolve(*root, dependencies));
 
   FormulaFunctionRepository functions;
 
@@ -1727,7 +1739,8 @@ void tst_formulas::test_formulas_functionCall_unknown()
   QVERIFY(root != nullptr);
 
   IdentifierResolver resolver(cfg, layout);
-  QVERIFY(resolver.resolve(*root));
+  std::vector<SignalId> dependencies;
+  QVERIFY(resolver.resolve(*root, dependencies));
 
   FormulaFunctionRepository functions;
 
@@ -1767,7 +1780,8 @@ void tst_formulas::test_formulas_functionCall_missingParams()
   QVERIFY(root != nullptr);
 
   IdentifierResolver resolver(cfg, layout);
-  QVERIFY(resolver.resolve(*root));
+  std::vector<SignalId> dependencies;
+  QVERIFY(resolver.resolve(*root, dependencies));
 
   FormulaFunctionRepository functions;
 
@@ -1807,7 +1821,8 @@ void tst_formulas::test_formulas_functionCall_failCountParams()
   QVERIFY(root != nullptr);
 
   IdentifierResolver resolver(cfg, layout);
-  QVERIFY(resolver.resolve(*root));
+  std::vector<SignalId> dependencies;
+  QVERIFY(resolver.resolve(*root, dependencies));
 
   FormulaFunctionRepository functions;
 
@@ -1847,7 +1862,8 @@ void tst_formulas::test_formulas_functionCall_failValueParams()
   QVERIFY(root != nullptr);
 
   IdentifierResolver resolver(cfg, layout);
-  QVERIFY(resolver.resolve(*root));
+  std::vector<SignalId> dependencies;
+  QVERIFY(resolver.resolve(*root, dependencies));
 
   FormulaFunctionRepository functions;
 
@@ -1906,7 +1922,8 @@ void tst_formulas::test_formulas_functionCall_sqrtSignal()
   QVERIFY(root != nullptr);
 
   IdentifierResolver resolver(cfg, layout);
-  QVERIFY(resolver.resolve(*root));
+  std::vector<SignalId> dependencies;
+  QVERIFY(resolver.resolve(*root, dependencies));
 
   FormulaFunctionRepository functions;
 
@@ -1951,7 +1968,8 @@ void tst_formulas::test_formulas_functionRepository_abs_negate()
   QVERIFY(root != nullptr);
 
   IdentifierResolver resolver(cfg, layout);
-  QVERIFY(resolver.resolve(*root));
+  std::vector<SignalId> dependencies;
+  QVERIFY(resolver.resolve(*root, dependencies));
 
   FormulaFunctionRepository functions;
 
@@ -1996,7 +2014,8 @@ void tst_formulas::test_formulas_functionRepository_max()
   QVERIFY(root != nullptr);
 
   IdentifierResolver resolver(cfg, layout);
-  QVERIFY(resolver.resolve(*root));
+  std::vector<SignalId> dependencies;
+  QVERIFY(resolver.resolve(*root, dependencies));
 
   FormulaFunctionRepository functions;
 
@@ -2042,7 +2061,8 @@ void tst_formulas::test_formulas_functionRepository_min()
   QVERIFY(root != nullptr);
 
   IdentifierResolver resolver(cfg, layout);
-  QVERIFY(resolver.resolve(*root));
+  std::vector<SignalId> dependencies;
+  QVERIFY(resolver.resolve(*root, dependencies));
 
   FormulaFunctionRepository functions;
 
@@ -2088,7 +2108,8 @@ void tst_formulas::test_formulas_functionRepository_max_missingParams()
   QVERIFY(root != nullptr);
 
   IdentifierResolver resolver(cfg, layout);
-  QVERIFY(resolver.resolve(*root));
+  std::vector<SignalId> dependencies;
+  QVERIFY(resolver.resolve(*root, dependencies));
 
   FormulaFunctionRepository functions;
 
@@ -2130,7 +2151,8 @@ void tst_formulas::test_formulas_functionRepository_max_failParams()
   QVERIFY(root != nullptr);
 
   IdentifierResolver resolver(cfg, layout);
-  QVERIFY(resolver.resolve(*root));
+  std::vector<SignalId> dependencies;
+  QVERIFY(resolver.resolve(*root, dependencies));
 
   FormulaFunctionRepository functions;
 
@@ -2172,7 +2194,8 @@ void tst_formulas::test_formulas_functionRepository_min_missingParams()
   QVERIFY(root != nullptr);
 
   IdentifierResolver resolver(cfg, layout);
-  QVERIFY(resolver.resolve(*root));
+  std::vector<SignalId> dependencies;
+  QVERIFY(resolver.resolve(*root, dependencies));
 
   FormulaFunctionRepository functions;
 
@@ -2214,7 +2237,8 @@ void tst_formulas::test_formulas_functionRepository_min_failParams()
   QVERIFY(root != nullptr);
 
   IdentifierResolver resolver(cfg, layout);
-  QVERIFY(resolver.resolve(*root));
+  std::vector<SignalId> dependencies;
+  QVERIFY(resolver.resolve(*root, dependencies));
 
   FormulaFunctionRepository functions;
 
@@ -2257,7 +2281,8 @@ void tst_formulas::test_formulas_functionRepository_nesteFunctions()
   QVERIFY(root != nullptr);
 
   IdentifierResolver resolver(cfg, layout);
-  QVERIFY(resolver.resolve(*root));
+  std::vector<SignalId> dependencies;
+  QVERIFY(resolver.resolve(*root, dependencies));
 
   auto functions = createFormulaFunctionRepository();
   QVERIFY(functions != nullptr);
@@ -2539,19 +2564,20 @@ void tst_formulas::test_formulaCalculator_base()
   FormulaParser parserA("Raw0 + 5");
   auto nodeA = parserA.parse();
   QVERIFY(nodeA != nullptr);
-  QVERIFY(resolver.resolve(*nodeA));
+  std::vector<SignalId> dependencies;
+  QVERIFY(resolver.resolve(*nodeA, dependencies));
   QVERIFY(formulas.add(FormulaId{0}, std::move(nodeA)));
 
   FormulaParser parserB("Raw1 * 2");
   auto nodeB = parserB.parse();
   QVERIFY(nodeB != nullptr);
-  QVERIFY(resolver.resolve(*nodeB));
+  QVERIFY(resolver.resolve(*nodeB, dependencies));
   QVERIFY(formulas.add(FormulaId{1}, std::move(nodeB)));
 
   FormulaParser parserC("A + B");
   auto nodeC = parserC.parse();
   QVERIFY(nodeC != nullptr);
-  QVERIFY(resolver.resolve(*nodeC));
+  QVERIFY(resolver.resolve(*nodeC, dependencies));
   QVERIFY(formulas.add(FormulaId{2}, std::move(nodeC)));
 
   CalculationOrder co;
@@ -2653,7 +2679,8 @@ void tst_formulas::test_formulaCalculator_calculate()
   auto* ast = formulas.find(FormulaId{0});
 
   QVERIFY(ast != nullptr);
-  QVERIFY(resolver.resolve(*ast));
+  std::vector<SignalId> dependencies;
+  QVERIFY(resolver.resolve(*ast, dependencies));
 
   FormulaCalculator calculator;
 

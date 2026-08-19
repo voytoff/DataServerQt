@@ -1,62 +1,55 @@
 #pragma once
 
-#include "dataengine.h"
-#include "datasourcemanager.h"
-#include "hardwaremodulefactory.h"
-#include "systemclock.h"
-#include "udpserver.h"
-#include "udpsender.h"
 #include <QObject>
-#include <QCoreApplication>
 #include <QTimer>
 
-/*
-while (running)
+#include "runtimesystem.h"
+#include "systemconfiguration.h"
+
+#include "datasourcefactory.h"
+#include "iarchivewriter.h"
+#include "iframepublisher.h"
+#include "ischedulerclock.h"
+
+namespace qds
 {
-    auto& frame = buffer.beginWrite();
-
-    source.read(frame);
-
-    calculation.process(frame);
-
-    archive.write(frame);
-
-    publisher.publish(frame);
-
-    buffer.publish();
-}
-*/
 
 class DataServer : public QObject
 {
   Q_OBJECT
+
 public:
-  explicit DataServer(qds::SystemConfiguration cfg, QObject* parent = nullptr);
-  ~DataServer() = default;
+
+  explicit DataServer(
+    SystemConfiguration configuration,
+    const DataSourceFactory& dataSourceFactory,
+    IArchiveWriter& archive,
+    IFramePublisher& publisher,
+    ISchedulerClock& clock,
+    QObject* parent = nullptr);
 
   bool start();
   void stop();
 
-private:
-  qds::SystemConfiguration m_cfg;
-  qds::DataEngine m_engine;
-  qds::DataSourceManager m_manager;
-  qds::SubscriptionManager m_subscritions;
-  qds::Publisher m_publisher;
-  qds::LiveStorage m_storage;
-  qds::LiveScheduler m_scheduler;
-  //qds::TestSender m_sender;
-  //qds::UdpServer m_server;
-  qds::SystemClock m_clock;
-  qds::HardwareModuleFactory m_factory;
+private slots:
 
-  qds::UdpSender m_sender;
-  qds::PacketDispatcher m_dispatcher;
-  qds::UdpServer m_server;
+  void onTimer();
+
+private:
+
+  SystemConfiguration m_configuration;
+
+  const DataSourceFactory& m_dataSourceFactory;
+
+  IArchiveWriter& m_archive;
+  IFramePublisher& m_publisher;
+  ISchedulerClock& m_clock;
+
+  RuntimeSystem m_runtime;
 
   QTimer m_timer;
 
-private slots:
-  void onTimer();
-
+  bool m_running = false;
 };
+
+}

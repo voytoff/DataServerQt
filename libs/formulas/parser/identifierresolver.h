@@ -16,12 +16,14 @@ public:
     const SignalMemoryLayout& layout);
 
   bool resolve(
-    FormulaNode& root);
+    FormulaNode& root,
+    std::vector<SignalId>& dependencies);
 
 private:
 
-  bool resolveNode(
-    FormulaNode& node);
+bool resolveNode(
+  FormulaNode& node,
+    std::vector<SignalId>& dependencies);
 
 private:
 

@@ -1,7 +1,5 @@
 #include "calculationcompiler.h"
-
 #include "calculationorder.h"
-#include "parser/identifierresolver.h"
 
 namespace qds
 {
@@ -21,23 +19,14 @@ bool CalculationCompiler::build(
 {
   plan.clear();
 
-  IdentifierResolver resolver(
-    m_cfg,
-    m_layout);
-
   for (const auto& definition :
        m_cfg.signalDefinitions())
   {
     if (definition.kind != SignalKind::Calculated)
       continue;
 
-    auto* formula =
-      m_formulas.find(definition.formulaId);
-
-    if (formula == nullptr)
-      return false;
-
-    if (!resolver.resolve(*formula))
+    if (m_formulas.find(
+          definition.formulaId) == nullptr)
       return false;
   }
 

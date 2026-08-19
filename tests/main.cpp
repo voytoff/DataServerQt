@@ -7,6 +7,7 @@
 #include "tst_dataprotocol.h"
 #include "tst_common.h"
 #include "tst_core.h"
+#include "tst_dataserver.h"
 #include "tst_datasource.h"
 #include "tst_engine.h"
 #include "tst_formulas.h"
@@ -28,6 +29,10 @@ int main(int argc, char *argv[])
 
   int rc = 0;
 
+  {
+    tst_dataserver tc;
+    rc |= QTest::qExec(&tc, argc, argv);
+  }
   {
     tst_formulas tc;
     rc |= QTest::qExec(&tc, argc, argv);

@@ -11,6 +11,7 @@
 #include "fakedatasource.h"
 #include "fakeschedulerclock.h"
 #include "parser/formulaparser.h"
+#include "parser/identifierresolver.h"
 #include "signalprocessor.h"
 #include "systemconfiguration.h"
 #include "testarchivewriter.h"
@@ -207,21 +208,25 @@ void tst_signalprocessor::test_signalProcessor_calculate()
   raw.setValue(1, 20.0);
 
   FormulaAstRepository formulas;
+  IdentifierResolver resolver(cfg, layout);
 
   FormulaParser parserA("Raw0 + 5");
   QVERIFY(formulas.add(
     FormulaId{0},
     std::move(parserA.parse())));
+  QVERIFY(resolver.resolve(*formulas.find(FormulaId{0}), cfg.findSignalDefinition(SignalId{17})->dependencies));
 
   FormulaParser parserB("Raw1 * 2");
   QVERIFY(formulas.add(
     FormulaId{1},
     std::move(parserB.parse())));
+  QVERIFY(resolver.resolve(*formulas.find(FormulaId{1}), cfg.findSignalDefinition(SignalId{4})->dependencies));
 
   FormulaParser parserC("A + B");
   QVERIFY(formulas.add(
     FormulaId{2},
     std::move(parserC.parse())));
+  QVERIFY(resolver.resolve(*formulas.find(FormulaId{2}), cfg.findSignalDefinition(SignalId{23})->dependencies));
 
   CalculationPlan plan;
 
@@ -275,15 +280,19 @@ void tst_signalprocessor::test_signalProcessor_failOnceDataSource()
   QCOMPARE(manager.size(), 1);
 
   FormulaAstRepository formulas;
+  IdentifierResolver resolver(cfg, layout);
 
   FormulaParser parserA("Raw0 + 5");
   QVERIFY(formulas.add(FormulaId{0}, std::move(parserA.parse())));
+  QVERIFY(resolver.resolve(*formulas.find(FormulaId{0}), cfg.findSignalDefinition(SignalId{17})->dependencies));
 
   FormulaParser parserB("Raw1 * 2");
   QVERIFY(formulas.add(FormulaId{1}, std::move(parserB.parse())));
+  QVERIFY(resolver.resolve(*formulas.find(FormulaId{1}), cfg.findSignalDefinition(SignalId{4})->dependencies));
 
   FormulaParser parserC("A + B");
   QVERIFY(formulas.add(FormulaId{2}, std::move(parserC.parse())));
+  QVERIFY(resolver.resolve(*formulas.find(FormulaId{2}), cfg.findSignalDefinition(SignalId{23})->dependencies));
 
   CalculationPlan plan;
   CalculationCompiler builder(cfg, layout, formulas);

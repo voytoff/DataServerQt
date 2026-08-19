@@ -23,10 +23,10 @@ int main(int argc, char *argv[]) {
     config.addTag(ti);
   }
 
-  DataServer server(config);
+  //qds::DataServer server;
 
-  if (!server.start())
-    return -1;
+  //if (!server.start())
+  //  return -1;
 
   return app.exec();
 }

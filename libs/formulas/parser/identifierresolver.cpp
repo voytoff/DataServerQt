@@ -10,26 +10,45 @@ IdentifierResolver::IdentifierResolver(
   , m_layout(layout) { }
 
 bool IdentifierResolver::resolve(
-  FormulaNode& root)
+  FormulaNode& root,
+  std::vector<SignalId>& dependencies)
 {
-  return resolveNode(root);
+  dependencies.clear();
+
+  return resolveNode(
+    root,
+    dependencies);
 }
 
 bool IdentifierResolver::resolveNode(
-  FormulaNode& node)
+  FormulaNode& node,
+  std::vector<SignalId>& dependencies)
 {
   switch (node.type)
   {
   case FormulaNodeType::Identifier:
   {
     const auto* definition =
-      m_cfg.findSignalDefinition(node.identifier);
+      m_cfg.findSignalDefinition(
+        node.identifier);
 
     if (definition == nullptr)
       return false;
 
+    //dependencies.push_back(
+    //  definition->id);
+    if (std::find(
+          dependencies.begin(),
+          dependencies.end(),
+          definition->id) == dependencies.end())
+    {
+      dependencies.push_back(
+        definition->id);
+    }
+
     const auto reference =
-      m_layout.reference(definition->id);
+      m_layout.reference(
+        definition->id);
 
     if (!reference.isValid())
       return false;
@@ -51,8 +70,9 @@ bool IdentifierResolver::resolveNode(
     if (!node.left || !node.right)
       return false;
 
-    return resolveNode(*node.left) &&
-           resolveNode(*node.right);
+    return
+      resolveNode(*node.left, dependencies) &&
+      resolveNode(*node.right, dependencies);
   }
 
   case FormulaNodeType::Negate:
@@ -60,7 +80,9 @@ bool IdentifierResolver::resolveNode(
     if (!node.left)
       return false;
 
-    return resolveNode(*node.left);
+    return resolveNode(
+      *node.left,
+      dependencies);
   }
 
   case FormulaNodeType::FunctionCall:
@@ -70,7 +92,9 @@ bool IdentifierResolver::resolveNode(
       if (!argument)
         return false;
 
-      if (!resolveNode(*argument))
+      if (!resolveNode(
+            *argument,
+            dependencies))
         return false;
     }
 
@@ -83,4 +107,5 @@ bool IdentifierResolver::resolveNode(
 
   return false;
 }
+
 }
