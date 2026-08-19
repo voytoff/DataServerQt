@@ -22,12 +22,11 @@ target_include_directories(LiveScheduler
 )
 
 target_link_libraries(LiveScheduler PRIVATE
+    PRIVATE
+        Qt${QT_VERSION_MAJOR}::Core
     PUBLIC
         Subscriptions
         Publisher
-        LiveStorage
+        #LiveStorage
         DataProtocol
-
-    PRIVATE
-        Qt${QT_VERSION_MAJOR}::Core
 )

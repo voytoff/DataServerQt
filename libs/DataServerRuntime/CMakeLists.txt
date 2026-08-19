@@ -21,7 +21,6 @@ target_link_libraries(DataServerRuntime
     Formulas
     SignalStorage
     HardwareFactory
-    LiveStorage
     SignalProcessor
     Engine
 )

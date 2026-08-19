@@ -1,24 +1,32 @@
 #pragma once
 
-#include <cstdint>
-
-#include "livestorage.h"
-#include "subscription.h"
+#include "frame.h"
+#include "isender.h"
 #include "packetwriter.h"
+#include "signalmemorylayout.h"
+#include "subscription.h"
 
 namespace qds
 {
 
-// строит LiveData пакет
 class Publisher
 {
 public:
-  bool publish(
-    const LiveStorage& storage,
-    const Subscription& sub,
-    uint32_t sequence,
-    PacketWriter& writer) const;
 
+  Publisher(
+    const SignalMemoryLayout& layout,
+    ISender& sender);
+
+  bool publish(
+    const Frame& frame,
+    Subscription& subscription);
+
+private:
+
+  const SignalMemoryLayout& m_layout;
+  ISender& m_sender;
+
+  PacketWriter m_writer;
 };
 
 }

@@ -18,8 +18,8 @@ target_include_directories(Subscriptions
 )
 
 target_link_libraries(Subscriptions
-    PUBLIC
-        DataProtocol
     PRIVATE
         Qt${QT_VERSION_MAJOR}::Core
+    PUBLIC
+        DataProtocol
 )

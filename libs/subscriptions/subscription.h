@@ -8,11 +8,15 @@
 namespace qds
 {
 
-struct Subscription {
+struct Subscription
+{
   SubscriptionId id;
   Endpoint endpoint;
-  std::vector<TagId> tags;
+
+  std::vector<SignalId> signals;
+
   PublishRate rate = PublishRate::Hz10;
+
   uint32_t sequence = 0;
 };
 
