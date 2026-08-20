@@ -173,6 +173,16 @@ uint32_t SystemConfiguration::moduleChannelCount(
     moduleTags(id).size());
 }
 
+void SystemConfiguration::setUdpPort(uint16_t port)
+{
+  m_udpPort = port;
+}
+
+uint16_t SystemConfiguration::udpPort() const noexcept
+{
+  return m_udpPort;
+}
+
 const SignalDefinition*
 SystemConfiguration::findSignalDefinition(
   std::string_view name) const

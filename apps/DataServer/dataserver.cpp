@@ -9,14 +9,15 @@ DataServer::DataServer(
   SystemConfiguration configuration,
   const DataSourceFactory& dataSourceFactory,
   IArchiveWriter& archive,
-//  IFramePublisher& publisher,
   ISchedulerClock& clock,
+  ISender& sender,
   QObject* parent)
   : QObject(parent)
   , m_configuration(std::move(configuration))
   , m_dataSourceFactory(dataSourceFactory)
   , m_archive(archive)
   , m_clock(clock)
+  , m_sender(sender)
 {
   connect(
     &m_timer,
@@ -37,9 +38,6 @@ bool DataServer::start()
   if (!builder.build(
         m_configuration,
         m_dataSourceFactory,
-        m_archive,
-        *m_publisher,
-        m_clock,
         m_runtime))
   {
     return false;
@@ -52,14 +50,6 @@ bool DataServer::start()
       m_sender,
       1000);
 
-  m_runtime.engine->initialize(
-    m_runtime.dataSources,
-    *m_runtime.signalProcessor,
-    m_runtime.buffers,
-    m_archive,
-    *m_publisher,
-    m_clock);
-
   m_dispatcher =
     std::make_unique<PacketDispatcher>(
       m_configuration,
@@ -69,6 +59,32 @@ bool DataServer::start()
   m_udpServer =
     std::make_unique<UdpServer>(
       *m_dispatcher);
+
+  if (!m_runtime.engine)
+  {
+    m_runtime.engine =
+      std::make_unique<DataEngine>();
+  }
+
+  if (!m_runtime.engine->initialize(
+        m_runtime.dataSources,
+        *m_runtime.signalProcessor,
+        m_runtime.buffers,
+        m_archive,
+        *m_publisher,
+        m_clock))
+  {
+    return false;
+  }
+
+  if (m_configuration.udpPort() == 0)
+    return false;
+
+  if (!m_udpServer->start(
+        m_configuration.udpPort()))
+  {
+    return false;
+  }
 
   m_running = true;
   m_timer.start();
@@ -82,6 +98,10 @@ void DataServer::stop()
     return;
 
   m_timer.stop();
+
+  if (m_udpServer)
+    m_udpServer->stop();
+
   m_running = false;
 }
 

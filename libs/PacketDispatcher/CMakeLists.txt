@@ -16,7 +16,7 @@ target_include_directories(PacketDispatcher
 target_link_libraries(PacketDispatcher
     PUBLIC
         DataProtocol
-    PRIVATE
+    #PRIVATE
         Subscriptions
         Publisher
         UdpSender

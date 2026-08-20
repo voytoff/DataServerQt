@@ -82,6 +82,11 @@ public:
   [[nodiscard]]
   uint32_t moduleChannelCount(ModuleId id) const;
 
+  void setUdpPort(uint16_t port);
+
+  [[nodiscard]]
+  uint16_t udpPort() const noexcept;
+
 private:
 
   std::vector<CrateInfo> m_crates;
@@ -98,6 +103,8 @@ private:
   // быстрый поиск SignalId -> индекс в m_signals
   std::vector<uint32_t> m_signalDefinitionIndex;
   std::vector<bool> m_signalDefinitionExists;
+
+  uint16_t m_udpPort = 0;
 
 };
 

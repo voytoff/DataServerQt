@@ -9,8 +9,7 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Network)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Network)
 
 add_library(UdpServer
-  udpserver.cpp
-  udpserver.h
+  udpserver.cpp udpserver.h
 )
 
 target_include_directories(Subscriptions
@@ -20,13 +19,9 @@ target_include_directories(Subscriptions
 
 target_link_libraries(UdpServer PRIVATE
   PUBLIC
-    DataProtocol
-    Subscriptions
-    Configuration
     PacketDispatcher
   PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Network
 )
-
 target_compile_options(UdpServer PRIVATE -Wno-nonportable-include-path)

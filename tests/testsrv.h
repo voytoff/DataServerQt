@@ -26,19 +26,26 @@ public:
 
   SubscriptionManager manager;
   SignalMemoryLayout layout;
-  //LiveStorage storage;
+  SubscriptionManager subscriptions;
+  UdpSender sender;
 
-  Publisher publisher;
+  //Publisher publisher;
+  std::unique_ptr<Publisher> publisher;
 
   TestPublisherSender publisherSender;
   UdpSender udpSender;
-
-  //LiveScheduler scheduler;
 
   PacketDispatcher dispatcher;
 
   UdpServer server;
 };
+
+static void createSignalDefinitions(SystemConfiguration &cfg)
+{
+  for (const auto &m : cfg.modules())
+    for (const auto &t : cfg.moduleTags({m.id}))
+      cfg.addSignalDefinition({.id = {t.value}, .name = std::to_string(t.value), .kind = SignalKind::Raw, .source = {t.value}, .archiveFrequency = 100});
+}
 
 static std::unique_ptr<FormulaFunctionRepository> createFormulaFunctionRepository()
 {
@@ -59,8 +66,7 @@ static SystemConfiguration createTestConfig(const TagId* tags, int tagCount) {
   // создаем конфигурацию
   SystemConfiguration cfg;
 
-  ModuleInfo m0;
-  m0.id = {0};
+  ModuleInfo m0{0};
   cfg.addModule(m0);
 
   for (int i = 0; i < tagCount; i++) {
@@ -68,9 +74,10 @@ static SystemConfiguration createTestConfig(const TagId* tags, int tagCount) {
     TagInfo ti;
     ti.tag = t;
     ti.module = {0};
+    ti.channel = {t.value};
     cfg.addTag(ti);
   }
-
+  createSignalDefinitions(cfg);
   return cfg;
 }
 

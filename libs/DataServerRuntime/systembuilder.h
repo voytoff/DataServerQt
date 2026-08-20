@@ -11,11 +11,8 @@ class SystemBuilder
 public:
 
   bool build(
-    SystemConfiguration &configuration,
+    SystemConfiguration& configuration,
     const DataSourceFactory& dataSourceFactory,
-    IArchiveWriter& archive,
-    IFramePublisher& publisher,
-    ISchedulerClock& clock,
     RuntimeSystem& runtime);
 };
 

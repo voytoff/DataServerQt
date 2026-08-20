@@ -12,7 +12,7 @@
 #include "datasourcefactory.h"
 #include "iarchivewriter.h"
 #include "ischedulerclock.h"
-#include "udpsender.h"
+#include "isender.h"
 #include "udpserver.h"
 
 namespace qds
@@ -29,6 +29,7 @@ public:
     const DataSourceFactory& dataSourceFactory,
     IArchiveWriter& archive,
     ISchedulerClock& clock,
+    ISender& sender,
     QObject* parent = nullptr);
 
   bool start();
@@ -46,12 +47,11 @@ private:
 
   IArchiveWriter& m_archive;
   ISchedulerClock& m_clock;
+  ISender& m_sender;
 
   RuntimeSystem m_runtime;
 
   SubscriptionManager m_subscriptions;
-
-  UdpSender m_sender;
 
   std::unique_ptr<Publisher> m_publisher;
   std::unique_ptr<PacketDispatcher> m_dispatcher;

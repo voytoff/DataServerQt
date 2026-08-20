@@ -1,6 +1,7 @@
 #include "tst_dataserver.h"
 #include "datasourcefactory.h"
 #include "fakeschedulerclock.h"
+#include "protocol/publishheader.h"
 #include "runtimesystem.h"
 #include "systembuilder.h"
 #include "systemconfiguration.h"
@@ -43,9 +44,6 @@ void tst_dataserver::test_systemBuilder_success()
   QVERIFY(builder.build(
     cfg,
     factory,
-    archive,
-    publisher,
-    clock,
     runtime));
 
   const auto* c =
@@ -105,7 +103,7 @@ void tst_dataserver::test_systemBuilder_success()
     runtime.signalProcessor != nullptr);
 
   QVERIFY(
-    runtime.engine != nullptr);
+    runtime.engine == nullptr);
 }
 
 void tst_dataserver::test_systemBuilder_process()
@@ -136,10 +134,17 @@ void tst_dataserver::test_systemBuilder_process()
   QVERIFY(builder.build(
     cfg,
     factory,
+    runtime));
+
+  runtime.engine = std::make_unique<DataEngine>();
+
+  QVERIFY(runtime.engine->initialize(
+    runtime.dataSources,
+    *runtime.signalProcessor,
+    runtime.buffers,
     archive,
     publisher,
-    clock,
-    runtime));
+    clock));
 
   QVERIFY(
     runtime.engine->process());
@@ -190,9 +195,6 @@ void tst_dataserver::test_systemBuilder_failErrorFormula()
   QVERIFY(!builder.build(
     cfg,
     factory,
-    archive,
-    publisher,
-    clock,
     runtime));
 }
 
@@ -224,9 +226,6 @@ void tst_dataserver::test_systemBuilder_failDataSourceManager()
   QVERIFY(!builder.build(
     cfg,
     factory,
-    archive,
-    publisher,
-    clock,
     runtime));
 }
 
@@ -258,10 +257,17 @@ void tst_dataserver::test_systemBuilder_cycle()
   QVERIFY(builder.build(
     cfg,
     factory,
+    runtime));
+
+  runtime.engine = std::make_unique<DataEngine>();
+
+  QVERIFY(runtime.engine->initialize(
+    runtime.dataSources,
+    *runtime.signalProcessor,
+    runtime.buffers,
     archive,
     publisher,
-    clock,
-    runtime));
+    clock));
 
   for (int n = 0; n < 1000; ++n)
   {
@@ -327,53 +333,91 @@ void tst_dataserver::test_dataServer_start_stop()
     }));
 
   TestArchiveWriter archive;
-  TestPublisher publisher;
+  TestPublisherSender sender;
   FakeSchedulerClock clock;
+
 
   DataServer ds(
     cfg,
     factory,
     archive,
-    publisher,
-    clock);
+    clock,
+    sender);
 
   QVERIFY(ds.start());
 
-  QTest::qWait(100);
+
+  // Создаём клиент
+  QUdpSocket client;
+
+  QVERIFY(
+    client.bind(QHostAddress::LocalHost, 0));
+
+  // Формируем запрос SubscribeListRequest
+  PacketWriter writer;
+  writer.begin(PacketType::SubscribeListRequest);
+
+  // Формируем запрос на подписку
+  constexpr SignalId signalIds[] { {17}, {4}, {23} };
+
+  SubscribeListRequest req;
+  req.rate = PublishRate::Hz10;
+  req.signalCount = std::size(signalIds);
+
+  writer.write(req);
+  writer.writeArray(signalIds, std::size(signalIds));
+
+  // Отправляем
+  const auto bytes =
+    client.writeDatagram(
+      reinterpret_cast<const char*>(writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      35000);
+
+  QCOMPARE(bytes, qint64(writer.size()));
+
+  QTRY_VERIFY(client.waitForReadyRead(100));
+  QTRY_VERIFY(client.hasPendingDatagrams());
+
+//  QTest::qWait(100);
 
   ds.stop();
 
-  const auto count = publisher.count;
+  const auto count = sender.sendCount;
 
   QVERIFY(count > 0);
 
   QTest::qWait(100);
 
   QCOMPARE(
-    publisher.count,
+    sender.sendCount,
     count);
 
+  PacketReader reader;
+
   const auto& frame =
-    publisher.last();
+    sender.lastPacket();
+
+  reader.append(
+    frame.data(),
+    frame.size());
+
+  QVERIFY(reader.nextPacket());
+
+  PublishHeader hdr;
+  QVERIFY(reader.read(hdr));
+
+  std::array<double, 3> values;
+  QVERIFY(reader.readArray(values.data(), values.size()));
+
+  QVERIFY(reader.remaining() == 0);
+
+  QCOMPARE(hdr.sequence, 1);
 
   QCOMPARE(
-    frame.raw().size(),
-    std::size_t(2));
-
-  QCOMPARE(
-    frame.calculated().size(),
-    std::size_t(3));
-
-  QVERIFY(
-    frame.number > FrameNumber{0});
-
-  const auto& calculated =
-    frame.calculated();
-
-  QCOMPARE(
-    calculated.value(0) +
-      calculated.value(1),
-    calculated.value(2));
+    values[0] + values[1],
+    values[2]);
 }
 
 void tst_dataserver::test_dataServer_failStart_moduleType()
@@ -392,21 +436,21 @@ void tst_dataserver::test_dataServer_failStart_moduleType()
     }));
 
   TestArchiveWriter archive;
-  TestPublisher publisher;
+  TestPublisherSender sender;
   FakeSchedulerClock clock;
 
   DataServer ds(
     cfg,
     factory,
     archive,
-    publisher,
-    clock);
+    clock,
+    sender);
 
   QVERIFY(!ds.start());
 
-  QCOMPARE(publisher.count, std::size_t(0));
+  QCOMPARE(sender.sendCount, std::size_t(0));
 
   QTest::qWait(100);
 
-  QCOMPARE(publisher.count, std::size_t(0));
+  QCOMPARE(sender.sendCount, std::size_t(0));
 }

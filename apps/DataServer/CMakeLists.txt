@@ -21,9 +21,12 @@ target_include_directories(DataServerCore
 
 target_link_libraries(DataServerCore
     PUBLIC
-        Qt6::Core
         PacketDispatcher
         DataServerRuntime
+        UdpServer
+    PRIVATE
+        Qt${QT_VERSION_MAJOR}::Core
+        Qt${QT_VERSION_MAJOR}::Network
 )
 
 add_executable(dataserver
@@ -38,7 +41,7 @@ target_link_libraries(dataserver
         Engine
         HardwareFactory
         UdpSender
-        UdpServer
+        #UdpServer
         DataServerRuntime
         DataServerCore
 

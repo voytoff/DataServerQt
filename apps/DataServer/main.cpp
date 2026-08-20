@@ -4,6 +4,7 @@
 #include "testdatasource.h"
 #include "testpublisher.h"
 #include "testarchivewriter.h"
+#include "udpsender.h"
 
 #include <QCoreApplication>
 
@@ -48,13 +49,14 @@ int main(int argc, char *argv[]) {
   qds::TestArchiveWriter archive;
   qds::TestPublisher publisher;
   qds::FakeSchedulerClock clock;
+  qds::UdpSender sender;
 
   qds::DataServer server(
     cfg,
     factory,
     archive,
-    publisher,
-    clock);
+    clock,
+    sender);
 
   if (!server.start())
     return -1;
