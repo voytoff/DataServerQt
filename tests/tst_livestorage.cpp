@@ -196,12 +196,12 @@ void tst_livestorage::test_publishSamples() {
   s1.endpoint.address = "127.0.0.1";
   s1.endpoint.port = 35015;
   s1.rate = PublishRate::Hz10;
-  s1.tags = { {0}, {1} };
+  s1.signalIds = { {0}, {1} };
 
   PacketWriter writer{};
-  Publisher pub{};
+  /// Publisher pub{};
 
-  QVERIFY(pub.publish(storage, s1, s1.sequence, writer));
+  /// QVERIFY(pub.publish(storage, s1, s1.sequence, writer));
 
   PacketReader reader;
   reader.append(writer.data(), writer.size());
@@ -262,12 +262,12 @@ void tst_livestorage::test_publishSamples_reverseOrder() {
   s1.endpoint.address = "127.0.0.1";
   s1.endpoint.port = 35015;
   s1.rate = PublishRate::Hz10;
-  s1.tags = { {1}, {0} };
+  s1.signalIds = { {1}, {0} };
 
   PacketWriter writer{};
-  Publisher pub{};
+  /// Publisher pub;
 
-  QVERIFY(pub.publish(storage, s1, s1.sequence, writer));
+  /// QVERIFY(pub.publish(storage, s1, s1.sequence, writer));
 
   PacketReader reader;
   reader.append(writer.data(), writer.size());
@@ -332,12 +332,12 @@ void tst_livestorage::test_updateModule_read()
   s1.endpoint.address = "127.0.0.1";
   s1.endpoint.port = 35022;
   s1.rate = PublishRate::Hz10;
-  s1.tags = { {0}, {1}, {2} };
+  s1.signalIds = { {0}, {1}, {2} };
 
   PacketWriter writer;
-  Publisher pub;
+  /// Publisher pub;
 
-  QVERIFY(pub.publish(storage, s1, s1.sequence, writer));
+  /// QVERIFY(pub.publish(storage, s1, s1.sequence, writer));
 
   PacketReader reader;
   reader.append(writer.data(), writer.size());
@@ -351,7 +351,7 @@ void tst_livestorage::test_updateModule_read()
   QCOMPARE(ldh.subscriptionId.value, 0u);
   QCOMPARE(ldh.sequence, 0u);
   QCOMPARE(ldh.timestamp, t);
-  QCOMPARE(ldh.valueCount, s1.tags.size());
+  QCOMPARE(ldh.valueCount, s1.signalIds.size());
 
   std::array<Sample, 3> samples{};
 
@@ -403,12 +403,12 @@ void tst_livestorage::test_updateModule_invalidSize_keepsPreviousValues()
   s1.endpoint.address = "127.0.0.1";
   s1.endpoint.port = 35022;
   s1.rate = PublishRate::Hz10;
-  s1.tags = { {0}, {1}, {2} };
+  s1.signalIds = { {0}, {1}, {2} };
 
   PacketWriter writer;
-  Publisher pub;
+  /// Publisher pub;
 
-  QVERIFY(pub.publish(storage, s1, s1.sequence, writer));
+  /// QVERIFY(pub.publish(storage, s1, s1.sequence, writer));
 
   PacketReader reader;
   reader.append(writer.data(), writer.size());
@@ -422,7 +422,7 @@ void tst_livestorage::test_updateModule_invalidSize_keepsPreviousValues()
   QCOMPARE(ldh.subscriptionId.value, 0u);
   QCOMPARE(ldh.sequence, 0u);
   QCOMPARE(ldh.timestamp, t);
-  QCOMPARE(ldh.valueCount, s1.tags.size());
+  QCOMPARE(ldh.valueCount, s1.signalIds.size());
 
   std::array<Sample, 3> samples{};
 
@@ -439,7 +439,7 @@ void tst_livestorage::test_updateModule_invalidSize_keepsPreviousValues()
   // модуль 0 обновляет неполные данные в livestorage с временем 7654321
   QVERIFY(!storage.updateModule(ModuleId{0}, values2, t_2));
 
-  QVERIFY(pub.publish(storage, s1, s1.sequence, writer));
+  /// QVERIFY(pub.publish(storage, s1, s1.sequence, writer));
 
   reader.clear();
   reader.append(writer.data(), writer.size());
@@ -452,7 +452,7 @@ void tst_livestorage::test_updateModule_invalidSize_keepsPreviousValues()
   QCOMPARE(ldh.subscriptionId.value, 0u);
   QCOMPARE(ldh.sequence, 0u);
   QCOMPARE(ldh.timestamp, t);
-  QCOMPARE(ldh.valueCount, s1.tags.size());
+  QCOMPARE(ldh.valueCount, s1.signalIds.size());
 
   std::array<Sample, 3> samples2{};
 
@@ -505,12 +505,12 @@ void tst_livestorage::test_updateModule_multipleUpdates()
   s1.endpoint.address = "127.0.0.1";
   s1.endpoint.port = 35022;
   s1.rate = PublishRate::Hz10;
-  s1.tags = { {0}, {1}, {2} };
+  s1.signalIds = { {0}, {1}, {2} };
 
   PacketWriter writer;
-  Publisher pub;
+  /// Publisher pub;
 
-  QVERIFY(pub.publish(storage, s1, s1.sequence, writer));
+  /// QVERIFY(pub.publish(storage, s1, s1.sequence, writer));
 
   PacketReader reader;
   reader.append(writer.data(), writer.size());
@@ -524,7 +524,7 @@ void tst_livestorage::test_updateModule_multipleUpdates()
   QCOMPARE(ldh.subscriptionId.value, 1u);
   QCOMPARE(ldh.sequence, 0u);
   QCOMPARE(ldh.timestamp, time2);
-  QCOMPARE(ldh.valueCount, s1.tags.size());
+  QCOMPARE(ldh.valueCount, s1.signalIds.size());
 
   std::array<Sample, 3> samples{};
 

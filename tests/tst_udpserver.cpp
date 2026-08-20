@@ -423,8 +423,8 @@ void tst_udpserver::test_subscribeList_ok()
 {
   using namespace qds;
   // создаем конфигурацию
-  constexpr TagId tags1[] { {0}, {1} };
-  SystemConfiguration cfg = createTestConfig(tags1, std::size(tags1));
+  constexpr TagId signalIds1[] { {0}, {1} };
+  SystemConfiguration cfg = createTestConfig(signalIds1, std::size(signalIds1));
 
   TestSrv srv(cfg);
 
@@ -442,14 +442,14 @@ void tst_udpserver::test_subscribeList_ok()
   writer.begin(PacketType::SubscribeListRequest);
 
   // Формируем запрос на подписку
-  constexpr TagId tags[] { {0}, {1} };
+  constexpr TagId signalIds[] { {0}, {1} };
 
   SubscribeListRequest req;
   req.rate = PublishRate::Hz10;
-  req.tagCount = std::size(tags);
+  req.tagCount = std::size(signalIds);
 
   writer.write(req);
-  writer.writeArray(tags, std::size(tags));
+  writer.writeArray(signalIds, std::size(signalIds));
 
   // Отправляем
   const auto bytes =
@@ -494,9 +494,9 @@ void tst_udpserver::test_subscribeList_ok()
 
   QCOMPARE(sub->rate, PublishRate::Hz10);
 
-  QCOMPARE(sub->tags.size(), size_t(2));
-  QCOMPARE(sub->tags[0], TagId{0});
-  QCOMPARE(sub->tags[1], TagId{1});
+  QCOMPARE(sub->signalIds.size(), size_t(2));
+  QCOMPARE(sub->signalIds[0], SignalId{0});
+  QCOMPARE(sub->signalIds[1], SignalId{1});
 
   QVERIFY(srv.scheduler.step());
   QCOMPARE(srv.publisherSender.sendCount, 1u);
@@ -509,8 +509,8 @@ void tst_udpserver::test_subscribeList_truncatedTagArray()
 {
   using namespace qds;
   // создаем конфигурацию
-  constexpr TagId tags1[] { {0}, {1} };
-  SystemConfiguration cfg = createTestConfig(tags1, std::size(tags1));
+  constexpr TagId signalIds1[] { {0}, {1} };
+  SystemConfiguration cfg = createTestConfig(signalIds1, std::size(signalIds1));
 
   TestSrv srv(cfg);
 
@@ -528,15 +528,15 @@ void tst_udpserver::test_subscribeList_truncatedTagArray()
   writer.begin(PacketType::SubscribeListRequest);
 
   // Формируем запрос на подписку
-  constexpr TagId tags[] { {0}, {1} };
+  constexpr SignalId signalIds[] { {0}, {1} };
 
   // Заявляем 3 тега, передаем только 2
   SubscribeListRequest req;
   req.rate = PublishRate::Hz10;
-  req.tagCount = std::size(tags) + 1;
+  req.tagCount = std::size(signalIds) + 1;
 
   writer.write(req);
-  writer.writeArray(tags, std::size(tags));
+  writer.writeArray(signalIds, std::size(signalIds));
 
   // Отправляем
   const auto bytes =
@@ -721,8 +721,8 @@ void tst_udpserver::test_subscribeList_invalidTag()
 {
   using namespace qds;
   // создаем конфигурацию
-  constexpr TagId tags1[] { {0}, {1} };
-  SystemConfiguration cfg = createTestConfig(tags1, std::size(tags1));
+  constexpr TagId signalIds1[] { {0}, {1} };
+  SystemConfiguration cfg = createTestConfig(signalIds1, std::size(signalIds1));
 
   TestSrv srv(cfg);
 
@@ -740,7 +740,7 @@ void tst_udpserver::test_subscribeList_invalidTag()
   writer.begin(PacketType::SubscribeListRequest);
 
   // Формируем запрос на подписку
-  constexpr TagId tags[]
+  constexpr SignalId signalIds[]
   {
     {0},
     {1},
@@ -748,10 +748,10 @@ void tst_udpserver::test_subscribeList_invalidTag()
   };
   SubscribeListRequest req;
   req.rate = PublishRate::Hz10;
-  req.tagCount = std::size(tags);
+  req.tagCount = std::size(signalIds);
 
   writer.write(req);
-  writer.writeArray(tags, std::size(tags));
+  writer.writeArray(signalIds, std::size(signalIds));
 
   // Отправляем
   const auto bytes =
@@ -799,8 +799,8 @@ void tst_udpserver::test_subscribeList_invalidRate()
 {
   using namespace qds;
   // создаем конфигурацию
-  constexpr TagId tags1[] { {0}, {1} };
-  SystemConfiguration cfg = createTestConfig(tags1, std::size(tags1));
+  constexpr TagId signalIds1[] { {0}, {1} };
+  SystemConfiguration cfg = createTestConfig(signalIds1, std::size(signalIds1));
 
   TestSrv srv(cfg);
 
@@ -818,17 +818,17 @@ void tst_udpserver::test_subscribeList_invalidRate()
   writer.begin(PacketType::SubscribeListRequest);
 
   // Формируем запрос на подписку
-  constexpr TagId tags[]
+  constexpr SignalId signalIds[]
     {
       {0},
       {1}
     };
   SubscribeListRequest req;
   req.rate = static_cast<PublishRate>(0xFF);
-  req.tagCount = std::size(tags);
+  req.tagCount = std::size(signalIds);
 
   writer.write(req);
-  writer.writeArray(tags, std::size(tags));
+  writer.writeArray(signalIds, std::size(signalIds));
 
   // Отправляем
   const auto bytes =
@@ -876,8 +876,8 @@ void tst_udpserver::test_subscribeList_duplicateTag()
 {
   using namespace qds;
   // создаем конфигурацию
-  constexpr TagId tags1[] { {0}, {1} };
-  SystemConfiguration cfg = createTestConfig(tags1, std::size(tags1));
+  constexpr TagId signalIds1[] { {0}, {1} };
+  SystemConfiguration cfg = createTestConfig(signalIds1, std::size(signalIds1));
   TestSrv srv(cfg);
 
   QVERIFY(srv.server.start(0));
@@ -894,7 +894,7 @@ void tst_udpserver::test_subscribeList_duplicateTag()
   writer.begin(PacketType::SubscribeListRequest);
 
   // Формируем запрос на подписку
-  constexpr TagId tags[]
+  constexpr SignalId signalIds[]
     {
       {0},
       {1},
@@ -902,10 +902,10 @@ void tst_udpserver::test_subscribeList_duplicateTag()
     };
   SubscribeListRequest req;
   req.rate = PublishRate::Hz10;
-  req.tagCount = std::size(tags);
+  req.tagCount = std::size(signalIds);
 
   writer.write(req);
-  writer.writeArray(tags, std::size(tags));
+  writer.writeArray(signalIds, std::size(signalIds));
 
   // Отправляем
   const auto bytes =
@@ -1014,8 +1014,8 @@ void tst_udpserver::test_unsubscribe_ok()
 {
   using namespace qds;
   // создаем конфигурацию
-  constexpr TagId tags1[] { {0}, {1} };
-  SystemConfiguration cfg = createTestConfig(tags1, std::size(tags1));
+  constexpr TagId signalIds1[] { {0}, {1} };
+  SystemConfiguration cfg = createTestConfig(signalIds1, std::size(signalIds1));
 
   TestSrv srv(cfg);
 
@@ -1032,17 +1032,17 @@ void tst_udpserver::test_unsubscribe_ok()
   writer.begin(PacketType::SubscribeListRequest);
 
   // Формируем запрос на подписку
-  constexpr TagId tags[]
+  constexpr SignalId signalIds[]
     {
       {0},
       {1}
     };
   SubscribeListRequest req;
   req.rate = PublishRate::Hz10;
-  req.tagCount = std::size(tags);
+  req.tagCount = std::size(signalIds);
 
   writer.write(req);
-  writer.writeArray(tags, std::size(tags));
+  writer.writeArray(signalIds, std::size(signalIds));
 
   // Отправляем
   const auto bytes =
@@ -1088,9 +1088,9 @@ void tst_udpserver::test_unsubscribe_ok()
 
   QCOMPARE(sub->rate, PublishRate::Hz10);
 
-  QCOMPARE(sub->tags.size(), size_t(2));
-  QCOMPARE(sub->tags[0], TagId{0});
-  QCOMPARE(sub->tags[1], TagId{1});
+  QCOMPARE(sub->signalIds.size(), size_t(2));
+  QCOMPARE(sub->signalIds[0], SignalId{0});
+  QCOMPARE(sub->signalIds[1], SignalId{1});
 
   QVERIFY(srv.scheduler.step());
   QCOMPARE(srv.publisherSender.sendCount, 1u);
@@ -1152,8 +1152,8 @@ void tst_udpserver::test_unsubscribe_invalidId()
 {
   using namespace qds;
   // создаем конфигурацию
-  constexpr TagId tags1[] { {0}, {1} };
-  SystemConfiguration cfg = createTestConfig(tags1, std::size(tags1));
+  constexpr TagId signalIds1[] { {0}, {1} };
+  SystemConfiguration cfg = createTestConfig(signalIds1, std::size(signalIds1));
 
   TestSrv srv(cfg);
 
@@ -1170,17 +1170,17 @@ void tst_udpserver::test_unsubscribe_invalidId()
   writer.begin(PacketType::SubscribeListRequest);
 
   // Формируем запрос на подписку
-  constexpr TagId tags[]
+  constexpr SignalId signalIds[]
     {
       {0},
       {1}
     };
   SubscribeListRequest req;
   req.rate = PublishRate::Hz10;
-  req.tagCount = std::size(tags);
+  req.tagCount = std::size(signalIds);
 
   writer.write(req);
-  writer.writeArray(tags, std::size(tags));
+  writer.writeArray(signalIds, std::size(signalIds));
 
   // Отправляем
   const auto bytes =
@@ -1226,9 +1226,9 @@ void tst_udpserver::test_unsubscribe_invalidId()
 
   QCOMPARE(sub->rate, PublishRate::Hz10);
 
-  QCOMPARE(sub->tags.size(), size_t(2));
-  QCOMPARE(sub->tags[0], TagId{0});
-  QCOMPARE(sub->tags[1], TagId{1});
+  QCOMPARE(sub->signalIds.size(), size_t(2));
+  QCOMPARE(sub->signalIds[0], SignalId{0});
+  QCOMPARE(sub->signalIds[1], SignalId{1});
 
   QVERIFY(srv.scheduler.step());
   QCOMPARE(srv.publisherSender.sendCount, 1u);
@@ -1288,8 +1288,8 @@ void tst_udpserver::test_unsubscribe_extraData()
 {
   using namespace qds;
   // создаем конфигурацию
-  constexpr TagId tags1[] { {0}, {1} };
-  SystemConfiguration cfg = createTestConfig(tags1, std::size(tags1));
+  constexpr TagId signalIds1[] { {0}, {1} };
+  SystemConfiguration cfg = createTestConfig(signalIds1, std::size(signalIds1));
 
   TestSrv srv(cfg);
 
@@ -1306,17 +1306,17 @@ void tst_udpserver::test_unsubscribe_extraData()
   writer.begin(PacketType::SubscribeListRequest);
 
   // Формируем запрос на подписку
-  constexpr TagId tags[]
+  constexpr SignalId signalIds[]
     {
       {0},
       {1}
     };
   SubscribeListRequest req;
   req.rate = PublishRate::Hz10;
-  req.tagCount = std::size(tags);
+  req.tagCount = std::size(signalIds);
 
   writer.write(req);
-  writer.writeArray(tags, std::size(tags));
+  writer.writeArray(signalIds, std::size(signalIds));
 
   // Отправляем
   const auto bytes =
@@ -1362,9 +1362,9 @@ void tst_udpserver::test_unsubscribe_extraData()
 
   QCOMPARE(sub->rate, PublishRate::Hz10);
 
-  QCOMPARE(sub->tags.size(), size_t(2));
-  QCOMPARE(sub->tags[0], TagId{0});
-  QCOMPARE(sub->tags[1], TagId{1});
+  QCOMPARE(sub->signalIds.size(), size_t(2));
+  QCOMPARE(sub->signalIds[0], SignalId{0});
+  QCOMPARE(sub->signalIds[1], SignalId{1});
 
   QVERIFY(srv.scheduler.step());
   QCOMPARE(srv.publisherSender.sendCount, 1u);
@@ -1489,8 +1489,8 @@ void tst_udpserver::test_unsubscribe_twice()
 {
   using namespace qds;
   // создаем конфигурацию
-  constexpr TagId tags1[] { {0}, {1} };
-  SystemConfiguration cfg = createTestConfig(tags1, std::size(tags1));
+  constexpr TagId signalIds1[] { {0}, {1} };
+  SystemConfiguration cfg = createTestConfig(signalIds1, std::size(signalIds1));
 
   TestSrv srv(cfg);
 
@@ -1507,17 +1507,17 @@ void tst_udpserver::test_unsubscribe_twice()
   writer.begin(PacketType::SubscribeListRequest);
 
   // Формируем запрос на подписку
-  constexpr TagId tags[]
+  constexpr SignalId signalIds[]
     {
       {0},
       {1}
     };
   SubscribeListRequest req;
   req.rate = PublishRate::Hz10;
-  req.tagCount = std::size(tags);
+  req.tagCount = std::size(signalIds);
 
   writer.write(req);
-  writer.writeArray(tags, std::size(tags));
+  writer.writeArray(signalIds, std::size(signalIds));
 
   // Отправляем
   const auto bytes =
@@ -1563,9 +1563,9 @@ void tst_udpserver::test_unsubscribe_twice()
 
   QCOMPARE(sub->rate, PublishRate::Hz10);
 
-  QCOMPARE(sub->tags.size(), size_t(2));
-  QCOMPARE(sub->tags[0], TagId{0});
-  QCOMPARE(sub->tags[1], TagId{1});
+  QCOMPARE(sub->signalIds.size(), size_t(2));
+  QCOMPARE(sub->signalIds[0], SignalId{0});
+  QCOMPARE(sub->signalIds[1], SignalId{1});
 
   QVERIFY(srv.scheduler.step());
   QCOMPARE(srv.publisherSender.sendCount, 1u);

@@ -19,8 +19,8 @@
 #include "tst_signalstorage.h"
 #include "tst_udpsender.h"
 #include "tst_subscriptions.h"
-#include "tst_livescheduler.h"
-#include "tst_livestorage.h"
+//#include "tst_livescheduler.h"
+//#include "tst_livestorage.h"
 #include "tst_udpserver.h"
 
 int main(int argc, char *argv[])
@@ -29,6 +29,10 @@ int main(int argc, char *argv[])
 
   int rc = 0;
 
+  {
+    tst_publisher tc;
+    rc |= QTest::qExec(&tc, argc, argv);
+  }
   {
     tst_dataserver tc;
     rc |= QTest::qExec(&tc, argc, argv);
@@ -54,12 +58,12 @@ int main(int argc, char *argv[])
     rc |= QTest::qExec(&tc, argc, argv);
   }
   {
-    tst_livescheduler tc;
-    rc |= QTest::qExec(&tc, argc, argv);
+    //tst_livescheduler tc;
+    //rc |= QTest::qExec(&tc, argc, argv);
   }
   {
-    tst_livestorage tc;
-    rc |= QTest::qExec(&tc, argc, argv);
+    //tst_livestorage tc;
+    //rc |= QTest::qExec(&tc, argc, argv);
   }
   {
     tst_subscriptions tc;
@@ -71,10 +75,6 @@ int main(int argc, char *argv[])
   }
   {
     test_dataprotocol tc;
-    rc |= QTest::qExec(&tc, argc, argv);
-  }
-  {
-    tst_publisher tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
   {

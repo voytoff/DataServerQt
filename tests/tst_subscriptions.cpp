@@ -13,7 +13,7 @@ void tst_subscriptions::test_subscriptions_add_remove() {
   s1.endpoint.address = "127.0.0.1";
   s1.endpoint.port = 5000;
   s1.rate = qds::PublishRate::Hz10;
-  s1.tags = { {1}, {2}, {3} };
+  s1.signalIds = { {1}, {2}, {3} };
 
   auto id = manager.add(s1);
 
@@ -26,7 +26,7 @@ void tst_subscriptions::test_subscriptions_add_remove() {
   QVERIFY(s != nullptr);
 
   QCOMPARE(s->rate, qds::PublishRate::Hz10);
-  QCOMPARE(s->tags.size(), size_t(3));
+  QCOMPARE(s->signalIds.size(), size_t(3));
 
   QVERIFY(manager.remove(id));
 

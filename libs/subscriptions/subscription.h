@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <vector>
+
 #include "datatypes.h"
 #include "endpoint.h"
 
@@ -11,9 +12,10 @@ namespace qds
 struct Subscription
 {
   SubscriptionId id;
+
   Endpoint endpoint;
 
-  std::vector<SignalId> signals;
+  std::vector<SignalId> signalIds;
 
   PublishRate rate = PublishRate::Hz10;
 

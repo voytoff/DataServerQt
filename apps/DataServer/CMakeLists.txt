@@ -21,7 +21,6 @@ target_link_libraries(dataserver PRIVATE
     SignalStorage
     Engine
     HardwareFactory
-    LiveStorage
     UdpSender
     UdpServer
     ModuleLoader

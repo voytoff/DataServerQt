@@ -10,21 +10,14 @@
 namespace qds
 {
 
-struct SignalIdTag {};
 struct FormulaIdTag {};
 struct CalibrationIdTag {};
-
-using SignalId =
-  StrongId<SignalIdTag>;
 
 using FormulaId =
   StrongId<FormulaIdTag>;
 
 using CalibrationId =
   StrongId<CalibrationIdTag>;
-
-static constexpr SignalId InvalidSignalId{UINT32_MAX};
-
 
 enum class SignalKind : uint8_t
 {

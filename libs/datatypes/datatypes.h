@@ -2,7 +2,7 @@
 
 #include <compare>
 #include <cstdint>
-#include "strongid.h"
+#include <strongid.h>
 
 namespace qds
 {
@@ -15,11 +15,17 @@ constexpr StrongId<Tag> InvalidId()
   return {UINT32_MAX};
 }
 
+struct SignalIdTag {};
 struct TagIdTag {};
 struct ModuleIdTag {};
 struct CrateIdTag {};
 struct ChannelIdTag {};
 struct SubscriptionIdTag {};
+
+using SignalId =
+  StrongId<SignalIdTag>;
+
+static constexpr SignalId InvalidSignalId{UINT32_MAX};
 
 using TagId =
   StrongId<TagIdTag>;
@@ -41,6 +47,7 @@ struct Sample
   double value = 0.0;
 };
 
+// Частота публикации данных для подписки.
 enum class PublishRate : uint16_t
 {
   Hz1   = 1,

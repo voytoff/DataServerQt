@@ -16,19 +16,29 @@ class SubscriptionManager
 public:
   SubscriptionManager() = default;
 
-  [[nodiscard]] SubscriptionId add(const Subscription& subscription);
+  [[nodiscard]]
+  SubscriptionId add(const Subscription& subscription);
 
-  [[nodiscard]] bool remove(SubscriptionId id);
+  [[nodiscard]]
+  bool remove(SubscriptionId id);
 
-  [[nodiscard]] Subscription* find(SubscriptionId id);
-  [[nodiscard]] const Subscription* find(SubscriptionId id) const;
+  [[nodiscard]]
+  Subscription* find(SubscriptionId id);
 
-  [[nodiscard]] const std::vector<Subscription>& subscriptions() const;
+  [[nodiscard]]
+  const Subscription* find(SubscriptionId id) const;
+
+  [[nodiscard]]
+  std::vector<Subscription>& subscriptions();
+  [[nodiscard]]
+  const std::vector<Subscription>& subscriptions() const;
 
   void clear();
 
-  [[nodiscard]] bool empty() const;
-  [[nodiscard]] std::size_t size() const;
+  [[nodiscard]]
+  bool empty() const;
+  [[nodiscard]]
+  std::size_t size() const;
 
 private:
   uint32_t m_nextId = 1;

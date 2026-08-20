@@ -1,20 +1,26 @@
 #pragma once
 
 #include <cstdint>
+
 #include "datatypes.h"
 
 namespace qds
 {
 
-struct PublishHeader    // 20 байт
+struct PublishHeader
 {
-  SubscriptionId subscriptionId; // подписка
-  uint32_t sequence;    // номер пакета для данной подписки
-                        // sequence принадлежит подписке
-                        // начинается с 1
-                        // увеличивается только после успешной отправки
-  uint64_t timestamp;   // реальное время измерений
-  uint32_t valueCount;  // количество значений далее (tags.size())
+  // Подписка, для которой сформирован пакет.
+  SubscriptionId subscriptionId;
+
+  // Номер пакета в рамках подписки.
+  // Первый успешно отправленный пакет имеет sequence == 1.
+  uint32_t sequence;
+
+  // Время измерений Frame.
+  uint64_t timestamp;
+
+  // Количество SignalId/значений в пакете.
+  uint32_t valueCount;
 };
 
 }

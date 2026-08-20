@@ -41,6 +41,11 @@ const Subscription* SubscriptionManager::find(SubscriptionId id) const
   return findImpl(*this, id);
 }
 
+std::vector<Subscription> &SubscriptionManager::subscriptions()
+{
+  return m_subscriptions;
+}
+
 const std::vector<Subscription>& SubscriptionManager::subscriptions() const
 {
   return m_subscriptions;

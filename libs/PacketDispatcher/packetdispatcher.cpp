@@ -237,7 +237,7 @@ SubscriptionId PacketDispatcher::createSubscription(
   Subscription s;
   s.endpoint = endpoint;
   s.rate = rate;
-  s.tags.assign(tags.begin(), tags.end());
+  ///  s.signalIds.assign(tags.begin(), tags.end());
 
   SubscriptionId id = m_subscriptions.add(s);
 

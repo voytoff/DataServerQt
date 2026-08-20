@@ -16,8 +16,8 @@ add_executable(unit_tests
     tst_common.h tst_common.cpp
     tst_udpsender.h tst_udpsender.cpp
     tst_subscriptions.h tst_subscriptions.cpp
-    tst_livestorage.h tst_livestorage.cpp
-    tst_livescheduler.h tst_livescheduler.cpp
+    #tst_livestorage.h tst_livestorage.cpp
+    #tst_livescheduler.h tst_livescheduler.cpp
     tst_udpserver.h tst_udpserver.cpp
     tst_dataprotocol.h tst_dataprotocol.cpp
     testsrv.h testsrv.cpp

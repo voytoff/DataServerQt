@@ -29,7 +29,7 @@ target_link_libraries(Publisher PRIVATE
     PUBLIC
         Configuration
         DataSource
-    LiveStorage
+    #LiveStorage
         Subscriptions
         DataProtocol
 )

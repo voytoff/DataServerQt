@@ -82,7 +82,7 @@ void LiveScheduler::publish(
     const uint32_t sequence =
       sub->sequence;
 
-
+/*
     if (!m_publisher.publish(
           m_storage,
           *sub,
@@ -91,7 +91,7 @@ void LiveScheduler::publish(
     {
       continue;
     }
-
+*/
     if (!m_sender.send(
           sub->endpoint,
           m_writer.span()))

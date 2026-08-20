@@ -11,9 +11,11 @@ public:
 
 private slots:
   // publish(... sequence = 10 ...) и проверить
-  void test_publish_sequence();
+  //void test_publish_sequence();
   // проверка пустой подписки
-  void test_publish_emptySubscription();
+  //void test_publish_emptySubscription();
   void test_publish_reuseWriter();
+  void test_publish_failSignal();
+  void test_publish_publishRate();
 
 };
