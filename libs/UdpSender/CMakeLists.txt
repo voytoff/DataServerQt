@@ -17,10 +17,9 @@ target_include_directories(Subscriptions
 )
 
 target_link_libraries(UdpSender PRIVATE
+  PUBLIC
+    DataProtocol
   PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Network
-  PUBLIC
-    LiveScheduler
-    DataProtocol
 )

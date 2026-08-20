@@ -44,11 +44,9 @@ target_link_libraries(unit_tests PRIVATE
     Core
     Configuration
     DataServerRuntime
-    LiveStorage
     Subscriptions
     DataProtocol
     Publisher
-    LiveScheduler
     UdpSender
     UdpServer
     DataSource
@@ -57,6 +55,7 @@ target_link_libraries(unit_tests PRIVATE
     DataArchive
     SignalStorage
     Scheduler
+    DataServerCore
 )
 
 add_test(NAME unit_tests COMMAND unit_tests)

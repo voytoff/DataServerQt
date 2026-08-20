@@ -9,11 +9,9 @@ namespace qds
 PacketDispatcher::PacketDispatcher(
   const SystemConfiguration& configuration,
   SubscriptionManager& subscriptions,
-  LiveScheduler& scheduler,
   ISender& sender)
   : m_configuration(configuration)
   , m_subscriptions(subscriptions)
-  , m_scheduler(scheduler)
   , m_sender(sender) {}
 
 bool PacketDispatcher::dispatch(
@@ -75,7 +73,7 @@ bool PacketDispatcher::processSubscribeList(PacketReader &reader, const Endpoint
     return false;
 
   // 2. Проверка формата
-  if (req.tagCount == 0) {
+  if (req.signalCount == 0) {
     sendSubscribeResponse(
       endpoint,
       SubscribeResult::EmptyList);
@@ -83,7 +81,7 @@ bool PacketDispatcher::processSubscribeList(PacketReader &reader, const Endpoint
     return false;
   }
 
-  if (req.tagCount > MaxSubscriptionTags) {
+  if (req.signalCount > MaxSubscriptionTags) {
     sendSubscribeResponse(
       endpoint,
       SubscribeResult::TooManyTags);
@@ -107,10 +105,16 @@ bool PacketDispatcher::processSubscribeList(PacketReader &reader, const Endpoint
 
 
   // 3. Проверка бизнес-логики
-  std::vector<TagId> tags(req.tagCount);
-  if (!reader.readArray(tags.data(), tags.size()))
+  std::vector<SignalId> signalIds(req.signalCount);
+
+  if (!reader.readArray(
+        signalIds.data(),
+        signalIds.size()))
   {
-    sendErrorResponse(endpoint, ErrorCode::InvalidRequest);
+    sendErrorResponse(
+      endpoint,
+      ErrorCode::InvalidRequest);
+
     return false;
   }
 
@@ -118,28 +122,28 @@ bool PacketDispatcher::processSubscribeList(PacketReader &reader, const Endpoint
     return false;
 
   // неверный тег
-  for (const TagId& tag : tags)
+  for (const SignalId& signalId : signalIds)
   {
-    if (!m_configuration.containsTag(tag))
+    if (!m_configuration.containsSignalDefinition(signalId))
     {
       sendSubscribeResponse(
         endpoint,
-        SubscribeResult::InvalidTag);
+        SubscribeResult::InvalidSignal);
 
       return false;
     }
   }
 
   // повторяющийся тег
-  for (size_t i = 0; i < tags.size(); ++i)
+  for (size_t i = 0; i < signalIds.size(); ++i)
   {
-    for (size_t j = i + 1; j < tags.size(); ++j)
+    for (size_t j = i + 1; j < signalIds.size(); ++j)
     {
-      if (tags[i] == tags[j])
+      if (signalIds[i] == signalIds[j])
       {
         sendSubscribeResponse(
           endpoint,
-          SubscribeResult::DuplicateTag);
+          SubscribeResult::DuplicateSignal);
 
         return false;
       }
@@ -151,7 +155,7 @@ bool PacketDispatcher::processSubscribeList(PacketReader &reader, const Endpoint
     createSubscription(
       endpoint,
       req.rate,
-      tags);
+      signalIds);
 
   // 5. Ответ клиенту
   return sendSubscribeResponse(
@@ -177,7 +181,7 @@ bool PacketDispatcher::processUnsubscribe(PacketReader &reader, const Endpoint &
     return false;
   }
 
-  m_scheduler.removeSubscription(req.id);
+  /// m_scheduler.removeSubscription(req.id);
 
   if (!m_subscriptions.remove(req.id))
     return false;
@@ -230,20 +234,20 @@ bool PacketDispatcher::checkEof(PacketReader &reader, const Endpoint &endpoint)
 }
 
 SubscriptionId PacketDispatcher::createSubscription(
-  const Endpoint &endpoint,
+  const Endpoint& endpoint,
   PublishRate rate,
-  std::span<const TagId> tags)
+  std::span<const SignalId> signalIds)
 {
-  Subscription s;
-  s.endpoint = endpoint;
-  s.rate = rate;
-  ///  s.signalIds.assign(tags.begin(), tags.end());
+  Subscription subscription;
 
-  SubscriptionId id = m_subscriptions.add(s);
+  subscription.endpoint = endpoint;
+  subscription.rate = rate;
 
-  m_scheduler.addSubscription(id, rate);
+  subscription.signalIds.assign(
+    signalIds.begin(),
+    signalIds.end());
 
-  return id;
+  return m_subscriptions.add(subscription);
 }
 
 }

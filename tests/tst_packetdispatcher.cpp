@@ -35,7 +35,7 @@ void tst_packetdispatcher::tst_packetdispatcher_InvalidTag()
 
   SubscribeListRequest req;
   req.rate = PublishRate::Hz10;
-  req.tagCount = std::size(tags);
+  req.signalCount = std::size(tags);
 
 
   writer.write(req);
@@ -76,13 +76,12 @@ void tst_packetdispatcher::tst_packetdispatcher_InvalidTag()
 
   QVERIFY(reader.remaining() == 0u);
 
-  QCOMPARE(response.result, SubscribeResult::InvalidTag);
+  QCOMPARE(response.result, SubscribeResult::InvalidSignal);
   QVERIFY(response.id.value == 0);
 
   // проверим наличие подписок
   QCOMPARE(srv.manager.size(), 0u);
 
-  QVERIFY(srv.scheduler.step());
   QCOMPARE(srv.publisherSender.sendCount, 0u);
 
   srv.server.stop();

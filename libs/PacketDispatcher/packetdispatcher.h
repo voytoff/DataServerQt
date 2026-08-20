@@ -2,10 +2,10 @@
 
 #include "isender.h"
 #include "packetreader.h"
+#include "packetwriter.h"
 #include "protocol/errorpackets.h"
 #include "protocol/subscriptionpackets.h"
 #include "subscriptionmanager.h"
-#include "livescheduler.h"
 #include "systemconfiguration.h"
 #include <concepts>
 
@@ -26,7 +26,7 @@ public:
   PacketDispatcher(
     const SystemConfiguration& configuration,
     SubscriptionManager& subscriptions,
-    LiveScheduler& scheduler,
+    //LiveScheduler& scheduler,
     ISender& sender);
 
   bool dispatch(
@@ -70,7 +70,7 @@ private:
   SubscriptionId createSubscription(
     const Endpoint& endpoint,
     PublishRate rate,
-    std::span<const TagId> tags);
+    std::span<const SignalId> signalIds);
 
 
   template<class T>
@@ -131,7 +131,6 @@ private:
 private:
   const SystemConfiguration& m_configuration;
   SubscriptionManager& m_subscriptions;
-  LiveScheduler& m_scheduler;
   ISender& m_sender;
   PacketWriter m_writer;
 

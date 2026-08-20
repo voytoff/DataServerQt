@@ -15,7 +15,7 @@
 
 tst_datasource::tst_datasource() { }
 tst_datasource::~tst_datasource() = default;
-
+/*
 void tst_datasource::test_generatorDataSource_once()
 {
   using namespace qds;
@@ -119,7 +119,7 @@ void tst_datasource::test_generatorDataSource_onceTwoModule()
   QCOMPARE(srv.storage.moduleTimestamp(cfg.modules()[0].id), t2);
   QCOMPARE(srv.storage.moduleTimestamp(cfg.modules()[1].id), t2);
 }
-/*
+
 void tst_datasource::test_generatorDataSource_periodicCall()
 {
   using namespace qds;

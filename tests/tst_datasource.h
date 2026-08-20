@@ -10,8 +10,8 @@ public:
   ~tst_datasource() override;
 
 private slots:
-  void test_generatorDataSource_once();
-  void test_generatorDataSource_onceTwoModule();
+  //void test_generatorDataSource_once();
+  //void test_generatorDataSource_onceTwoModule();
   //void test_generatorDataSource_periodicCall();
 
   //void test_dataSourceManager_withoutSources();

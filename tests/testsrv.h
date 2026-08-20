@@ -11,7 +11,6 @@
 #include "moduleinfo.h"
 #include "publisher.h"
 #include "subscriptionmanager.h"
-#include "livescheduler.h"
 #include "systemconfiguration.h"
 #include "taginfo.h"
 #include "udpsender.h"
@@ -27,14 +26,14 @@ public:
 
   SubscriptionManager manager;
   SignalMemoryLayout layout;
-  LiveStorage storage;
+  //LiveStorage storage;
 
   Publisher publisher;
 
   TestPublisherSender publisherSender;
   UdpSender udpSender;
 
-  LiveScheduler scheduler;
+  //LiveScheduler scheduler;
 
   PacketDispatcher dispatcher;
 

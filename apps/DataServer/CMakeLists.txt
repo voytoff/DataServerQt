@@ -6,23 +6,43 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Network)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Network)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Network)
+
+add_library(DataServerCore SHARED
+    dataserver.h
+    dataserver.cpp
+)
+
+target_include_directories(DataServerCore
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(DataServerCore
+    PUBLIC
+        Qt6::Core
+        PacketDispatcher
+        DataServerRuntime
+)
 
 add_executable(dataserver
     main.cpp
-    dataserver.cpp dataserver.h
 )
 
-target_link_libraries(dataserver PRIVATE
-    Qt6::Core
-    Qt6::Network
-    Configuration
-    Formulas
-    SignalStorage
-    Engine
-    HardwareFactory
-    UdpSender
-    UdpServer
-    ModuleLoader
-    DataServerRuntime
+target_link_libraries(dataserver
+    PRIVATE
+        Configuration
+        Formulas
+        SignalStorage
+        Engine
+        HardwareFactory
+        UdpSender
+        UdpServer
+        DataServerRuntime
+        DataServerCore
+
+    PRIVATE
+      Qt${QT_VERSION_MAJOR}::Core
+      Qt${QT_VERSION_MAJOR}::Network
 )

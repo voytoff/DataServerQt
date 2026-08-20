@@ -28,7 +28,7 @@ void test_dataprotocol::test_subscribeListPacket()
 
   SubscribeListRequest req;
   req.rate = PublishRate::Hz10;
-  req.tagCount = 3;
+  req.signalCount = 3;
 
   writer.write(req);
 
@@ -52,7 +52,7 @@ void test_dataprotocol::test_subscribeListPacket()
   QVERIFY(reader.read(testReq));
 
   QCOMPARE(testReq.rate, PublishRate::Hz10);
-  QCOMPARE(testReq.tagCount, std::size(tags));
+  QCOMPARE(testReq.signalCount, std::size(tags));
 
   TagId testTags[std::size(tags)];
   QVERIFY(reader.readArray(testTags, std::size(testTags)));

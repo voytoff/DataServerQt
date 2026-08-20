@@ -17,5 +17,8 @@ private slots:
   void test_systemBuilder_failDataSourceManager();
   void test_systemBuilder_cycle();
 
+  void test_dataServer_start_stop();
+  void test_dataServer_failStart_moduleType();
+
 };
 

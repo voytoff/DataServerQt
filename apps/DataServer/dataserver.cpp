@@ -1,5 +1,6 @@
 #include "dataserver.h"
 #include "systembuilder.h"
+#include "packetdispatcher.h"
 
 namespace qds
 {
@@ -8,14 +9,13 @@ DataServer::DataServer(
   SystemConfiguration configuration,
   const DataSourceFactory& dataSourceFactory,
   IArchiveWriter& archive,
-  IFramePublisher& publisher,
+//  IFramePublisher& publisher,
   ISchedulerClock& clock,
   QObject* parent)
   : QObject(parent)
   , m_configuration(std::move(configuration))
   , m_dataSourceFactory(dataSourceFactory)
   , m_archive(archive)
-  , m_publisher(publisher)
   , m_clock(clock)
 {
   connect(
@@ -38,12 +38,37 @@ bool DataServer::start()
         m_configuration,
         m_dataSourceFactory,
         m_archive,
-        m_publisher,
+        *m_publisher,
         m_clock,
         m_runtime))
   {
     return false;
   }
+
+  m_publisher =
+    std::make_unique<Publisher>(
+      m_runtime.layout,
+      m_subscriptions,
+      m_sender,
+      1000);
+
+  m_runtime.engine->initialize(
+    m_runtime.dataSources,
+    *m_runtime.signalProcessor,
+    m_runtime.buffers,
+    m_archive,
+    *m_publisher,
+    m_clock);
+
+  m_dispatcher =
+    std::make_unique<PacketDispatcher>(
+      m_configuration,
+      m_subscriptions,
+      m_sender);
+
+  m_udpServer =
+    std::make_unique<UdpServer>(
+      *m_dispatcher);
 
   m_running = true;
   m_timer.start();

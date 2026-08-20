@@ -8,6 +8,8 @@
 #include "testdatasource.h"
 #include "testpublisher.h"
 #include "testsrv.h"
+#include "dataserver.h"
+#include <qtestsupport_core.h>
 
 tst_dataserver::tst_dataserver() { }
 tst_dataserver::~tst_dataserver() = default;
@@ -307,4 +309,104 @@ void tst_dataserver::test_systemBuilder_cycle()
       published.calculated().valueRef(2),
       archived.calculated().valueRef(2));
   }
+}
+
+void tst_dataserver::test_dataServer_start_stop()
+{
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::Test);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::Test,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  TestArchiveWriter archive;
+  TestPublisher publisher;
+  FakeSchedulerClock clock;
+
+  DataServer ds(
+    cfg,
+    factory,
+    archive,
+    publisher,
+    clock);
+
+  QVERIFY(ds.start());
+
+  QTest::qWait(100);
+
+  ds.stop();
+
+  const auto count = publisher.count;
+
+  QVERIFY(count > 0);
+
+  QTest::qWait(100);
+
+  QCOMPARE(
+    publisher.count,
+    count);
+
+  const auto& frame =
+    publisher.last();
+
+  QCOMPARE(
+    frame.raw().size(),
+    std::size_t(2));
+
+  QCOMPARE(
+    frame.calculated().size(),
+    std::size_t(3));
+
+  QVERIFY(
+    frame.number > FrameNumber{0});
+
+  const auto& calculated =
+    frame.calculated();
+
+  QCOMPARE(
+    calculated.value(0) +
+      calculated.value(1),
+    calculated.value(2));
+}
+
+void tst_dataserver::test_dataServer_failStart_moduleType()
+{
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::LCard);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::Test,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  TestArchiveWriter archive;
+  TestPublisher publisher;
+  FakeSchedulerClock clock;
+
+  DataServer ds(
+    cfg,
+    factory,
+    archive,
+    publisher,
+    clock);
+
+  QVERIFY(!ds.start());
+
+  QCOMPARE(publisher.count, std::size_t(0));
+
+  QTest::qWait(100);
+
+  QCOMPARE(publisher.count, std::size_t(0));
 }

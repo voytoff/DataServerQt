@@ -27,6 +27,6 @@ target_link_libraries(LiveScheduler PRIVATE
     PUBLIC
         Subscriptions
         Publisher
-        #LiveStorage
+        LiveStorage
         DataProtocol
 )

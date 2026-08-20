@@ -14,14 +14,14 @@ enum class SubscribeResult : uint8_t
   InvalidRate,
   EmptyList,
   TooManyTags,
-  DuplicateTag,
-  InvalidTag
+  DuplicateSignal,
+  InvalidSignal
 };
 
 struct SubscribeListRequest
 {
   PublishRate rate;
-  uint32_t tagCount = 0;
+  uint32_t signalCount = 0;
 };
 
 struct SubscribeResponse

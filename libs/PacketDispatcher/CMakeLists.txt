@@ -18,7 +18,6 @@ target_link_libraries(PacketDispatcher
         DataProtocol
     PRIVATE
         Subscriptions
-        LiveScheduler
         Publisher
         UdpSender
 )

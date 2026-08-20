@@ -3,13 +3,17 @@
 #include <QObject>
 #include <QTimer>
 
+#include "packetdispatcher.h"
+#include "publisher.h"
 #include "runtimesystem.h"
+#include "subscriptionmanager.h"
 #include "systemconfiguration.h"
 
 #include "datasourcefactory.h"
 #include "iarchivewriter.h"
-#include "iframepublisher.h"
 #include "ischedulerclock.h"
+#include "udpsender.h"
+#include "udpserver.h"
 
 namespace qds
 {
@@ -24,7 +28,6 @@ public:
     SystemConfiguration configuration,
     const DataSourceFactory& dataSourceFactory,
     IArchiveWriter& archive,
-    IFramePublisher& publisher,
     ISchedulerClock& clock,
     QObject* parent = nullptr);
 
@@ -42,10 +45,17 @@ private:
   const DataSourceFactory& m_dataSourceFactory;
 
   IArchiveWriter& m_archive;
-  IFramePublisher& m_publisher;
   ISchedulerClock& m_clock;
 
   RuntimeSystem m_runtime;
+
+  SubscriptionManager m_subscriptions;
+
+  UdpSender m_sender;
+
+  std::unique_ptr<Publisher> m_publisher;
+  std::unique_ptr<PacketDispatcher> m_dispatcher;
+  std::unique_ptr<UdpServer> m_udpServer;
 
   QTimer m_timer;
 
