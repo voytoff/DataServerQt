@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <cstdint>
 
 namespace qds
 {
@@ -10,7 +9,6 @@ enum class PacketType : uint8_t
 {
   Invalid = 0,
 
-  SubscribeRangeRequest = 1,
   SubscribeListRequest  = 2,
   UnsubscribeRequest    = 3,
   SnapshotRequest       = 4,

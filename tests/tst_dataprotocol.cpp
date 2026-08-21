@@ -32,14 +32,14 @@ void test_dataprotocol::test_subscribeListPacket()
 
   writer.write(req);
 
-  constexpr TagId tags[]
+  constexpr SignalId tags[]
     {
       {5},
       {10},
       {100}
     };
 
-  // Далее в пакете располагается массив TagId
+  // Далее в пакете располагается массив SignalId
   writer.writeArray(tags, std::size(tags));
 
   PacketReader reader;
@@ -54,12 +54,12 @@ void test_dataprotocol::test_subscribeListPacket()
   QCOMPARE(testReq.rate, PublishRate::Hz10);
   QCOMPARE(testReq.signalCount, std::size(tags));
 
-  TagId testTags[std::size(tags)];
+  SignalId testTags[std::size(tags)];
   QVERIFY(reader.readArray(testTags, std::size(testTags)));
 
-  QCOMPARE(testTags[0], TagId{5});
-  QCOMPARE(testTags[1], TagId{10});
-  QCOMPARE(testTags[2], TagId{100});
+  QCOMPARE(testTags[0], SignalId{5});
+  QCOMPARE(testTags[1], SignalId{10});
+  QCOMPARE(testTags[2], SignalId{100});
 
   QVERIFY(reader.remaining() == 0);
 }

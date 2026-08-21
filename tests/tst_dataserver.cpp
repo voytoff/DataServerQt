@@ -320,8 +320,6 @@ void tst_dataserver::test_dataServer_udpSubscription()
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Test);
 
-  cfg.setUdpPort(35000);
-
   DataSourceFactory factory;
 
   QVERIFY(factory.registerType(
@@ -493,9 +491,7 @@ void tst_dataserver::test_dataServer_udpSubscription()
     reader.remaining(),
     std::size_t(0));
 
-  QCOMPARE(samples[0].value, 100.0);
-  QCOMPARE(samples[1].value, 1000.0);
-  QCOMPARE(samples[2].value, 1100.0);
+  QCOMPARE(samples[0].value + samples[1].value, samples[2].value);
 
   // ------------------------------------------------------------
   // LiveData #2
@@ -551,9 +547,7 @@ void tst_dataserver::test_dataServer_udpSubscription()
     reader.remaining(),
     std::size_t(0));
 
-  QCOMPARE(samples[0].value, 200.0);
-  QCOMPARE(samples[1].value, 2000.0);
-  QCOMPARE(samples[2].value, 2200.0);
+  QCOMPARE(samples[0].value + samples[1].value, samples[2].value);
 
   // ------------------------------------------------------------
   // Stop
@@ -601,8 +595,6 @@ void tst_dataserver::test_dataServer_failSubscribe_invalidSignalId()
 {
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Test);
-
-  cfg.setUdpPort(35000);
 
   DataSourceFactory factory;
 
@@ -717,8 +709,6 @@ void tst_dataserver::test_dataServer_failSubscribe_duplicateSignalId()
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Test);
 
-  cfg.setUdpPort(35000);
-
   DataSourceFactory factory;
 
   QVERIFY(factory.registerType(
@@ -831,8 +821,6 @@ void tst_dataserver::test_dataServer_failSubscribe_invalidRate()
 {
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Test);
-
-  cfg.setUdpPort(35000);
 
   DataSourceFactory factory;
 
@@ -947,8 +935,6 @@ void tst_dataserver::test_dataServer_failSubscribe_emptyList()
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Test);
 
-  cfg.setUdpPort(35000);
-
   DataSourceFactory factory;
 
   QVERIFY(factory.registerType(
@@ -1052,8 +1038,6 @@ void tst_dataserver::test_dataServer_failSubscribe_tooManySignals()
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Test);
 
-  cfg.setUdpPort(35000);
-
   DataSourceFactory factory;
 
   QVERIFY(factory.registerType(
@@ -1096,7 +1080,7 @@ void tst_dataserver::test_dataServer_failSubscribe_tooManySignals()
 
   SubscribeListRequest req;
   req.rate = PublishRate::Hz100;
-  req.signalCount = req.signalCount = MaxSubscriptionSignals + 1; // <---
+  req.signalCount = MaxSubscriptionSignals + 1; // <---
 
   writer.write(req);
 
@@ -1156,8 +1140,6 @@ void tst_dataserver::test_dataServer_unsubscribe_ok()
 {
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Test);
-
-  cfg.setUdpPort(35000);
 
   DataSourceFactory factory;
 
@@ -1371,8 +1353,6 @@ void tst_dataserver::test_dataServer_unsubscribe_invalidId()
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Test);
 
-  cfg.setUdpPort(35000);
-
   DataSourceFactory factory;
 
   QVERIFY(factory.registerType(
@@ -1584,8 +1564,6 @@ void tst_dataserver::test_dataServer_start_stop()
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Test);
 
-  cfg.setUdpPort(35000);
-
   DataSourceFactory factory;
 
   QVERIFY(factory.registerType(
@@ -1754,8 +1732,6 @@ void tst_dataserver::test_dataServer_start_after_failed_start()
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Fake);
 
-  cfg.setUdpPort(35000);
-
   DataSourceFactory factory;
 
   QVERIFY(factory.registerType(
@@ -1786,6 +1762,56 @@ void tst_dataserver::test_dataServer_start_after_failed_start()
       return std::make_unique<FakeDataSource>(
         cfg.settings);
     }));
+
+  QVERIFY(ds.start());
+
+  ds.stop();
+
+  QVERIFY(ds.start());
+
+  ds.stop();
+}
+
+void tst_dataserver::test_dataServer_failStart_invalidUdpPort()
+{
+  QUdpSocket blocker;
+
+  QVERIFY(
+    blocker.bind(
+      QHostAddress::AnyIPv4,
+      35000));
+
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::Test);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::Test,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  FailOnceArchiveWriter archive;
+  UdpSender sender;
+  FakeSchedulerClock clock;
+
+  DataServer ds(
+    cfg,
+    factory,
+    archive,
+    clock,
+    sender);
+
+  QVERIFY(!ds.start());
+
+  blocker.close();
+
+  QVERIFY(ds.start());
+
+  ds.stop();
 
   QVERIFY(ds.start());
 

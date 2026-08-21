@@ -30,6 +30,10 @@ int main(int argc, char *argv[])
   int rc = 0;
 
   {
+    test_dataprotocol tc;
+    rc |= QTest::qExec(&tc, argc, argv);
+  }
+  {
     tst_dataserver tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
@@ -71,10 +75,6 @@ int main(int argc, char *argv[])
   }
   {
     tst_udpsender tc;
-    rc |= QTest::qExec(&tc, argc, argv);
-  }
-  {
-    test_dataprotocol tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
   {

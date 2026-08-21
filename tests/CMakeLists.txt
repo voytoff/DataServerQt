@@ -48,7 +48,7 @@ target_link_libraries(unit_tests PRIVATE
     DataProtocol
     Publisher
     UdpSender
-    UdpServer
+    #UdpServer
     DataSource
     Engine
     HardwareFactory

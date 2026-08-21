@@ -1,5 +1,4 @@
 #include "packetreader.h"
-//#include <QtCore/qassert.h>
 #include <cstring>
 
 namespace qds

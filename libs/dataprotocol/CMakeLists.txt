@@ -9,7 +9,6 @@ add_library(DataProtocol SHARED
   packetreader.h packetreader.cpp
   protocol/packetheader.h
   protocol/packettype.h
-  protocol/subscribe.h
   protocol/livedata.h
   endpoint.h isender.h
   protocol/subscriptionpackets.h

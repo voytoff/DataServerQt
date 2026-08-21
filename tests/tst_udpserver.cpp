@@ -440,7 +440,7 @@ void tst_udpserver::test_subscribeList_ok()
   writer.begin(PacketType::SubscribeListRequest);
 
   // Формируем запрос на подписку
-  constexpr TagId signalIds[] { {2}, {4} };
+  constexpr SignalId signalIds[] { {2}, {4} };
 
   SubscribeListRequest req;
   req.rate = PublishRate::Hz10;

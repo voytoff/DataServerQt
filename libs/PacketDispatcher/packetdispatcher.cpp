@@ -112,7 +112,8 @@ bool PacketDispatcher::processSubscribeList(PacketReader &reader, const Endpoint
   {
     sendErrorResponse(
       endpoint,
-      ErrorCode::InvalidRequest);
+      ErrorCode::InvalidRequest,
+      reader.remaining());
 
     return false;
   }
@@ -120,7 +121,7 @@ bool PacketDispatcher::processSubscribeList(PacketReader &reader, const Endpoint
   if (!checkEof(reader, endpoint))
     return false;
 
-  // неверный тег
+  // неверный сигнал
   for (const SignalId& signalId : signalIds)
   {
     if (!m_configuration.containsSignalDefinition(signalId))
@@ -133,7 +134,7 @@ bool PacketDispatcher::processSubscribeList(PacketReader &reader, const Endpoint
     }
   }
 
-  // повторяющийся тег
+  // повторяющийся сигнал
   for (size_t i = 0; i < signalIds.size(); ++i)
   {
     for (size_t j = i + 1; j < signalIds.size(); ++j)
