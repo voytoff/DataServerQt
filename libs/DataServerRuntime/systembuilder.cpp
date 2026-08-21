@@ -51,6 +51,9 @@ bool SystemBuilder::build(
   runtime.buffers.initialize(
     runtime.layout);
 
+  runtime.engine =
+    std::make_unique<DataEngine>();
+
   return true;
 }
 

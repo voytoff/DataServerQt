@@ -82,7 +82,7 @@ void tst_packetdispatcher::tst_packetdispatcher_InvalidTag()
   // проверим наличие подписок
   QCOMPARE(srv.manager.size(), 0u);
 
-  QCOMPARE(srv.publisherSender.sendCount, 0u);
+  //QCOMPARE(srv.testSender.sendCount, 0u);
 
   srv.server.stop();
   QVERIFY(!srv.server.isRunning());

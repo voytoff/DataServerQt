@@ -1,5 +1,7 @@
 #include "tst_dataserver.h"
 #include "datasourcefactory.h"
+#include "failoncearchivewriter.h"
+#include "fakedatasource.h"
 #include "fakeschedulerclock.h"
 #include "protocol/publishheader.h"
 #include "runtimesystem.h"
@@ -103,7 +105,7 @@ void tst_dataserver::test_systemBuilder_success()
     runtime.signalProcessor != nullptr);
 
   QVERIFY(
-    runtime.engine == nullptr);
+    runtime.engine != nullptr);
 }
 
 void tst_dataserver::test_systemBuilder_process()
@@ -135,8 +137,6 @@ void tst_dataserver::test_systemBuilder_process()
     cfg,
     factory,
     runtime));
-
-  runtime.engine = std::make_unique<DataEngine>();
 
   QVERIFY(runtime.engine->initialize(
     runtime.dataSources,
@@ -259,8 +259,6 @@ void tst_dataserver::test_systemBuilder_cycle()
     factory,
     runtime));
 
-  runtime.engine = std::make_unique<DataEngine>();
-
   QVERIFY(runtime.engine->initialize(
     runtime.dataSources,
     *runtime.signalProcessor,
@@ -317,10 +315,12 @@ void tst_dataserver::test_systemBuilder_cycle()
   }
 }
 
-void tst_dataserver::test_dataServer_start_stop()
+void tst_dataserver::test_dataServer_udpSubscription()
 {
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Test);
+
+  cfg.setUdpPort(35000);
 
   DataSourceFactory factory;
 
@@ -333,9 +333,8 @@ void tst_dataserver::test_dataServer_start_stop()
     }));
 
   TestArchiveWriter archive;
-  TestPublisherSender sender;
+  UdpSender sender;
   FakeSchedulerClock clock;
-
 
   DataServer ds(
     cfg,
@@ -346,78 +345,221 @@ void tst_dataserver::test_dataServer_start_stop()
 
   QVERIFY(ds.start());
 
-
-  // Создаём клиент
   QUdpSocket client;
 
   QVERIFY(
-    client.bind(QHostAddress::LocalHost, 0));
+    client.bind(
+      QHostAddress::LocalHost,
+      0));
 
-  // Формируем запрос SubscribeListRequest
+  // ------------------------------------------------------------
+  // Subscribe
+  // ------------------------------------------------------------
+
   PacketWriter writer;
-  writer.begin(PacketType::SubscribeListRequest);
+  writer.begin(
+    PacketType::SubscribeListRequest);
 
-  // Формируем запрос на подписку
-  constexpr SignalId signalIds[] { {17}, {4}, {23} };
+  constexpr SignalId signalIds[]
+    {
+      {17},
+      {4},
+      {23}
+    };
 
   SubscribeListRequest req;
   req.rate = PublishRate::Hz10;
-  req.signalCount = std::size(signalIds);
+  req.signalCount =
+    std::size(signalIds);
 
   writer.write(req);
-  writer.writeArray(signalIds, std::size(signalIds));
 
-  // Отправляем
+  writer.writeArray(
+    signalIds,
+    std::size(signalIds));
+
   const auto bytes =
     client.writeDatagram(
-      reinterpret_cast<const char*>(writer.data()),
+      reinterpret_cast<const char*>(
+        writer.data()),
       writer.size(),
       QHostAddress::LocalHost,
-      35000);
-
-  QCOMPARE(bytes, qint64(writer.size()));
-
-  QTRY_VERIFY(client.waitForReadyRead(100));
-  QTRY_VERIFY(client.hasPendingDatagrams());
-
-//  QTest::qWait(100);
-
-  ds.stop();
-
-  const auto count = sender.sendCount;
-
-  QVERIFY(count > 0);
-
-  QTest::qWait(100);
+      cfg.udpPort());
 
   QCOMPARE(
-    sender.sendCount,
-    count);
+    bytes,
+    qint64(writer.size()));
+
+  // ------------------------------------------------------------
+  // SubscribeResponse
+  // ------------------------------------------------------------
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    client.hasPendingDatagrams(),
+    2000);
+
+  QByteArray data;
+  data.resize(
+    client.pendingDatagramSize());
+
+  client.readDatagram(
+    data.data(),
+    data.size());
 
   PacketReader reader;
 
-  const auto& frame =
-    sender.lastPacket();
-
   reader.append(
-    frame.data(),
-    frame.size());
+    reinterpret_cast<const std::byte*>(
+      data.constData()),
+    data.size());
 
   QVERIFY(reader.nextPacket());
 
-  PublishHeader hdr;
-  QVERIFY(reader.read(hdr));
+  QCOMPARE(
+    reader.packetType(),
+    PacketType::SubscribeResponse);
 
-  std::array<double, 3> values;
-  QVERIFY(reader.readArray(values.data(), values.size()));
+  SubscribeResponse response;
 
-  QVERIFY(reader.remaining() == 0);
-
-  QCOMPARE(hdr.sequence, 1);
+  QVERIFY(reader.read(response));
 
   QCOMPARE(
-    values[0] + values[1],
-    values[2]);
+    reader.remaining(),
+    std::size_t(0));
+
+  QCOMPARE(
+    response.result,
+    SubscribeResult::Ok);
+
+  QCOMPARE(
+    response.id,
+    SubscriptionId{1});
+
+  // ------------------------------------------------------------
+  // LiveData #1
+  // ------------------------------------------------------------
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    client.hasPendingDatagrams(),
+    2000);
+
+  data.resize(
+    client.pendingDatagramSize());
+
+  client.readDatagram(
+    data.data(),
+    data.size());
+
+  reader.clear();
+
+  reader.append(
+    reinterpret_cast<const std::byte*>(
+      data.constData()),
+    data.size());
+
+  QVERIFY(reader.nextPacket());
+
+  QCOMPARE(
+    reader.packetType(),
+    PacketType::LiveData);
+
+  PublishHeader ldh;
+
+  QVERIFY(reader.read(ldh));
+
+  QCOMPARE(
+    ldh.subscriptionId,
+    SubscriptionId{1});
+
+  QCOMPARE(
+    ldh.sequence,
+    1u);
+
+  QVERIFY(
+    ldh.timestamp > 0u);
+
+  QCOMPARE(
+    ldh.valueCount,
+    3u);
+
+  std::array<Sample, 3> samples{};
+
+  QVERIFY(
+    reader.readArray(
+      samples.data(),
+      samples.size()));
+
+  QCOMPARE(
+    reader.remaining(),
+    std::size_t(0));
+
+  QCOMPARE(samples[0].value, 100.0);
+  QCOMPARE(samples[1].value, 1000.0);
+  QCOMPARE(samples[2].value, 1100.0);
+
+  // ------------------------------------------------------------
+  // LiveData #2
+  // ------------------------------------------------------------
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    client.hasPendingDatagrams(),
+    2000);
+
+  data.resize(
+    client.pendingDatagramSize());
+
+  client.readDatagram(
+    data.data(),
+    data.size());
+
+  reader.clear();
+
+  reader.append(
+    reinterpret_cast<const std::byte*>(
+      data.constData()),
+    data.size());
+
+  QVERIFY(reader.nextPacket());
+
+  QCOMPARE(
+    reader.packetType(),
+    PacketType::LiveData);
+
+  QVERIFY(reader.read(ldh));
+
+  QCOMPARE(
+    ldh.subscriptionId,
+    SubscriptionId{1});
+
+  QCOMPARE(
+    ldh.sequence,
+    2u);
+
+  QVERIFY(
+    ldh.timestamp > 0u);
+
+  QCOMPARE(
+    ldh.valueCount,
+    3u);
+
+  QVERIFY(
+    reader.readArray(
+      samples.data(),
+      samples.size()));
+
+  QCOMPARE(
+    reader.remaining(),
+    std::size_t(0));
+
+  QCOMPARE(samples[0].value, 200.0);
+  QCOMPARE(samples[1].value, 2000.0);
+  QCOMPARE(samples[2].value, 2200.0);
+
+  // ------------------------------------------------------------
+  // Stop
+  // ------------------------------------------------------------
+
+  ds.stop();
 }
 
 void tst_dataserver::test_dataServer_failStart_moduleType()
@@ -453,4 +595,1199 @@ void tst_dataserver::test_dataServer_failStart_moduleType()
   QTest::qWait(100);
 
   QCOMPARE(sender.sendCount, std::size_t(0));
+}
+
+void tst_dataserver::test_dataServer_failSubscribe_invalidSignalId()
+{
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::Test);
+
+  cfg.setUdpPort(35000);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::Test,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  TestArchiveWriter archive;
+  UdpSender sender;
+  FakeSchedulerClock clock;
+
+  DataServer ds(
+    cfg,
+    factory,
+    archive,
+    clock,
+    sender);
+
+  QVERIFY(ds.start());
+
+  QUdpSocket client;
+
+  QVERIFY(
+    client.bind(
+      QHostAddress::LocalHost,
+      0));
+
+  // ------------------------------------------------------------
+  // Subscribe
+  // ------------------------------------------------------------
+
+  PacketWriter writer;
+  writer.begin(
+    PacketType::SubscribeListRequest);
+
+  constexpr SignalId signalIds[]
+    {
+      {17},
+      {4},
+      {24} // <---
+    };
+
+  SubscribeListRequest req;
+  req.rate = PublishRate::Hz10;
+  req.signalCount =
+    std::size(signalIds);
+
+  writer.write(req);
+
+  writer.writeArray(
+    signalIds,
+    std::size(signalIds));
+
+  const auto bytes =
+    client.writeDatagram(
+      reinterpret_cast<const char*>(
+        writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      cfg.udpPort());
+
+  QCOMPARE(
+    bytes,
+    qint64(writer.size()));
+
+  // ------------------------------------------------------------
+  // SubscribeResponse
+  // ------------------------------------------------------------
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    client.hasPendingDatagrams(),
+    2000);
+
+  QByteArray data;
+  data.resize(
+    client.pendingDatagramSize());
+
+  client.readDatagram(
+    data.data(),
+    data.size());
+
+  PacketReader reader;
+
+  reader.append(
+    reinterpret_cast<const std::byte*>(
+      data.constData()),
+    data.size());
+
+  QVERIFY(reader.nextPacket());
+
+  QCOMPARE(
+    reader.packetType(),
+    PacketType::SubscribeResponse);
+
+  SubscribeResponse response;
+  QVERIFY(reader.read(response));
+
+  QVERIFY(reader.remaining() == 0u);
+
+  QCOMPARE(response.result, SubscribeResult::InvalidSignal);
+  QCOMPARE(response.id, SubscriptionId{});
+
+  ds.stop();
+}
+
+void tst_dataserver::test_dataServer_failSubscribe_duplicateSignalId()
+{
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::Test);
+
+  cfg.setUdpPort(35000);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::Test,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  TestArchiveWriter archive;
+  UdpSender sender;
+  FakeSchedulerClock clock;
+
+  DataServer ds(
+    cfg,
+    factory,
+    archive,
+    clock,
+    sender);
+
+  QVERIFY(ds.start());
+
+  QUdpSocket client;
+
+  QVERIFY(
+    client.bind(
+      QHostAddress::LocalHost,
+      0));
+
+  // ------------------------------------------------------------
+  // Subscribe
+  // ------------------------------------------------------------
+
+  PacketWriter writer;
+  writer.begin(
+    PacketType::SubscribeListRequest);
+
+  constexpr SignalId signalIds[]
+    {
+      {17},
+      {4},
+      {4} // <---
+    };
+
+  SubscribeListRequest req;
+  req.rate = PublishRate::Hz10;
+  req.signalCount =
+    std::size(signalIds);
+
+  writer.write(req);
+
+  writer.writeArray(
+    signalIds,
+    std::size(signalIds));
+
+  const auto bytes =
+    client.writeDatagram(
+      reinterpret_cast<const char*>(
+        writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      cfg.udpPort());
+
+  QCOMPARE(
+    bytes,
+    qint64(writer.size()));
+
+  // ------------------------------------------------------------
+  // SubscribeResponse
+  // ------------------------------------------------------------
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    client.hasPendingDatagrams(),
+    2000);
+
+  QByteArray data;
+  data.resize(
+    client.pendingDatagramSize());
+
+  client.readDatagram(
+    data.data(),
+    data.size());
+
+  PacketReader reader;
+
+  reader.append(
+    reinterpret_cast<const std::byte*>(
+      data.constData()),
+    data.size());
+
+  QVERIFY(reader.nextPacket());
+
+  QCOMPARE(
+    reader.packetType(),
+    PacketType::SubscribeResponse);
+
+  SubscribeResponse response;
+  QVERIFY(reader.read(response));
+
+  QVERIFY(reader.remaining() == 0u);
+
+  QCOMPARE(response.result, SubscribeResult::DuplicateSignal);
+  QCOMPARE(response.id, SubscriptionId{});
+
+  ds.stop();
+}
+
+void tst_dataserver::test_dataServer_failSubscribe_invalidRate()
+{
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::Test);
+
+  cfg.setUdpPort(35000);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::Test,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  TestArchiveWriter archive;
+  UdpSender sender;
+  FakeSchedulerClock clock;
+
+  DataServer ds(
+    cfg,
+    factory,
+    archive,
+    clock,
+    sender);
+
+  QVERIFY(ds.start());
+
+  QUdpSocket client;
+
+  QVERIFY(
+    client.bind(
+      QHostAddress::LocalHost,
+      0));
+
+  // ------------------------------------------------------------
+  // Subscribe
+  // ------------------------------------------------------------
+
+  PacketWriter writer;
+  writer.begin(
+    PacketType::SubscribeListRequest);
+
+  constexpr SignalId signalIds[]
+    {
+      {17},
+      {4},
+      {23}
+    };
+
+  SubscribeListRequest req;
+  req.rate = static_cast<PublishRate>(0xFF); // <---
+  req.signalCount =
+    std::size(signalIds);
+
+  writer.write(req);
+
+  writer.writeArray(
+    signalIds,
+    std::size(signalIds));
+
+  const auto bytes =
+    client.writeDatagram(
+      reinterpret_cast<const char*>(
+        writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      cfg.udpPort());
+
+  QCOMPARE(
+    bytes,
+    qint64(writer.size()));
+
+  // ------------------------------------------------------------
+  // SubscribeResponse
+  // ------------------------------------------------------------
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    client.hasPendingDatagrams(),
+    2000);
+
+  QByteArray data;
+  data.resize(
+    client.pendingDatagramSize());
+
+  client.readDatagram(
+    data.data(),
+    data.size());
+
+  PacketReader reader;
+
+  reader.append(
+    reinterpret_cast<const std::byte*>(
+      data.constData()),
+    data.size());
+
+  QVERIFY(reader.nextPacket());
+
+  QCOMPARE(
+    reader.packetType(),
+    PacketType::SubscribeResponse);
+
+  SubscribeResponse response;
+  QVERIFY(reader.read(response));
+
+  QVERIFY(reader.remaining() == 0u);
+
+  QCOMPARE(response.result, SubscribeResult::InvalidRate);
+  QCOMPARE(response.id, SubscriptionId{});
+
+  ds.stop();
+}
+
+void tst_dataserver::test_dataServer_failSubscribe_emptyList()
+{
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::Test);
+
+  cfg.setUdpPort(35000);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::Test,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  TestArchiveWriter archive;
+  UdpSender sender;
+  FakeSchedulerClock clock;
+
+  DataServer ds(
+    cfg,
+    factory,
+    archive,
+    clock,
+    sender);
+
+  QVERIFY(ds.start());
+
+  QUdpSocket client;
+
+  QVERIFY(
+    client.bind(
+      QHostAddress::LocalHost,
+      0));
+
+  // ------------------------------------------------------------
+  // Subscribe
+  // ------------------------------------------------------------
+
+  PacketWriter writer;
+  writer.begin(
+    PacketType::SubscribeListRequest);
+
+  constexpr SignalId signalIds[] { };
+
+  SubscribeListRequest req;
+  req.rate = PublishRate::Hz100;
+  req.signalCount = 0; // <---
+
+  writer.write(req);
+
+  const auto bytes =
+    client.writeDatagram(
+      reinterpret_cast<const char*>(
+        writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      cfg.udpPort());
+
+  QCOMPARE(
+    bytes,
+    qint64(writer.size()));
+
+  // ------------------------------------------------------------
+  // SubscribeResponse
+  // ------------------------------------------------------------
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    client.hasPendingDatagrams(),
+    2000);
+
+  QByteArray data;
+  data.resize(
+    client.pendingDatagramSize());
+
+  client.readDatagram(
+    data.data(),
+    data.size());
+
+  PacketReader reader;
+
+  reader.append(
+    reinterpret_cast<const std::byte*>(
+      data.constData()),
+    data.size());
+
+  QVERIFY(reader.nextPacket());
+
+  QCOMPARE(
+    reader.packetType(),
+    PacketType::SubscribeResponse);
+
+  SubscribeResponse response;
+  QVERIFY(reader.read(response));
+
+  QVERIFY(reader.remaining() == 0u);
+
+  QCOMPARE(response.result, SubscribeResult::EmptyList);
+  QCOMPARE(response.id, SubscriptionId{});
+
+  ds.stop();
+}
+
+void tst_dataserver::test_dataServer_failSubscribe_tooManySignals()
+{
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::Test);
+
+  cfg.setUdpPort(35000);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::Test,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  TestArchiveWriter archive;
+  UdpSender sender;
+  FakeSchedulerClock clock;
+
+  DataServer ds(
+    cfg,
+    factory,
+    archive,
+    clock,
+    sender);
+
+  QVERIFY(ds.start());
+
+  QUdpSocket client;
+
+  QVERIFY(
+    client.bind(
+      QHostAddress::LocalHost,
+      0));
+
+  // ------------------------------------------------------------
+  // Subscribe
+  // ------------------------------------------------------------
+
+  PacketWriter writer;
+  writer.begin(
+    PacketType::SubscribeListRequest);
+
+  constexpr SignalId signalIds[] { };
+
+  SubscribeListRequest req;
+  req.rate = PublishRate::Hz100;
+  req.signalCount = req.signalCount = MaxSubscriptionSignals + 1; // <---
+
+  writer.write(req);
+
+  const auto bytes =
+    client.writeDatagram(
+      reinterpret_cast<const char*>(
+        writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      cfg.udpPort());
+
+  QCOMPARE(
+    bytes,
+    qint64(writer.size()));
+
+  // ------------------------------------------------------------
+  // SubscribeResponse
+  // ------------------------------------------------------------
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    client.hasPendingDatagrams(),
+    2000);
+
+  QByteArray data;
+  data.resize(
+    client.pendingDatagramSize());
+
+  client.readDatagram(
+    data.data(),
+    data.size());
+
+  PacketReader reader;
+
+  reader.append(
+    reinterpret_cast<const std::byte*>(
+      data.constData()),
+    data.size());
+
+  QVERIFY(reader.nextPacket());
+
+  QCOMPARE(
+    reader.packetType(),
+    PacketType::SubscribeResponse);
+
+  SubscribeResponse response;
+  QVERIFY(reader.read(response));
+
+  QVERIFY(reader.remaining() == 0u);
+
+  QCOMPARE(response.result, SubscribeResult::TooManySignals);
+  QCOMPARE(response.id, SubscriptionId{});
+
+  ds.stop();
+}
+
+void tst_dataserver::test_dataServer_unsubscribe_ok()
+{
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::Test);
+
+  cfg.setUdpPort(35000);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::Test,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  TestArchiveWriter archive;
+  UdpSender sender;
+  FakeSchedulerClock clock;
+
+  DataServer ds(
+    cfg,
+    factory,
+    archive,
+    clock,
+    sender);
+
+  QVERIFY(ds.start());
+
+  QUdpSocket client;
+
+  QVERIFY(
+    client.bind(
+      QHostAddress::LocalHost,
+      0));
+
+  // ------------------------------------------------------------
+  // Subscribe
+  // ------------------------------------------------------------
+
+  PacketWriter writer;
+  writer.begin(
+    PacketType::SubscribeListRequest);
+
+  constexpr SignalId signalIds[]
+    {
+      {17},
+      {4},
+      {23}
+    };
+
+  SubscribeListRequest req;
+  req.rate = PublishRate::Hz10;
+  req.signalCount =
+    std::size(signalIds);
+
+  writer.write(req);
+
+  writer.writeArray(
+    signalIds,
+    std::size(signalIds));
+
+  const auto bytes =
+    client.writeDatagram(
+      reinterpret_cast<const char*>(
+        writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      cfg.udpPort());
+
+  QCOMPARE(
+    bytes,
+    qint64(writer.size()));
+
+  // ------------------------------------------------------------
+  // SubscribeResponse
+  // ------------------------------------------------------------
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    client.hasPendingDatagrams(),
+    2000);
+
+  QByteArray data;
+  data.resize(
+    client.pendingDatagramSize());
+
+  client.readDatagram(
+    data.data(),
+    data.size());
+
+  PacketReader reader;
+
+  reader.append(
+    reinterpret_cast<const std::byte*>(
+      data.constData()),
+    data.size());
+
+  QVERIFY(reader.nextPacket());
+
+  QCOMPARE(
+    reader.packetType(),
+    PacketType::SubscribeResponse);
+
+  SubscribeResponse response;
+
+  QVERIFY(reader.read(response));
+
+  QCOMPARE(
+    reader.remaining(),
+    std::size_t(0));
+
+  QCOMPARE(
+    response.result,
+    SubscribeResult::Ok);
+
+  QCOMPARE(
+    response.id,
+    SubscriptionId{1});
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    client.hasPendingDatagrams(),
+    2000);
+
+  data.resize(client.pendingDatagramSize());
+  client.readDatagram(data.data(), data.size());
+
+  reader.clear();
+  reader.append(
+    reinterpret_cast<const std::byte*>(data.constData()),
+    data.size());
+
+  QVERIFY(reader.nextPacket());
+
+  QCOMPARE(
+    reader.packetType(),
+    PacketType::LiveData);
+
+  // подписка создана, теперь попробуем ее удалить ===============
+
+  UnsubscribeRequest req2;
+  req2.id = response.id;
+
+  writer.begin(PacketType::UnsubscribeRequest);
+  writer.write(req2);
+
+  // Отправляем
+  const auto bytes2 =
+    client.writeDatagram(
+      reinterpret_cast<const char*>(
+        writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      cfg.udpPort());
+
+  QCOMPARE(bytes2, qint64(writer.size()));
+
+  // Читаем ответ на удаление подписки
+  do {
+    QTRY_VERIFY_WITH_TIMEOUT(
+      client.hasPendingDatagrams(),
+      2000);
+
+    data.resize(client.pendingDatagramSize());
+    client.readDatagram(data.data(), data.size());
+
+    reader.clear();
+    reader.append(
+      reinterpret_cast<const std::byte*>(data.constData()),
+      data.size());
+
+    QVERIFY(reader.nextPacket());
+  } while (reader.packetType() != PacketType::UnsubscribeResponse);
+
+  QCOMPARE(reader.packetType(), PacketType::UnsubscribeResponse);
+
+  UnsubscribeResponse response2;
+  QVERIFY(reader.read(response2));
+
+  QVERIFY(reader.remaining() == 0u);
+
+  QCOMPARE(response2.result, UnsubscribeResult::Ok);
+
+
+  // Отбрасываем всё, что уже находилось в UDP-очереди
+  while (client.hasPendingDatagrams())
+  {
+    data.resize(client.pendingDatagramSize());
+    client.readDatagram(data.data(), data.size());
+  }
+
+  // Теперь в течение некоторого времени новых пакетов
+  // от этой подписки появиться не должно.
+  QTest::qWait(200);
+
+  while (client.hasPendingDatagrams())
+  {
+    data.resize(client.pendingDatagramSize());
+    client.readDatagram(data.data(), data.size());
+
+    reader.clear();
+    reader.append(
+      reinterpret_cast<const std::byte*>(data.constData()),
+      data.size());
+
+    QVERIFY(reader.nextPacket());
+
+    QVERIFY(
+      reader.packetType() != PacketType::LiveData);
+  }
+
+  ds.stop();
+}
+
+void tst_dataserver::test_dataServer_unsubscribe_invalidId()
+{
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::Test);
+
+  cfg.setUdpPort(35000);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::Test,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  TestArchiveWriter archive;
+  UdpSender sender;
+  FakeSchedulerClock clock;
+
+  DataServer ds(
+    cfg,
+    factory,
+    archive,
+    clock,
+    sender);
+
+  QVERIFY(ds.start());
+
+  QUdpSocket client;
+
+  QVERIFY(
+    client.bind(
+      QHostAddress::LocalHost,
+      0));
+
+  // ------------------------------------------------------------
+  // Subscribe
+  // ------------------------------------------------------------
+
+  PacketWriter writer;
+  writer.begin(
+    PacketType::SubscribeListRequest);
+
+  constexpr SignalId signalIds[]
+    {
+      {17},
+      {23}
+    };
+
+  SubscribeListRequest req;
+  req.rate = PublishRate::Hz10;
+  req.signalCount =
+    std::size(signalIds);
+
+  writer.write(req);
+
+  writer.writeArray(
+    signalIds,
+    std::size(signalIds));
+
+  const auto bytes =
+    client.writeDatagram(
+      reinterpret_cast<const char*>(
+        writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      cfg.udpPort());
+
+  QCOMPARE(
+    bytes,
+    qint64(writer.size()));
+
+  // ------------------------------------------------------------
+  // SubscribeResponse
+  // ------------------------------------------------------------
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    client.hasPendingDatagrams(),
+    2000);
+
+  QByteArray data;
+  data.resize(
+    client.pendingDatagramSize());
+
+  client.readDatagram(
+    data.data(),
+    data.size());
+
+  PacketReader reader;
+
+  reader.append(
+    reinterpret_cast<const std::byte*>(
+      data.constData()),
+    data.size());
+
+  QVERIFY(reader.nextPacket());
+
+  QCOMPARE(
+    reader.packetType(),
+    PacketType::SubscribeResponse);
+
+  SubscribeResponse response;
+
+  QVERIFY(reader.read(response));
+
+  QCOMPARE(
+    reader.remaining(),
+    std::size_t(0));
+
+  QCOMPARE(
+    response.result,
+    SubscribeResult::Ok);
+
+  QCOMPARE(
+    response.id,
+    SubscriptionId{1});
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    client.hasPendingDatagrams(),
+    2000);
+
+  data.resize(client.pendingDatagramSize());
+  client.readDatagram(data.data(), data.size());
+
+  reader.clear();
+  reader.append(
+    reinterpret_cast<const std::byte*>(data.constData()),
+    data.size());
+
+  QVERIFY(reader.nextPacket());
+
+  QCOMPARE(
+    reader.packetType(),
+    PacketType::LiveData);
+
+  // подписка создана, теперь попробуем удалить с неправильным идентификатором ===============
+
+  UnsubscribeRequest req2;
+  req2.id = SubscriptionId{999};
+
+  writer.begin(PacketType::UnsubscribeRequest);
+  writer.write(req2);
+
+  // Отправляем
+  const auto bytes2 =
+    client.writeDatagram(
+      reinterpret_cast<const char*>(
+        writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      cfg.udpPort());
+
+  QCOMPARE(bytes2, qint64(writer.size()));
+
+  // Читаем ответ на удаление несуществующей подписки
+  do {
+    QTRY_VERIFY_WITH_TIMEOUT(
+      client.hasPendingDatagrams(),
+      2000);
+
+    data.resize(client.pendingDatagramSize());
+    client.readDatagram(data.data(), data.size());
+
+    reader.clear();
+    reader.append(
+      reinterpret_cast<const std::byte*>(data.constData()),
+      data.size());
+
+    QVERIFY(reader.nextPacket());
+  } while (reader.packetType() != PacketType::UnsubscribeResponse);
+
+  QCOMPARE(reader.packetType(), PacketType::UnsubscribeResponse);
+
+  UnsubscribeResponse response2;
+  QVERIFY(reader.read(response2));
+
+  QVERIFY(reader.remaining() == 0u);
+
+  QCOMPARE(response2.result, UnsubscribeResult::InvalidId);
+
+  while (client.hasPendingDatagrams())
+  {
+    data.resize(client.pendingDatagramSize());
+    client.readDatagram(data.data(), data.size());
+  }
+
+  // а пакеты продолжают идти
+
+  QTest::qWait(200);
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    client.hasPendingDatagrams(),
+    2000);
+
+  data.resize(client.pendingDatagramSize());
+  client.readDatagram(data.data(), data.size());
+
+  reader.clear();
+  reader.append(
+    reinterpret_cast<const std::byte*>(data.constData()),
+    data.size());
+
+  QVERIFY(reader.nextPacket());
+
+  QCOMPARE(
+    reader.packetType(),
+    PacketType::LiveData);
+
+  ds.stop();
+}
+
+void tst_dataserver::test_dataServer_start_stop()
+{
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::Test);
+
+  cfg.setUdpPort(35000);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::Test,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  TestArchiveWriter archive;
+  UdpSender sender;
+  FakeSchedulerClock clock;
+
+  DataServer ds(
+    cfg,
+    factory,
+    archive,
+    clock,
+    sender);
+
+  QVERIFY(ds.start());
+
+  QUdpSocket client;
+
+  QVERIFY(
+    client.bind(
+      QHostAddress::LocalHost,
+      0));
+
+  // ------------------------------------------------------------
+  // Subscribe
+  // ------------------------------------------------------------
+
+  PacketWriter writer;
+  writer.begin(
+    PacketType::SubscribeListRequest);
+
+  constexpr SignalId signalIds[]
+    {
+      {17},
+      {4},
+      {23}
+    };
+
+  SubscribeListRequest req;
+  req.rate = PublishRate::Hz10;
+  req.signalCount =
+    std::size(signalIds);
+
+  writer.write(req);
+
+  writer.writeArray(
+    signalIds,
+    std::size(signalIds));
+
+  const auto bytes =
+    client.writeDatagram(
+      reinterpret_cast<const char*>(
+        writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      cfg.udpPort());
+
+  QCOMPARE(
+    bytes,
+    qint64(writer.size()));
+
+  // ------------------------------------------------------------
+  // SubscribeResponse
+  // ------------------------------------------------------------
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    client.hasPendingDatagrams(),
+    2000);
+
+  QByteArray data;
+  data.resize(
+    client.pendingDatagramSize());
+
+  client.readDatagram(
+    data.data(),
+    data.size());
+
+  PacketReader reader;
+
+  reader.append(
+    reinterpret_cast<const std::byte*>(
+      data.constData()),
+    data.size());
+
+  QVERIFY(reader.nextPacket());
+
+  QCOMPARE(
+    reader.packetType(),
+    PacketType::SubscribeResponse);
+
+  SubscribeResponse response;
+
+  QVERIFY(reader.read(response));
+
+  QCOMPARE(
+    reader.remaining(),
+    std::size_t(0));
+
+  QCOMPARE(
+    response.result,
+    SubscribeResult::Ok);
+
+  QCOMPARE(
+    response.id,
+    SubscriptionId{1});
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    client.hasPendingDatagrams(),
+    2000);
+
+  data.resize(client.pendingDatagramSize());
+  client.readDatagram(data.data(), data.size());
+
+  reader.clear();
+  reader.append(
+    reinterpret_cast<const std::byte*>(data.constData()),
+    data.size());
+
+  QVERIFY(reader.nextPacket());
+
+  QCOMPARE(
+    reader.packetType(),
+    PacketType::LiveData);
+
+  // подписка создана, теперь останавливаем сервер ===============
+
+  ds.stop();
+
+  // Отбрасываем всё, что уже находилось в UDP-очереди
+  while (client.hasPendingDatagrams())
+  {
+    data.resize(client.pendingDatagramSize());
+    client.readDatagram(data.data(), data.size());
+  }
+
+  // Теперь в течение некоторого времени новых пакетов
+  // появиться не должно.
+  QTest::qWait(200);
+
+  while (client.hasPendingDatagrams())
+  {
+    data.resize(client.pendingDatagramSize());
+    client.readDatagram(data.data(), data.size());
+
+    reader.clear();
+    reader.append(
+      reinterpret_cast<const std::byte*>(data.constData()),
+      data.size());
+
+    QVERIFY(reader.nextPacket());
+
+    QVERIFY(
+      reader.packetType() != PacketType::LiveData);
+  }
+}
+
+void tst_dataserver::test_dataServer_start_after_failed_start()
+{
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::Fake);
+
+  cfg.setUdpPort(35000);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::Test,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  FailOnceArchiveWriter archive;
+  UdpSender sender;
+  FakeSchedulerClock clock;
+
+  DataServer ds(
+    cfg,
+    factory,
+    archive,
+    clock,
+    sender);
+
+  QVERIFY(!ds.start());
+
+  QVERIFY(factory.registerType(
+    ModuleType::Fake,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<FakeDataSource>(
+        cfg.settings);
+    }));
+
+  QVERIFY(ds.start());
+
+  ds.stop();
 }

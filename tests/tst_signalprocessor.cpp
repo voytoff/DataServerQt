@@ -10,6 +10,7 @@
 #include "failoncedatasource.h"
 #include "fakedatasource.h"
 #include "fakeschedulerclock.h"
+#include "formulabuilder.h"
 #include "parser/formulaparser.h"
 #include "parser/identifierresolver.h"
 #include "signalprocessor.h"
@@ -63,13 +64,13 @@ void tst_signalprocessor::test_calculationPlan_base()
   FormulaAstRepository formulas;
 
   FormulaParser parserA("Raw0");
-  QVERIFY(formulas.add(FormulaId{0}, std::move(parserA.parse())));
+  QVERIFY(formulas.add(FormulaId{17}, std::move(parserA.parse())));
 
   FormulaParser parserB("Raw1");
-  QVERIFY(formulas.add(FormulaId{1}, std::move(parserB.parse())));
+  QVERIFY(formulas.add(FormulaId{4}, std::move(parserB.parse())));
 
   FormulaParser parserC("A + B");
-  QVERIFY(formulas.add(FormulaId{2}, std::move(parserC.parse())));
+  QVERIFY(formulas.add(FormulaId{23}, std::move(parserC.parse())));
 
   CalculationPlan plan;
 
@@ -93,9 +94,9 @@ void tst_signalprocessor::test_calculationPlan_base()
   QVERIFY(indexA < indexC);
   QVERIFY(indexB < indexC);
 
-  QCOMPARE(stepA.formula, FormulaId{0});
-  QCOMPARE(stepB.formula, FormulaId{1});
-  QCOMPARE(stepC.formula, FormulaId{2});
+  QCOMPARE(stepA.formula, FormulaId{17});
+  QCOMPARE(stepB.formula, FormulaId{4});
+  QCOMPARE(stepC.formula, FormulaId{23});
 }
 
 void tst_signalprocessor::test_calculationPlan_failAst()
@@ -165,13 +166,13 @@ void tst_signalprocessor::test_calculationPlan_rebuildInvalid()
   FormulaAstRepository formulas;
 
   FormulaParser parserA("Raw0");
-  QVERIFY(formulas.add(FormulaId{0}, std::move(parserA.parse())));
+  QVERIFY(formulas.add(FormulaId{17}, std::move(parserA.parse())));
 
   FormulaParser parserB("Raw1");
-  QVERIFY(formulas.add(FormulaId{1}, std::move(parserB.parse())));
+  QVERIFY(formulas.add(FormulaId{4}, std::move(parserB.parse())));
 
   FormulaParser parserC("A + B");
-  QVERIFY(formulas.add(FormulaId{2}, std::move(parserC.parse())));
+  QVERIFY(formulas.add(FormulaId{23}, std::move(parserC.parse())));
 
   CalculationPlan plan;
 
@@ -212,21 +213,21 @@ void tst_signalprocessor::test_signalProcessor_calculate()
 
   FormulaParser parserA("Raw0 + 5");
   QVERIFY(formulas.add(
-    FormulaId{0},
+    FormulaId{17},
     std::move(parserA.parse())));
-  QVERIFY(resolver.resolve(*formulas.find(FormulaId{0}), cfg.findSignalDefinition(SignalId{17})->dependencies));
+  QVERIFY(resolver.resolve(*formulas.find(FormulaId{17}), cfg.findSignalDefinition(SignalId{17})->dependencies));
 
   FormulaParser parserB("Raw1 * 2");
   QVERIFY(formulas.add(
-    FormulaId{1},
+    FormulaId{4},
     std::move(parserB.parse())));
-  QVERIFY(resolver.resolve(*formulas.find(FormulaId{1}), cfg.findSignalDefinition(SignalId{4})->dependencies));
+  QVERIFY(resolver.resolve(*formulas.find(FormulaId{4}), cfg.findSignalDefinition(SignalId{4})->dependencies));
 
   FormulaParser parserC("A + B");
   QVERIFY(formulas.add(
-    FormulaId{2},
+    FormulaId{23},
     std::move(parserC.parse())));
-  QVERIFY(resolver.resolve(*formulas.find(FormulaId{2}), cfg.findSignalDefinition(SignalId{23})->dependencies));
+  QVERIFY(resolver.resolve(*formulas.find(FormulaId{23}), cfg.findSignalDefinition(SignalId{23})->dependencies));
 
   CalculationPlan plan;
 
@@ -283,16 +284,16 @@ void tst_signalprocessor::test_signalProcessor_failOnceDataSource()
   IdentifierResolver resolver(cfg, layout);
 
   FormulaParser parserA("Raw0 + 5");
-  QVERIFY(formulas.add(FormulaId{0}, std::move(parserA.parse())));
-  QVERIFY(resolver.resolve(*formulas.find(FormulaId{0}), cfg.findSignalDefinition(SignalId{17})->dependencies));
+  QVERIFY(formulas.add(FormulaId{17}, std::move(parserA.parse())));
+  QVERIFY(resolver.resolve(*formulas.find(FormulaId{17}), cfg.findSignalDefinition(SignalId{17})->dependencies));
 
   FormulaParser parserB("Raw1 * 2");
-  QVERIFY(formulas.add(FormulaId{1}, std::move(parserB.parse())));
-  QVERIFY(resolver.resolve(*formulas.find(FormulaId{1}), cfg.findSignalDefinition(SignalId{4})->dependencies));
+  QVERIFY(formulas.add(FormulaId{4}, std::move(parserB.parse())));
+  QVERIFY(resolver.resolve(*formulas.find(FormulaId{4}), cfg.findSignalDefinition(SignalId{4})->dependencies));
 
   FormulaParser parserC("A + B");
-  QVERIFY(formulas.add(FormulaId{2}, std::move(parserC.parse())));
-  QVERIFY(resolver.resolve(*formulas.find(FormulaId{2}), cfg.findSignalDefinition(SignalId{23})->dependencies));
+  QVERIFY(formulas.add(FormulaId{23}, std::move(parserC.parse())));
+  QVERIFY(resolver.resolve(*formulas.find(FormulaId{23}), cfg.findSignalDefinition(SignalId{23})->dependencies));
 
   CalculationPlan plan;
   CalculationCompiler builder(cfg, layout, formulas);
@@ -403,13 +404,13 @@ void tst_signalprocessor::test_signalProcessor_failFormula()
   FormulaAstRepository formulas;
 
   FormulaParser parserA("Raw0 + 5");
-  QVERIFY(formulas.add(FormulaId{0}, std::move(parserA.parse())));
+  QVERIFY(formulas.add(FormulaId{17}, std::move(parserA.parse())));
 
   FormulaParser parserB("Raw1 * 2");
-  QVERIFY(formulas.add(FormulaId{1}, std::move(parserB.parse())));
+  QVERIFY(formulas.add(FormulaId{4}, std::move(parserB.parse())));
 
   FormulaParser parserC("abc(A + B)");
-  QVERIFY(formulas.add(FormulaId{2}, std::move(parserC.parse())));
+  QVERIFY(formulas.add(FormulaId{23}, std::move(parserC.parse())));
 
   CalculationPlan plan;
   CalculationCompiler builder(cfg, layout, formulas);
@@ -473,15 +474,23 @@ void tst_signalprocessor::test_signalProcessor_cycle()
   QCOMPARE(manager.size(), 1);
 
   FormulaAstRepository formulas;
-
+  /*
   FormulaParser parserA("Raw0 + 5");
-  QVERIFY(formulas.add(FormulaId{0}, std::move(parserA.parse())));
+  QVERIFY(formulas.add(FormulaId{17}, std::move(parserA.parse())));
 
   FormulaParser parserB("Raw1 * Raw1");
-  QVERIFY(formulas.add(FormulaId{1}, std::move(parserB.parse())));
+  QVERIFY(formulas.add(FormulaId{4}, std::move(parserB.parse())));
 
   FormulaParser parserC("sqrt(B)");
-  QVERIFY(formulas.add(FormulaId{2}, std::move(parserC.parse())));
+  //FormulaParser parserC("A + B");
+  QVERIFY(formulas.add(FormulaId{23}, std::move(parserC.parse())));
+  */
+  FormulaBuilder formulaBuilder;
+
+   QVERIFY(formulaBuilder.build(
+    cfg,
+    layout,
+    formulas));
 
   CalculationPlan plan;
   CalculationCompiler builder(cfg, layout, formulas);
@@ -530,9 +539,9 @@ void tst_signalprocessor::test_signalProcessor_cycle()
     QCOMPARE(archived.raw().valueRef(0), a);
     QCOMPARE(archived.raw().valueRef(1), b);
 
-    QCOMPARE(archived.calculated().valueRef(0), a + 5);
-    QCOMPARE(archived.calculated().valueRef(1), b * b);
-    QCOMPARE(archived.calculated().valueRef(2), b);
+    QCOMPARE(archived.calculated().valueRef(0), a);
+    QCOMPARE(archived.calculated().valueRef(1), b);
+    QCOMPARE(archived.calculated().valueRef(2), a + b);
 
     QCOMPARE(
       published.raw().valueRef(0),
@@ -585,15 +594,19 @@ void tst_signalprocessor::test_signalProcessor_failOnceArchiveWriter()
   QCOMPARE(manager.size(), 1);
 
   FormulaAstRepository formulas;
-
+  /*
   FormulaParser parserA("Raw0 + 5");
-  QVERIFY(formulas.add(FormulaId{0}, std::move(parserA.parse())));
+  QVERIFY(formulas.add(FormulaId{17}, std::move(parserA.parse())));
 
   FormulaParser parserB("Raw1 * Raw1");
-  QVERIFY(formulas.add(FormulaId{1}, std::move(parserB.parse())));
+  QVERIFY(formulas.add(FormulaId{4}, std::move(parserB.parse())));
 
   FormulaParser parserC("sqrt(B)");
-  QVERIFY(formulas.add(FormulaId{2}, std::move(parserC.parse())));
+  QVERIFY(formulas.add(FormulaId{23}, std::move(parserC.parse())));
+  */
+  FormulaBuilder formulaBuilder;
+
+  QVERIFY(formulaBuilder.build(cfg, layout, formulas));
 
   CalculationPlan plan;
   CalculationCompiler builder(cfg, layout, formulas);
@@ -641,9 +654,9 @@ void tst_signalprocessor::test_signalProcessor_failOnceArchiveWriter()
   QCOMPARE(published.raw().valueRef(0), a);
   QCOMPARE(published.raw().valueRef(1), b);
 
-  QCOMPARE(published.calculated().valueRef(0), a + 5);
-  QCOMPARE(published.calculated().valueRef(1), b * b);
-  QCOMPARE(published.calculated().valueRef(2), b);
+  QCOMPARE(published.calculated().valueRef(0), a);
+  QCOMPARE(published.calculated().valueRef(1), b);
+  QCOMPARE(published.calculated().valueRef(2), a + b);
 
 
   QVERIFY(engine.process());
@@ -666,9 +679,9 @@ void tst_signalprocessor::test_signalProcessor_failOnceArchiveWriter()
   QCOMPARE(published1.raw().valueRef(0), a);
   QCOMPARE(published1.raw().valueRef(1), b);
 
-  QCOMPARE(published1.calculated().valueRef(0), a + 5);
-  QCOMPARE(published1.calculated().valueRef(1), b * b);
-  QCOMPARE(published1.calculated().valueRef(2), b);
+  QCOMPARE(published1.calculated().valueRef(0), a);
+  QCOMPARE(published1.calculated().valueRef(1), b);
+  QCOMPARE(published1.calculated().valueRef(2), a + b);
 
   QVERIFY(engine.process());
   QVERIFY(buffers.ready());
@@ -690,9 +703,9 @@ void tst_signalprocessor::test_signalProcessor_failOnceArchiveWriter()
   QCOMPARE(published2.raw().valueRef(0), a);
   QCOMPARE(published2.raw().valueRef(1), b);
 
-  QCOMPARE(published2.calculated().valueRef(0), a + 5);
-  QCOMPARE(published2.calculated().valueRef(1), b * b);
-  QCOMPARE(published2.calculated().valueRef(2), b);
+  QCOMPARE(published2.calculated().valueRef(0), a);
+  QCOMPARE(published2.calculated().valueRef(1), b);
+  QCOMPARE(published2.calculated().valueRef(2), a + b);
 }
 /*
 void tst_signalprocessor::test_calculation_plan()

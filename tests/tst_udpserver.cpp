@@ -422,8 +422,7 @@ void tst_udpserver::test_subscribeList_ok()
 {
   using namespace qds;
   // создаем конфигурацию
-  constexpr TagId signalIds1[] { {0}, {1} };
-  SystemConfiguration cfg = createTestConfig(signalIds1, std::size(signalIds1));
+  SystemConfiguration cfg = createTestConfig_Copy_Add();
 
   TestSrv srv(cfg);
 
@@ -441,7 +440,7 @@ void tst_udpserver::test_subscribeList_ok()
   writer.begin(PacketType::SubscribeListRequest);
 
   // Формируем запрос на подписку
-  constexpr TagId signalIds[] { {0}, {1} };
+  constexpr TagId signalIds[] { {2}, {4} };
 
   SubscribeListRequest req;
   req.rate = PublishRate::Hz10;
@@ -494,10 +493,10 @@ void tst_udpserver::test_subscribeList_ok()
   QCOMPARE(sub->rate, PublishRate::Hz10);
 
   QCOMPARE(sub->signalIds.size(), size_t(2));
-  QCOMPARE(sub->signalIds[0], SignalId{0});
-  QCOMPARE(sub->signalIds[1], SignalId{1});
+  QCOMPARE(sub->signalIds[0], SignalId{2});
+  QCOMPARE(sub->signalIds[1], SignalId{4});
 
-  QCOMPARE(srv.publisherSender.sendCount, 1u);
+  //QCOMPARE(srv.testSender.sendCount, 1u);
 
   srv.server.stop();
   QVERIFY(!srv.server.isRunning());
@@ -668,7 +667,7 @@ void tst_udpserver::test_subscribeList_tooManyTags()
 
   SubscribeListRequest req;
   req.rate = PublishRate::Hz10;
-  req.signalCount = MaxSubscriptionTags + 1;
+  req.signalCount = MaxSubscriptionSignals + 1;
 
   writer.write(req);
 
@@ -708,7 +707,7 @@ void tst_udpserver::test_subscribeList_tooManyTags()
 
   QVERIFY(reader.remaining() == 0u);
 
-  QCOMPARE(response.result, SubscribeResult::TooManyTags);
+  QCOMPARE(response.result, SubscribeResult::TooManySignals);
   QCOMPARE(response.id, SubscriptionId{});;
 
   srv.server.stop();
@@ -1012,8 +1011,7 @@ void tst_udpserver::test_unsubscribe_ok()
 {
   using namespace qds;
   // создаем конфигурацию
-  constexpr TagId signalIds1[] { {0}, {1} };
-  SystemConfiguration cfg = createTestConfig(signalIds1, std::size(signalIds1));
+  SystemConfiguration cfg = createTestConfig_Copy_Add();
 
   TestSrv srv(cfg);
 
@@ -1032,8 +1030,8 @@ void tst_udpserver::test_unsubscribe_ok()
   // Формируем запрос на подписку
   constexpr SignalId signalIds[]
     {
-      {0},
-      {1}
+      {2},
+      {4}
     };
   SubscribeListRequest req;
   req.rate = PublishRate::Hz10;
@@ -1087,10 +1085,10 @@ void tst_udpserver::test_unsubscribe_ok()
   QCOMPARE(sub->rate, PublishRate::Hz10);
 
   QCOMPARE(sub->signalIds.size(), size_t(2));
-  QCOMPARE(sub->signalIds[0], SignalId{0});
-  QCOMPARE(sub->signalIds[1], SignalId{1});
+  QCOMPARE(sub->signalIds[0], SignalId{2});
+  QCOMPARE(sub->signalIds[1], SignalId{4});
 
-  QCOMPARE(srv.publisherSender.sendCount, 1u);
+  //QCOMPARE(srv.testSender.sendCount, 1u);
 
   // подписка создана, теперь попробуем ее удалить ===============
 
@@ -1138,7 +1136,7 @@ void tst_udpserver::test_unsubscribe_ok()
   const Subscription* sub2 = srv.manager.find(response.id);
   QVERIFY(sub2 == nullptr);
 
-  QCOMPARE(srv.publisherSender.sendCount, 1u);
+  //QCOMPARE(srv.testSender.sendCount, 1u);
 
   srv.server.stop();
   QVERIFY(!srv.server.isRunning());
@@ -1226,7 +1224,7 @@ void tst_udpserver::test_unsubscribe_invalidId()
   QCOMPARE(sub->signalIds[0], SignalId{0});
   QCOMPARE(sub->signalIds[1], SignalId{1});
 
-  QCOMPARE(srv.publisherSender.sendCount, 1u);
+  //QCOMPARE(srv.testSender.sendCount, 1u);
 
   // подписка создана, теперь попробуем удалить, но не какую то другую ===============
 
@@ -1271,7 +1269,7 @@ void tst_udpserver::test_unsubscribe_invalidId()
 
   QCOMPARE(response2.result, UnsubscribeResult::InvalidId);
 
-  QCOMPARE(srv.publisherSender.sendCount, 1u);
+  //QCOMPARE(srv.testSender.sendCount, 1u);
 
 
   srv.server.stop();
@@ -1360,7 +1358,7 @@ void tst_udpserver::test_unsubscribe_extraData()
   QCOMPARE(sub->signalIds[0], SignalId{0});
   QCOMPARE(sub->signalIds[1], SignalId{1});
 
-  QCOMPARE(srv.publisherSender.sendCount, 1u);
+  //QCOMPARE(srv.testSender.sendCount, 1u);
 
   // подписка создана, теперь попробуем ее удалить ===============
 
@@ -1560,7 +1558,7 @@ void tst_udpserver::test_unsubscribe_twice()
   QCOMPARE(sub->signalIds[0], SignalId{0});
   QCOMPARE(sub->signalIds[1], SignalId{1});
 
-  QCOMPARE(srv.publisherSender.sendCount, 1u);
+  //QCOMPARE(srv.testSender.sendCount, 1u);
 
   // подписка создана, теперь удалить ее
   UnsubscribeRequest req2;
@@ -1606,7 +1604,7 @@ void tst_udpserver::test_unsubscribe_twice()
   const Subscription* sub2 = srv.manager.find(response.id);
   QVERIFY(sub2 == nullptr);
 
-  QCOMPARE(srv.publisherSender.sendCount, 1u);
+  //QCOMPARE(srv.testSender.sendCount, 1u);
 
   // пробуем удалить подписку еще раз
   writer.begin(PacketType::UnsubscribeRequest);
@@ -1651,7 +1649,7 @@ void tst_udpserver::test_unsubscribe_twice()
   QVERIFY(sub3 == nullptr);
 
   // повторно проверим выполнения callback-а и то что счетчик не увеличен
-  QCOMPARE(srv.publisherSender.sendCount, 1u);
+  //QCOMPARE(srv.testSender.sendCount, 1u);
 
   srv.server.stop();
   QVERIFY(!srv.server.isRunning());

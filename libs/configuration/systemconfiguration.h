@@ -29,6 +29,7 @@ module
  └── description
 
 configuration
+ ├── udpPort
  └── ...
 
 configuration_module

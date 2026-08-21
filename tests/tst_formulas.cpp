@@ -2566,19 +2566,19 @@ void tst_formulas::test_formulaCalculator_base()
   QVERIFY(nodeA != nullptr);
   std::vector<SignalId> dependencies;
   QVERIFY(resolver.resolve(*nodeA, dependencies));
-  QVERIFY(formulas.add(FormulaId{0}, std::move(nodeA)));
+  QVERIFY(formulas.add(FormulaId{17}, std::move(nodeA)));
 
   FormulaParser parserB("Raw1 * 2");
   auto nodeB = parserB.parse();
   QVERIFY(nodeB != nullptr);
   QVERIFY(resolver.resolve(*nodeB, dependencies));
-  QVERIFY(formulas.add(FormulaId{1}, std::move(nodeB)));
+  QVERIFY(formulas.add(FormulaId{4}, std::move(nodeB)));
 
   FormulaParser parserC("A + B");
   auto nodeC = parserC.parse();
   QVERIFY(nodeC != nullptr);
   QVERIFY(resolver.resolve(*nodeC, dependencies));
-  QVERIFY(formulas.add(FormulaId{2}, std::move(nodeC)));
+  QVERIFY(formulas.add(FormulaId{23}, std::move(nodeC)));
 
   CalculationOrder co;
 

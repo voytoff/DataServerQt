@@ -60,12 +60,6 @@ bool DataServer::start()
     std::make_unique<UdpServer>(
       *m_dispatcher);
 
-  if (!m_runtime.engine)
-  {
-    m_runtime.engine =
-      std::make_unique<DataEngine>();
-  }
-
   if (!m_runtime.engine->initialize(
         m_runtime.dataSources,
         *m_runtime.signalProcessor,
@@ -83,6 +77,7 @@ bool DataServer::start()
   if (!m_udpServer->start(
         m_configuration.udpPort()))
   {
+    m_runtime.engine->stop();
     return false;
   }
 
@@ -98,6 +93,9 @@ void DataServer::stop()
     return;
 
   m_timer.stop();
+
+  if (m_runtime.engine)
+    m_runtime.engine->stop();
 
   if (m_udpServer)
     m_udpServer->stop();

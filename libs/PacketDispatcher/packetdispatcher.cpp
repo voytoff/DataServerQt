@@ -31,7 +31,6 @@ bool PacketDispatcher::dispatch(
     return false;
   }
 
-
   switch(reader.packetType())
   {
   case PacketType::SubscribeListRequest:
@@ -81,10 +80,10 @@ bool PacketDispatcher::processSubscribeList(PacketReader &reader, const Endpoint
     return false;
   }
 
-  if (req.signalCount > MaxSubscriptionTags) {
+  if (req.signalCount > MaxSubscriptionSignals) {
     sendSubscribeResponse(
       endpoint,
-      SubscribeResult::TooManyTags);
+      SubscribeResult::TooManySignals);
 
     return false;
   }

@@ -22,18 +22,15 @@ class TestSrv : public QObject
 {
   Q_OBJECT
 public:
-  explicit TestSrv(const SystemConfiguration& cfg, QObject *parent = nullptr);
+  explicit TestSrv(const SystemConfiguration& cfg, bool udp = true,  QObject *parent = nullptr);
 
   SubscriptionManager manager;
   SignalMemoryLayout layout;
   SubscriptionManager subscriptions;
   UdpSender sender;
+  TestPublisherSender testSender;
 
-  //Publisher publisher;
   std::unique_ptr<Publisher> publisher;
-
-  TestPublisherSender publisherSender;
-  UdpSender udpSender;
 
   PacketDispatcher dispatcher;
 
@@ -479,11 +476,13 @@ static SystemConfiguration createTestConfig_calculate(ModuleType type = ModuleTy
   cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 1000});
   cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 100});
 
-  cfg.addSignalDefinition({.id = {17}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .formula = "Raw0", .dependencies = {{0}}}); // Raw0
+  cfg.addSignalDefinition({.id = {17}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {17}, .formula = "Raw0", .dependencies = {{0}}}); // Raw0
 
-  cfg.addSignalDefinition({.id = {4}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {1}, .formula = "Raw1", .dependencies = {{1}}});  // Raw1
+  cfg.addSignalDefinition({.id = {4}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {4}, .formula = "Raw1", .dependencies = {{1}}});  // Raw1
 
-  cfg.addSignalDefinition({.id = {23}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {2}, .formula = "A + B", .dependencies = {{17}, {4}}}); // A & B
+  cfg.addSignalDefinition({.id = {23}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {23}, .formula = "A + B", .dependencies = {{17}, {4}}}); // A & B
+
+  cfg.setUdpPort(35000);
 
   return cfg;
 }

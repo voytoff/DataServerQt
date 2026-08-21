@@ -5,7 +5,7 @@
 namespace qds
 {
 
-constexpr uint32_t MaxSubscriptionTags = 256;
+constexpr uint32_t MaxSubscriptionSignals = 256;
 
 enum class SubscribeResult : uint8_t
 {
@@ -13,7 +13,7 @@ enum class SubscribeResult : uint8_t
 
   InvalidRate,
   EmptyList,
-  TooManyTags,
+  TooManySignals,
   DuplicateSignal,
   InvalidSignal
 };
