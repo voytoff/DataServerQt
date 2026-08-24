@@ -24,7 +24,7 @@ void tst_configuration::test_configuration_modules()
 
   SystemConfiguration cfg;
 
-  cfg.addModule({.id = {0}, .crate = {0}, .type = ModuleType::Fail});
+  cfg.addModule({.id = {0}, .crate = {0}, .type = ModuleType::Failing});
   cfg.addModule({.id = {100}, .crate = {7}, .type = ModuleType::Fake});
   cfg.addModule({.id = {10}, .crate = {3}, .type = ModuleType::Test});
 
@@ -70,7 +70,7 @@ void tst_configuration::test_configuration_parse_module_ids()
 
   SystemConfiguration cfg;
 
-  cfg.addModule({.id = {0}, .crate = {0}, .type = ModuleType::Fail});
+  cfg.addModule({.id = {0}, .crate = {0}, .type = ModuleType::Failing});
   QVERIFY(cfg.addTag({ .tag = {1}, .module = {0}, .channel = {0}}));
 
   cfg.addModule({.id = {100}, .crate = {7}, .type = ModuleType::Fake});
@@ -81,7 +81,7 @@ void tst_configuration::test_configuration_parse_module_ids()
   QVERIFY(cfg.addTag({ .tag = {3}, .module = {10}, .channel = {0}}));
 
   QCOMPARE(cfg.modules()[0].crate.value, 0);
-  QCOMPARE(cfg.modules()[0].type, ModuleType::Fail);
+  QCOMPARE(cfg.modules()[0].type, ModuleType::Failing);
 
   auto &tags0 = cfg.moduleTags({0});
   QCOMPARE(tags0.size(), 1);

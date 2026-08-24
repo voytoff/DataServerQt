@@ -16,13 +16,6 @@ public:
     const SignalMemoryLayout& layout,
     FormulaAstRepository& formulas);
 
-private:
-  struct FormulaRuntimeData
-  {
-    SignalId signal;
-    FormulaId formula;
-    std::vector<SignalId> dependencies;
-  };
 };
 
 }

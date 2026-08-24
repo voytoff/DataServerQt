@@ -35,7 +35,12 @@ public:
   bool start();
   void stop();
 
+  [[nodiscard]]
+  bool isRunning() const noexcept;
+
 private slots:
+
+  void cleanup();
 
   void onTimer();
 

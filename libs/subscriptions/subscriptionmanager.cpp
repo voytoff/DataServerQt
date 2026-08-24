@@ -54,7 +54,7 @@ const std::vector<Subscription>& SubscriptionManager::subscriptions() const
 void SubscriptionManager::clear()
 {
   m_subscriptions.clear();
-  // ID никогда не повторяются в течение жизни процесса
+  // ID никогда не повторяются в течение жизни процесса ?
   //m_nextId = 1;
 }
 

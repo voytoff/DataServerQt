@@ -11,7 +11,7 @@ add_library(UdpSender SHARED
   udpsender.cpp udpsender.h
 )
 
-target_include_directories(Subscriptions
+target_include_directories(UdpSender
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
 )

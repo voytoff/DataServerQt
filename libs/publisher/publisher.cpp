@@ -100,7 +100,7 @@ bool Publisher::shouldPublish(
   PublishRate rate) const
 {
   const uint32_t frequency =
-    static_cast<uint16_t>(rate);
+    static_cast<uint32_t>(rate);
 
   if (frequency == 0 ||
       frequency > m_frameRate)

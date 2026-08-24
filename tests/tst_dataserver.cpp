@@ -1,6 +1,9 @@
 #include "tst_dataserver.h"
 #include "datasourcefactory.h"
+#include "failingarchivewriter.h"
+#include "failingdatasource.h"
 #include "failoncearchivewriter.h"
+#include "failoncedatasource.h"
 #include "fakedatasource.h"
 #include "fakeschedulerclock.h"
 #include "protocol/publishheader.h"
@@ -146,8 +149,7 @@ void tst_dataserver::test_systemBuilder_process()
     publisher,
     clock));
 
-  QVERIFY(
-    runtime.engine->process());
+  QVERIFY(runtime.engine->process());
 
   QCOMPARE(
     archive.count,
@@ -196,6 +198,24 @@ void tst_dataserver::test_systemBuilder_failErrorFormula()
     cfg,
     factory,
     runtime));
+
+  QVERIFY(
+    runtime.signalProcessor == nullptr);
+
+  QVERIFY(
+    runtime.engine == nullptr);
+
+  QCOMPARE(
+    runtime.dataSources.size(),
+    std::size_t(0));
+
+  QCOMPARE(
+    runtime.formulas.size(),
+    std::size_t(0));
+
+  QCOMPARE(
+    runtime.calculationPlan.size(),
+    std::size_t(0));
 }
 
 void tst_dataserver::test_systemBuilder_failDataSourceManager()
@@ -227,6 +247,24 @@ void tst_dataserver::test_systemBuilder_failDataSourceManager()
     cfg,
     factory,
     runtime));
+
+  QVERIFY(
+    runtime.signalProcessor == nullptr);
+
+  QVERIFY(
+    runtime.engine == nullptr);
+
+  QCOMPARE(
+    runtime.formulas.size(),
+    std::size_t(0));
+
+  QCOMPARE(
+    runtime.calculationPlan.size(),
+    std::size_t(0));
+
+  QCOMPARE(
+    runtime.dataSources.size(),
+    std::size_t(0));
 }
 
 void tst_dataserver::test_systemBuilder_cycle()
@@ -1794,7 +1832,7 @@ void tst_dataserver::test_dataServer_failStart_invalidUdpPort()
         cfg.settings);
     }));
 
-  FailOnceArchiveWriter archive;
+  TestArchiveWriter archive;
   UdpSender sender;
   FakeSchedulerClock clock;
 
@@ -1807,13 +1845,702 @@ void tst_dataserver::test_dataServer_failStart_invalidUdpPort()
 
   QVERIFY(!ds.start());
 
+  QVERIFY(!ds.isRunning());
+
   blocker.close();
 
   QVERIFY(ds.start());
+  QVERIFY(ds.isRunning());
 
   ds.stop();
+  QVERIFY(!ds.isRunning());
 
   QVERIFY(ds.start());
 
+  QVERIFY(ds.isRunning());
+
+  QTest::qWait(100);
+
+  // Проверим что сервер работает после повторного запуска
+  // ------------------------------------------------------------
+  // Subscribe
+  // ------------------------------------------------------------
+
+  PacketWriter writer;
+  writer.begin(
+    PacketType::SubscribeListRequest);
+
+  constexpr SignalId signalIds[]
+    {
+      {17},
+      {4},
+      {23}
+    };
+
+  SubscribeListRequest req;
+  req.rate = PublishRate::Hz10;
+  req.signalCount =
+    std::size(signalIds);
+
+  writer.write(req);
+
+  writer.writeArray(
+    signalIds,
+    std::size(signalIds));
+
+  QUdpSocket client;
+
+  QVERIFY(
+    client.bind(
+      QHostAddress::LocalHost,
+      0));
+
+  const auto bytes =
+    client.writeDatagram(
+      reinterpret_cast<const char*>(
+        writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      cfg.udpPort());
+
+  QCOMPARE(
+    bytes,
+    qint64(writer.size()));
+
+
+  QTest::qWait(100);
+
+  // ------------------------------------------------------------
+  // SubscribeResponse
+  // ------------------------------------------------------------
+
+  QByteArray data;
+
+  PacketReader reader;
+
+  do {
+    QTRY_VERIFY_WITH_TIMEOUT(
+      client.hasPendingDatagrams(),
+      2000);
+
+    data.resize(client.pendingDatagramSize());
+    client.readDatagram(data.data(), data.size());
+
+    reader.clear();
+    reader.append(
+      reinterpret_cast<const std::byte*>(data.constData()),
+      data.size());
+
+    QVERIFY(reader.nextPacket());
+  } while (reader.packetType() != PacketType::SubscribeResponse);
+
+  SubscribeResponse response;
+
+  QVERIFY(reader.read(response));
+
+  QCOMPARE(
+    reader.remaining(),
+    std::size_t(0));
+
+  QCOMPARE(
+    response.result,
+    SubscribeResult::Ok);
+
+  QCOMPARE(
+    response.id,
+    SubscriptionId{1});
+
+  // ------------------------------------------------------------
+  // LiveData
+  // ------------------------------------------------------------
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    client.hasPendingDatagrams(),
+    2000);
+
+  data.resize(
+    client.pendingDatagramSize());
+
+  client.readDatagram(
+    data.data(),
+    data.size());
+
+  reader.clear();
+
+  reader.append(
+    reinterpret_cast<const std::byte*>(
+      data.constData()),
+    data.size());
+
+  QVERIFY(reader.nextPacket());
+
+  QCOMPARE(
+    reader.packetType(),
+    PacketType::LiveData);
+
+  PublishHeader ldh;
+
+  QVERIFY(reader.read(ldh));
+
+  QCOMPARE(
+    ldh.subscriptionId,
+    SubscriptionId{1});
+
+  QCOMPARE(
+    ldh.sequence,
+    1u);
+
+  QVERIFY(
+    ldh.timestamp > 0u);
+
+  QCOMPARE(
+    ldh.valueCount,
+    3u);
+
+  std::array<Sample, 3> samples{};
+
+  QVERIFY(
+    reader.readArray(
+      samples.data(),
+      samples.size()));
+
+  QCOMPARE(
+    reader.remaining(),
+    std::size_t(0));
+
+  QCOMPARE(samples[0].value + samples[1].value, samples[2].value);
+
+
   ds.stop();
+}
+
+void tst_dataserver::test_dataServer_subscriptionId_after_restart()
+{
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::Test);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::Test,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  TestArchiveWriter archive;
+  UdpSender sender;
+  FakeSchedulerClock clock;
+
+  DataServer ds(
+    cfg,
+    factory,
+    archive,
+    clock,
+    sender);
+
+  QVERIFY(ds.start());
+
+  QUdpSocket client;
+
+  QVERIFY(
+    client.bind(
+      QHostAddress::LocalHost,
+      0));
+
+  // ------------------------------------------------------------
+  // Subscribe
+  // ------------------------------------------------------------
+
+  PacketWriter writer;
+
+  writer.begin(
+    PacketType::SubscribeListRequest);
+
+  constexpr SignalId signalIds[]
+    {
+      {23}
+    };
+
+  SubscribeListRequest req;
+  req.rate = PublishRate::Hz10;
+  req.signalCount =
+    std::size(signalIds);
+
+  writer.write(req);
+
+  writer.writeArray(
+    signalIds,
+    std::size(signalIds));
+
+  auto bytes =
+    client.writeDatagram(
+      reinterpret_cast<const char*>(
+        writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      cfg.udpPort());
+
+  QCOMPARE(
+    bytes,
+    qint64(writer.size()));
+
+  // ------------------------------------------------------------
+  // SubscribeResponse
+  // ------------------------------------------------------------
+
+  QByteArray data;
+
+  PacketReader reader;
+
+  do {
+    QTRY_VERIFY_WITH_TIMEOUT(
+      client.hasPendingDatagrams(),
+      2000);
+
+    data.resize(client.pendingDatagramSize());
+    client.readDatagram(data.data(), data.size());
+
+    reader.clear();
+    reader.append(
+      reinterpret_cast<const std::byte*>(data.constData()),
+      data.size());
+
+    QVERIFY(reader.nextPacket());
+  } while (reader.packetType() != PacketType::SubscribeResponse);
+
+  SubscribeResponse response;
+
+  QVERIFY(reader.read(response));
+
+  QCOMPARE(
+    reader.remaining(),
+    std::size_t(0));
+
+  QCOMPARE(
+    response.result,
+    SubscribeResult::Ok);
+
+  QCOMPARE(
+    response.id,
+    SubscriptionId{1}); // <--- id == 1
+
+  // останавливаем сервер
+  ds.stop();
+
+  // Отбрасываем всё, что уже находилось в UDP-очереди
+  while (client.hasPendingDatagrams())
+  {
+    data.resize(client.pendingDatagramSize());
+    client.readDatagram(data.data(), data.size());
+  }
+
+  QVERIFY(ds.start());
+
+  writer.begin(
+    PacketType::SubscribeListRequest);
+
+  constexpr SignalId signalIds2[]
+    {
+      {4},
+      {17}
+    };
+
+  req.rate = PublishRate::Hz100;
+  req.signalCount =
+    std::size(signalIds2);
+
+  writer.write(req);
+
+  writer.writeArray(
+    signalIds2,
+    std::size(signalIds2));
+
+  bytes =
+    client.writeDatagram(
+      reinterpret_cast<const char*>(
+        writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      cfg.udpPort());
+
+  QCOMPARE(
+    bytes,
+    qint64(writer.size()));
+
+  // ------------------------------------------------------------
+  // SubscribeResponse новая подписка после перезапуска
+  // ------------------------------------------------------------
+
+  do {
+    QTRY_VERIFY_WITH_TIMEOUT(
+      client.hasPendingDatagrams(),
+      2000);
+
+    data.resize(client.pendingDatagramSize());
+    client.readDatagram(data.data(), data.size());
+
+    reader.clear();
+    reader.append(
+      reinterpret_cast<const std::byte*>(data.constData()),
+      data.size());
+
+    QVERIFY(reader.nextPacket());
+  } while (reader.packetType() != PacketType::SubscribeResponse);
+
+  QVERIFY(reader.read(response));
+
+  QCOMPARE(
+    reader.remaining(),
+    std::size_t(0));
+
+  QCOMPARE(
+    response.result,
+    SubscribeResult::Ok);
+
+  QCOMPARE(
+    response.id,
+    SubscriptionId{2}); // <--- id == 2 (1 + 1)
+
+  ds.stop();
+}
+
+void tst_dataserver::test_dataServer_build_after_failBuild()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::Fake);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::Failing,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<FailingDataSource>(
+        cfg.settings);
+    }));
+
+  TestArchiveWriter archive;
+  TestPublisher publisher;
+  FakeSchedulerClock clock;
+
+  RuntimeSystem runtime;
+
+  SystemBuilder builder;
+
+  QVERIFY(!builder.build(
+    cfg,
+    factory,
+    runtime));
+
+  QVERIFY(factory.registerType(
+    ModuleType::Fake,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<FakeDataSource>(
+        cfg.settings);
+    }));
+
+  QVERIFY(builder.build(
+    cfg,
+    factory,
+    runtime));
+
+  QVERIFY(runtime.engine->initialize(
+    runtime.dataSources,
+    *runtime.signalProcessor,
+    runtime.buffers,
+    archive,
+    publisher,
+    clock));
+
+  QVERIFY(
+    runtime.engine->process());
+
+  QCOMPARE(
+    archive.count,
+    1);
+
+  QCOMPARE(
+    publisher.count,
+    1);
+}
+
+void tst_dataserver::test_dataEngine_process_dataSourceFailure()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::Failing);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::Failing,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<FailingDataSource>(
+        cfg.settings);
+    }));
+
+  TestArchiveWriter archive;
+  TestPublisher publisher;
+  FakeSchedulerClock clock;
+
+  RuntimeSystem runtime;
+
+  SystemBuilder builder;
+
+  QVERIFY(builder.build(
+    cfg,
+    factory,
+    runtime));
+
+  QVERIFY(runtime.engine->initialize(
+    runtime.dataSources,
+    *runtime.signalProcessor,
+    runtime.buffers,
+    archive,
+    publisher,
+    clock));
+
+  QVERIFY(!runtime.engine->process());
+  QVERIFY(runtime.engine->isRunning());
+}
+
+void tst_dataserver::test_dataEngine_process_without_initialize()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::Test);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::Test,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  TestArchiveWriter archive;
+  TestPublisher publisher;
+  FakeSchedulerClock clock;
+
+  RuntimeSystem runtime;
+
+  SystemBuilder builder;
+
+  QVERIFY(builder.build(
+    cfg,
+    factory,
+    runtime));
+
+  QVERIFY(!runtime.engine->process());
+  QVERIFY(!runtime.engine->isRunning());
+}
+
+void tst_dataserver::test_dataEngine_process_archiveFailure()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::Test);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::Test,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  FailingArchiveWriter archive;
+  TestPublisher publisher;
+  FakeSchedulerClock clock;
+
+  RuntimeSystem runtime;
+
+  SystemBuilder builder;
+
+  QVERIFY(builder.build(
+    cfg,
+    factory,
+    runtime));
+
+
+  QVERIFY(runtime.engine->initialize(
+    runtime.dataSources,
+    *runtime.signalProcessor,
+    runtime.buffers,
+    archive,
+    publisher,
+    clock));
+
+  QVERIFY(runtime.engine->process());
+  QVERIFY(runtime.engine->isRunning());
+  QCOMPARE(publisher.count, 1);
+
+  runtime.engine->stop();
+  QVERIFY(!runtime.engine->isRunning());
+}
+
+void tst_dataserver::test_dataEngine_process_success()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::Test);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::Test,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  TestArchiveWriter archive;
+  TestPublisher publisher;
+  FakeSchedulerClock clock;
+
+  RuntimeSystem runtime;
+
+  SystemBuilder builder;
+
+  QVERIFY(builder.build(
+    cfg,
+    factory,
+    runtime));
+
+  QVERIFY(runtime.engine->initialize(
+    runtime.dataSources,
+    *runtime.signalProcessor,
+    runtime.buffers,
+    archive,
+    publisher,
+    clock));
+
+  QVERIFY(!runtime.buffers.ready());
+
+  QVERIFY(runtime.engine->process());
+
+  QVERIFY(runtime.engine->isRunning());
+  QVERIFY(runtime.buffers.ready());
+
+  QCOMPARE(archive.count, 1);
+  QCOMPARE(publisher.count, 1);
+}
+
+void tst_dataserver::test_dataServer_stop_on_dataSourceFailure()
+{
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::Failing);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::Failing,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<FailingDataSource>(
+        cfg.settings);
+    }));
+
+  TestArchiveWriter archive;
+  TestPublisherSender sender;
+  FakeSchedulerClock clock;
+
+  DataServer ds(
+    cfg,
+    factory,
+    archive,
+    clock,
+    sender);
+
+  QVERIFY(ds.start());
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    !ds.isRunning(),
+    2000);
+
+  QCOMPARE(archive.count, 0);
+  QCOMPARE(sender.sendCount, 0);
+}
+
+void tst_dataserver::test_systemBuilder_failedThenSuccess()
+{
+  using namespace qds;
+
+  SystemConfiguration badCfg =
+    createTestConfig_calculate(ModuleType::Test);
+
+  badCfg.addSignalDefinition({
+    .id = {30},
+    .name = "Bad",
+    .kind = SignalKind::Calculated,
+    .formula = "unknown + C"
+  });
+
+  SystemConfiguration goodCfg =
+    createTestConfig_calculate(ModuleType::Test);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::Test,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  RuntimeSystem runtime;
+
+  SystemBuilder builder;
+
+  QVERIFY(!builder.build(
+    badCfg,
+    factory,
+    runtime));
+
+  QVERIFY(
+    runtime.signalProcessor == nullptr);
+
+  QVERIFY(
+    runtime.engine == nullptr);
+
+  QVERIFY(builder.build(
+    goodCfg,
+    factory,
+    runtime));
+
+  QVERIFY(
+    runtime.signalProcessor != nullptr);
+
+  QVERIFY(
+    runtime.engine != nullptr);
+
+  TestArchiveWriter archive;
+  TestPublisher publisher;
+  FakeSchedulerClock clock;
+
+  QVERIFY(runtime.engine->initialize(
+    runtime.dataSources,
+    *runtime.signalProcessor,
+    runtime.buffers,
+    archive,
+    publisher,
+    clock));
+
+  QVERIFY(runtime.engine->process());
 }

@@ -4,7 +4,6 @@
 namespace qds
 {
 
-
 Scheduler::Scheduler(
   BufferManager &buffers,
   ICalculationProcessor &processor,

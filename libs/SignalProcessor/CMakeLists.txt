@@ -5,14 +5,10 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(SignalProcessor SHARED
-    icalculationprocessor.h
     calculationstep.h
-    emptysignalprocessor.cpp emptysignalprocessor.h
     calculationplan.h calculationplan.cpp
     calculationcompiler.h calculationcompiler.cpp
-    formulacontextbuilder_NOTUSED.h formulacontextbuilder_NOTUSED.cpp
-    calculationprocessor_NOTUSED.h calculationprocessor_NOTUSED.cpp
-    failingprocessor.h
+    #failingprocessor.h
     signalprocessor.h signalprocessor.cpp
 )
 

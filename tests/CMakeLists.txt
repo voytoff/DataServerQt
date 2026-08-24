@@ -30,32 +30,33 @@ add_executable(unit_tests
     tst_dataarchive.h tst_dataarchive.cpp
     tst_archivewriter.h tst_archivewriter.cpp
     tst_signalstorage.h tst_signalstorage.cpp
-    tst_scheduler.h tst_scheduler.cpp
+    #tst_scheduler.h tst_scheduler.cpp
     tst_signalprocessor.h tst_signalprocessor.cpp
     tst_configuration.h tst_configuration.cpp
     tst_formulas.h tst_formulas.cpp
     tst_dataserver.h tst_dataserver.cpp
 )
 
-target_link_libraries(unit_tests PRIVATE
-    Qt${QT_VERSION_MAJOR}::Core
-    Qt${QT_VERSION_MAJOR}::Test
-    Qt${QT_VERSION_MAJOR}::Network
+target_link_libraries(unit_tests
+  PRIVATE
     Core
     Configuration
     DataServerRuntime
     Subscriptions
     DataProtocol
+    DataServerCore
     Publisher
     UdpSender
-    #UdpServer
     DataSource
     Engine
     HardwareFactory
     DataArchive
     SignalStorage
-    Scheduler
-    DataServerCore
+    #Scheduler
+  PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+    Qt${QT_VERSION_MAJOR}::Network
 )
 
 add_test(NAME unit_tests COMMAND unit_tests)

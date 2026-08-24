@@ -600,7 +600,7 @@ static SystemConfiguration createTestConfig_Fail_ModuleType()
   cfg.addTag({.tag = {0}, .module = m0.id, .channel = {0}});
   cfg.addTag({.tag = {1}, .module = m0.id, .channel = {1}});
 
-  ModuleInfo m1{.id = {1}, .type = ModuleType::Fail, .settings = jsonObj};
+  ModuleInfo m1{.id = {1}, .type = ModuleType::Failing, .settings = jsonObj};
   cfg.addModule(m1);
 
   cfg.addTag({.tag = {4}, .module = m1.id, .channel = {0}});

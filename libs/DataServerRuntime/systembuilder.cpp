@@ -11,6 +11,8 @@ bool SystemBuilder::build(
   const DataSourceFactory& dataSourceFactory,
   RuntimeSystem& runtime)
 {
+  runtime = {};
+
   runtime.layout.build(configuration);
 
   FormulaBuilder formulaBuilder;
@@ -20,6 +22,7 @@ bool SystemBuilder::build(
         runtime.layout,
         runtime.formulas))
   {
+    runtime = {};
     return false;
   }
 
@@ -31,6 +34,7 @@ bool SystemBuilder::build(
   if (!compiler.build(
         runtime.calculationPlan))
   {
+    runtime = {};
     return false;
   }
 
@@ -45,6 +49,7 @@ bool SystemBuilder::build(
         runtime.layout,
         dataSourceFactory))
   {
+    runtime = {};
     return false;
   }
 

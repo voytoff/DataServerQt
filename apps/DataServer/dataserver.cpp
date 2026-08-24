@@ -33,6 +33,9 @@ bool DataServer::start()
   if (m_running)
     return true;
 
+  if (m_configuration.udpPort() == 0)
+    return false;
+
   SystemBuilder builder;
 
   if (!builder.build(
@@ -40,6 +43,7 @@ bool DataServer::start()
         m_dataSourceFactory,
         m_runtime))
   {
+    cleanup();
     return false;
   }
 
@@ -68,16 +72,14 @@ bool DataServer::start()
         *m_publisher,
         m_clock))
   {
+    cleanup();
     return false;
   }
-
-  if (m_configuration.udpPort() == 0)
-    return false;
 
   if (!m_udpServer->start(
         m_configuration.udpPort()))
   {
-    m_runtime.engine->stop();
+    cleanup();
     return false;
   }
 
@@ -92,15 +94,32 @@ void DataServer::stop()
   if (!m_running)
     return;
 
-  m_timer.stop();
+  cleanup();
 
-  if (m_runtime.engine)
-    m_runtime.engine->stop();
+  m_running = false;
+}
+
+bool DataServer::isRunning() const noexcept
+{
+  return m_running;
+}
+
+void DataServer::cleanup()
+{
+  m_timer.stop();
 
   if (m_udpServer)
     m_udpServer->stop();
 
-  m_running = false;
+  if (m_runtime.engine)
+    m_runtime.engine->stop();
+
+  m_udpServer.reset();
+  m_dispatcher.reset();
+  m_publisher.reset();
+
+  m_runtime = {};
+  m_subscriptions.clear();
 }
 
 void DataServer::onTimer()
@@ -111,5 +130,24 @@ void DataServer::onTimer()
     return;
   }
 }
+/*
+void DataServer::rollbackStart()
+{
+  m_timer.stop();
 
+  if (m_udpServer)
+    m_udpServer->stop();
+
+  if (m_runtime.engine)
+    m_runtime.engine->stop();
+
+  m_udpServer.reset();
+  m_dispatcher.reset();
+  m_publisher.reset();
+
+  m_subscriptions.clear();
+
+  m_running = false;
+}
+*/
 }

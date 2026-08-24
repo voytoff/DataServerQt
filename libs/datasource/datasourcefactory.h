@@ -9,10 +9,6 @@
 
 namespace qds
 {
-  // registerType() возвращает false, если такой ModuleType уже зарегистрирован; false, если creator пустой;
-  // create() возвращает nullptr, если тип не зарегистрирован;
-  // create() передаёт всю ModuleConfiguration зарегистрированному creator'у;
-  // JSON разбирает уже creator/конкретный Settings, а не сама фабрика.
 class DataSourceFactory
 {
 public:

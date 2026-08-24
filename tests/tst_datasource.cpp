@@ -499,7 +499,7 @@ void tst_datasource::test_datasource_fail_datasource()
     }));
 
   QVERIFY(factory.registerType(
-    ModuleType::Fail,
+    ModuleType::Failing,
     [](const ModuleConfiguration& cfg)
     {
       return std::make_unique<FailingDataSource>(
@@ -541,7 +541,7 @@ void tst_datasource::test_datasource_absent_datasource()
   DataSourceFactory factory;
   // Нужен FakeDataSource, его нет
   QVERIFY(factory.registerType(
-    ModuleType::Fail,
+    ModuleType::Failing,
     [](const ModuleConfiguration& cfg)
     {
       return std::make_unique<FailingDataSource>(
@@ -580,7 +580,7 @@ void tst_datasource::test_datasource_missing_datasource()
     }));
 
   QVERIFY(factory.registerType(
-    ModuleType::Fail,
+    ModuleType::Failing,
     [](const ModuleConfiguration& cfg)
     {
       return std::make_unique<FailingDataSource>(

@@ -10,8 +10,7 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Network)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Network)
 
 add_library(DataServerCore SHARED
-    dataserver.h
-    dataserver.cpp
+    dataserver.h dataserver.cpp
 )
 
 target_include_directories(DataServerCore
@@ -41,7 +40,6 @@ target_link_libraries(dataserver
         Engine
         HardwareFactory
         UdpSender
-        #UdpServer
         DataServerRuntime
         DataServerCore
 

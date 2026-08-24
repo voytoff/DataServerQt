@@ -378,7 +378,7 @@ void tst_publisher::test_publish_publishRate()
     {
      .endpoint = {
        .address = "127.0.0.1",
-       .port = 5000
+       .port = 35000
      },
      .signalIds = {
        SignalId{17}
@@ -391,7 +391,7 @@ void tst_publisher::test_publish_publishRate()
     {
      .endpoint = {
        .address = "127.0.0.1",
-       .port = 5001
+       .port = 3500
      },
      .signalIds = {
        SignalId{4}

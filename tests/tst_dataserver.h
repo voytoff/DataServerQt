@@ -31,6 +31,15 @@ private slots:
   void test_dataServer_start_stop();
   void test_dataServer_start_after_failed_start();
   void test_dataServer_failStart_invalidUdpPort();
+  void test_dataServer_subscriptionId_after_restart();
+  void test_dataServer_build_after_failBuild();
+
+  void test_dataEngine_process_dataSourceFailure();
+  void test_dataEngine_process_without_initialize();
+  void test_dataEngine_process_archiveFailure();
+  void test_dataEngine_process_success();
+  void test_dataServer_stop_on_dataSourceFailure();
+  void test_systemBuilder_failedThenSuccess();
 
 };
 

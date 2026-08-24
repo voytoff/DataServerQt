@@ -257,11 +257,11 @@ void tst_signalprocessor::test_signalProcessor_failOnceDataSource()
   using namespace qds;
 
   SystemConfiguration cfg =
-    createTestConfig_calculate(ModuleType::FakeOnce);
+    createTestConfig_calculate(ModuleType::FailOnce);
 
   DataSourceFactory factory;
   QVERIFY(factory.registerType(
-    ModuleType::FakeOnce,
+    ModuleType::FailOnce,
     [](const ModuleConfiguration& cfg)
     {
       return std::make_unique<FailOnceDataSource>(
