@@ -24,7 +24,9 @@ bool ArchiveWriter::isOpen() const noexcept
 
 
 bool ArchiveWriter::write(
-  uint64_t timestamp,
+  Timestamp timestamp,
+  FrameNumber frameNumber,
+  WallClockTime wallTime,
   std::span<const float> values)
 {
   if (!m_file.isOpen())
@@ -34,8 +36,10 @@ bool ArchiveWriter::write(
       values.empty())
     return false;
 
-  SampleRecordHeader record{
-    .timestamp = timestamp
+  SampleRecordHeader record {
+    .timestamp = timestamp.value,
+    .frameNumber = frameNumber.value,
+    .wallTime = wallTime.unixMicroseconds
   };
 
 
@@ -48,8 +52,11 @@ bool ArchiveWriter::write(
         values.size()))
     return false;
 
+  if (m_file.header().recordCount == 0)
+    m_file.setFirstTimestamp(timestamp.value);
+
+  m_file.setLastTimestamp(timestamp.value);
   m_file.recordWritten();
-  m_file.setLastTimestamp(timestamp);
 
 
   return true;

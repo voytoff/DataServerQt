@@ -3,7 +3,6 @@
 #include "failingarchivewriter.h"
 #include "failingdatasource.h"
 #include "failoncearchivewriter.h"
-#include "failoncedatasource.h"
 #include "fakedatasource.h"
 #include "fakeschedulerclock.h"
 #include "protocol/publishheader.h"
@@ -19,6 +18,8 @@
 
 tst_dataserver::tst_dataserver() { }
 tst_dataserver::~tst_dataserver() = default;
+
+
 
 void tst_dataserver::test_systemBuilder_success()
 {
@@ -1792,6 +1793,7 @@ void tst_dataserver::test_dataServer_start_after_failed_start()
     sender);
 
   QVERIFY(!ds.start());
+  QVERIFY(!ds.isRunning());
 
   QVERIFY(factory.registerType(
     ModuleType::Fake,
@@ -1802,12 +1804,16 @@ void tst_dataserver::test_dataServer_start_after_failed_start()
     }));
 
   QVERIFY(ds.start());
+  QVERIFY(ds.isRunning());
 
   ds.stop();
+  QVERIFY(!ds.isRunning());
 
   QVERIFY(ds.start());
+  QVERIFY(ds.isRunning());
 
   ds.stop();
+  QVERIFY(!ds.isRunning());
 }
 
 void tst_dataserver::test_dataServer_failStart_invalidUdpPort()

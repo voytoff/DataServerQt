@@ -20,7 +20,9 @@ public:
   bool isOpen() const noexcept;
 
   bool write(
-    uint64_t timestamp,
+    Timestamp timestamp,
+    FrameNumber frameNumber,
+    WallClockTime wallTime,
     std::span<const float> values);
 
   bool flush();

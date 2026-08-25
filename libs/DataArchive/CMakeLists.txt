@@ -6,6 +6,9 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
+
 add_library(DataArchive SHARED
     archiveformat.h
     archivefile.h archivefile.cpp
@@ -17,6 +20,9 @@ add_library(DataArchive SHARED
     testarchivewriter.h testarchivewriter.cpp
     failingarchivewriter.h
     failoncearchivewriter.h failoncearchivewriter.cpp
+    archivedescription.h
+    archivedescriptionwriter.h archivedescriptionwriter.cpp
+    archivedescriptionbuilder.h archivedescriptionbuilder.cpp
 )
 
 target_include_directories(DataArchive
@@ -27,5 +33,7 @@ target_include_directories(DataArchive
 
 target_link_libraries(DataArchive
     PUBLIC
-        SignalStorage
+      Configuration
+      SignalStorage
+      Qt6::Core
 )

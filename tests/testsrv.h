@@ -15,7 +15,6 @@
 #include "taginfo.h"
 #include "udpsender.h"
 #include "udpserver.h"
-//#include "signalmemorylayout.h"
 
 using namespace qds;
 class TestSrv : public QObject

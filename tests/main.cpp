@@ -1,7 +1,6 @@
 #include <QCoreApplication>
 #include <QTest>
 
-#include "tst_archivewriter.h"
 #include "tst_configuration.h"
 #include "tst_dataarchive.h"
 #include "tst_dataprotocol.h"
@@ -28,6 +27,10 @@ int main(int argc, char *argv[])
 
   int rc = 0;
 
+  {
+    tst_dataarchive tc;
+    rc |= QTest::qExec(&tc, argc, argv);
+  }
   {
     tst_dataserver tc;
     rc |= QTest::qExec(&tc, argc, argv);
@@ -61,14 +64,6 @@ int main(int argc, char *argv[])
     rc |= QTest::qExec(&tc, argc, argv);
   }
   {
-    //tst_livescheduler tc;
-    //rc |= QTest::qExec(&tc, argc, argv);
-  }
-  {
-    //tst_livestorage tc;
-    //rc |= QTest::qExec(&tc, argc, argv);
-  }
-  {
     tst_subscriptions tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
@@ -94,14 +89,6 @@ int main(int argc, char *argv[])
   }
   {
     tst_packetdispatcher tc;
-    rc |= QTest::qExec(&tc, argc, argv);
-  }
-  {
-    tst_dataarchive tc;
-    rc |= QTest::qExec(&tc, argc, argv);
-  }
-  {
-    tst_archivewriter tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
   {

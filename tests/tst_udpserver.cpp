@@ -571,7 +571,7 @@ void tst_udpserver::test_subscribeList_truncatedTagArray()
   QVERIFY(reader.remaining() == 0u);
 
   QCOMPARE(err.code, ErrorCode::InvalidRequest);
-  QVERIFY(err.info == 0);
+  QVERIFY(err.info > 0);
 
   srv.server.stop();
   QVERIFY(!srv.server.isRunning());

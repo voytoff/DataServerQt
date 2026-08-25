@@ -12,13 +12,16 @@ inline constexpr uint32_t ArchiveVersion = 1;
 
 struct SampleRecordHeader
 {
-  uint64_t timestamp;     // время выборки
-
-  uint32_t reserved[2]{};
+  uint64_t timestamp;          // monotonic, µs
+  uint64_t frameNumber;        // номер Frame
+  int64_t  wallTime;           // Unix epoch, µs
 };
 
-static_assert(std::is_trivially_copyable_v<SampleRecordHeader>);
-static_assert(sizeof(SampleRecordHeader) % 8 == 0);
+static_assert(
+  std::is_trivially_copyable_v<SampleRecordHeader>);
+
+static_assert(
+  sizeof(SampleRecordHeader) == 24);
 
 enum class ArchiveDataType : uint32_t
 {

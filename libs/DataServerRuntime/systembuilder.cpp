@@ -5,7 +5,7 @@
 
 namespace qds
 {
-
+/*
 bool SystemBuilder::build(
   SystemConfiguration& configuration,
   const DataSourceFactory& dataSourceFactory,
@@ -50,6 +50,69 @@ bool SystemBuilder::build(
         dataSourceFactory))
   {
     runtime = {};
+    return false;
+  }
+
+  runtime.buffers.initialize(
+    runtime.layout);
+
+  runtime.engine =
+    std::make_unique<DataEngine>();
+
+  return true;
+}
+*/
+bool SystemBuilder::build(
+  SystemConfiguration& configuration,
+  const DataSourceFactory& dataSourceFactory,
+  RuntimeSystem& runtime)
+{
+  runtime.signalProcessor.reset();
+  runtime.engine.reset();
+
+  runtime.formulas.clear();
+  runtime.calculationPlan.clear();
+
+  runtime.layout.build(configuration);
+
+  FormulaBuilder formulaBuilder;
+
+  if (!formulaBuilder.build(
+        configuration,
+        runtime.layout,
+        runtime.formulas))
+  {
+    runtime.formulas.clear();
+    return false;
+  }
+
+  CalculationCompiler compiler(
+    configuration,
+    runtime.layout,
+    runtime.formulas);
+
+  if (!compiler.build(
+        runtime.calculationPlan))
+  {
+    runtime.formulas.clear();
+    runtime.calculationPlan.clear();
+    return false;
+  }
+
+  runtime.signalProcessor =
+    std::make_unique<SignalProcessor>(
+      runtime.layout,
+      runtime.formulas,
+      runtime.calculationPlan);
+
+  if (!runtime.dataSources.initialize(
+        configuration,
+        runtime.layout,
+        dataSourceFactory))
+  {
+    runtime.signalProcessor.reset();
+    runtime.formulas.clear();
+    runtime.calculationPlan.clear();
     return false;
   }
 

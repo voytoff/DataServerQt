@@ -5,19 +5,12 @@
 namespace qds
 {
 
-struct ArchiveTask
+inline constexpr uint32_t BaseFrameFrequency = 1000;
+
+constexpr bool isValidArchiveFrequency(
+  uint32_t frequency) noexcept
 {
-  uint32_t divider;
-
-  //SignalGroup group;
-
-  ArchiveWriter writer;
-};
-
-class ArchiveManager
-{
-public:
-  ArchiveManager();
-};
+  return frequency != 0 && BaseFrameFrequency % frequency == 0;
+}
 
 }

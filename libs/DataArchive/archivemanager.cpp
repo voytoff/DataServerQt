@@ -3,6 +3,4 @@
 namespace qds
 {
 
-ArchiveManager::ArchiveManager() { }
-
 }

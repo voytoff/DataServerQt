@@ -47,6 +47,13 @@ public:
 
 
 private slots:
+  void test_archivewriter_create_open();
+  void test_archivewriter_writeOneRecord();
+  void test_archivewriter_writeSomeRecords();
+  void test_archivewriter_badChannelCount();
+  void test_archivewriter_writeAfterClose();
+  void test_archivewriter_doubleClose();
+
   void test_dataFileHeader_headerSize();
   void test_dataFileHeader_base();
   void test_archiveFile_emptyFile();
@@ -63,5 +70,11 @@ private slots:
   void test_archiveFile_saveZerroArray();
   void test_archiveFile_checkFileSize();
   void test_archiveFile_saveHeaderNotChangePosition();
+
+  void test_archiveDescription_writeRawSignals();
+  void test_archiveDescription_writeCalculatedSignals();
+  void test_archiveDescription_writeMultipleFiles();
+
+  void test_archiveDescription_archiveDescriptionBuilder();
 
 };
