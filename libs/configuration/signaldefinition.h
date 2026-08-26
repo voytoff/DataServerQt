@@ -38,6 +38,12 @@ struct SignalSource
   TagId tag;
 };
 
+enum class CalibrationMode
+{
+  None = 0,
+  BySignal,
+  BySignalType
+};
 
 struct SignalDefinition
 {
@@ -57,8 +63,8 @@ struct SignalDefinition
   // частота записи в архив
   uint32_t archiveFrequency = 0;
 
-  // ссылка на таблицу тарировки
-  CalibrationId calibrationId = {0};
+  // источник таблицы тарировки
+  CalibrationMode calibrationMode = CalibrationMode::None;
 
   // текст формулы
   std::string formula;

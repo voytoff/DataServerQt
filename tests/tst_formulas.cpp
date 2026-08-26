@@ -2346,7 +2346,7 @@ void tst_formulas::test_calculationOrder_cba()
 
   cfg.addSignalDefinition({.id = {2}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{5}, {3}}});
 
-  cfg.addSignalDefinition({.id = {5}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .calibrationId = {1}, .dependencies = {{1}}});
+  cfg.addSignalDefinition({.id = {5}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .calibrationMode = CalibrationMode::BySignal, .dependencies = {{1}}});
 
   cfg.addSignalDefinition({.id = {3}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {2}, .dependencies = {{0}}});
 

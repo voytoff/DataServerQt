@@ -45,7 +45,7 @@ void tst_dataarchive::test_archivewriter_writeOneRecord()
   QVERIFY(writer.isOpen());
 
   std::array<float, 32> values;
-  for (float n = 0; n < values.size(); ++n) {
+  for (int n = 0; n < values.size(); ++n) {
     values[n] = n;
   }
   auto recordSize = static_cast<uint32_t>(sizeof(SampleRecordHeader) + values.size() * sizeof(float));
@@ -63,7 +63,7 @@ void tst_dataarchive::test_archivewriter_writeOneRecord()
   QCOMPARE(file.header().sampleFrequency, 100u);
   QCOMPARE(file.header().channelCount, 32u);
   QCOMPARE(file.header().module.value, 999u);
-  QCOMPARE(file.header().firstTimestamp, firstTimestamp);
+  QCOMPARE(file.header().firstTimestamp, timestamp);
   QCOMPARE(file.header().recordSize, recordSize);
 
   QCOMPARE(file.header().recordCount, 1u);
@@ -78,7 +78,7 @@ void tst_dataarchive::test_archivewriter_writeOneRecord()
   std::array<float, 32> values2;
   QVERIFY(file.readArray(values2.data(), values2.size()));
 
-  for (float n = 0; n < values.size(); ++n) {
+  for (int n = 0; n < values.size(); ++n) {
     QCOMPARE(values2[n], n);
   }
 
@@ -119,7 +119,7 @@ void tst_dataarchive::test_archivewriter_writeSomeRecords()
   QVERIFY(file.open(filePath, OpenMode::Read));
 
   QCOMPARE(file.header().recordCount, 10u);
-  QCOMPARE(file.header().lastTimestamp, 9u);
+  QCOMPARE(file.header().lastTimestamp, 9u * 2);
 
   value = 0;
   for (int i = 0; i < 10; i++) {

@@ -27,7 +27,7 @@ void tst_dataserver::test_systemBuilder_success()
 
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Test);
-  cfg.addSignalDefinition({.id = {24}, .name = "D", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {2}, .formula = "A + A", .dependencies = {{17}, {17}}});
+  cfg.addSignalDefinition({.id = {24}, .name = "D", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formula = "A + A", .formulaId = {2}, .dependencies = {{17}, {17}}});
 
   DataSourceFactory factory;
 
@@ -172,8 +172,8 @@ void tst_dataserver::test_systemBuilder_failErrorFormula()
     .id = {30},
     .name = "D",
     .kind = SignalKind::Calculated,
-    .formulaId = {2},
     .formula = "unknown + C",
+    .formulaId = {2},
     .dependencies = {{4}, {23}}
   });
 

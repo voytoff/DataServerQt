@@ -181,7 +181,7 @@ void tst_configuration::test_configuration_signalDefinitions()
      .name = "A",
      .kind = SignalKind::Calculated,
      .archiveFrequency = 100,
-     .calibrationId = {76},
+     .calibrationMode = CalibrationMode::BySignal,
      .dependencies = {{0}},
      }));
 
@@ -191,7 +191,7 @@ void tst_configuration::test_configuration_signalDefinitions()
      .name = "B",
      .kind = SignalKind::Calculated,
      .archiveFrequency = 100,
-     .calibrationId = {67},
+     .calibrationMode = CalibrationMode::BySignalType,
      .dependencies = {{1}},
      }));
 
@@ -220,7 +220,7 @@ void tst_configuration::test_configuration_signalDefinitions()
   QCOMPARE(def3->id.value, 3);
   QCOMPARE(def3->kind, SignalKind::Calculated);
   QCOMPARE(def3->archiveFrequency, 100);
-  QCOMPARE(def3->calibrationId, {67});
+  QCOMPARE(def3->calibrationMode, CalibrationMode::BySignal);
   QCOMPARE(def3->dependencies.size(), 1);
   QCOMPARE(def3->dependencies[0].value, 1);
 
@@ -444,7 +444,7 @@ void tst_configuration::test_configuration_orderIds()
      .name = "A",
      .kind = SignalKind::Calculated,
      .archiveFrequency = 100,
-     .calibrationId = {76},
+     .calibrationMode = CalibrationMode::BySignalType,
       .dependencies = {{4}, {0}},
      }));
 
