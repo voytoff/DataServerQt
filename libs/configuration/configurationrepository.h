@@ -1,5 +1,6 @@
 #pragma once
 
+#include "calibrationrepository.h"
 #include "systemconfiguration.h"
 #include <QSqlDatabase>
 #include <QSqlQuery>
@@ -20,8 +21,12 @@ public:
     ConfigurationId id,
     SystemConfiguration& configuration);
 
+bool loadCalibrations(
+    const SystemConfiguration& configuration,
+    CalibrationRepository& calibrations);
+
 private:
-  QSqlQuery getQuery(const QString &query, const QVariantMap& args);
+  QSqlQuery getQuery(const QString &sql, const QVariantMap& args);
 
 private:
   const QSqlDatabase& m_db;

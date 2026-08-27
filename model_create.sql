@@ -306,7 +306,7 @@ VALUES
          (SELECT id
           FROM configuration
           WHERE name = 'Иследование 1')
-       AND name = 'Raw0'),
+       AND name = 'A'),
 
     NULL,
 

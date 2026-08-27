@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.23)
 project(unit_tests LANGUAGES CXX)
 
 set(CMAKE_AUTOMOC ON)
@@ -8,7 +8,7 @@ enable_testing()
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Test Core Network Sql)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Test Core Network Sql)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(unit_tests

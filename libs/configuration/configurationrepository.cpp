@@ -1,3 +1,5 @@
+#include <vector>
+#include <algorithm>
 #include "configurationrepository.h"
 #include <QSqlQuery>
 #include <QSqlError>
@@ -154,6 +156,100 @@ WHERE
   }
 
   configuration = cfg;
+
+  return true;
+}
+
+bool ConfigurationRepository::loadCalibrations(const SystemConfiguration &configuration, CalibrationRepository &calibrations)
+{
+  CalibrationRepository repo;
+  std::vector<SignalId> signalIds;
+  std::vector<SignalTypeId> signalTypes;
+  for (auto &definition : configuration.signalDefinitions())
+  {
+    if (definition.kind == SignalKind::Calculated)
+    {
+      switch (definition.calibrationMode) {
+      case CalibrationMode::BySignal:
+        if (std::ranges::find(signalIds, definition.id) == signalIds.end())
+          signalIds.push_back(definition.id);
+        break;
+      case CalibrationMode::BySignalType:
+        if (std::ranges::find(signalTypes, definition.signalType) == signalTypes.end())
+          signalTypes.push_back(definition.signalType);
+        break;
+      default:
+        break;
+      }
+    }
+  }
+
+  QString sql = R"(
+SELECT
+  calibration_id,
+  `index`,
+  x, y
+FROM
+  dataserver.calibration_point cp
+JOIN calibration c on
+  cp.calibration_id = c.id
+WHERE
+  c.signal_id = :id;)";
+
+  for (const auto &id : signalIds)
+  {
+    auto query = getQuery(sql, {{":id", id.value}});
+
+    if (!query.exec()) return false;
+
+    Calibration calibration;
+    //calibration.id = CalibrationId{query.value("calibration_id").toUInt()};
+    while (query.next())
+    {
+      CalibrationPoint point;
+
+      point.index = query.value("index").toUInt();
+      point.x = query.value("x").toDouble();
+      point.y = query.value("y").toDouble();
+
+      calibration.points.push_back(point);
+    }
+
+    repo.addBySignal(id, calibration);
+  }
+
+  sql = R"(
+SELECT
+  calibration_id,
+  `index`,
+  x, y
+FROM
+  dataserver.calibration_point cp
+JOIN calibration c on
+  cp.calibration_id = c.id
+WHERE
+  c.signal_type_id = :id;)";
+
+  for (const auto &id : signalTypes)
+  {
+    auto query = getQuery(sql, {{":id", id.value}});
+
+    if (!query.exec()) return false;
+
+    Calibration calibration;
+    while (query.next())
+    {
+      CalibrationPoint point;
+
+      point.index = query.value("index").toUInt();
+      point.x = query.value("x").toDouble();
+      point.y = query.value("y").toDouble();
+
+      calibration.points.push_back(point);
+    }
+
+    repo.addBySignalType(id, calibration);
+  }
 
   return true;
 }

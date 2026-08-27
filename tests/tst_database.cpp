@@ -102,6 +102,7 @@ void tst_database::test_database_loadConfiguration()
   QCOMPARE(a->kind, SignalKind::Calculated);
   QCOMPARE(a->calibrationMode, CalibrationMode::BySignal);
   QCOMPARE(a->formula, "Raw0");
+  QCOMPARE(a->signalType, SignalTypeId{1});
 
   auto b = findSignalDefinition(ss, "B");
   QVERIFY(b);
@@ -109,6 +110,7 @@ void tst_database::test_database_loadConfiguration()
   QCOMPARE(b->kind, SignalKind::Calculated);
   QCOMPARE(b->calibrationMode, CalibrationMode::BySignalType);
   QCOMPARE(b->formula, "Raw1");
+  QCOMPARE(b->signalType, SignalTypeId{2});
 
   auto c = findSignalDefinition(ss, "C");
   QVERIFY(c);
@@ -116,4 +118,23 @@ void tst_database::test_database_loadConfiguration()
   QCOMPARE(c->kind, SignalKind::Calculated);
   QCOMPARE(c->calibrationMode, CalibrationMode::None);
   QCOMPARE(c->formula, "A + B");
+  QCOMPARE(c->signalType, SignalTypeId{2});
+}
+
+void tst_database::test_database_loadCalibrations()
+{
+  using namespace qds;
+  auto db = get_db();
+  QVERIFY(db.isOpen());
+  QVERIFY(db.isValid());
+
+  ConfigurationRepository repo(db);
+
+  SystemConfiguration cfg;
+  CalibrationRepository cr;
+
+  QVERIFY(repo.load(ConfigurationId{1}, cfg));
+
+  QVERIFY(repo.loadCalibrations(cfg, cr));
+
 }

@@ -10,15 +10,31 @@ void SystemConfiguration::addCrate(const CrateInfo& crate)
   m_crates.push_back(crate);
 }
 
-bool SystemConfiguration::addModule(const ModuleInfo& module)
+bool SystemConfiguration::addModule(
+  const ModuleInfo& module)
 {
-  m_modules.push_back(module);
+  if (std::find_if(
+        m_modules.begin(),
+        m_modules.end(),
+        [&](const ModuleInfo& item)
+        {
+          return item.id == module.id;
+        }) != m_modules.end())
+  {
+    return false;
+  }
 
   auto [it, inserted] =
-    m_moduleTags.emplace(module.id, std::vector<TagId>{});
+    m_moduleTags.emplace(
+      module.id,
+      std::vector<TagId>{});
 
-  assert(inserted);
-  return inserted;
+  if (!inserted)
+    return false;
+
+  m_modules.push_back(module);
+
+  return true;
 }
 
 bool SystemConfiguration::addTag(const TagInfo& tag)
