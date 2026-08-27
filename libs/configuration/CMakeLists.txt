@@ -5,8 +5,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Sql)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Sql)
 
 add_library(Configuration SHARED
   moduletype.h
@@ -16,6 +16,8 @@ add_library(Configuration SHARED
   systemconfiguration.cpp systemconfiguration.h
   signaldefinition.h
   moduleconfiguration.h
+  configurationrepository.h configurationrepository.cpp
+  cratetype.h
 )
 
 target_include_directories(Configuration
@@ -27,4 +29,6 @@ target_include_directories(Configuration
 target_link_libraries(Configuration
   PUBLIC
     Qt${QT_VERSION_MAJOR}::Core
+  PRIVATE
+    Qt${QT_VERSION_MAJOR}::Sql
 )

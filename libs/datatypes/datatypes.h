@@ -21,6 +21,8 @@ struct ModuleIdTag {};
 struct CrateIdTag {};
 struct ChannelIdTag {};
 struct SubscriptionIdTag {};
+struct SignalTypeIdTag {};
+struct ConfigurationIdTag {};
 
 using SignalId =
   StrongId<SignalIdTag>;
@@ -41,6 +43,12 @@ using ChannelId =
 
 using SubscriptionId =
   StrongId<SubscriptionIdTag>;
+
+using SignalTypeId =
+  StrongId<SignalTypeIdTag>;
+
+using ConfigurationId =
+  StrongId<ConfigurationIdTag>;
 
 struct Sample
 {

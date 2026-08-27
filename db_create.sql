@@ -4,7 +4,6 @@ CREATE DATABASE IF NOT EXISTS dataserver
 
 USE dataserver;
 
-
 -- ============================================================
 -- 1. Физические устройства
 -- ============================================================
@@ -73,7 +72,7 @@ CREATE TABLE configuration_module
 (
     configuration_id INT NOT NULL,
     module_id        INT NOT NULL,
-    settings         JSON CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+    settings         longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
 
     PRIMARY KEY (configuration_id, module_id),
 

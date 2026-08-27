@@ -3,6 +3,7 @@
 
 #include "tst_configuration.h"
 #include "tst_dataarchive.h"
+#include "tst_database.h"
 #include "tst_dataprotocol.h"
 #include "tst_common.h"
 #include "tst_core.h"
@@ -27,6 +28,10 @@ int main(int argc, char *argv[])
 
   int rc = 0;
 
+  {
+    tst_database tc;
+    rc |= QTest::qExec(&tc, argc, argv);
+  }
   {
     tst_dataarchive tc;
     rc |= QTest::qExec(&tc, argc, argv);

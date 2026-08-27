@@ -224,7 +224,7 @@ void tst_dataserver::test_systemBuilder_failDataSourceManager()
   using namespace qds;
 
   SystemConfiguration cfg =
-    createTestConfig_calculate(ModuleType::LCard);
+    createTestConfig_calculate(ModuleType::LTR11);
 
   DataSourceFactory factory;
 
@@ -598,7 +598,7 @@ void tst_dataserver::test_dataServer_udpSubscription()
 void tst_dataserver::test_dataServer_failStart_moduleType()
 {
   SystemConfiguration cfg =
-    createTestConfig_calculate(ModuleType::LCard);
+    createTestConfig_calculate(ModuleType::LTR11);
 
   DataSourceFactory factory;
 

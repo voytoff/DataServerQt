@@ -5,14 +5,15 @@ set(CMAKE_AUTOMOC ON)
 
 enable_testing()
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Test Core Network)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Test Core Network)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Test Core Network Sql)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Test Core Network Sql)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(unit_tests
     main.cpp
+    db.h
     tst_common.h tst_common.cpp
     tst_udpsender.h tst_udpsender.cpp
     tst_subscriptions.h tst_subscriptions.cpp
@@ -34,6 +35,7 @@ add_executable(unit_tests
     tst_configuration.h tst_configuration.cpp
     tst_formulas.h tst_formulas.cpp
     tst_dataserver.h tst_dataserver.cpp
+    tst_database.h tst_database.cpp
 )
 
 target_link_libraries(unit_tests
@@ -51,11 +53,11 @@ target_link_libraries(unit_tests
     HardwareFactory
     DataArchive
     SignalStorage
-    #Scheduler
   PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Test
     Qt${QT_VERSION_MAJOR}::Network
+    Qt${QT_VERSION_MAJOR}::Sql
 )
 
 add_test(NAME unit_tests COMMAND unit_tests)

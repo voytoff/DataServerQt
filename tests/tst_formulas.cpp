@@ -2334,7 +2334,7 @@ void tst_formulas::test_calculationOrder_cba()
   using namespace qds;
   SystemConfiguration cfg;
 
-  ModuleInfo m{.id = {0}, .type = ModuleType::LCard};
+  ModuleInfo m{.id = {0}, .type = ModuleType::LTR11};
   cfg.addModule(m);
 
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
@@ -2411,7 +2411,7 @@ void tst_formulas::test_calculationOrder_chain()
 
   ModuleInfo m{
     .id = {0},
-    .type = ModuleType::LCard
+    .type = ModuleType::LTR11
   };
 
   cfg.addModule(m);

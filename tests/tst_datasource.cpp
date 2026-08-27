@@ -327,7 +327,7 @@ void tst_datasource::test_dataSourceFactory_registerType_create()
 
   // незарегистрированный тип
   ModuleConfiguration unregistered;
-  unregistered.module.type = ModuleType::LCard;
+  unregistered.module.type = ModuleType::LTR11;
 
   QVERIFY(factory.create(unregistered) == nullptr);
 }

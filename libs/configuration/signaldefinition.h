@@ -38,7 +38,7 @@ struct SignalSource
   TagId tag;
 };
 
-enum class CalibrationMode
+enum class CalibrationMode : uint8_t
 {
   None = 0,
   BySignal,
@@ -65,6 +65,9 @@ struct SignalDefinition
 
   // источник таблицы тарировки
   CalibrationMode calibrationMode = CalibrationMode::None;
+
+  // тип датчика
+  SignalTypeId signalType;
 
   // текст формулы
   std::string formula;

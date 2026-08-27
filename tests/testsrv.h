@@ -36,6 +36,24 @@ public:
   UdpServer server;
 };
 
+static const SignalDefinition* findSignalDefinition(
+  std::span<const SignalDefinition> array,
+  const std::string &name)
+{
+  auto it = std::find_if(
+    array.begin(),
+    array.end(),
+    [&name](const SignalDefinition& item)
+    {
+      return item.name == name;
+    });
+
+  if (it == array.end())
+    return nullptr;
+
+  return &(*it);
+}
+
 static void createSignalDefinitions(SystemConfiguration &cfg)
 {
   for (const auto &m : cfg.modules())
@@ -640,7 +658,7 @@ static SystemConfiguration createTestConfig_Fail_DataSource()
   cfg.addTag({.tag = {0}, .module = m0.id, .channel = {0}});
   cfg.addTag({.tag = {1}, .module = m0.id, .channel = {1}});
 
-  ModuleInfo m1{.id = {1}, .type = ModuleType::LCard, .settings = jsonObj};
+  ModuleInfo m1{.id = {1}, .type = ModuleType::LTR11, .settings = jsonObj};
   cfg.addModule(m1);
 
   cfg.addTag({.tag = {4}, .module = m1.id, .channel = {0}});

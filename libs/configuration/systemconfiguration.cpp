@@ -10,7 +10,7 @@ void SystemConfiguration::addCrate(const CrateInfo& crate)
   m_crates.push_back(crate);
 }
 
-void SystemConfiguration::addModule(const ModuleInfo& module)
+bool SystemConfiguration::addModule(const ModuleInfo& module)
 {
   m_modules.push_back(module);
 
@@ -18,6 +18,7 @@ void SystemConfiguration::addModule(const ModuleInfo& module)
     m_moduleTags.emplace(module.id, std::vector<TagId>{});
 
   assert(inserted);
+  return inserted;
 }
 
 bool SystemConfiguration::addTag(const TagInfo& tag)
@@ -181,6 +182,26 @@ void SystemConfiguration::setUdpPort(uint16_t port)
 uint16_t SystemConfiguration::udpPort() const noexcept
 {
   return m_udpPort;
+}
+
+void SystemConfiguration::setName(std::string name)
+{
+  m_name = name;
+}
+
+std::string SystemConfiguration::name() const noexcept
+{
+  return m_name;
+}
+
+void SystemConfiguration::setDescription(std::string description)
+{
+  m_description = description;
+}
+
+std::string SystemConfiguration::description() const noexcept
+{
+  return m_description;
 }
 
 const SignalDefinition*

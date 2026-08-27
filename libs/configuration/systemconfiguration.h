@@ -55,7 +55,7 @@ class SystemConfiguration
 {
 public:
   void addCrate(const CrateInfo& crate);
-  void addModule(const ModuleInfo& module);
+  bool addModule(const ModuleInfo& module);
   bool addTag(const TagInfo& tag);
   bool addSignalDefinition(const SignalDefinition& definition);
 
@@ -88,6 +88,16 @@ public:
   [[nodiscard]]
   uint16_t udpPort() const noexcept;
 
+  void setName(std::string name);
+
+  [[nodiscard]]
+  std::string name() const noexcept;
+
+  void setDescription(std::string description);
+
+  [[nodiscard]]
+  std::string description() const noexcept;
+
 private:
 
   std::vector<CrateInfo> m_crates;
@@ -106,6 +116,10 @@ private:
   std::vector<bool> m_signalDefinitionExists;
 
   uint16_t m_udpPort = 0;
+
+  std::string m_name = "";
+
+  std::string m_description = "";
 
 };
 
