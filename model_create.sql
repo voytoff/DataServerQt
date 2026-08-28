@@ -394,3 +394,60 @@ VALUES
 
     2, 20.0, 0.0
 );
+
+
+-- ============================================================
+-- Failing Calibration
+-- ============================================================
+
+INSERT INTO calibration
+(
+    configuration_id,
+    signal_id,
+    signal_type_id,
+    name,
+    description
+)
+VALUES
+(
+    (SELECT id
+     FROM configuration
+     WHERE name = 'Иследование 1'),
+
+    5,
+
+    NULL,
+
+    'Failing Calibration',
+    'Calibration for test error loading'
+);
+
+
+-- ============================================================
+-- Calibration points
+-- ============================================================
+
+INSERT INTO calibration_point
+    (calibration_id, `index`, x, y)
+VALUES
+(
+    (SELECT id
+     FROM calibration
+     WHERE name = 'Failing Calibration'),
+
+    0, 0.0, 0.0
+),
+(
+    (SELECT id
+     FROM calibration
+     WHERE name = 'Failing Calibration'),
+
+    1, 10.0, 1.0
+),
+(
+    (SELECT id
+     FROM calibration
+     WHERE name = 'Failing Calibration'),
+
+    2, 10.0, 2.0
+);
