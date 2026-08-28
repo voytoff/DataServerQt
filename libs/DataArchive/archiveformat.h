@@ -10,6 +10,15 @@ namespace qds
 inline constexpr uint32_t ArchiveMagic   = 0x51445341; // "QDSA"
 inline constexpr uint32_t ArchiveVersion = 1;
 
+inline constexpr uint32_t BaseFrameFrequency = 1000;
+
+constexpr bool isValidArchiveFrequency(
+  uint32_t frequency) noexcept
+{
+  return frequency != 0 &&
+         BaseFrameFrequency % frequency == 0;
+}
+
 struct SampleRecordHeader
 {
   uint64_t timestamp;          // monotonic, µs

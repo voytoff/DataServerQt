@@ -220,7 +220,7 @@ void tst_configuration::test_configuration_signalDefinitions()
   QCOMPARE(def3->id.value, 3);
   QCOMPARE(def3->kind, SignalKind::Calculated);
   QCOMPARE(def3->archiveFrequency, 100);
-  QCOMPARE(def3->calibrationMode, CalibrationMode::BySignal);
+  QCOMPARE(def3->calibrationMode, CalibrationMode::BySignalType);
   QCOMPARE(def3->dependencies.size(), 1);
   QCOMPARE(def3->dependencies[0].value, 1);
 

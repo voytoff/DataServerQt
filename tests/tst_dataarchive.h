@@ -3,7 +3,6 @@
 #include "archivefile.h"
 #include "archiveformat.h"
 #include <QObject>
-#include <filesystem>
 
 const std::string fileName = "test_file.dat";
 const uint64_t firstTimestamp = 1234567u;
