@@ -1,6 +1,7 @@
 #pragma once
 
 #include "calculationplan.h"
+#include "calibrationrepository.h"
 #include "formulaastrepository.h"
 #include "formulacalculator.h"
 #include "signalmemory.h"
@@ -16,7 +17,8 @@ public:
   SignalProcessor(
     const SignalMemoryLayout& layout,
     const FormulaAstRepository& formulas,
-    const CalculationPlan& plan);
+    const CalculationPlan& plan,
+    const CalibrationRepository& calibrations);
 
   [[nodiscard]]
   bool process(
@@ -28,6 +30,7 @@ private:
   const SignalMemoryLayout& m_layout;
   const FormulaAstRepository& m_formulas;
   const CalculationPlan& m_plan;
+  const CalibrationRepository& m_calibrations;
 
   FormulaCalculator m_calculator;
 };

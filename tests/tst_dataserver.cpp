@@ -47,9 +47,12 @@ void tst_dataserver::test_systemBuilder_success()
 
   SystemBuilder builder;
 
+  CalibrationRepository cr;
+
   QVERIFY(builder.build(
     cfg,
     factory,
+    cr,
     runtime));
 
   const auto* c =
@@ -137,9 +140,12 @@ void tst_dataserver::test_systemBuilder_process()
 
   SystemBuilder builder;
 
+  CalibrationRepository cr;
+
   QVERIFY(builder.build(
     cfg,
     factory,
+    cr,
     runtime));
 
   QVERIFY(runtime.engine->initialize(
@@ -195,9 +201,12 @@ void tst_dataserver::test_systemBuilder_failErrorFormula()
 
   SystemBuilder builder;
 
+  CalibrationRepository cr;
+
   QVERIFY(!builder.build(
     cfg,
     factory,
+    cr,
     runtime));
 
   QVERIFY(
@@ -244,9 +253,12 @@ void tst_dataserver::test_systemBuilder_failDataSourceManager()
 
   SystemBuilder builder;
 
+  CalibrationRepository cr;
+
   QVERIFY(!builder.build(
     cfg,
     factory,
+    cr,
     runtime));
 
   QVERIFY(
@@ -293,9 +305,12 @@ void tst_dataserver::test_systemBuilder_cycle()
 
   SystemBuilder builder;
 
+  CalibrationRepository cr;
+
   QVERIFY(builder.build(
     cfg,
     factory,
+    cr,
     runtime));
 
   QVERIFY(runtime.engine->initialize(
@@ -373,8 +388,11 @@ void tst_dataserver::test_dataServer_udpSubscription()
   UdpSender sender;
   FakeSchedulerClock clock;
 
+  CalibrationRepository cr;
+
   DataServer ds(
     cfg,
+    cr,
     factory,
     archive,
     clock,
@@ -614,8 +632,11 @@ void tst_dataserver::test_dataServer_failStart_moduleType()
   TestPublisherSender sender;
   FakeSchedulerClock clock;
 
+  CalibrationRepository cr;
+
   DataServer ds(
     cfg,
+    cr,
     factory,
     archive,
     clock,
@@ -649,8 +670,11 @@ void tst_dataserver::test_dataServer_failSubscribe_invalidSignalId()
   UdpSender sender;
   FakeSchedulerClock clock;
 
+  CalibrationRepository cr;
+
   DataServer ds(
     cfg,
+    cr,
     factory,
     archive,
     clock,
@@ -762,8 +786,11 @@ void tst_dataserver::test_dataServer_failSubscribe_duplicateSignalId()
   UdpSender sender;
   FakeSchedulerClock clock;
 
+  CalibrationRepository cr;
+
   DataServer ds(
     cfg,
+    cr,
     factory,
     archive,
     clock,
@@ -875,8 +902,11 @@ void tst_dataserver::test_dataServer_failSubscribe_invalidRate()
   UdpSender sender;
   FakeSchedulerClock clock;
 
+  CalibrationRepository cr;
+
   DataServer ds(
     cfg,
+    cr,
     factory,
     archive,
     clock,
@@ -988,8 +1018,11 @@ void tst_dataserver::test_dataServer_failSubscribe_emptyList()
   UdpSender sender;
   FakeSchedulerClock clock;
 
+  CalibrationRepository cr;
+
   DataServer ds(
     cfg,
+    cr,
     factory,
     archive,
     clock,
@@ -1091,8 +1124,11 @@ void tst_dataserver::test_dataServer_failSubscribe_tooManySignals()
   UdpSender sender;
   FakeSchedulerClock clock;
 
+  CalibrationRepository cr;
+
   DataServer ds(
     cfg,
+    cr,
     factory,
     archive,
     clock,
@@ -1194,8 +1230,11 @@ void tst_dataserver::test_dataServer_unsubscribe_ok()
   UdpSender sender;
   FakeSchedulerClock clock;
 
+  CalibrationRepository cr;
+
   DataServer ds(
     cfg,
+    cr,
     factory,
     archive,
     clock,
@@ -1406,8 +1445,11 @@ void tst_dataserver::test_dataServer_unsubscribe_invalidId()
   UdpSender sender;
   FakeSchedulerClock clock;
 
+  CalibrationRepository cr;
+
   DataServer ds(
     cfg,
+    cr,
     factory,
     archive,
     clock,
@@ -1617,8 +1659,11 @@ void tst_dataserver::test_dataServer_start_stop()
   UdpSender sender;
   FakeSchedulerClock clock;
 
+  CalibrationRepository cr;
+
   DataServer ds(
     cfg,
+    cr,
     factory,
     archive,
     clock,
@@ -1785,8 +1830,11 @@ void tst_dataserver::test_dataServer_start_after_failed_start()
   UdpSender sender;
   FakeSchedulerClock clock;
 
+  CalibrationRepository cr;
+
   DataServer ds(
     cfg,
+    cr,
     factory,
     archive,
     clock,
@@ -1842,8 +1890,11 @@ void tst_dataserver::test_dataServer_failStart_invalidUdpPort()
   UdpSender sender;
   FakeSchedulerClock clock;
 
+  CalibrationRepository cr;
+
   DataServer ds(
     cfg,
+    cr,
     factory,
     archive,
     clock,
@@ -2039,8 +2090,11 @@ void tst_dataserver::test_dataServer_subscriptionId_after_restart()
   UdpSender sender;
   FakeSchedulerClock clock;
 
+  CalibrationRepository cr;
+
   DataServer ds(
     cfg,
+    cr,
     factory,
     archive,
     clock,
@@ -2237,9 +2291,12 @@ void tst_dataserver::test_dataServer_build_after_failBuild()
 
   SystemBuilder builder;
 
+  CalibrationRepository cr;
+
   QVERIFY(!builder.build(
     cfg,
     factory,
+    cr,
     runtime));
 
   QVERIFY(factory.registerType(
@@ -2253,6 +2310,7 @@ void tst_dataserver::test_dataServer_build_after_failBuild()
   QVERIFY(builder.build(
     cfg,
     factory,
+    cr,
     runtime));
 
   QVERIFY(runtime.engine->initialize(
@@ -2300,9 +2358,12 @@ void tst_dataserver::test_dataEngine_process_dataSourceFailure()
 
   SystemBuilder builder;
 
+  CalibrationRepository cr;
+
   QVERIFY(builder.build(
     cfg,
     factory,
+    cr,
     runtime));
 
   QVERIFY(runtime.engine->initialize(
@@ -2342,9 +2403,12 @@ void tst_dataserver::test_dataEngine_process_without_initialize()
 
   SystemBuilder builder;
 
+  CalibrationRepository cr;
+
   QVERIFY(builder.build(
     cfg,
     factory,
+    cr,
     runtime));
 
   QVERIFY(!runtime.engine->process());
@@ -2376,9 +2440,12 @@ void tst_dataserver::test_dataEngine_process_archiveFailure()
 
   SystemBuilder builder;
 
+  CalibrationRepository cr;
+
   QVERIFY(builder.build(
     cfg,
     factory,
+    cr,
     runtime));
 
 
@@ -2423,9 +2490,12 @@ void tst_dataserver::test_dataEngine_process_success()
 
   SystemBuilder builder;
 
+  CalibrationRepository cr;
+
   QVERIFY(builder.build(
     cfg,
     factory,
+    cr,
     runtime));
 
   QVERIFY(runtime.engine->initialize(
@@ -2466,8 +2536,11 @@ void tst_dataserver::test_dataServer_stop_on_dataSourceFailure()
   TestPublisherSender sender;
   FakeSchedulerClock clock;
 
+  CalibrationRepository cr;
+
   DataServer ds(
     cfg,
+    cr,
     factory,
     archive,
     clock,
@@ -2514,9 +2587,12 @@ void tst_dataserver::test_systemBuilder_failedThenSuccess()
 
   SystemBuilder builder;
 
+  CalibrationRepository cr;
+
   QVERIFY(!builder.build(
     badCfg,
     factory,
+    cr,
     runtime));
 
   QVERIFY(
@@ -2528,6 +2604,7 @@ void tst_dataserver::test_systemBuilder_failedThenSuccess()
   QVERIFY(builder.build(
     goodCfg,
     factory,
+    cr,
     runtime));
 
   QVERIFY(

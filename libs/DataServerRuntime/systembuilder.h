@@ -13,6 +13,7 @@ public:
   bool build(
     SystemConfiguration& configuration,
     const DataSourceFactory& dataSourceFactory,
+    const CalibrationRepository& calibrations,
     RuntimeSystem& runtime);
 };
 

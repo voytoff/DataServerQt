@@ -27,6 +27,7 @@ bool loadCalibrations(
 
 private:
   QSqlQuery getQuery(const QString &sql, const QVariantMap& args);
+  void assignCalibration(Calibration &calibration, const QSqlQuery &query);
 
 private:
   const QSqlDatabase& m_db;

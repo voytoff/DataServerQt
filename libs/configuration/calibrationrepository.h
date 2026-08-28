@@ -13,22 +13,30 @@ class CalibrationRepository
 public:
 
   bool addBySignal(
-    SignalId signalId,
-    Calibration calibration);
+    const SignalId &signalId,
+    const Calibration &calibration);
 
   bool addBySignalType(
-    SignalTypeId signalTypeId,
-    Calibration calibration);
+    const SignalTypeId &signalTypeId,
+    const Calibration &calibration);
 
   bool calibrateBySignal(
-    SignalId signalId,
+    const SignalId &signalId,
     double x,
     double& result) const;
 
   bool calibrateBySignalType(
-    SignalTypeId signalTypeId,
+    const SignalTypeId &signalTypeId,
     double x,
     double& result) const;
+
+  [[nodiscard]]
+  std::size_t sizeSignals() const noexcept;
+
+  [[nodiscard]]
+  std::size_t sizeSignalTypes() const noexcept;
+
+  void clear() noexcept;
 
 private:
 

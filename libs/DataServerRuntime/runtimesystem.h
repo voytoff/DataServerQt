@@ -4,6 +4,7 @@
 
 #include "buffermanager.h"
 #include "calculationplan.h"
+#include "calibrationrepository.h"
 #include "datasourcemanager.h"
 #include "formulaastrepository.h"
 #include "signalmemorylayout.h"
@@ -19,6 +20,7 @@ struct RuntimeSystem
   SignalMemoryLayout layout;
 
   FormulaAstRepository formulas;
+  CalibrationRepository calibrations;
   CalculationPlan calculationPlan;
 
   DataSourceManager dataSources;

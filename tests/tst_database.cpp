@@ -1,7 +1,14 @@
 #include "tst_database.h"
 #include "configurationrepository.h"
+#include "datasourcefactory.h"
 #include "db.h"
+#include "fakeschedulerclock.h"
+#include "runtimesystem.h"
+#include "systembuilder.h"
 #include "systemconfiguration.h"
+#include "testarchivewriter.h"
+#include "testdatasource.h"
+#include "testpublisher.h"
 #include "testsrv.h"
 #include <QSqlTableModel>
 #include <qtestcase.h>
@@ -131,10 +138,218 @@ void tst_database::test_database_loadCalibrations()
   ConfigurationRepository repo(db);
 
   SystemConfiguration cfg;
+  QVERIFY(repo.load(ConfigurationId{1}, cfg));
+
   CalibrationRepository cr;
+  QVERIFY(repo.loadCalibrations(cfg, cr));
+
+  QCOMPARE(cr.sizeSignals(), 1);
+  QCOMPARE(cr.sizeSignalTypes(), 1);
+
+  auto definitions = cfg.signalDefinitions();
+  double result = 0;
+
+  auto a = findSignalDefinition(definitions, "A");
+
+  QVERIFY(cr.calibrateBySignal(a->id, -10, result));
+  QCOMPARE(result, -1.0);
+
+  QVERIFY(cr.calibrateBySignal(a->id, 0, result));
+  QCOMPARE(result, 0.0);
+
+  QVERIFY(cr.calibrateBySignal(a->id, 5, result));
+  QCOMPARE(result, 0.5);
+
+  QVERIFY(cr.calibrateBySignal(a->id, 10, result));
+  QCOMPARE(result, 1.0);
+
+  QVERIFY(cr.calibrateBySignal(a->id, 15, result));
+  QCOMPARE(result, 1.5);
+
+  QVERIFY(cr.calibrateBySignal(a->id, 20, result));
+  QCOMPARE(result, 2.0);
+
+  QVERIFY(cr.calibrateBySignal(a->id, 30, result));
+  QCOMPARE(result, 3.0);
+
+  auto b = SignalTypeId{2}; // B - имеет тип с идентификатором 2
+
+  QVERIFY(cr.calibrateBySignalType(b, -10, result));
+  QCOMPARE(result, -30.0);
+
+  QVERIFY(cr.calibrateBySignalType(b, 0, result));
+  QCOMPARE(result, -20.0);
+
+  QVERIFY(cr.calibrateBySignalType(b, 5, result));
+  QCOMPARE(result, -15.0);
+
+  QVERIFY(cr.calibrateBySignalType(b, 10, result));
+  QCOMPARE(result, -10.0);
+
+  QVERIFY(cr.calibrateBySignalType(b, 15, result));
+  QCOMPARE(result, -5.0);
+
+  QVERIFY(cr.calibrateBySignalType(b, 20, result));
+  QCOMPARE(result, 0.0);
+
+  QVERIFY(cr.calibrateBySignalType(b, 30, result));
+  QCOMPARE(result, 10.0);
+
+  result = 123.0;
+
+  QVERIFY(
+    !cr.calibrateBySignal(
+      SignalId{999},
+      10.0,
+      result));
+  QCOMPARE(result, 123.0);
+
+
+  QVERIFY(
+    !cr.calibrateBySignalType(
+      SignalTypeId{999},
+      10.0,
+      result));
+  QCOMPARE(result, 123.0);
+
+}
+
+void tst_database::test_database_failLoading()
+{
+  using namespace qds;
+  auto db = get_db();
+  QVERIFY(db.isOpen());
+  QVERIFY(db.isValid());
+
+  ConfigurationRepository repo(db);
+
+  SystemConfiguration cfg;
+
+  QVERIFY(repo.load(ConfigurationId{1}, cfg));
+
+  auto c = findSignalDefinition(cfg.signalDefinitions(), "C");
+
+  QSqlQuery query(get_db());
+
+  QVERIFY(query.prepare(R"(
+UPDATE configuration_signal_definition
+SET calibration_mode=1
+WHERE id=:id;
+)"));
+
+  query.bindValue(":id", c->id.value);
+
+  QVERIFY(query.exec());
+
+  QVERIFY(repo.load(ConfigurationId{1}, cfg));
+
+  CalibrationRepository cr;
+  QVERIFY(!repo.loadCalibrations(cfg, cr));
+
+  QCOMPARE(cr.sizeSignals(), 0);
+  QCOMPARE(cr.sizeSignalTypes(), 0);
+
+  QVERIFY(query.prepare(R"(
+UPDATE configuration_signal_definition
+SET calibration_mode=0
+WHERE id=:id;
+)"));
+
+  query.bindValue(":id", c->id.value);
+
+  QVERIFY(query.exec());
 
   QVERIFY(repo.load(ConfigurationId{1}, cfg));
 
   QVERIFY(repo.loadCalibrations(cfg, cr));
 
+  QCOMPARE(cr.sizeSignals(), 1);
+  QCOMPARE(cr.sizeSignalTypes(), 1);
+}
+
+void tst_database::test_database_pipeline()
+{
+  using namespace qds;
+  auto db = get_db();
+  QVERIFY(db.isOpen());
+  QVERIFY(db.isValid());
+
+  ConfigurationRepository repo(db);
+
+  SystemConfiguration cfg;
+  QVERIFY(repo.load(ConfigurationId{1}, cfg));
+
+  CalibrationRepository cr;
+  QVERIFY(repo.loadCalibrations(cfg, cr));
+
+  QCOMPARE(cr.sizeSignals(), 1);
+  QCOMPARE(cr.sizeSignalTypes(), 1);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::LTR11,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  TestArchiveWriter archive;
+  TestPublisher publisher;
+  FakeSchedulerClock clock;
+
+  RuntimeSystem runtime;
+
+  SystemBuilder builder;
+
+  QVERIFY(builder.build(
+    cfg,
+    factory,
+    cr,
+    runtime));
+
+  QVERIFY(runtime.engine->initialize(
+    runtime.dataSources,
+    *runtime.signalProcessor,
+    runtime.buffers,
+    archive,
+    publisher,
+    clock));
+
+  QCOMPARE(runtime.calibrations.sizeSignals(), 1);
+  QCOMPARE(runtime.calibrations.sizeSignalTypes(), 1);
+
+  QVERIFY(runtime.engine->process());
+
+  const auto &frame0 = runtime.buffers.readFrame();
+
+  QCOMPARE(frame0.raw().valueRef(0), 0.0);
+  QCOMPARE(frame0.raw().valueRef(1), 0.0);
+
+  QCOMPARE(frame0.calculated().valueRef(0), 0.0);
+  QCOMPARE(frame0.calculated().valueRef(1), -20.0);
+  QCOMPARE(frame0.calculated().valueRef(2), 0.0 + -20.0);
+
+  QVERIFY(runtime.engine->process());
+
+  const auto &frame1 = runtime.buffers.readFrame();
+
+  QCOMPARE(frame1.raw().valueRef(0), 1.0);
+  QCOMPARE(frame1.raw().valueRef(1), 10.0);
+
+  QCOMPARE(frame1.calculated().valueRef(0), 0.1);
+  QCOMPARE(frame1.calculated().valueRef(1), -10.0);
+  QCOMPARE(frame1.calculated().valueRef(2), 0.1 + -10.0);
+
+  QVERIFY(runtime.engine->process());
+
+  const auto &frame2 = runtime.buffers.readFrame();
+
+  QCOMPARE(frame2.raw().valueRef(0), 2.0);
+  QCOMPARE(frame2.raw().valueRef(1), 20.0);
+
+  QCOMPARE(frame2.calculated().valueRef(0), 0.2);
+  QCOMPARE(frame2.calculated().valueRef(1), 0.0);
+  QCOMPARE(frame2.calculated().valueRef(2), 0.2 + 0.0);
 }

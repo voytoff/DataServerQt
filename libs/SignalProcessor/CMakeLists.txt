@@ -8,7 +8,6 @@ add_library(SignalProcessor SHARED
     calculationstep.h
     calculationplan.h calculationplan.cpp
     calculationcompiler.h calculationcompiler.cpp
-    #failingprocessor.h
     signalprocessor.h signalprocessor.cpp
 )
 

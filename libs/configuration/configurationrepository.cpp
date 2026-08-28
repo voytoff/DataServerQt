@@ -31,18 +31,9 @@ bool ConfigurationRepository::load(ConfigurationId id, SystemConfiguration &conf
   // 1 загружаем модули
   query = getQuery(R"(
 SELECT
-  cm.configuration_id,
-  cm.module_id,
-  cm.settings,
-  m.type as module_type,
-  m.serial as module_serial,
-  m.description as module_description,
-  c.id as crate_id,
-  c.type as crate_type,
-  c.serial as crate_serial,
-  c.host as crate_host,
-  c.port as crate_port,
-  c.description as crate_description
+  cm.configuration_id, cm.module_id, cm.settings,
+  m.type as module_type, m.serial as module_serial, m.description as module_description,
+  c.id as crate_id, c.type as crate_type, c.serial as crate_serial, c.host as crate_host, c.port as crate_port, c.description as crate_description
 FROM
   configuration_module cm
 JOIN module m on
@@ -96,10 +87,12 @@ WHERE
       cfg.addCrate(crate);
     }
 
-    if (!cfg.addModule(module)) return false;
+    if (!cfg.addModule(module))
+      return false;
   }
 
-  if (cfg.modules().size() == 0) return false;
+  if (cfg.modules().empty())
+    return false;
 
   // загружаем теги
   query = getQuery(
@@ -126,7 +119,8 @@ WHERE
       return false;
   }
 
-  if (cfg.tags().size() == 0) return false;
+  if (cfg.tags().empty())
+    return false;
 
   // загружаем сигналы
   query = getQuery(
@@ -186,11 +180,10 @@ bool ConfigurationRepository::loadCalibrations(const SystemConfiguration &config
 
   QString sql = R"(
 SELECT
-  calibration_id,
-  `index`,
-  x, y
+  calibration_id, `index`, x, y,
+  signal_id, signal_type_id, c.name as calibration_name, c.description as calibration_description
 FROM
-  dataserver.calibration_point cp
+  calibration_point cp
 JOIN calibration c on
   cp.calibration_id = c.id
 WHERE
@@ -203,9 +196,16 @@ WHERE
     if (!query.exec()) return false;
 
     Calibration calibration;
-    //calibration.id = CalibrationId{query.value("calibration_id").toUInt()};
+    bool assigned = false;
+
     while (query.next())
     {
+      if (!assigned)
+      {
+        assignCalibration(calibration, query);
+        assigned = true;
+      }
+
       CalibrationPoint point;
 
       point.index = query.value("index").toUInt();
@@ -215,16 +215,22 @@ WHERE
       calibration.points.push_back(point);
     }
 
-    repo.addBySignal(id, calibration);
+    if (calibration.points.empty())
+      return false;
+
+    if (!calibration.buildSegments())
+      return false;
+
+    if (!repo.addBySignal(id, calibration))
+      return false;
   }
 
   sql = R"(
 SELECT
-  calibration_id,
-  `index`,
-  x, y
+  calibration_id, `index`, x, y,
+  signal_id, signal_type_id, c.name as calibration_name, c.description as calibration_description
 FROM
-  dataserver.calibration_point cp
+  calibration_point cp
 JOIN calibration c on
   cp.calibration_id = c.id
 WHERE
@@ -237,8 +243,16 @@ WHERE
     if (!query.exec()) return false;
 
     Calibration calibration;
+    bool assigned = false;
+
     while (query.next())
     {
+      if (!assigned)
+      {
+        assignCalibration(calibration, query);
+        assigned = true;
+      }
+
       CalibrationPoint point;
 
       point.index = query.value("index").toUInt();
@@ -248,8 +262,17 @@ WHERE
       calibration.points.push_back(point);
     }
 
-    repo.addBySignalType(id, calibration);
+    if (calibration.points.empty())
+      return false;
+
+    if (!calibration.buildSegments())
+      return false;
+
+    if (!repo.addBySignalType(id, calibration))
+      return false;
   }
+
+  calibrations = repo;
 
   return true;
 }
@@ -273,6 +296,15 @@ QSqlQuery ConfigurationRepository::getQuery(
   }
 
   return query;
+}
+
+void ConfigurationRepository::assignCalibration(Calibration &calibration, const QSqlQuery &query)
+{
+  calibration.id = CalibrationId{query.value("calibration_id").toUInt()};
+  calibration.name = query.value("calibration_name").toString();
+  calibration.description = query.value("calibration_description").toString();
+  calibration.signalId = SignalId{query.value("signal_id").toUInt()};
+  calibration.signalTypeId = SignalTypeId{query.value("signal_type_id").toUInt()};
 }
 
 }

@@ -3,7 +3,7 @@
 namespace qds
 {
 
-bool CalibrationRepository::addBySignal(SignalId signalId, Calibration calibration)
+bool CalibrationRepository::addBySignal(const SignalId &signalId, const Calibration &calibration)
 {
   auto exists = m_bySignal.find(signalId);
 
@@ -18,7 +18,7 @@ bool CalibrationRepository::addBySignal(SignalId signalId, Calibration calibrati
   return inserted;
 }
 
-bool CalibrationRepository::addBySignalType(SignalTypeId signalTypeId, Calibration calibration)
+bool CalibrationRepository::addBySignalType(const SignalTypeId &signalTypeId, const Calibration &calibration)
 {
   auto exists = m_bySignalType.find(signalTypeId);
 
@@ -33,15 +33,38 @@ bool CalibrationRepository::addBySignalType(SignalTypeId signalTypeId, Calibrati
   return inserted;
 }
 
-bool CalibrationRepository::calibrateBySignal(SignalId signalId, double x, double &result) const
+bool CalibrationRepository::calibrateBySignal(const SignalId &signalId, double x, double &result) const
 {
+  auto it = m_bySignal.find(signalId);
+  if (it == m_bySignal.end())
+    return false;
 
+  return it->second.apply(x, result);
 }
 
-bool CalibrationRepository::calibrateBySignalType(SignalTypeId signalTypeId, double x, double &result) const
+bool CalibrationRepository::calibrateBySignalType(const SignalTypeId &signalTypeId, double x, double &result) const
 {
+  auto it = m_bySignalType.find(signalTypeId);
+  if (it == m_bySignalType.end())
+    return false;
 
+  return it->second.apply(x, result);
 }
 
+std::size_t CalibrationRepository::sizeSignals() const noexcept
+{
+  return m_bySignal.size();
+}
+
+std::size_t CalibrationRepository::sizeSignalTypes() const noexcept
+{
+  return m_bySignalType.size();
+}
+
+void CalibrationRepository::clear() noexcept
+{
+  m_bySignal.clear();
+  m_bySignalType.clear();
+}
 
 }

@@ -26,6 +26,7 @@ public:
 
   explicit DataServer(
     SystemConfiguration configuration,
+    const CalibrationRepository &repository,
     const DataSourceFactory& dataSourceFactory,
     IArchiveWriter& archive,
     ISchedulerClock& clock,
@@ -47,6 +48,7 @@ private slots:
 private:
 
   SystemConfiguration m_configuration;
+  const CalibrationRepository& m_repository;
 
   const DataSourceFactory& m_dataSourceFactory;
 

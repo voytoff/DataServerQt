@@ -237,10 +237,13 @@ void tst_signalprocessor::test_signalProcessor_calculate()
 
   QCOMPARE(plan.size(), 3);
 
+  CalibrationRepository cr;
+
   SignalProcessor processor(
     layout,
     formulas,
-    plan);
+    plan,
+    cr);
 
   QVERIFY(processor.process(
     raw,
@@ -301,7 +304,13 @@ void tst_signalprocessor::test_signalProcessor_failOnceDataSource()
 
   QCOMPARE(plan.size(), 3);
 
-  SignalProcessor processor(layout, formulas, plan);
+  CalibrationRepository cr;
+
+  SignalProcessor processor(
+    layout,
+    formulas,
+    plan,
+    cr);
 
   BufferManager buffers;
   buffers.initialize(layout);
@@ -418,7 +427,13 @@ void tst_signalprocessor::test_signalProcessor_failFormula()
 
   QCOMPARE(plan.size(), 3);
 
-  SignalProcessor processor(layout, formulas, plan);
+  CalibrationRepository cr;
+
+  SignalProcessor processor(
+    layout,
+    formulas,
+    plan,
+    cr);
 
   BufferManager buffers;
   buffers.initialize(layout);
@@ -498,7 +513,13 @@ void tst_signalprocessor::test_signalProcessor_cycle()
 
   QCOMPARE(plan.size(), 3);
 
-  SignalProcessor processor(layout, formulas, plan);
+  CalibrationRepository cr;
+
+  SignalProcessor processor(
+    layout,
+    formulas,
+    plan,
+    cr);
 
   BufferManager buffers;
   buffers.initialize(layout);
@@ -614,7 +635,13 @@ void tst_signalprocessor::test_signalProcessor_failOnceArchiveWriter()
 
   QCOMPARE(plan.size(), 3);
 
-  SignalProcessor processor(layout, formulas, plan);
+  CalibrationRepository cr;
+
+  SignalProcessor processor(
+    layout,
+    formulas,
+    plan,
+    cr);
 
   BufferManager buffers;
   buffers.initialize(layout);

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <ranges>
+#include <vector>
+#include <string>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 
@@ -77,13 +80,13 @@ inline QSqlQuery selectByIds(const QString &sql, const std::vector<uint32_t>& id
     return QSqlQuery(get_db());
   }
 
-  // C++20: генерируем строку из знаков "?" через диапазоны
-  auto placeholders_view = std::views::repeat("?") | std::views::take(ids.size());
+  // C++23: генерируем строку из знаков "?" через диапазоны
+  //auto placeholders_view = std::views::repeat("?") | std::views::take(ids.size());
   QStringList placeholders;
   placeholders.reserve(ids.size());
-  for (auto p : placeholders_view) {
-    placeholders.append(p);
-  }
+  //for (auto p : placeholders_view)
+  for (int m = 0; m < ids.size(); ++m)
+    placeholders.append(/*p*/"?");
 
   // Формируем безопасный SQL-запрос
   QString queryString = QString(sql)

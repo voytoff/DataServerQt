@@ -310,8 +310,8 @@ VALUES
 
     NULL,
 
-    'Raw0 calibration',
-    'Calibration for Raw0'
+    'A calibration',
+    'Calibration for A'
 );
 
 
@@ -350,21 +350,21 @@ VALUES
 (
     (SELECT id
      FROM calibration
-     WHERE name = 'Raw0 calibration'),
+     WHERE name = 'A calibration'),
 
     0, 0.0, 0.0
 ),
 (
     (SELECT id
      FROM calibration
-     WHERE name = 'Raw0 calibration'),
+     WHERE name = 'A calibration'),
 
     1, 10.0, 1.0
 ),
 (
     (SELECT id
      FROM calibration
-     WHERE name = 'Raw0 calibration'),
+     WHERE name = 'A calibration'),
 
     2, 20.0, 2.0
 );

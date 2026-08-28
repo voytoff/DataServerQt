@@ -9,6 +9,11 @@ struct CalculationStep
 {
   SignalId signal;
   FormulaId formula;
+
+  CalibrationMode calibrationMode =
+    CalibrationMode::None;
+
+  SignalTypeId signalType;
 };
 
 }

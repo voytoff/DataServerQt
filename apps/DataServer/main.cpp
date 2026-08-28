@@ -35,6 +35,8 @@ int main(int argc, char *argv[]) {
   QCoreApplication app(argc, argv);
 
   qds::SystemConfiguration cfg = createTestConfig_calculate(qds::ModuleType::Test);
+  qds::CalibrationRepository repository;
+
   qds::DataSourceFactory factory;
 
   if (!factory.registerType(
@@ -53,6 +55,7 @@ int main(int argc, char *argv[]) {
 
   qds::DataServer server(
     cfg,
+    repository,
     factory,
     archive,
     clock,

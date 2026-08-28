@@ -7,6 +7,7 @@ namespace qds
 
 DataServer::DataServer(
   SystemConfiguration configuration,
+  const CalibrationRepository& repository,
   const DataSourceFactory& dataSourceFactory,
   IArchiveWriter& archive,
   ISchedulerClock& clock,
@@ -14,6 +15,7 @@ DataServer::DataServer(
   QObject* parent)
   : QObject(parent)
   , m_configuration(std::move(configuration))
+  , m_repository(repository)
   , m_dataSourceFactory(dataSourceFactory)
   , m_archive(archive)
   , m_clock(clock)
@@ -41,6 +43,7 @@ bool DataServer::start()
   if (!builder.build(
         m_configuration,
         m_dataSourceFactory,
+        m_repository,
         m_runtime))
   {
     cleanup();
@@ -124,6 +127,12 @@ void DataServer::cleanup()
 
 void DataServer::onTimer()
 {
+  if (!m_runtime.engine)
+  {
+    stop();
+    return;
+  }
+
   if (!m_runtime.engine->process())
   {
     stop();

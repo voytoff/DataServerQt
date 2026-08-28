@@ -65,12 +65,14 @@ bool SystemBuilder::build(
 bool SystemBuilder::build(
   SystemConfiguration& configuration,
   const DataSourceFactory& dataSourceFactory,
+  const CalibrationRepository& calibrations,
   RuntimeSystem& runtime)
 {
   runtime.signalProcessor.reset();
   runtime.engine.reset();
 
   runtime.formulas.clear();
+  runtime.calibrations.clear();
   runtime.calculationPlan.clear();
 
   runtime.layout.build(configuration);
@@ -86,6 +88,8 @@ bool SystemBuilder::build(
     return false;
   }
 
+  runtime.calibrations = calibrations;
+
   CalculationCompiler compiler(
     configuration,
     runtime.layout,
@@ -95,6 +99,7 @@ bool SystemBuilder::build(
         runtime.calculationPlan))
   {
     runtime.formulas.clear();
+    runtime.calibrations.clear();
     runtime.calculationPlan.clear();
     return false;
   }
@@ -103,7 +108,8 @@ bool SystemBuilder::build(
     std::make_unique<SignalProcessor>(
       runtime.layout,
       runtime.formulas,
-      runtime.calculationPlan);
+      runtime.calculationPlan,
+      runtime.calibrations);
 
   if (!runtime.dataSources.initialize(
         configuration,
@@ -112,6 +118,7 @@ bool SystemBuilder::build(
   {
     runtime.signalProcessor.reset();
     runtime.formulas.clear();
+    runtime.calibrations.clear();
     runtime.calculationPlan.clear();
     return false;
   }

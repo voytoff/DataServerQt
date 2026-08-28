@@ -15,9 +15,9 @@ struct CalibrationPoint
 
 struct CalibrationSegment
 {
-  double x0;
-  double y0;
-  double k;
+  double x0 = 0.0;
+  double y0 = 0.0;
+  double k = 0.0;
 };
 
 struct Calibration
@@ -32,6 +32,8 @@ struct Calibration
 
   std::vector<CalibrationPoint> points;
   std::vector<CalibrationSegment> segments;
+
+  bool buildSegments();
 
   bool apply(
     double x,

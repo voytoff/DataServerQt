@@ -7,9 +7,7 @@ namespace qds
 void BufferManager::initialize(const SignalMemoryLayout &layout)
 {
   for (Frame &frame : m_frames)
-  {
     frame.initialize(layout);
-  }
 }
 
 Frame& BufferManager::beginWrite()

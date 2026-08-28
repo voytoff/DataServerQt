@@ -12,6 +12,8 @@ public:
 private slots:
   void test_database_loadConfiguration();
   void test_database_loadCalibrations();
+  void test_database_failLoading();
+  void test_database_pipeline();
 
 };
 
