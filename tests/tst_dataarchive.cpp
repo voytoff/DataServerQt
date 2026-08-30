@@ -22,8 +22,8 @@ void tst_dataarchive::test_archivewriter_create_open()
 {
   using namespace qds;
   ArchiveWriter writer;
-  auto filePath = tst_dataarchive::getFilePath(fileName);
-  DataFileHeader hdr = tst_dataarchive::getDataFileHeader();
+  auto filePath = getFilePath(fileName);
+  DataFileHeader hdr = getDataFileHeader();
 
   QVERIFY(writer.open(filePath, hdr));
 
@@ -37,8 +37,8 @@ void tst_dataarchive::test_archivewriter_writeOneRecord()
 {
   using namespace qds;
   ArchiveWriter writer;
-  auto filePath = tst_dataarchive::getFilePath(fileName);
-  DataFileHeader hdr = tst_dataarchive::getDataFileHeader();
+  auto filePath = getFilePath(fileName);
+  DataFileHeader hdr = getDataFileHeader();
 
   QVERIFY(writer.open(filePath, hdr));
 
@@ -90,8 +90,8 @@ void tst_dataarchive::test_archivewriter_writeSomeRecords()
 {
   using namespace qds;
   ArchiveWriter writer;
-  auto filePath = tst_dataarchive::getFilePath(fileName);
-  DataFileHeader hdr = tst_dataarchive::getDataFileHeader();
+  auto filePath = ::getFilePath(fileName);
+  DataFileHeader hdr = ::getDataFileHeader();
 
   QVERIFY(writer.open(filePath, hdr));
 
@@ -148,8 +148,8 @@ void tst_dataarchive::test_archivewriter_badChannelCount()
 {
   using namespace qds;
   ArchiveWriter writer;
-  auto filePath = tst_dataarchive::getFilePath(fileName);
-  DataFileHeader hdr = tst_dataarchive::getDataFileHeader();
+  auto filePath = ::getFilePath(fileName);
+  DataFileHeader hdr = ::getDataFileHeader();
 
   QVERIFY(writer.open(filePath, hdr));
 
@@ -179,8 +179,8 @@ void tst_dataarchive::test_archivewriter_writeAfterClose()
 {
   using namespace qds;
   ArchiveWriter writer;
-  auto filePath = tst_dataarchive::getFilePath(fileName);
-  DataFileHeader hdr = tst_dataarchive::getDataFileHeader();
+  auto filePath = ::getFilePath(fileName);
+  DataFileHeader hdr = ::getDataFileHeader();
 
   QVERIFY(writer.open(filePath, hdr));
 
@@ -212,8 +212,8 @@ void tst_dataarchive::test_archivewriter_doubleClose()
 {
   using namespace qds;
   ArchiveWriter writer;
-  auto filePath = tst_dataarchive::getFilePath(fileName);
-  DataFileHeader hdr = tst_dataarchive::getDataFileHeader();
+  auto filePath = getFilePath(fileName);
+  DataFileHeader hdr = getDataFileHeader();
 
   QVERIFY(writer.open(filePath, hdr));
 
@@ -716,7 +716,7 @@ void tst_dataarchive::test_archiveDescription_writeRawSignals()
   ArchiveDescriptionWriter writer;
 
   const auto path =
-    tst_dataarchive::getFilePath(
+    ::getFilePath(
       "description.json");
 
   QVERIFY(
@@ -902,7 +902,7 @@ void tst_dataarchive::test_archiveDescription_writeCalculatedSignals()
   ArchiveDescriptionWriter writer;
 
   const auto path =
-    tst_dataarchive::getFilePath(
+    ::getFilePath(
       "description.json");
 
   QVERIFY(
@@ -1078,7 +1078,7 @@ void tst_dataarchive::test_archiveDescription_writeMultipleFiles()
   ArchiveDescriptionWriter writer;
 
   const auto path =
-    tst_dataarchive::getFilePath(
+    ::getFilePath(
       "description.json");
 
   QVERIFY(
@@ -1218,7 +1218,7 @@ void tst_dataarchive::test_archiveDescription_archiveDescriptionBuilder()
   ArchiveDescriptionWriter writer;
 
   const auto path =
-    tst_dataarchive::getFilePath(
+    getFilePath(
       "description.json");
 
   QVERIFY(

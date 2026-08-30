@@ -1,4 +1,7 @@
 #include "tst_database.h"
+#include "archivedescriptionbuilder.h"
+#include "archivedescriptionwriter.h"
+#include "archivemanager.h"
 #include "configurationrepository.h"
 #include "datasourcefactory.h"
 #include "db.h"
@@ -10,6 +13,7 @@
 #include "testdatasource.h"
 #include "testpublisher.h"
 #include "testsrv.h"
+#include "tst_dataarchive.h"
 #include <QSqlTableModel>
 #include <qtestcase.h>
 
@@ -352,4 +356,187 @@ void tst_database::test_database_pipeline()
   QCOMPARE(frame2.calculated().valueRef(0), 0.2);
   QCOMPARE(frame2.calculated().valueRef(1), 0.0);
   QCOMPARE(frame2.calculated().valueRef(2), 0.2 + 0.0);
+}
+
+void tst_database::test_database_archive()
+{
+  using namespace qds;
+  auto db = get_db();
+  QVERIFY(db.isOpen());
+  QVERIFY(db.isValid());
+
+  ConfigurationRepository repo(db);
+
+  SystemConfiguration cfg;
+  QVERIFY(repo.load(ConfigurationId{1}, cfg));
+
+  CalibrationRepository cr;
+  QVERIFY(repo.loadCalibrations(cfg, cr));
+
+  QCOMPARE(cr.sizeSignals(), 1);
+  QCOMPARE(cr.sizeSignalTypes(), 1);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::LTR11,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+
+  RuntimeSystem runtime;
+
+  SystemBuilder builder;
+
+  QVERIFY(builder.build(
+    cfg,
+    factory,
+    cr,
+    runtime));
+
+  ArchiveDescriptionBuilder builder1;
+  ArchiveDescription description;
+  QVERIFY(builder1.build(cfg, description));
+
+  ArchiveDescriptionWriter writer;
+
+  const auto path =
+    getFilePath(
+      "description.json");
+
+  QVERIFY(
+    writer.write(
+      path,
+      description));
+
+  auto directory = getCurrentFolder();
+
+  ArchiveManager archive;
+  QVERIFY(archive.initialize(directory, description, runtime.layout));
+
+  TestPublisher publisher;
+  FakeSchedulerClock clock(2, 3);
+
+  QVERIFY(runtime.engine->initialize(
+    runtime.dataSources,
+    *runtime.signalProcessor,
+    runtime.buffers,
+    archive,
+    publisher,
+    clock));
+
+  QCOMPARE(runtime.calibrations.sizeSignals(), 1);
+  QCOMPARE(runtime.calibrations.sizeSignalTypes(), 1);
+
+  for (int i = 0; i < BaseFrameFrequency; ++i)
+    QVERIFY(runtime.engine->process());
+
+  archive.close();
+
+
+  const auto *sdraw0 = findSignalDefinition(cfg.signalDefinitions(), "Raw0");
+  const auto *sdraw1 = findSignalDefinition(cfg.signalDefinitions(), "Raw1");
+
+  const auto *sda = findSignalDefinition(cfg.signalDefinitions(), "A");
+  const auto *sdb = findSignalDefinition(cfg.signalDefinitions(), "B");
+  const auto *sdc = findSignalDefinition(cfg.signalDefinitions(), "C");
+
+  QVERIFY(sdraw0);
+  QVERIFY(sdraw1);
+  QVERIFY(sda);
+  QVERIFY(sdb);
+  QVERIFY(sdc);
+
+  ArchiveFile file;
+
+  for (const auto &desc : description.files)
+  {
+    auto fileName = std::format("{0}/{1}", getCurrentFolder(), desc.name);
+    QVERIFY(file.open(fileName, OpenMode::Read));
+
+    QVERIFY(file.header().isValid());
+
+    const auto p = BaseFrameFrequency / desc.frequency;
+
+    QCOMPARE(file.header().channelCount, desc.signalIds.size());
+    QCOMPARE(file.header().recordCount, desc.frequency);
+    QCOMPARE(file.header().firstTimestamp, 2 * p);
+    QCOMPARE(file.header().lastTimestamp, 2 * BaseFrameFrequency);
+    QCOMPARE(file.header().sampleFrequency, desc.frequency);
+    QCOMPARE(
+      file.header().recordSize,
+      sizeof(SampleRecordHeader) +
+        desc.signalIds.size() * sizeof(float));
+
+    const auto channelCount = file.header().channelCount;
+
+    for (int n = 1; n <= desc.frequency; n++)
+    {
+      SampleRecordHeader rh;
+      QVERIFY(file.readObject(rh));
+
+      QCOMPARE(rh.frameNumber, n * p);
+      QCOMPARE(rh.timestamp, 2 * p * n);
+      QCOMPARE(rh.wallTime, 3 * p * n);
+
+      std::vector<float> values(channelCount, 0.0f);
+      QVERIFY(file.readArray(values.data(), channelCount));
+
+      const double raw0 =
+        static_cast<double>(rh.frameNumber - 1);
+
+      const double raw1 =
+        static_cast<double>(rh.frameNumber - 1) * 10.0;
+
+      for (const auto &signal : desc.signalIds)
+      {
+        auto index = signal.index;
+
+        if (signal.kind == SignalKind::Raw) {
+
+          if (signal.id == sdraw0->id)
+            QCOMPARE(values[index], static_cast<float>(raw0));
+
+          else if (signal.id == sdraw1->id)
+            QCOMPARE(values[index], static_cast<float>(raw1));
+
+          else
+            QFAIL("Unexpected signal in archive");
+
+        } else if (signal.kind == SignalKind::Calculated) {
+
+          double a;
+          QVERIFY(runtime.calibrations.calibrateBySignal(sda->id, raw0, a));
+
+          double b;
+          QVERIFY(runtime.calibrations.calibrateBySignalType(sdb->signalType, raw1, b));
+
+          double c = a + b;
+
+          if (signal.id == sda->id)
+            QCOMPARE(values[index], static_cast<float>(a));
+
+          else if (signal.id == sdb->id)
+            QCOMPARE(values[index], static_cast<float>(b));
+
+          else if (signal.id == sdc->id)
+            QCOMPARE(values[index], static_cast<float>(c));
+
+          else
+            QFAIL("Unexpected signal in archive");
+
+        }
+      }
+    }
+
+    QVERIFY(file.position() == file.fileSize());
+    //QVERIFY(file.eof()); error
+
+    file.close();
+
+    QVERIFY(!file.isOpen());
+  }
 }

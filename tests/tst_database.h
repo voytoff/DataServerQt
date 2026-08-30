@@ -15,5 +15,7 @@ private slots:
   void test_database_failLoading();
   void test_database_pipeline();
 
+  void test_database_archive();
+
 };
 

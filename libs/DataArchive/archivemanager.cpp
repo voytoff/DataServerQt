@@ -1,5 +1,4 @@
 #include "archivemanager.h"
-#include <format>
 
 namespace qds
 {
@@ -121,6 +120,14 @@ bool ArchiveManager::write(const Frame& frame)
   }
 
   return true;
+}
+
+void ArchiveManager::close()
+{
+  for (auto& target : m_targets)
+  {
+    target.writer.close();
+  }
 }
 
 }
