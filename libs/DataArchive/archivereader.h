@@ -1,11 +1,12 @@
 #pragma once
 
-#include <cstdint>
+#include <cstddef>
 #include <filesystem>
-#include <span>
+#include <vector>
 
-#include "archiveformat.h"
+#include "archivedescription.h"
 #include "archivefile.h"
+#include "datatypes.h"
 
 namespace qds
 {
@@ -13,19 +14,53 @@ namespace qds
 class ArchiveReader
 {
 public:
-  bool open(const std::filesystem::path& file);
 
-  bool readNext(
-    uint64_t& timestamp,
-    std::span<float> values);
+  bool open(
+    const std::filesystem::path& directory);
 
-  void close();
+  void close() noexcept;
 
-  const DataFileHeader& header() const;
+  [[nodiscard]]
+  bool isOpen() const noexcept;
+
+  [[nodiscard]]
+  const ArchiveDescription& description() const noexcept;
+
+  [[nodiscard]]
+  std::size_t fileCount() const noexcept;
+
+  [[nodiscard]]
+  const ArchiveFileDescription& fileDescription(
+    std::size_t index) const;
+
+  bool read(
+    std::size_t fileIndex,
+    ArchiveSample& sample);
+
+  bool readFrame(
+    std::size_t fileIndex,
+    FrameNumber frameNumber,
+    ArchiveSample& sample);
 
 private:
-  ArchiveFile m_file;
-  DataFileHeader m_header;
+
+  struct File
+  {
+    ArchiveFileDescription description;
+    std::filesystem::path path;
+    ArchiveFile archive;
+  };
+
+  bool ensureOpen(
+    std::size_t fileIndex);
+
+  std::filesystem::path m_directory;
+
+  ArchiveDescription m_description;
+
+  std::vector<File> m_files;
+
+  bool m_open = false;
 };
 
 }

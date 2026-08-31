@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
+#include <vector>
 
 #include "datatypes.h"
 
@@ -11,6 +13,8 @@ inline constexpr uint32_t ArchiveMagic   = 0x51445341; // "QDSA"
 inline constexpr uint32_t ArchiveVersion = 1;
 
 inline constexpr uint32_t BaseFrameFrequency = 1000;
+
+inline const std::string DescriptionFileName = "description.json";
 
 constexpr bool isValidArchiveFrequency(
   uint32_t frequency) noexcept
@@ -39,6 +43,15 @@ enum class ArchiveDataType : uint32_t
   Formula,
   Calculated,
   User
+};
+
+struct ArchiveSample
+{
+  FrameNumber frameNumber;
+  Timestamp timestamp;
+  WallClockTime wallTime;
+
+  std::vector<float> values;
 };
 
 struct DataFileHeader

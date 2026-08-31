@@ -22,8 +22,21 @@ using CalibrationId =
 enum class SignalKind : uint8_t
 {
   Raw = 0,
-  Calculated
+  Calculated,
+  Unknown = 0xFF
 };
+
+static SignalKind signalKindFromString(
+  const std::string& value)
+{
+  if (value == "Raw")
+    return SignalKind::Raw;
+
+  if (value == "Calculated")
+    return SignalKind::Calculated;
+
+  return SignalKind::Unknown;
+}
 
 enum class SignalMemoryArea : uint8_t
 {
