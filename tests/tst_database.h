@@ -17,5 +17,8 @@ private slots:
 
   void test_database_archive();
 
+  void test_archiveReader_open();
+  void test_archiveReader_read();
+  void test_archiveReader_readFrame();
 };
 

@@ -43,11 +43,11 @@ public:
   UdpServer server;
 };
 
-static std::string getCurrentFolder() {
-  return std::filesystem::current_path().generic_string();
+static std::filesystem::path getCurrentFolder() {
+  return std::filesystem::current_path();
 }
 static std::string getFilePath(std::string fileName) {
-  return std::format("{0}/{1}", getCurrentFolder(), fileName);
+  return getCurrentFolder() / fileName;
 }
 static qds::DataFileHeader getDataFileHeader() {
   auto recordSize = static_cast<uint32_t>(sizeof(qds::SampleRecordHeader) + 32 * sizeof(float));

@@ -38,6 +38,6 @@ private slots:
   void test_archiveDescription_writeCalculatedSignals();
   void test_archiveDescription_writeMultipleFiles();
 
-  void test_archiveDescription_archiveDescriptionBuilder();
+  void test_archiveDescription_archiveDescriptionBuilder();  
 
 };

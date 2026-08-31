@@ -15,6 +15,7 @@ inline constexpr uint32_t ArchiveVersion = 1;
 inline constexpr uint32_t BaseFrameFrequency = 1000;
 
 inline const std::string DescriptionFileName = "description.json";
+inline constexpr uint32_t ArchiveDescriptionVersion = 1;
 
 constexpr bool isValidArchiveFrequency(
   uint32_t frequency) noexcept

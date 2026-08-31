@@ -45,10 +45,10 @@ bool ArchiveReader::open(const std::filesystem::path &directory)
       jsonData,
       &error);
 
-  if(error.error != QJsonParseError::NoError)
+  if (error.error != QJsonParseError::NoError)
     return false;
 
-  if(!document.isObject())
+  if (!document.isObject())
     return false;
 
   const QJsonObject root =
@@ -60,29 +60,48 @@ bool ArchiveReader::open(const std::filesystem::path &directory)
   tmp.version =
     root["version"].toInt();
 
+  if (tmp.version != ArchiveDescriptionVersion)
+    return false;
+
+  if (!root["files"].isArray())
+    return false;
+
   const QJsonArray &files =
     root["files"].toArray();
+
+  if (files.isEmpty())
+    return false;
 
   for (const auto &file : files)
   {
     if (!file.isObject())
       return false;
 
-    ArchiveFileDescription desc;
-    const auto &source = file.toObject();
+    ArchiveFileDescription description;
+    const auto &fileObj = file.toObject();
 
-    desc.frequency =
-      source["frequency"].toInt();
+    description.frequency =
+      fileObj["frequency"].toInt();
 
-    desc.dataType = "float";
+    if (!isValidArchiveFrequency(
+          description.frequency))
+    {
+      return false;
+    }
 
-    desc.name =
-      source["name"].toString().toStdString();
+    description.dataType =
+      fileObj["dataType"].toString().toStdString();
 
-    if (!source["signals"].isArray())
+    if (description.dataType != "float")
       return false;
 
-    const QJsonArray &signalIds = source["signals"].toArray();
+    description.name =
+      fileObj["name"].toString().toStdString();
+
+    if (!fileObj["signals"].isArray())
+      return false;
+
+    const QJsonArray &signalIds = fileObj["signals"].toArray();
 
     for (const auto &item : signalIds)
     {
@@ -108,23 +127,42 @@ bool ArchiveReader::open(const std::filesystem::path &directory)
 
       if (signal.kind == SignalKind::Raw)
       {
+        if (!signalObj.contains("channel") ||
+            !signalObj.contains("module"))
+        {
+          return false;
+        }
+
         signal.channel =
           ChannelId{static_cast<uint32_t>(signalObj["channel"].toInt())};
 
         signal.module =
           ModuleId{static_cast<uint32_t>(signalObj["module"].toInt())};
       }
+      else if (signal.kind == SignalKind::Calculated)
+      {
+        if (signalObj.contains("channel") ||
+            signalObj.contains("module"))
+        {
+          return false;
+        }
+      }
+      else
+        return false;
 
-      desc.signalIds.push_back(
+      description.signalIds.push_back(
         std::move(signal));
     }
 
+    if (description.signalIds.empty())
+      return false;
+
     File reader;
-    reader.description = desc;
-    reader.path = directory / desc.name;
+    reader.description = description;
+    reader.path = directory / description.name;
 
     tmp.files.push_back(
-      std::move(desc));
+      std::move(description));
 
     tmpFiles.push_back(
       std::move(reader));
@@ -207,10 +245,12 @@ bool ArchiveReader::readFrame(
   FrameNumber frameNumber,
   ArchiveSample& sample)
 {
+  assert(fileIndex < m_files.size());
+
   if (!m_open)
     return false;
 
-  if (ensureOpen(fileIndex))
+  if (!ensureOpen(fileIndex))
     return false;
 
   auto& file =
@@ -245,7 +285,10 @@ bool ArchiveReader::readFrame(
   if (!file.seek(position))
     return false;
 
-  return read(fileIndex, sample);
+  if (!read(fileIndex, sample))
+    return false;
+
+  return sample.frameNumber == frameNumber;
 }
 
 bool ArchiveReader::ensureOpen(
@@ -256,9 +299,14 @@ bool ArchiveReader::ensureOpen(
   if (file.archive.isOpen())
     return true;
 
-  return file.archive.open(
+  if (!file.archive.open(
     file.path,
-    OpenMode::Read);
+    OpenMode::Read))
+  {
+    return false;
+  }
+
+  return file.archive.header().isValid();
 }
 
 }

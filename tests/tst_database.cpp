@@ -2,9 +2,11 @@
 #include "archivedescriptionbuilder.h"
 #include "archivedescriptionwriter.h"
 #include "archivemanager.h"
+#include "archivereader.h"
 #include "configurationrepository.h"
 #include "datasourcefactory.h"
 #include "db.h"
+#include "archiveformat.h"
 #include "fakeschedulerclock.h"
 #include "runtimesystem.h"
 #include "systembuilder.h"
@@ -13,7 +15,6 @@
 #include "testdatasource.h"
 #include "testpublisher.h"
 #include "testsrv.h"
-#include "tst_dataarchive.h"
 #include <QSqlTableModel>
 #include <qtestcase.h>
 
@@ -454,7 +455,7 @@ void tst_database::test_database_archive()
 
   for (const auto &desc : description.files)
   {
-    auto fileName = std::format("{0}/{1}", getCurrentFolder(), desc.name);
+    auto fileName = getCurrentFolder() / desc.name;
     QVERIFY(file.open(fileName, OpenMode::Read));
 
     QVERIFY(file.header().isValid());
@@ -533,10 +534,197 @@ void tst_database::test_database_archive()
     }
 
     QVERIFY(file.position() == file.fileSize());
-    //QVERIFY(file.eof()); error
 
     file.close();
 
     QVERIFY(!file.isOpen());
   }
+}
+
+void tst_database::test_archiveReader_open()
+{
+  ArchiveReader reader;
+
+  QVERIFY(reader.open(getCurrentFolder()));
+
+  QVERIFY(reader.isOpen());
+
+  const ArchiveDescription &description = reader.description();
+  QCOMPARE(description.version, ArchiveDescriptionVersion);
+
+  QCOMPARE(description.files.size(), 4);
+  QCOMPARE(description.files.size(), reader.fileCount());
+
+  for (std::size_t i = 0; i < reader.fileCount(); ++i)
+  {
+    const auto &file = reader.description().files[i];
+    const auto &desc = reader.fileDescription(i);
+
+    QCOMPARE(file.dataType, "float");
+    QVERIFY(isValidArchiveFrequency(file.frequency));
+
+    QVERIFY(!file.signalIds.empty());
+
+    const auto expectedName =
+      file.signalIds[0].kind == SignalKind::Raw
+        ? "raw_" +
+            std::to_string(file.frequency) +
+            "Hz.dat"
+        : "calculated_" +
+            std::to_string(file.frequency) +
+            "Hz.dat";
+
+    QCOMPARE(
+      file.name,
+      expectedName);
+
+    QCOMPARE(desc.name, file.name);
+    QCOMPARE(desc.frequency, file.frequency);
+    QCOMPARE(desc.dataType, file.dataType);
+    QCOMPARE(desc.signalIds.size(), file.signalIds.size());
+  }
+
+  reader.close();
+
+  QVERIFY(!reader.isOpen());
+}
+
+void tst_database::test_archiveReader_read()
+{
+  ArchiveReader reader;
+
+  QVERIFY(reader.open(getCurrentFolder()));
+
+  QVERIFY(reader.isOpen());
+
+  const ArchiveDescription &description = reader.description();
+  QCOMPARE(description.version, ArchiveDescriptionVersion);
+
+  QCOMPARE(description.files.size(), 4);
+
+  const auto &files = description.files;
+
+  auto it = std::find_if(
+    files.begin(),
+    files.end(),
+    [](const ArchiveFileDescription &desc)
+    {
+      return desc.frequency == 10 &&
+             desc.signalIds[0].kind == SignalKind::Calculated;
+    });
+
+  QVERIFY(it != files.end());
+
+  QCOMPARE(
+    it->name,
+    "calculated_10Hz.dat");
+
+  int index = std::distance(files.begin(), it);
+
+  QVERIFY(index >= 0 && index < files.size());
+
+  ArchiveSample sample;
+
+  for (int i = 1; i <= files[index].frequency; ++i)
+  {
+    QVERIFY(reader.read(index, sample));
+
+    QCOMPARE(sample.frameNumber, FrameNumber{static_cast<uint64_t>(i * 100)});
+    QCOMPARE(sample.timestamp, Timestamp{static_cast<uint64_t>(i * 100 * 2)});
+    QCOMPARE(sample.wallTime, WallClockTime{static_cast<int64_t>(i * 100 * 3)});
+
+    QCOMPARE(sample.values.size(), 2);
+    QCOMPARE(
+      sample.values.size(),
+      files[index].signalIds.size());
+
+    double a = (100 * i - 1) * 0.1;
+    double b = 970 + (i - 1) * 1000;
+    double c = a + b;
+
+    QCOMPARE(
+      sample.values[0],
+      static_cast<float>(b));
+
+    QCOMPARE(
+      sample.values[1],
+      static_cast<float>(c));
+  }
+
+  QVERIFY(!reader.read(index, sample));
+
+  reader.close();
+
+  QVERIFY(!reader.isOpen());
+}
+
+void tst_database::test_archiveReader_readFrame()
+{
+  ArchiveReader reader;
+
+  QVERIFY(reader.open(getCurrentFolder()));
+
+  QVERIFY(reader.isOpen());
+
+  const ArchiveDescription &description = reader.description();
+  QCOMPARE(description.version, ArchiveDescriptionVersion);
+
+  QCOMPARE(description.files.size(), 4);
+
+  const auto &files = description.files;
+
+  auto it = std::find_if(
+    files.begin(),
+    files.end(),
+    [](const ArchiveFileDescription &desc)
+    {
+      return desc.frequency == 10 &&
+             desc.signalIds[0].kind == SignalKind::Calculated;
+    });
+
+  QVERIFY(it != files.end());
+
+  QCOMPARE(
+    it->name,
+    "calculated_10Hz.dat");
+
+  int index = std::distance(files.begin(), it);
+
+  QVERIFY(index >= 0 && index < files.size());
+
+  ArchiveSample sample;
+
+  for (uint64_t i = files[index].frequency; i > 0; --i)
+  {
+    QVERIFY(reader.readFrame(index, FrameNumber{i * 100}, sample));
+
+    QCOMPARE(sample.frameNumber, FrameNumber{static_cast<uint64_t>(i * 100)});
+    QCOMPARE(sample.timestamp, Timestamp{static_cast<uint64_t>(i * 100 * 2)});
+    QCOMPARE(sample.wallTime, WallClockTime{static_cast<int64_t>(i * 100 * 3)});
+
+    QCOMPARE(sample.values.size(), 2);
+    QCOMPARE(
+      sample.values.size(),
+      files[index].signalIds.size());
+
+    double a = (100 * i - 1) * 0.1;
+    double b = 970 + (i - 1) * 1000;
+    double c = a + b;
+
+    QCOMPARE(
+      sample.values[0],
+      static_cast<float>(b));
+
+    QCOMPARE(
+      sample.values[1],
+      static_cast<float>(c));
+  }
+
+  QVERIFY(!reader.readFrame(index, FrameNumber{0}, sample));    // недопустимый frame
+  QVERIFY(!reader.readFrame(index, FrameNumber{999}, sample));  // не попадает в сетку 10 Hz
+  QVERIFY(!reader.readFrame(index, FrameNumber{1100}, sample)); // за EOF
+
+  reader.close();
+
+  QVERIFY(!reader.isOpen());
 }
