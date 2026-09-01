@@ -767,10 +767,6 @@ void tst_database::test_publisher()
     cr,
     runtime));
 
-  ArchiveDescriptionBuilder archiveBuilder;
-  ArchiveDescription description;
-  QVERIFY(archiveBuilder.build(cfg, description));
-
   NullArchiveWriter archive;
 
   SubscriptionManager subscriptions;
@@ -862,6 +858,7 @@ void tst_database::test_publisher()
   }
 
   runtime.engine->stop();
+  QVERIFY(!runtime.engine->isRunning());
 }
 
 void tst_database::test_publisher_raw_calculated()
@@ -898,12 +895,6 @@ void tst_database::test_publisher_raw_calculated()
     factory,
     cr,
     runtime));
-
-  ArchiveDescriptionBuilder archiveBuilder;
-  ArchiveDescription description;
-  QVERIFY(archiveBuilder.build(cfg, description));
-
-  ArchiveDescriptionWriter writer;
 
   NullArchiveWriter archive;
 
@@ -946,8 +937,11 @@ void tst_database::test_publisher_raw_calculated()
 
   PacketReader reader;
 
-  uint32_t sequence = 0;
   std::array<Sample, 2> samples{};
+
+  uint32_t period;
+  uint32_t sequence1 = 0;
+  uint32_t sequence2 = 0;
 
   for (const auto &packet : sender.m_packets)
   {
@@ -967,56 +961,67 @@ void tst_database::test_publisher_raw_calculated()
 
     QVERIFY(reader.read(ldh));
 
+    QCOMPARE(
+      ldh.valueCount,
+      2u);
+
+    QVERIFY(
+      reader.readArray(
+        samples.data(),
+        samples.size()));
+
+    const auto &sequence = ldh.sequence;
+    QVERIFY(sequence > 0);
+
+    auto index = sequence - 1;
+
     const auto &subid = ldh.subscriptionId;
 
     if (subid == SubscriptionId{1})
     {
+      period = 100;
+
+      double a = (period * index) * 0.1;
+      double b = -20.0 + index * 1000;
+      double c = a + b;
+
       QCOMPARE(
         ldh.sequence,
-        sequence + 1);
+        ++sequence1);
 
-      QCOMPARE(
-        ldh.timestamp,
-        sequence * 100 * 2 + 2);
-
-      QCOMPARE(
-        ldh.valueCount,
-        2u);
-
-      QVERIFY(
-        reader.readArray(
-          samples.data(),
-          samples.size()));
+      QCOMPARE(samples[0].value, index * period);
+      QCOMPARE(samples[1].value, c);
     }
     else if (subid == SubscriptionId{2})
     {
+      period = 10;
+
+      double a = (period * index) * 0.1;
+
       QCOMPARE(
         ldh.sequence,
-        sequence + 1);
+        ++sequence2);
 
-      QCOMPARE(
-        ldh.timestamp,
-        sequence * 10 * 2 + 2);
-
-      QCOMPARE(
-        ldh.valueCount,
-        2u);
-
-      QVERIFY(
-        reader.readArray(
-          samples.data(),
-          samples.size()));
+      QCOMPARE(samples[0].value, index * 10 * period);
+      QCOMPARE(samples[1].value, a);
     }
+    else
+      QFAIL("Ошибка подписки");
+
+    QCOMPARE(
+      ldh.timestamp,
+      index * period * 2 + 2);
 
     QCOMPARE(
       reader.remaining(),
       std::size_t(0));
 
-    //QCOMPARE(samples[0].value, sequence);
-    //QCOMPARE(samples[1].value, sequence * 10);
-
-    ++sequence;
   }
 
   runtime.engine->stop();
+
+  QCOMPARE(sequence1, 10u);
+  QCOMPARE(sequence2, 100u);
+
+  QVERIFY(!runtime.engine->isRunning());
 }
