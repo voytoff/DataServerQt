@@ -8,6 +8,7 @@
 #include "subscription.h"
 #include "systemconfiguration.h"
 #include "taginfo.h"
+#include "testpublishersender.h"
 #include "testsrv.h"
 #include <qtestcase.h>
 

@@ -2,6 +2,8 @@
 
 #include <QObject>
 #include <qtestcase.h>
+#include <filesystem>
+
 #include "archivefile.h"
 #include "archiveformat.h"
 #include "formulafunctionabs.h"
@@ -15,6 +17,7 @@
 #include "subscriptionmanager.h"
 #include "systemconfiguration.h"
 #include "taginfo.h"
+#include "testpublishersender.h"
 #include "udpsender.h"
 #include "udpserver.h"
 
@@ -47,7 +50,7 @@ static std::filesystem::path getCurrentFolder() {
   return std::filesystem::current_path();
 }
 static std::string getFilePath(std::string fileName) {
-  return getCurrentFolder() / fileName;
+  return (getCurrentFolder() / fileName).string();
 }
 static qds::DataFileHeader getDataFileHeader() {
   auto recordSize = static_cast<uint32_t>(sizeof(qds::SampleRecordHeader) + 32 * sizeof(float));
@@ -503,13 +506,13 @@ static SystemConfiguration createTestConfig_Copy_Add(ModuleType type = ModuleTyp
   SignalDefinition sd1 {.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 10};
   cfg.addSignalDefinition(sd1);
 
-  SignalDefinition sd2 {.id = {2}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{0}}};
+  SignalDefinition sd2 {.id = {2}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formula = "Raw0"};
   cfg.addSignalDefinition(sd2);
 
-  SignalDefinition sd3 {.id = {3}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}, .dependencies = {{1}}};
+  SignalDefinition sd3 {.id = {3}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formula = "Raw1"};
   cfg.addSignalDefinition(sd3);
 
-  SignalDefinition sd4 {.id = {4}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {2}, .dependencies = {{2}, {3}}};
+  SignalDefinition sd4 {.id = {4}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formula = "A / (B + 1)"};
   cfg.addSignalDefinition(sd4);
 
   return cfg;

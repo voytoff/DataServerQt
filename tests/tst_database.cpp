@@ -8,12 +8,15 @@
 #include "db.h"
 #include "archiveformat.h"
 #include "fakeschedulerclock.h"
+#include "nullarchivewriter.h"
+#include "protocol/publishheader.h"
 #include "runtimesystem.h"
 #include "systembuilder.h"
 #include "systemconfiguration.h"
 #include "testarchivewriter.h"
 #include "testdatasource.h"
 #include "testpublisher.h"
+#include "testpublishersender.h"
 #include "testsrv.h"
 #include <QSqlTableModel>
 #include <qtestcase.h>
@@ -727,4 +730,293 @@ void tst_database::test_archiveReader_readFrame()
   reader.close();
 
   QVERIFY(!reader.isOpen());
+}
+
+void tst_database::test_publisher()
+{
+  using namespace qds;
+  auto db = get_db();
+  QVERIFY(db.isOpen());
+  QVERIFY(db.isValid());
+
+  ConfigurationRepository repo(db);
+
+  SystemConfiguration cfg;
+  QVERIFY(repo.load(ConfigurationId{1}, cfg));
+
+  CalibrationRepository cr;
+  QVERIFY(repo.loadCalibrations(cfg, cr));
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::LTR11,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  RuntimeSystem runtime;
+
+  SystemBuilder builder;
+
+  QVERIFY(builder.build(
+    cfg,
+    factory,
+    cr,
+    runtime));
+
+  ArchiveDescriptionBuilder archiveBuilder;
+  ArchiveDescription description;
+  QVERIFY(archiveBuilder.build(cfg, description));
+
+  NullArchiveWriter archive;
+
+  SubscriptionManager subscriptions;
+  TestPublisherSender sender;
+  Publisher publisher(runtime.layout, subscriptions, sender, 1000);
+  FakeSchedulerClock clock(2, 3);
+
+  const auto &definitions = cfg.signalDefinitions();
+  QCOMPARE(definitions.size(), 5);
+
+  qds::Subscription sub;
+  sub.endpoint.address = "127.0.0.1";
+  sub.endpoint.port = cfg.udpPort();
+  sub.rate = PublishRate::Hz10;
+  sub.signalIds = { findSignalDefinition(definitions, "Raw0")->id, findSignalDefinition(definitions, "Raw1")->id };
+
+  auto id = subscriptions.add(sub);
+
+  QCOMPARE(id, SubscriptionId{1});
+
+  QVERIFY(runtime.engine->initialize(
+    runtime.dataSources,
+    *runtime.signalProcessor,
+    runtime.buffers,
+    archive,
+    publisher,
+    clock));
+
+  for (int i = 0; i < 1000; ++i)
+  {
+    QVERIFY(runtime.engine->process());
+  }
+
+  QCOMPARE(sender.sendCount, 10);
+
+  PacketReader reader;
+
+  uint32_t sequence = 0;
+
+  for (const auto &packet : sender.m_packets)
+  {
+    reader.clear();
+
+    reader.append(
+      packet.data(),
+      packet.size());
+
+    QVERIFY(reader.nextPacket());
+
+    QCOMPARE(
+      reader.packetType(),
+      PacketType::LiveData);
+
+    PublishHeader ldh;
+
+    QVERIFY(reader.read(ldh));
+
+    QCOMPARE(
+      ldh.subscriptionId,
+      SubscriptionId{1});
+
+    QCOMPARE(
+      ldh.sequence,
+      sequence + 1);
+
+    QCOMPARE(
+      ldh.timestamp,
+      sequence * 100 * 2 + 2);
+
+    QCOMPARE(
+      ldh.valueCount,
+      2u);
+
+    std::array<Sample, 2> samples{};
+
+    QVERIFY(
+      reader.readArray(
+        samples.data(),
+        samples.size()));
+
+    QCOMPARE(
+      reader.remaining(),
+      std::size_t(0));
+
+    QCOMPARE(samples[0].value, sequence);
+    QCOMPARE(samples[1].value, sequence * 10);
+
+    ++sequence;
+  }
+
+  runtime.engine->stop();
+}
+
+void tst_database::test_publisher_raw_calculated()
+{
+  using namespace qds;
+  auto db = get_db();
+  QVERIFY(db.isOpen());
+  QVERIFY(db.isValid());
+
+  ConfigurationRepository repo(db);
+
+  SystemConfiguration cfg;
+  QVERIFY(repo.load(ConfigurationId{1}, cfg));
+
+  CalibrationRepository cr;
+  QVERIFY(repo.loadCalibrations(cfg, cr));
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::LTR11,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  RuntimeSystem runtime;
+
+  SystemBuilder builder;
+
+  QVERIFY(builder.build(
+    cfg,
+    factory,
+    cr,
+    runtime));
+
+  ArchiveDescriptionBuilder archiveBuilder;
+  ArchiveDescription description;
+  QVERIFY(archiveBuilder.build(cfg, description));
+
+  ArchiveDescriptionWriter writer;
+
+  NullArchiveWriter archive;
+
+  SubscriptionManager subscriptions;
+  TestPublisherSender sender;
+  Publisher publisher(runtime.layout, subscriptions, sender, 1000);
+  FakeSchedulerClock clock(2, 3);
+
+  const auto &definitions = cfg.signalDefinitions();
+  QCOMPARE(definitions.size(), 5);
+
+  qds::Subscription sub;
+  sub.endpoint.address = "127.0.0.1";
+  sub.endpoint.port = cfg.udpPort();
+  sub.rate = PublishRate::Hz10;
+  sub.signalIds = { findSignalDefinition(definitions, "Raw0")->id, findSignalDefinition(definitions, "C")->id };
+  auto id1 = subscriptions.add(sub);
+
+  sub.rate =  PublishRate::Hz100;
+  sub.signalIds = { findSignalDefinition(definitions, "Raw1")->id, findSignalDefinition(definitions, "A")->id };
+  auto id2 = subscriptions.add(sub);
+
+  QCOMPARE(id1, SubscriptionId{1});
+  QCOMPARE(id2, SubscriptionId{2});
+
+  QVERIFY(runtime.engine->initialize(
+    runtime.dataSources,
+    *runtime.signalProcessor,
+    runtime.buffers,
+    archive,
+    publisher,
+    clock));
+
+  for (int i = 0; i < 1000; ++i)
+  {
+    QVERIFY(runtime.engine->process());
+  }
+
+  QCOMPARE(sender.sendCount, 10 + 100);
+
+  PacketReader reader;
+
+  uint32_t sequence = 0;
+  std::array<Sample, 2> samples{};
+
+  for (const auto &packet : sender.m_packets)
+  {
+    reader.clear();
+
+    reader.append(
+      packet.data(),
+      packet.size());
+
+    QVERIFY(reader.nextPacket());
+
+    QCOMPARE(
+      reader.packetType(),
+      PacketType::LiveData);
+
+    PublishHeader ldh;
+
+    QVERIFY(reader.read(ldh));
+
+    const auto &subid = ldh.subscriptionId;
+
+    if (subid == SubscriptionId{1})
+    {
+      QCOMPARE(
+        ldh.sequence,
+        sequence + 1);
+
+      QCOMPARE(
+        ldh.timestamp,
+        sequence * 100 * 2 + 2);
+
+      QCOMPARE(
+        ldh.valueCount,
+        2u);
+
+      QVERIFY(
+        reader.readArray(
+          samples.data(),
+          samples.size()));
+    }
+    else if (subid == SubscriptionId{2})
+    {
+      QCOMPARE(
+        ldh.sequence,
+        sequence + 1);
+
+      QCOMPARE(
+        ldh.timestamp,
+        sequence * 10 * 2 + 2);
+
+      QCOMPARE(
+        ldh.valueCount,
+        2u);
+
+      QVERIFY(
+        reader.readArray(
+          samples.data(),
+          samples.size()));
+    }
+
+    QCOMPARE(
+      reader.remaining(),
+      std::size_t(0));
+
+    //QCOMPARE(samples[0].value, sequence);
+    //QCOMPARE(samples[1].value, sequence * 10);
+
+    ++sequence;
+  }
+
+  runtime.engine->stop();
 }

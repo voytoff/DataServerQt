@@ -8,6 +8,7 @@
 #include "fakedatasource.h"
 #include "fakeschedulerclock.h"
 #include "formulaadd.h"
+#include "formulabuilder.h"
 #include "formulacopy.h"
 #include "formularepository.h"
 #include "nullframepublisher.h"
@@ -19,7 +20,7 @@
 
 tst_engine::tst_engine() { }
 tst_engine::~tst_engine() = default;
-/*
+
 void tst_engine::test_pipeline_archive_copy()
 {
   using namespace qds;
@@ -27,9 +28,28 @@ void tst_engine::test_pipeline_archive_copy()
   SignalMemoryLayout layout;
   layout.build(cfg);
 
-  CalculationPlan plan;
+  FormulaAstRepository formulas;
+  FormulaBuilder formulaBuilder;
 
-  CalculationProcessor processor(plan);
+  QVERIFY(formulaBuilder.build(
+    cfg,
+    layout,
+    formulas));
+
+  CalculationPlan plan;
+  CalculationCompiler builder(cfg, layout, formulas);
+
+  QVERIFY(builder.build(plan));
+
+  QCOMPARE(plan.size(), 3);
+
+  CalibrationRepository cr;
+
+  SignalProcessor processor(
+    layout,
+    formulas,
+    plan,
+    cr);
 
   BufferManager buffers;
   buffers.initialize(layout);
@@ -74,9 +94,9 @@ void tst_engine::test_pipeline_archive_copy()
   QCOMPARE(archived.raw().value(0), 1.);
   QCOMPARE(archived.raw().value(1), 2.);
 
-  QCOMPARE(archived.calculated().value(0), 0.0);
-  QCOMPARE(archived.calculated().value(1), 0.0);
-  QCOMPARE(archived.calculated().value(2), 0.0);
+  QCOMPARE(archived.calculated().value(0), 1.0);
+  QCOMPARE(archived.calculated().value(1), 2.0);
+  QCOMPARE(archived.calculated().value(2), 1.0 / (2.0 + 1));
 }
 
 void tst_engine::test_dataEngine_simple_runtime()
@@ -86,16 +106,28 @@ void tst_engine::test_dataEngine_simple_runtime()
   SignalMemoryLayout layout;
   layout.build(cfg);
 
-  FormulaRepository repo;
-  QVERIFY(repo.add({0}, std::make_unique<FormulaCopy>()));
-  QVERIFY(repo.add({2}, std::make_unique<FormulaAdd>()));
+  FormulaAstRepository formulas;
+  FormulaBuilder formulaBuilder;
 
-  CalculationCompiler compiler(cfg, layout, repo);
+  QVERIFY(formulaBuilder.build(
+    cfg,
+    layout,
+    formulas));
 
-  CalculationPlan plan; // 0 - 0 канал; 1 - 1 канал; 2 - их сумма
-  QVERIFY(compiler.build(plan));
+  CalculationPlan plan;
+  CalculationCompiler builder(cfg, layout, formulas);
 
-  CalculationProcessor processor(plan);
+  QVERIFY(builder.build(plan));
+
+  QCOMPARE(plan.size(), 3);
+
+  CalibrationRepository cr;
+
+  SignalProcessor processor(
+    layout,
+    formulas,
+    plan,
+    cr);
 
   BufferManager buffers;
   buffers.initialize(layout);
@@ -149,7 +181,7 @@ void tst_engine::test_dataEngine_simple_runtime()
 
     QCOMPARE(frame.calculated().value(0), frame.raw().value(0));
     QCOMPARE(frame.calculated().value(1), frame.raw().value(1));
-    QCOMPARE(frame.calculated().value(2), frame.raw().value(0) + frame.raw().value(1));
+    QCOMPARE(frame.calculated().value(2), frame.raw().value(0) / (frame.raw().value(1) + 1));
 
     auto p = archive.last();
     QCOMPARE(frame.calculated().value(0), p.calculated().value(0));
@@ -161,7 +193,7 @@ void tst_engine::test_dataEngine_simple_runtime()
     QCOMPARE(p.wallTime.unixMicroseconds, frame.wallTime.unixMicroseconds);
   }
 }
-
+/*
 void tst_engine::test_dataEngine_FailingDataSource()
 {
   using namespace qds;

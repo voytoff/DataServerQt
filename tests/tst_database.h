@@ -20,5 +20,9 @@ private slots:
   void test_archiveReader_open();
   void test_archiveReader_read();
   void test_archiveReader_readFrame();
+
+  void test_publisher();
+  void test_publisher_raw_calculated();
+
 };
 
