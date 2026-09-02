@@ -14,11 +14,11 @@
 #include "testpublisher.h"
 #include "testsrv.h"
 #include "dataserver.h"
+#include "udp.h"
 #include <qtestsupport_core.h>
 
 tst_dataserver::tst_dataserver() { }
 tst_dataserver::~tst_dataserver() = default;
-
 
 
 void tst_dataserver::test_systemBuilder_success()
@@ -2626,4 +2626,320 @@ void tst_dataserver::test_systemBuilder_failedThenSuccess()
     clock));
 
   QVERIFY(runtime.engine->process());
+}
+
+void tst_dataserver::test_dataServer_start_twice()
+{
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::Test);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::Test,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  TestArchiveWriter archive;
+  UdpSender sender;
+  FakeSchedulerClock clock;
+
+  CalibrationRepository cr;
+
+  DataServer ds(
+    cfg,
+    cr,
+    factory,
+    archive,
+    clock,
+    sender);
+
+  QVERIFY(ds.start());
+  QVERIFY(ds.isRunning());
+
+  QVERIFY(ds.start());
+  QVERIFY(ds.isRunning());
+
+  ds.stop();
+
+  QVERIFY(!ds.isRunning());
+}
+
+void tst_dataserver::test_dataServer_stop_before_start()
+{
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::Test);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::Test,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  TestArchiveWriter archive;
+  UdpSender sender;
+  FakeSchedulerClock clock;
+
+  CalibrationRepository cr;
+
+  DataServer ds(
+    cfg,
+    cr,
+    factory,
+    archive,
+    clock,
+    sender);
+
+  QVERIFY(!ds.isRunning());
+
+  ds.stop();
+
+  QVERIFY(!ds.isRunning());
+
+  QVERIFY(ds.start());
+  QVERIFY(ds.isRunning());
+
+  ds.stop();
+
+  QVERIFY(!ds.isRunning());
+}
+
+void tst_dataserver::test_dataServer_udp_pipeline()
+{
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::Test);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::Test,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  TestArchiveWriter archive;
+  UdpSender sender;
+  FakeSchedulerClock clock(2, 3);
+
+  CalibrationRepository cr;
+
+  DataServer ds(
+    cfg,
+    cr,
+    factory,
+    archive,
+    clock,
+    sender);
+
+  QVERIFY(ds.start());
+
+  QUdpSocket client;
+
+  QVERIFY(
+    client.bind(
+      QHostAddress::LocalHost,
+      0));
+
+  PacketWriter writer;
+  PacketReader reader;
+  std::vector<SignalId> signalIds;
+  SubscribeListRequest request;
+  SubscribeResponse response;
+  PublishHeader header;
+  QByteArray data;
+  long bytes;
+  std::array<Sample, 2> samples1;
+  std::array<Sample, 1> samples2;
+
+  // ------------------------------------------------------------
+  // Subscribe 1
+  // ------------------------------------------------------------
+
+  writer.begin(
+    PacketType::SubscribeListRequest);
+
+  signalIds.assign({{4}, {23}}); // B, C
+
+  request.rate = PublishRate::Hz10;
+  request.signalCount = signalIds.size();
+
+  writer.write(request);
+
+  writer.writeArray(
+    signalIds.data(),
+    signalIds.size());
+
+  bytes =
+    client.writeDatagram(
+      reinterpret_cast<const char*>(
+        writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      cfg.udpPort());
+
+  QCOMPARE(
+    bytes,
+    qint64(writer.size()));
+
+
+  // ------------------------------------------------------------
+  // Subscribe 2
+  // ------------------------------------------------------------
+
+  writer.begin(
+    PacketType::SubscribeListRequest);
+
+  signalIds.assign({{17}}); // A
+
+  request.rate = PublishRate::Hz100;
+  request.signalCount = signalIds.size();
+
+  writer.write(request);
+
+  writer.writeArray(
+    signalIds.data(),
+    signalIds.size());
+
+  bytes =
+    client.writeDatagram(
+      reinterpret_cast<const char*>(
+        writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      cfg.udpPort());
+
+  QCOMPARE(
+    bytes,
+    qint64(writer.size()));
+
+
+  // ------------------------------------------------------------
+  // SubscribeResponses 1 and 2
+  // ------------------------------------------------------------
+
+  bool has_sub1 = false, has_sub2 = false;
+  for (int subscribe = 1; subscribe <= 2; ++subscribe)
+  {
+    waitPacket(client, data, reader, PacketType::SubscribeResponse);
+
+    QCOMPARE(
+      reader.packetType(),
+      PacketType::SubscribeResponse);
+
+    QVERIFY(reader.read(response));
+
+    QCOMPARE(
+      reader.remaining(),
+      std::size_t(0));
+
+    QCOMPARE(
+      response.result,
+      SubscribeResult::Ok);
+
+    if (response.id == SubscriptionId{1})
+      has_sub1 = true;
+
+    else if (response.id == SubscriptionId{2})
+      has_sub2 = true;
+
+    else
+      QFAIL("Неверная подписка");
+  }
+
+  QVERIFY(has_sub1);
+  QVERIFY(has_sub2);
+
+
+  QTest::qWait(1500);
+
+
+  uint32_t sequence1 = 0;
+  uint32_t sequence2 = 0;
+
+  while(client.waitForReadyRead(100) && client.hasPendingDatagrams())
+  {
+    data.resize(client.pendingDatagramSize());
+    client.readDatagram(data.data(), data.size());
+
+    reader.clear();
+
+    reader.append(
+      reinterpret_cast<const std::byte*>(
+        data.constData()),
+      data.size());
+
+    QVERIFY(reader.nextPacket());
+
+    QCOMPARE(
+      reader.packetType(),
+      PacketType::LiveData);
+
+    QVERIFY(reader.read(header));
+
+    if (header.subscriptionId == SubscriptionId{1})
+    {
+      QCOMPARE(
+        header.sequence,
+        ++sequence1);
+
+      QCOMPARE(
+        header.timestamp, sequence1 * 100 * 2 + 2);
+
+      QCOMPARE(
+        header.valueCount,
+        2u);
+
+      QVERIFY(
+        reader.readArray(
+          samples1.data(),
+          samples1.size()));
+
+      QCOMPARE(samples1[0], Sample{static_cast<double>(sequence1 * 100 * 10)});
+      QCOMPARE(samples1[1], Sample{static_cast<double>(sequence1 * 100 * 10 + sequence1 * 100)});
+    }
+    else if (header.subscriptionId == SubscriptionId{2})
+    {
+      QCOMPARE(
+        header.sequence,
+        ++sequence2);
+
+      QCOMPARE(
+        header.timestamp, sequence2 * 10 * 2 + 2);
+
+      QCOMPARE(
+        header.valueCount,
+        1u);
+
+      QVERIFY(
+        reader.readArray(
+          samples2.data(),
+          samples2.size()));
+
+      QCOMPARE(samples2[0], Sample{static_cast<double>(sequence2 * 10)});
+    }
+    else
+      QFAIL("Неверная подписка");
+
+    QCOMPARE(
+      reader.remaining(),
+      std::size_t(0));
+  }
+
+  QVERIFY(sequence1 > 0);
+  QVERIFY(sequence2 > 0);
+
+  // ------------------------------------------------------------
+  // Stop
+  // ------------------------------------------------------------
+
+  ds.stop();
 }

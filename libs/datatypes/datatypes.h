@@ -53,6 +53,8 @@ using ConfigurationId =
 struct Sample
 {
   double value = 0.0;
+
+  constexpr auto operator<=>(const Sample&) const = default;
 };
 
 // Частота публикации данных для подписки.

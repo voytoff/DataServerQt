@@ -11,7 +11,6 @@
 #include "formulafunctionmin.h"
 #include "formulafunctionrepository.h"
 #include "formulafunctionsqrt.h"
-#include "isender.h"
 #include "moduleinfo.h"
 #include "publisher.h"
 #include "subscriptionmanager.h"

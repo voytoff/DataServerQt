@@ -32,7 +32,6 @@ void PacketWriter::writeRaw(
   const void* data,
   std::size_t size)
 {
-  //Q_ASSERT(m_buffer.size() >= sizeof(PacketHeader));
   assert(m_buffer.size() >= sizeof(PacketHeader));
 
   if (m_buffer.size() < sizeof(PacketHeader))

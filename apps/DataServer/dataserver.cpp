@@ -139,24 +139,5 @@ void DataServer::onTimer()
     return;
   }
 }
-/*
-void DataServer::rollbackStart()
-{
-  m_timer.stop();
 
-  if (m_udpServer)
-    m_udpServer->stop();
-
-  if (m_runtime.engine)
-    m_runtime.engine->stop();
-
-  m_udpServer.reset();
-  m_dispatcher.reset();
-  m_publisher.reset();
-
-  m_subscriptions.clear();
-
-  m_running = false;
-}
-*/
 }

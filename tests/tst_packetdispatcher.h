@@ -9,6 +9,8 @@ public:
   tst_packetdispatcher();
   ~tst_packetdispatcher() override;
 
+private:
+
 private slots:
   void tst_packetdispatcher_validSignal();
   void tst_packetdispatcher_invalidSignal();
@@ -25,5 +27,11 @@ private slots:
 
   void tst_packetdispatcher_subscribeWithoutPayload();
   void tst_packetdispatcher_subscribeExtraData();
+
+  void tst_packetdispatcher_unknownPacket();
+  void tst_packetdispatcher_invalidSignalCount();
+  void tst_packetdispatcher_invalidPacket();
+  void tst_packetdispatcher_subscriptionIdReuse();
+  void tst_packetdispatcher_unsubscribeExtraData();
 
 };

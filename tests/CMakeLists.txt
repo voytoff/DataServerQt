@@ -36,6 +36,7 @@ add_executable(unit_tests
     tst_formulas.h tst_formulas.cpp
     tst_dataserver.h tst_dataserver.cpp
     tst_database.h tst_database.cpp
+    udp.h
 )
 
 target_link_libraries(unit_tests

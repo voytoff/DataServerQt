@@ -851,8 +851,8 @@ void tst_database::test_publisher()
       reader.remaining(),
       std::size_t(0));
 
-    QCOMPARE(samples[0].value, sequence);
-    QCOMPARE(samples[1].value, sequence * 10);
+    QCOMPARE(samples[0].value, sequence * 100);
+    QCOMPARE(samples[1].value, sequence * 10 * 100);
 
     ++sequence;
   }

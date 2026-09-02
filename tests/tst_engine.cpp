@@ -4,6 +4,7 @@
 #include "dataengine.h"
 #include "failingarchivewriter.h"
 #include "failingdatasource.h"
+#include "failoncearchivewriter.h"
 #include "fakeclock.h"
 #include "fakedatasource.h"
 #include "fakeschedulerclock.h"
@@ -15,6 +16,7 @@
 #include "schedulerclock.h"
 #include "testarchivewriter.h"
 #include "testdatasource.h"
+#include "testpublisher.h"
 #include "testsrv.h"
 #include <qtestcase.h>
 
@@ -193,6 +195,110 @@ void tst_engine::test_dataEngine_simple_runtime()
     QCOMPARE(p.wallTime.unixMicroseconds, frame.wallTime.unixMicroseconds);
   }
 }
+
+void tst_engine::test_dataEngine_failOnceArchiveWriter()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_calculate(ModuleType::Test);
+
+  DataSourceFactory factory;
+  QVERIFY(factory.registerType(
+    ModuleType::Test,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  DataSourceManager manager;
+
+  QVERIFY(manager.initialize(
+    cfg,
+    layout,
+    factory));
+
+  QCOMPARE(manager.size(), 1);
+
+  FormulaAstRepository formulas;
+
+  FormulaBuilder formulaBuilder;
+
+  QVERIFY(formulaBuilder.build(cfg, layout, formulas));
+
+  CalculationPlan plan;
+  CalculationCompiler builder(cfg, layout, formulas);
+  QVERIFY(builder.build(plan));
+
+  QCOMPARE(plan.size(), 3);
+
+  CalibrationRepository cr;
+
+  SignalProcessor processor(
+    layout,
+    formulas,
+    plan,
+    cr);
+
+  BufferManager buffers;
+  buffers.initialize(layout);
+
+  FailOnceArchiveWriter archive;
+  TestPublisher publisher;
+
+  DataEngine engine;
+  FakeSchedulerClock clock(2, 5);
+
+  QVERIFY(engine.initialize(
+    manager,
+    processor,
+    buffers,
+    archive,
+    publisher,
+    clock));
+
+  QVERIFY(engine.process());
+  QVERIFY(buffers.ready());
+
+  QCOMPARE(publisher.count, 1);
+
+  QCOMPARE(archive.fail, false);
+  QCOMPARE(archive.attempts, 1);
+  QCOMPARE(archive.successes, 0);
+
+  const auto& published = publisher.last();
+  QCOMPARE(published.number, FrameNumber{1});
+  QCOMPARE(published.timestamp, Timestamp{2});
+  QCOMPARE(published.wallTime, WallClockTime{5});
+
+  for (int i = 1; i < 4; ++i) {
+    QVERIFY(engine.process());
+
+    const auto& frame = publisher.last();
+
+    QCOMPARE(frame.number, FrameNumber{static_cast<uint64_t>(i + 1)});
+    QCOMPARE(frame.timestamp, Timestamp{static_cast<uint64_t>((i + 1) * 2)});
+    QCOMPARE(frame.wallTime, WallClockTime{(i + 1) * 5});
+
+    const double a = i;
+    const double b = i * 10.0;
+
+    QCOMPARE(frame.raw().valueRef(0), a);
+    QCOMPARE(frame.raw().valueRef(1), b);
+
+    QCOMPARE(frame.calculated().valueRef(0), a);
+    QCOMPARE(frame.calculated().valueRef(1), b);
+    QCOMPARE(frame.calculated().valueRef(2), a + b);
+  }
+
+  engine.stop();
+  QVERIFY(!engine.isRunning());
+}
+
 /*
 void tst_engine::test_dataEngine_FailingDataSource()
 {

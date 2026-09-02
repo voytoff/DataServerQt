@@ -26,5 +26,6 @@ private slots:
   // здесь проверяется буквально вся система
   void test_pipeline_archive_copy();
   void test_dataEngine_simple_runtime();
+  void test_dataEngine_failOnceArchiveWriter();
 
 };
