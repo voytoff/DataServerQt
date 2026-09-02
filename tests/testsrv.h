@@ -4,6 +4,7 @@
 #include <qtestcase.h>
 #include <filesystem>
 
+#include "archivedescription.h"
 #include "archivefile.h"
 #include "archiveformat.h"
 #include "formulafunctionabs.h"
@@ -90,6 +91,29 @@ static const SignalDefinition* findSignalDefinition(
     return nullptr;
 
   return &(*it);
+}
+
+static const std::size_t findFile(const ArchiveDescription &description, SignalKind kind, uint32_t archiveFrequency)
+{
+  const std::string name =
+    kind == SignalKind::Raw
+      ? "raw_" + std::to_string(archiveFrequency) + "Hz.dat"
+      : "calculated_" + std::to_string(archiveFrequency) + "Hz.dat";
+
+  const auto &files = description.files;
+
+  auto it = std::find_if(
+    files.begin(),
+    files.end(),
+    [&](const ArchiveFileDescription &desc)
+    {
+      return desc.name == name;
+    });
+
+  if (it == files.end())
+    return -1;
+
+  return std::distance(files.begin(), it);;
 }
 
 static void createSignalDefinitions(SystemConfiguration &cfg)

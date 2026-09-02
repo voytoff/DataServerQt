@@ -1,5 +1,11 @@
 #include "tst_dataserver.h"
+#include "archivedescriptionbuilder.h"
+#include "archivedescriptionwriter.h"
+#include "archivemanager.h"
+#include "archivereader.h"
+#include "configurationrepository.h"
 #include "datasourcefactory.h"
+#include "db.h"
 #include "failingarchivewriter.h"
 #include "failingdatasource.h"
 #include "failoncearchivewriter.h"
@@ -2827,6 +2833,7 @@ void tst_dataserver::test_dataServer_udp_pipeline()
   // ------------------------------------------------------------
 
   bool has_sub1 = false, has_sub2 = false;
+
   for (int subscribe = 1; subscribe <= 2; ++subscribe)
   {
     waitPacket(client, data, reader, PacketType::SubscribeResponse);
@@ -2891,8 +2898,14 @@ void tst_dataserver::test_dataServer_udp_pipeline()
         header.sequence,
         ++sequence1);
 
+#ifdef __APPLE__
+      const auto index = sequence1 - 1;
+#else
+      const auto index = sequence1;
+#endif
+
       QCOMPARE(
-        header.timestamp, sequence1 * 100 * 2 + 2);
+        header.timestamp, index * 100 * 2 + 2); // - 1 - MACOS
 
       QCOMPARE(
         header.valueCount,
@@ -2903,8 +2916,8 @@ void tst_dataserver::test_dataServer_udp_pipeline()
           samples1.data(),
           samples1.size()));
 
-      QCOMPARE(samples1[0], Sample{static_cast<double>(sequence1 * 100 * 10)});
-      QCOMPARE(samples1[1], Sample{static_cast<double>(sequence1 * 100 * 10 + sequence1 * 100)});
+      QCOMPARE(samples1[0], Sample{static_cast<double>(index * 100 * 10)});
+      QCOMPARE(samples1[1], Sample{static_cast<double>(index * 100 * 10 + index * 100)});
     }
     else if (header.subscriptionId == SubscriptionId{2})
     {
@@ -2912,8 +2925,14 @@ void tst_dataserver::test_dataServer_udp_pipeline()
         header.sequence,
         ++sequence2);
 
+#ifdef __APPLE__
+      const auto index = sequence2 - 1;
+#else
+      const auto index = sequence2;
+#endif
+
       QCOMPARE(
-        header.timestamp, sequence2 * 10 * 2 + 2);
+        header.timestamp, index * 10 * 2 + 2);
 
       QCOMPARE(
         header.valueCount,
@@ -2924,7 +2943,7 @@ void tst_dataserver::test_dataServer_udp_pipeline()
           samples2.data(),
           samples2.size()));
 
-      QCOMPARE(samples2[0], Sample{static_cast<double>(sequence2 * 10)});
+      QCOMPARE(samples2[0], Sample{static_cast<double>(index * 10)});
     }
     else
       QFAIL("Неверная подписка");
@@ -2942,4 +2961,337 @@ void tst_dataserver::test_dataServer_udp_pipeline()
   // ------------------------------------------------------------
 
   ds.stop();
+}
+
+void tst_dataserver::test_dataServer_publish_archive_pipeline()
+{
+  using namespace qds;
+  auto db = get_db();
+  QVERIFY(db.isOpen());
+  QVERIFY(db.isValid());
+
+  ConfigurationRepository repository(db);
+
+  SystemConfiguration cfg;
+  QVERIFY(repository.load(ConfigurationId{1}, cfg));
+
+  CalibrationRepository calibrations;
+  QVERIFY(repository.loadCalibrations(cfg, calibrations));
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::LTR11,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  ArchiveDescriptionBuilder builder;
+  ArchiveDescription description;
+  QVERIFY(builder.build(cfg, description));
+
+  ArchiveDescriptionWriter archiveWriter;
+
+  const auto path =
+    getFilePath(
+      "description.json");
+
+  QVERIFY(
+    archiveWriter.write(
+      path,
+      description));
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  auto directory = getCurrentFolder();
+
+  ArchiveManager archive;
+  QVERIFY(archive.initialize(directory, description, layout));
+
+  UdpSender sender;
+  FakeSchedulerClock clock(2, 3);
+
+  DataServer ds(
+    cfg,
+    calibrations,
+    factory,
+    archive,
+    clock,
+    sender);
+
+  QVERIFY(ds.start());
+
+  QUdpSocket client;
+
+  QVERIFY(
+    client.bind(
+      QHostAddress::LocalHost,
+      0));
+
+  PacketWriter writer;
+  PacketReader reader;
+  std::vector<SignalId> signalIds;
+  SubscribeListRequest request;
+  SubscribeResponse response;
+  PublishHeader header;
+  QByteArray data;
+  long bytes;
+  std::array<Sample, 2> samples1;
+  std::array<Sample, 1> samples2;
+
+  // ------------------------------------------------------------
+  // Subscribe 1
+  // ------------------------------------------------------------
+
+  writer.begin(
+    PacketType::SubscribeListRequest);
+
+  const auto &def = cfg.signalDefinitions();
+  signalIds.assign({findSignalDefinition(def, "B")->id, findSignalDefinition(def, "C")->id});
+
+  request.rate = PublishRate::Hz10;
+  request.signalCount = signalIds.size();
+
+  writer.write(request);
+
+  writer.writeArray(
+    signalIds.data(),
+    signalIds.size());
+
+  bytes =
+    client.writeDatagram(
+      reinterpret_cast<const char*>(
+        writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      cfg.udpPort());
+
+  QCOMPARE(
+    bytes,
+    qint64(writer.size()));
+
+
+  // ------------------------------------------------------------
+  // Subscribe 2
+  // ------------------------------------------------------------
+
+  writer.begin(
+    PacketType::SubscribeListRequest);
+
+  signalIds.assign({findSignalDefinition(def, "A")->id});
+
+  request.rate = PublishRate::Hz100;
+  request.signalCount = signalIds.size();
+
+  writer.write(request);
+
+  writer.writeArray(
+    signalIds.data(),
+    signalIds.size());
+
+  bytes =
+    client.writeDatagram(
+      reinterpret_cast<const char*>(
+        writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      cfg.udpPort());
+
+  QCOMPARE(
+    bytes,
+    qint64(writer.size()));
+
+  // ------------------------------------------------------------
+  // Проверим ответ сервера на регистрацию подписок
+  // ------------------------------------------------------------
+
+  bool has_sub1 = false, has_sub2 = false;
+
+  for (int subscribe = 1; subscribe <= 2; ++subscribe)
+  {
+    waitPacket(client, data, reader, PacketType::SubscribeResponse);
+
+    QCOMPARE(
+      reader.packetType(),
+      PacketType::SubscribeResponse);
+
+    QVERIFY(reader.read(response));
+
+    QCOMPARE(
+      reader.remaining(),
+      std::size_t(0));
+
+    QCOMPARE(
+      response.result,
+      SubscribeResult::Ok);
+
+    if (response.id == SubscriptionId{1})
+      has_sub1 = true;
+
+    else if (response.id == SubscriptionId{2})
+      has_sub2 = true;
+
+    else
+      QFAIL("Неверная подписка");
+  }
+
+  QVERIFY(has_sub1);
+  QVERIFY(has_sub2);
+
+
+  QTest::qWait(2000);
+
+
+  // ------------------------------------------------------------
+  // Stop
+  // ------------------------------------------------------------
+
+  ds.stop();
+  QVERIFY(!ds.isRunning());
+
+  QTest::qWait(500);
+
+  archive.close();
+
+  ArchiveReader archiveReader;
+
+  QVERIFY(archiveReader.open(getCurrentFolder()));
+
+  QVERIFY(archiveReader.isOpen());
+
+  description = archiveReader.description();
+  QCOMPARE(description.version, ArchiveDescriptionVersion);
+
+  const auto index_bc = findFile(description, SignalKind::Calculated, 10); // B, C
+  QVERIFY(index_bc >= 0);
+
+  const auto index_a = findFile(description, SignalKind::Calculated, 100); // A
+  QVERIFY(index_a >= 0);
+
+
+  // ------------------------------------------------------------
+  // Проверим данные архивов и подписок
+  // ------------------------------------------------------------
+
+  uint32_t sequence1 = 0;
+  uint32_t sequence2 = 0;
+
+  while(client.waitForReadyRead(100) && client.hasPendingDatagrams())
+  {
+    data.resize(client.pendingDatagramSize());
+    client.readDatagram(data.data(), data.size());
+
+    reader.clear();
+
+    reader.append(
+      reinterpret_cast<const std::byte*>(
+        data.constData()),
+      data.size());
+
+    QVERIFY(reader.nextPacket());
+
+    QCOMPARE(
+      reader.packetType(),
+      PacketType::LiveData);
+
+    QVERIFY(reader.read(header));
+
+    if (header.subscriptionId == SubscriptionId{1})
+    {
+      QCOMPARE(
+        header.sequence,
+        ++sequence1);
+
+#ifdef __APPLE__
+      const auto index = sequence1 - 1;
+#else
+      const auto index = sequence1;
+#endif
+
+      QCOMPARE(
+        header.timestamp, index * 100 * 2 + 2);
+
+      QCOMPARE(
+        header.valueCount,
+        2u);
+
+      QVERIFY(
+        reader.readArray(
+          samples1.data(),
+          samples1.size()));
+
+      double a = (100 * index) * 0.1;
+      double b = -20.0 + index * 1000;
+      double c = a + b;
+
+      QCOMPARE(samples1[0], Sample{b});
+      QCOMPARE(samples1[1], Sample{c});
+
+      ArchiveSample as;
+      QVERIFY(archiveReader.readFrame(index_bc, FrameNumber{sequence1 * 100}, as));
+
+      QCOMPARE(as.frameNumber, FrameNumber{sequence1 * 100});
+      QCOMPARE(as.timestamp, Timestamp{sequence1 * 100 * 2});
+      QCOMPARE(as.wallTime, WallClockTime{sequence1 * 100 * 3});
+
+      a = (100 * sequence1 - 1) * 0.1;
+      b = 970 + (sequence1 - 1) * 1000;
+      c = a + b;
+
+      QCOMPARE(as.values[0], static_cast<float>(b));
+      QCOMPARE(as.values[1], static_cast<float>(c));
+    }
+    else if (header.subscriptionId == SubscriptionId{2})
+    {
+      QCOMPARE(
+        header.sequence,
+        ++sequence2);
+
+#ifdef __APPLE__
+      const auto index = sequence2 - 1;
+#else
+      const auto index = sequence2;
+#endif
+
+      QCOMPARE(
+        header.timestamp, index * 10 * 2 + 2);
+
+      QCOMPARE(
+        header.valueCount,
+        1u);
+
+      QVERIFY(
+        reader.readArray(
+          samples2.data(),
+          samples2.size()));
+
+      double a = index * 10 * 0.1;
+
+      QCOMPARE(samples2[0], Sample{a});
+
+      ArchiveSample as;
+      QVERIFY(archiveReader.readFrame(index_a, FrameNumber{sequence2 * 10}, as));
+
+      QCOMPARE(as.frameNumber, FrameNumber{sequence2 * 10});
+      QCOMPARE(as.timestamp, Timestamp{sequence2 * 10 * 2});
+      QCOMPARE(as.wallTime, WallClockTime{sequence2 * 10 * 3});
+
+      a = (10 * sequence2 - 1) * 0.1;
+
+      QCOMPARE(as.values[0], static_cast<float>(a));
+    }
+    else
+      QFAIL("Неверная подписка");
+
+    QCOMPARE(
+      reader.remaining(),
+      std::size_t(0));
+  }
+
+  QVERIFY(sequence1 > 0);
+  QVERIFY(sequence2 > 0);
+
 }
