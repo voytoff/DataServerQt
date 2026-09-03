@@ -1,6 +1,7 @@
 #include "logger.h"
 
 #include <chrono>
+#include <ctime>
 #include <format>
 #include <iomanip>
 #include <sstream>
@@ -12,49 +13,50 @@ namespace qds
 namespace
 {
 
-std::string formatTimeWithMs(
-  std::chrono::system_clock::time_point tp)
-{
-  const auto time_c =
-    std::chrono::system_clock::to_time_t(tp);
+std::string formatTimeWithMs(int64_t micro_val) {
+  using namespace std::chrono;
 
-  const std::tm tm_local =
-    *std::localtime(&time_c);
+  // 1. Переводим микросекунды в time_point системных часов
+  microseconds dur(micro_val);
+  system_clock::time_point tp(duration_cast<system_clock::duration>(dur));
 
-  const auto duration =
-    tp.time_since_epoch();
+  // 2. Отделяем целые секунды
+  auto tp_seconds = time_point_cast<seconds>(tp);
 
-  const auto seconds =
-    std::chrono::duration_cast<
-      std::chrono::seconds>(
-      duration);
+  // 3. Получаем остаток в миллисекундах (вместо микросекунд)
+  auto duration_millis = duration_cast<milliseconds>(tp - tp_seconds);
 
-  const auto milliseconds =
-    std::chrono::duration_cast<
-      std::chrono::milliseconds>(
-      duration - seconds);
+  // 4. Преобразуем секунды в структуру даты (UTC)
+  std::time_t tt = system_clock::to_time_t(tp_seconds);
+  std::tm gmt;
 
-  std::stringstream ss;
+#if defined(_MSC_VER)
+  gmtime_s(&gmt, &tt);
+#else
+  gmtime_r(&tt, &gmt); // Для macOS (Xcode) и Linux
+#endif
 
-  ss << std::put_time(
-    &tm_local,
-    "%Y-%m-%d %H:%M:%S")
-     << '.'
-     << std::setfill('0')
-     << std::setw(3)
-     << milliseconds.count();
+  // 5. Форматируем дату до секунд
+  char buf[24];
+  std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &gmt);
 
-  return ss.str();
+  // 6. Собираем строку с 3 знаками миллисекунд
+  std::ostringstream oss;
+  oss << buf << '.' << std::setfill('0') << std::setw(3) << duration_millis.count();
+
+  return oss.str();
 }
 
 } // namespace
 
 Logger::Logger(
-  const std::filesystem::path& path)
+  const std::filesystem::path& directory,
+  const IClock& clock)
+  : m_directory(directory)
+  , m_clock(clock)
 {
-  m_stream.open(
-    path,
-    std::ios::out | std::ios::trunc);
+  std::error_code ec;
+  std::filesystem::create_directories(m_directory, ec);
 }
 
 Logger::~Logger()
@@ -87,16 +89,22 @@ bool Logger::write(
   LogLevel level,
   std::string_view message)
 {
-  if (!m_stream.is_open())
-    return false;
+  const auto wallTime = m_clock.wallClockTime();
+  const auto fileName = makeFileName(wallTime);
 
-  const auto now =
-    std::chrono::system_clock::now();
+  if (!m_stream.is_open() ||
+      fileName != m_currentFileName)
+  {
+    if (!openFile(fileName))
+      return false;
+
+    m_currentFileName = fileName;
+  }
 
   const auto text =
     std::format(
       "{} [{}] {}\n",
-      formatTimeWithMs(now),
+      formatTimeWithMs(wallTime.unixMicroseconds),
       logLevelToString(level),
       message);
 
@@ -104,10 +112,47 @@ bool Logger::write(
     text.data(),
     text.size());
 
-  if (!m_stream)
-    return false;
+  return bool(m_stream);
+}
 
-  return true;
+bool Logger::openFile(
+  const std::filesystem::path& path)
+{
+  if (m_stream.is_open())
+    m_stream.close();
+
+  m_stream.clear();
+
+  m_stream.open(
+    path,
+    std::ios::out | std::ios::app);
+
+  return bool(m_stream);
+}
+
+std::filesystem::path Logger::makeFileName(
+  const WallClockTime& time) const
+{
+  const std::time_t seconds =
+    time.unixMicroseconds / 1'000'000;
+
+  std::tm tm_time{};
+
+#if defined(_WIN32)
+  gmtime_s(&tm_time, &seconds);
+#else
+  gmtime_r(&seconds, &tm_time);
+#endif
+
+  char buffer[11];
+
+  std::strftime(
+    buffer,
+    sizeof(buffer),
+    "%Y-%m-%d",
+    &tm_time);
+
+  return m_directory / (std::string(buffer) + ".log");
 }
 
 } // namespace qds

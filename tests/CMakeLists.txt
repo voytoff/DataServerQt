@@ -14,6 +14,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_executable(unit_tests
     main.cpp
     db.h
+    udp.h
     tst_common.h tst_common.cpp
     tst_udpsender.h tst_udpsender.cpp
     tst_subscriptions.h tst_subscriptions.cpp
@@ -36,7 +37,6 @@ add_executable(unit_tests
     tst_formulas.h tst_formulas.cpp
     tst_dataserver.h tst_dataserver.cpp
     tst_database.h tst_database.cpp
-    udp.h
     tst_logger.h tst_logger.cpp
 )
 

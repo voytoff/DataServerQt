@@ -6,12 +6,10 @@
 #include "dataengine.h"
 #include "datasourcefactory.h"
 #include "datasourcemanager.h"
-#include "failoncearchivewriter.h"
 #include "failoncedatasource.h"
 #include "fakedatasource.h"
 #include "fakeschedulerclock.h"
 #include "formulabuilder.h"
-#include "logger.h"
 #include "parser/formulaparser.h"
 #include "parser/identifierresolver.h"
 #include "signalprocessor.h"
@@ -20,6 +18,7 @@
 #include "testdatasource.h"
 #include "testpublisher.h"
 #include "testsrv.h"
+#include "testlogger.h"
 
 tst_signalprocessor::tst_signalprocessor() { }
 tst_signalprocessor::~tst_signalprocessor() = default;
@@ -321,7 +320,7 @@ void tst_signalprocessor::test_signalProcessor_failOnceDataSource()
 
   DataEngine engine;
   FakeSchedulerClock clock;
-  Logger logger(getFilePath("file.log"));
+  TestLogger logger;
 
   QVERIFY(engine.initialize(
     manager,
@@ -446,7 +445,7 @@ void tst_signalprocessor::test_signalProcessor_failFormula()
 
   DataEngine engine;
   FakeSchedulerClock clock;
-  Logger logger(getFilePath("file.log"));
+  TestLogger logger;
 
   QVERIFY(engine.initialize(
     manager,
@@ -534,7 +533,7 @@ void tst_signalprocessor::test_signalProcessor_cycle()
 
   DataEngine engine;
   FakeSchedulerClock clock(2, 5);
-  Logger logger(getFilePath("file.log"));
+  TestLogger logger;
 
   QVERIFY(engine.initialize(
     manager,

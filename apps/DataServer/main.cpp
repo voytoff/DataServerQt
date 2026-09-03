@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
   qds::TestPublisher publisher;
   qds::FakeSchedulerClock clock;
   qds::UdpSender sender;
-  qds::Logger logger(std::filesystem::current_path() / "file.log");
+  qds::Logger logger(std::filesystem::current_path(), clock);
 
   qds::DataServer server(
     cfg,

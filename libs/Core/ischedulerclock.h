@@ -1,25 +1,19 @@
 #pragma once
 
-#include "datatypes.h"
+#include "iclock.h"
 
 namespace qds
 {
 
-class ISchedulerClock
+class ISchedulerClock : public IClock
 {
 public:
-  virtual ~ISchedulerClock() noexcept = default;
+  ~ISchedulerClock() noexcept override = default;
 
   virtual void nextTick() noexcept = 0;
 
   [[nodiscard]]
   virtual FrameNumber frameNumber() const noexcept = 0;
-
-  [[nodiscard]]
-  virtual Timestamp timestamp() const noexcept = 0;
-
-  [[nodiscard]]
-  virtual WallClockTime wallClockTime() const noexcept = 0;
 };
 
 }

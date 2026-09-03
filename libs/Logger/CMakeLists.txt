@@ -8,9 +8,15 @@ add_library(Logger SHARED
   loglevel.h
   logger.cpp logger.h
   ilogger.h
+  testlogger.h testlogger.cpp
 )
 
 target_include_directories(Logger
-    PUBLIC
+  PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(Logger
+  PUBLIC
+    Core
 )

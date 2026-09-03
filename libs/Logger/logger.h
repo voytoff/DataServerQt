@@ -1,10 +1,12 @@
 #pragma once
 
-#include "ilogger.h"
+#include "iclock.h"
 #include "loglevel.h"
+#include "ilogger.h"
 
 #include <filesystem>
 #include <fstream>
+#include <string>
 #include <string_view>
 
 namespace qds
@@ -14,7 +16,8 @@ class Logger : public ILogger
 {
 public:
   explicit Logger(
-    const std::filesystem::path& path);
+    const std::filesystem::path& directory,
+    const IClock& clock);
 
   ~Logger();
 
@@ -28,7 +31,17 @@ private:
     LogLevel level,
     std::string_view message);
 
-  std::fstream m_stream;
+  bool openFile(
+    const std::filesystem::path& path);
+
+  std::filesystem::path makeFileName(
+    const WallClockTime& time) const;
+
+private:
+  std::filesystem::path m_directory;
+  const IClock& m_clock;
+  std::filesystem::path m_currentFileName;
+  std::ofstream m_stream;
 };
 
 }

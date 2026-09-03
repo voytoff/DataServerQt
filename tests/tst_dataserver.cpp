@@ -6,12 +6,14 @@
 #include "configurationrepository.h"
 #include "datasourcefactory.h"
 #include "db.h"
+#include "logger.h"
+#include "testlogger.h"
 #include "failingarchivewriter.h"
 #include "failingdatasource.h"
 #include "failoncearchivewriter.h"
 #include "fakedatasource.h"
 #include "fakeschedulerclock.h"
-#include "logger.h"
+#include "testlogger.h"
 #include "protocol/publishheader.h"
 #include "runtimesystem.h"
 #include "systembuilder.h"
@@ -148,7 +150,7 @@ void tst_dataserver::test_systemBuilder_process()
   SystemBuilder builder;
 
   CalibrationRepository cr;
-  Logger logger(getFilePath("file.log"));
+  TestLogger logger;
 
   QVERIFY(builder.build(
     cfg,
@@ -315,7 +317,7 @@ void tst_dataserver::test_systemBuilder_cycle()
   SystemBuilder builder;
 
   CalibrationRepository cr;
-  Logger logger(getFilePath("file.log"));
+  TestLogger logger;
 
   QVERIFY(builder.build(
     cfg,
@@ -400,7 +402,7 @@ void tst_dataserver::test_dataServer_udpSubscription()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
-  Logger logger(getFilePath("file.log"));
+  Logger logger(getCurrentFolder(), clock);
 
   DataServer ds(
     cfg,
@@ -646,7 +648,7 @@ void tst_dataserver::test_dataServer_failStart_moduleType()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
-  Logger logger(getFilePath("file.log"));
+  Logger logger(getCurrentFolder(), clock);
 
   DataServer ds(
     cfg,
@@ -686,7 +688,7 @@ void tst_dataserver::test_dataServer_failSubscribe_invalidSignalId()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
-  Logger logger(getFilePath("file.log"));
+  Logger logger(getCurrentFolder(), clock);
 
   DataServer ds(
     cfg,
@@ -804,7 +806,7 @@ void tst_dataserver::test_dataServer_failSubscribe_duplicateSignalId()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
-  Logger logger(getFilePath("file.log"));
+  Logger logger(getCurrentFolder(), clock);
 
   DataServer ds(
     cfg,
@@ -922,7 +924,7 @@ void tst_dataserver::test_dataServer_failSubscribe_invalidRate()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
-  Logger logger(getFilePath("file.log"));
+  Logger logger(getCurrentFolder(), clock);
 
   DataServer ds(
     cfg,
@@ -1040,7 +1042,7 @@ void tst_dataserver::test_dataServer_failSubscribe_emptyList()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
-  Logger logger(getFilePath("file.log"));
+  Logger logger(getCurrentFolder(), clock);
 
   DataServer ds(
     cfg,
@@ -1148,7 +1150,7 @@ void tst_dataserver::test_dataServer_failSubscribe_tooManySignals()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
-  Logger logger(getFilePath("file.log"));
+  Logger logger(getCurrentFolder(), clock);
 
   DataServer ds(
     cfg,
@@ -1256,7 +1258,7 @@ void tst_dataserver::test_dataServer_unsubscribe_ok()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
-  Logger logger(getFilePath("file.log"));
+  Logger logger(getCurrentFolder(), clock);
 
   DataServer ds(
     cfg,
@@ -1473,7 +1475,7 @@ void tst_dataserver::test_dataServer_unsubscribe_invalidId()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
-  Logger logger(getFilePath("file.log"));
+  Logger logger(getCurrentFolder(), clock);
 
   DataServer ds(
     cfg,
@@ -1689,7 +1691,7 @@ void tst_dataserver::test_dataServer_start_stop()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
-  Logger logger(getFilePath("file.log"));
+  Logger logger(getCurrentFolder(), clock);
 
   DataServer ds(
     cfg,
@@ -1862,7 +1864,7 @@ void tst_dataserver::test_dataServer_start_after_failed_start()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
-  Logger logger(getFilePath("file.log"));
+  Logger logger(getCurrentFolder(), clock);
 
   DataServer ds(
     cfg,
@@ -1924,7 +1926,7 @@ void tst_dataserver::test_dataServer_failStart_invalidUdpPort()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
-  Logger logger(getFilePath("file.log"));
+  Logger logger(getCurrentFolder(), clock);
 
   DataServer ds(
     cfg,
@@ -2126,7 +2128,7 @@ void tst_dataserver::test_dataServer_subscriptionId_after_restart()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
-  Logger logger(getFilePath("file.log"));
+  Logger logger(getCurrentFolder(), clock);
 
   DataServer ds(
     cfg,
@@ -2329,7 +2331,7 @@ void tst_dataserver::test_dataServer_build_after_failBuild()
   SystemBuilder builder;
 
   CalibrationRepository cr;
-  Logger logger(getFilePath("file.log"));
+  Logger logger(getCurrentFolder(), clock);
 
   QVERIFY(!builder.build(
     cfg,
@@ -2398,7 +2400,7 @@ void tst_dataserver::test_dataEngine_process_dataSourceFailure()
   SystemBuilder builder;
 
   CalibrationRepository cr;
-  Logger logger(getFilePath("file.log"));
+  Logger logger(getCurrentFolder(), clock);
 
   QVERIFY(builder.build(
     cfg,
@@ -2482,7 +2484,7 @@ void tst_dataserver::test_dataEngine_process_archiveFailure()
   SystemBuilder builder;
 
   CalibrationRepository cr;
-  Logger logger(getFilePath("file.log"));
+  Logger logger(getCurrentFolder(), clock);
 
   QVERIFY(builder.build(
     cfg,
@@ -2534,7 +2536,7 @@ void tst_dataserver::test_dataEngine_process_success()
   SystemBuilder builder;
 
   CalibrationRepository cr;
-  Logger logger(getFilePath("file.log"));
+  Logger logger(getCurrentFolder(), clock);
 
   QVERIFY(builder.build(
     cfg,
@@ -2582,7 +2584,7 @@ void tst_dataserver::test_dataServer_stop_on_dataSourceFailure()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
-  Logger logger(getFilePath("file.log"));
+  Logger logger(getCurrentFolder(), clock);
 
   DataServer ds(
     cfg,
@@ -2663,7 +2665,7 @@ void tst_dataserver::test_systemBuilder_failedThenSuccess()
   TestArchiveWriter archive;
   TestPublisher publisher;
   FakeSchedulerClock clock;
-  Logger logger(getFilePath("file.log"));
+  Logger logger(getCurrentFolder(), clock);
 
   QVERIFY(runtime.engine->initialize(
     runtime.dataSources,
@@ -2697,7 +2699,7 @@ void tst_dataserver::test_dataServer_start_twice()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
-  Logger logger(getFilePath("file.log"));
+  Logger logger(getCurrentFolder(), clock);
 
   DataServer ds(
     cfg,
@@ -2739,7 +2741,7 @@ void tst_dataserver::test_dataServer_stop_before_start()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
-  Logger logger(getFilePath("file.log"));
+  Logger logger(getCurrentFolder(), clock);
 
   DataServer ds(
     cfg,
@@ -2784,7 +2786,7 @@ void tst_dataserver::test_dataServer_udp_pipeline()
   FakeSchedulerClock clock(2, 3);
 
   CalibrationRepository cr;
-  Logger logger(getFilePath("file.log"));
+  Logger logger(getCurrentFolder(), clock);
 
   DataServer ds(
     cfg,
@@ -3062,7 +3064,7 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
 
   UdpSender sender;
   FakeSchedulerClock clock(2, 3);
-  Logger logger(getFilePath("file.log"));
+  Logger logger(getCurrentFolder(), clock);
 
   DataServer ds(
     cfg,

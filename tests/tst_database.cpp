@@ -8,7 +8,6 @@
 #include "db.h"
 #include "archiveformat.h"
 #include "fakeschedulerclock.h"
-#include "logger.h"
 #include "nullarchivewriter.h"
 #include "protocol/publishheader.h"
 #include "runtimesystem.h"
@@ -19,6 +18,7 @@
 #include "testpublisher.h"
 #include "testpublishersender.h"
 #include "testsrv.h"
+#include "testlogger.h"
 #include <QSqlTableModel>
 #include <qtestcase.h>
 
@@ -311,7 +311,7 @@ void tst_database::test_database_pipeline()
   RuntimeSystem runtime;
 
   SystemBuilder builder;
-  Logger logger(getFilePath("file.log"));
+  TestLogger logger;
 
   QVERIFY(builder.build(
     cfg,
@@ -426,7 +426,7 @@ void tst_database::test_database_archive()
 
   TestPublisher publisher;
   FakeSchedulerClock clock(2, 3);
-  Logger logger(getFilePath("file.log"));
+  TestLogger logger;
 
   QVERIFY(runtime.engine->initialize(
     runtime.dataSources,
@@ -781,7 +781,7 @@ void tst_database::test_publisher()
   TestPublisherSender sender;
   Publisher publisher(runtime.layout, subscriptions, sender, 1000);
   FakeSchedulerClock clock(2, 3);
-  Logger logger(getFilePath("file.log"));
+  TestLogger logger;
 
   const auto &definitions = cfg.signalDefinitions();
   QCOMPARE(definitions.size(), 5);
@@ -912,7 +912,7 @@ void tst_database::test_publisher_raw_calculated()
   TestPublisherSender sender;
   Publisher publisher(runtime.layout, subscriptions, sender, 1000);
   FakeSchedulerClock clock(2, 3);
-  Logger logger(getFilePath("file.log"));
+  TestLogger logger;
 
   const auto &definitions = cfg.signalDefinitions();
   QCOMPARE(definitions.size(), 5);
