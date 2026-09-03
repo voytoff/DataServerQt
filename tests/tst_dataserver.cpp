@@ -11,6 +11,7 @@
 #include "failoncearchivewriter.h"
 #include "fakedatasource.h"
 #include "fakeschedulerclock.h"
+#include "logger.h"
 #include "protocol/publishheader.h"
 #include "runtimesystem.h"
 #include "systembuilder.h"
@@ -147,6 +148,7 @@ void tst_dataserver::test_systemBuilder_process()
   SystemBuilder builder;
 
   CalibrationRepository cr;
+  Logger logger(getFilePath("file.log"));
 
   QVERIFY(builder.build(
     cfg,
@@ -160,7 +162,8 @@ void tst_dataserver::test_systemBuilder_process()
     runtime.buffers,
     archive,
     publisher,
-    clock));
+    clock,
+    logger));
 
   QVERIFY(runtime.engine->process());
 
@@ -312,6 +315,7 @@ void tst_dataserver::test_systemBuilder_cycle()
   SystemBuilder builder;
 
   CalibrationRepository cr;
+  Logger logger(getFilePath("file.log"));
 
   QVERIFY(builder.build(
     cfg,
@@ -325,7 +329,8 @@ void tst_dataserver::test_systemBuilder_cycle()
     runtime.buffers,
     archive,
     publisher,
-    clock));
+    clock,
+    logger));
 
   for (int n = 0; n < 1000; ++n)
   {
@@ -395,6 +400,7 @@ void tst_dataserver::test_dataServer_udpSubscription()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
+  Logger logger(getFilePath("file.log"));
 
   DataServer ds(
     cfg,
@@ -402,7 +408,8 @@ void tst_dataserver::test_dataServer_udpSubscription()
     factory,
     archive,
     clock,
-    sender);
+    sender,
+    logger);
 
   QVERIFY(ds.start());
 
@@ -639,6 +646,7 @@ void tst_dataserver::test_dataServer_failStart_moduleType()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
+  Logger logger(getFilePath("file.log"));
 
   DataServer ds(
     cfg,
@@ -646,7 +654,8 @@ void tst_dataserver::test_dataServer_failStart_moduleType()
     factory,
     archive,
     clock,
-    sender);
+    sender,
+    logger);
 
   QVERIFY(!ds.start());
 
@@ -677,6 +686,7 @@ void tst_dataserver::test_dataServer_failSubscribe_invalidSignalId()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
+  Logger logger(getFilePath("file.log"));
 
   DataServer ds(
     cfg,
@@ -684,7 +694,8 @@ void tst_dataserver::test_dataServer_failSubscribe_invalidSignalId()
     factory,
     archive,
     clock,
-    sender);
+    sender,
+    logger);
 
   QVERIFY(ds.start());
 
@@ -793,6 +804,7 @@ void tst_dataserver::test_dataServer_failSubscribe_duplicateSignalId()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
+  Logger logger(getFilePath("file.log"));
 
   DataServer ds(
     cfg,
@@ -800,7 +812,8 @@ void tst_dataserver::test_dataServer_failSubscribe_duplicateSignalId()
     factory,
     archive,
     clock,
-    sender);
+    sender,
+    logger);
 
   QVERIFY(ds.start());
 
@@ -909,6 +922,7 @@ void tst_dataserver::test_dataServer_failSubscribe_invalidRate()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
+  Logger logger(getFilePath("file.log"));
 
   DataServer ds(
     cfg,
@@ -916,7 +930,8 @@ void tst_dataserver::test_dataServer_failSubscribe_invalidRate()
     factory,
     archive,
     clock,
-    sender);
+    sender,
+    logger);
 
   QVERIFY(ds.start());
 
@@ -1025,6 +1040,7 @@ void tst_dataserver::test_dataServer_failSubscribe_emptyList()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
+  Logger logger(getFilePath("file.log"));
 
   DataServer ds(
     cfg,
@@ -1032,7 +1048,8 @@ void tst_dataserver::test_dataServer_failSubscribe_emptyList()
     factory,
     archive,
     clock,
-    sender);
+    sender,
+    logger);
 
   QVERIFY(ds.start());
 
@@ -1131,6 +1148,7 @@ void tst_dataserver::test_dataServer_failSubscribe_tooManySignals()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
+  Logger logger(getFilePath("file.log"));
 
   DataServer ds(
     cfg,
@@ -1138,7 +1156,8 @@ void tst_dataserver::test_dataServer_failSubscribe_tooManySignals()
     factory,
     archive,
     clock,
-    sender);
+    sender,
+    logger);
 
   QVERIFY(ds.start());
 
@@ -1237,6 +1256,7 @@ void tst_dataserver::test_dataServer_unsubscribe_ok()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
+  Logger logger(getFilePath("file.log"));
 
   DataServer ds(
     cfg,
@@ -1244,7 +1264,8 @@ void tst_dataserver::test_dataServer_unsubscribe_ok()
     factory,
     archive,
     clock,
-    sender);
+    sender,
+    logger);
 
   QVERIFY(ds.start());
 
@@ -1452,6 +1473,7 @@ void tst_dataserver::test_dataServer_unsubscribe_invalidId()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
+  Logger logger(getFilePath("file.log"));
 
   DataServer ds(
     cfg,
@@ -1459,7 +1481,8 @@ void tst_dataserver::test_dataServer_unsubscribe_invalidId()
     factory,
     archive,
     clock,
-    sender);
+    sender,
+    logger);
 
   QVERIFY(ds.start());
 
@@ -1666,6 +1689,7 @@ void tst_dataserver::test_dataServer_start_stop()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
+  Logger logger(getFilePath("file.log"));
 
   DataServer ds(
     cfg,
@@ -1673,7 +1697,8 @@ void tst_dataserver::test_dataServer_start_stop()
     factory,
     archive,
     clock,
-    sender);
+    sender,
+    logger);
 
   QVERIFY(ds.start());
 
@@ -1837,6 +1862,7 @@ void tst_dataserver::test_dataServer_start_after_failed_start()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
+  Logger logger(getFilePath("file.log"));
 
   DataServer ds(
     cfg,
@@ -1844,7 +1870,8 @@ void tst_dataserver::test_dataServer_start_after_failed_start()
     factory,
     archive,
     clock,
-    sender);
+    sender,
+    logger);
 
   QVERIFY(!ds.start());
   QVERIFY(!ds.isRunning());
@@ -1897,6 +1924,7 @@ void tst_dataserver::test_dataServer_failStart_invalidUdpPort()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
+  Logger logger(getFilePath("file.log"));
 
   DataServer ds(
     cfg,
@@ -1904,7 +1932,8 @@ void tst_dataserver::test_dataServer_failStart_invalidUdpPort()
     factory,
     archive,
     clock,
-    sender);
+    sender,
+    logger);
 
   QVERIFY(!ds.start());
 
@@ -2097,6 +2126,7 @@ void tst_dataserver::test_dataServer_subscriptionId_after_restart()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
+  Logger logger(getFilePath("file.log"));
 
   DataServer ds(
     cfg,
@@ -2104,7 +2134,8 @@ void tst_dataserver::test_dataServer_subscriptionId_after_restart()
     factory,
     archive,
     clock,
-    sender);
+    sender,
+    logger);
 
   QVERIFY(ds.start());
 
@@ -2298,6 +2329,7 @@ void tst_dataserver::test_dataServer_build_after_failBuild()
   SystemBuilder builder;
 
   CalibrationRepository cr;
+  Logger logger(getFilePath("file.log"));
 
   QVERIFY(!builder.build(
     cfg,
@@ -2325,7 +2357,8 @@ void tst_dataserver::test_dataServer_build_after_failBuild()
     runtime.buffers,
     archive,
     publisher,
-    clock));
+    clock,
+    logger));
 
   QVERIFY(
     runtime.engine->process());
@@ -2365,6 +2398,7 @@ void tst_dataserver::test_dataEngine_process_dataSourceFailure()
   SystemBuilder builder;
 
   CalibrationRepository cr;
+  Logger logger(getFilePath("file.log"));
 
   QVERIFY(builder.build(
     cfg,
@@ -2378,7 +2412,8 @@ void tst_dataserver::test_dataEngine_process_dataSourceFailure()
     runtime.buffers,
     archive,
     publisher,
-    clock));
+    clock,
+    logger));
 
   QVERIFY(!runtime.engine->process());
   QVERIFY(runtime.engine->isRunning());
@@ -2447,6 +2482,7 @@ void tst_dataserver::test_dataEngine_process_archiveFailure()
   SystemBuilder builder;
 
   CalibrationRepository cr;
+  Logger logger(getFilePath("file.log"));
 
   QVERIFY(builder.build(
     cfg,
@@ -2461,7 +2497,8 @@ void tst_dataserver::test_dataEngine_process_archiveFailure()
     runtime.buffers,
     archive,
     publisher,
-    clock));
+    clock,
+    logger));
 
   QVERIFY(runtime.engine->process());
   QVERIFY(runtime.engine->isRunning());
@@ -2497,6 +2534,7 @@ void tst_dataserver::test_dataEngine_process_success()
   SystemBuilder builder;
 
   CalibrationRepository cr;
+  Logger logger(getFilePath("file.log"));
 
   QVERIFY(builder.build(
     cfg,
@@ -2510,7 +2548,8 @@ void tst_dataserver::test_dataEngine_process_success()
     runtime.buffers,
     archive,
     publisher,
-    clock));
+    clock,
+    logger));
 
   QVERIFY(!runtime.buffers.ready());
 
@@ -2543,6 +2582,7 @@ void tst_dataserver::test_dataServer_stop_on_dataSourceFailure()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
+  Logger logger(getFilePath("file.log"));
 
   DataServer ds(
     cfg,
@@ -2550,7 +2590,8 @@ void tst_dataserver::test_dataServer_stop_on_dataSourceFailure()
     factory,
     archive,
     clock,
-    sender);
+    sender,
+    logger);
 
   QVERIFY(ds.start());
 
@@ -2622,6 +2663,7 @@ void tst_dataserver::test_systemBuilder_failedThenSuccess()
   TestArchiveWriter archive;
   TestPublisher publisher;
   FakeSchedulerClock clock;
+  Logger logger(getFilePath("file.log"));
 
   QVERIFY(runtime.engine->initialize(
     runtime.dataSources,
@@ -2629,7 +2671,8 @@ void tst_dataserver::test_systemBuilder_failedThenSuccess()
     runtime.buffers,
     archive,
     publisher,
-    clock));
+    clock,
+    logger));
 
   QVERIFY(runtime.engine->process());
 }
@@ -2654,6 +2697,7 @@ void tst_dataserver::test_dataServer_start_twice()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
+  Logger logger(getFilePath("file.log"));
 
   DataServer ds(
     cfg,
@@ -2661,7 +2705,8 @@ void tst_dataserver::test_dataServer_start_twice()
     factory,
     archive,
     clock,
-    sender);
+    sender,
+    logger);
 
   QVERIFY(ds.start());
   QVERIFY(ds.isRunning());
@@ -2694,6 +2739,7 @@ void tst_dataserver::test_dataServer_stop_before_start()
   FakeSchedulerClock clock;
 
   CalibrationRepository cr;
+  Logger logger(getFilePath("file.log"));
 
   DataServer ds(
     cfg,
@@ -2701,7 +2747,8 @@ void tst_dataserver::test_dataServer_stop_before_start()
     factory,
     archive,
     clock,
-    sender);
+    sender,
+    logger);
 
   QVERIFY(!ds.isRunning());
 
@@ -2737,6 +2784,7 @@ void tst_dataserver::test_dataServer_udp_pipeline()
   FakeSchedulerClock clock(2, 3);
 
   CalibrationRepository cr;
+  Logger logger(getFilePath("file.log"));
 
   DataServer ds(
     cfg,
@@ -2744,7 +2792,8 @@ void tst_dataserver::test_dataServer_udp_pipeline()
     factory,
     archive,
     clock,
-    sender);
+    sender,
+    logger);
 
   QVERIFY(ds.start());
 
@@ -3013,6 +3062,7 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
 
   UdpSender sender;
   FakeSchedulerClock clock(2, 3);
+  Logger logger(getFilePath("file.log"));
 
   DataServer ds(
     cfg,
@@ -3020,7 +3070,8 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
     factory,
     archive,
     clock,
-    sender);
+    sender,
+    logger);
 
   QVERIFY(ds.start());
 
@@ -3142,7 +3193,7 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
   QVERIFY(has_sub2);
 
 
-  QTest::qWait(2000);
+  QTest::qWait(1500);
 
 
   // ------------------------------------------------------------
@@ -3152,25 +3203,9 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
   ds.stop();
   QVERIFY(!ds.isRunning());
 
-  QTest::qWait(500);
+  QTest::qWait(100);
 
   archive.close();
-
-  ArchiveReader archiveReader;
-
-  QVERIFY(archiveReader.open(getCurrentFolder()));
-
-  QVERIFY(archiveReader.isOpen());
-
-  description = archiveReader.description();
-  QCOMPARE(description.version, ArchiveDescriptionVersion);
-
-  const auto index_bc = findFile(description, SignalKind::Calculated, 10); // B, C
-  QVERIFY(index_bc >= 0);
-
-  const auto index_a = findFile(description, SignalKind::Calculated, 100); // A
-  QVERIFY(index_a >= 0);
-
 
   // ------------------------------------------------------------
   // Проверим данные архивов и подписок
@@ -3205,14 +3240,9 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
         header.sequence,
         ++sequence1);
 
-#ifdef __APPLE__
-      const auto index = sequence1 - 1;
-#else
       const auto index = sequence1;
-#endif
 
-      QCOMPARE(
-        header.timestamp, index * 100 * 2 + 2);
+      QCOMPARE(header.timestamp, index * 100 * 2 + 2);
 
       QCOMPARE(
         header.valueCount,
@@ -3229,20 +3259,6 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
 
       QCOMPARE(samples1[0], Sample{b});
       QCOMPARE(samples1[1], Sample{c});
-
-      ArchiveSample as;
-      QVERIFY(archiveReader.readFrame(index_bc, FrameNumber{sequence1 * 100}, as));
-
-      QCOMPARE(as.frameNumber, FrameNumber{sequence1 * 100});
-      QCOMPARE(as.timestamp, Timestamp{sequence1 * 100 * 2});
-      QCOMPARE(as.wallTime, WallClockTime{sequence1 * 100 * 3});
-
-      a = (100 * sequence1 - 1) * 0.1;
-      b = 970 + (sequence1 - 1) * 1000;
-      c = a + b;
-
-      QCOMPARE(as.values[0], static_cast<float>(b));
-      QCOMPARE(as.values[1], static_cast<float>(c));
     }
     else if (header.subscriptionId == SubscriptionId{2})
     {
@@ -3250,14 +3266,9 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
         header.sequence,
         ++sequence2);
 
-#ifdef __APPLE__
-      const auto index = sequence2 - 1;
-#else
       const auto index = sequence2;
-#endif
 
-      QCOMPARE(
-        header.timestamp, index * 10 * 2 + 2);
+      QCOMPARE(header.timestamp, index * 10 * 2 + 2);
 
       QCOMPARE(
         header.valueCount,
@@ -3271,17 +3282,6 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
       double a = index * 10 * 0.1;
 
       QCOMPARE(samples2[0], Sample{a});
-
-      ArchiveSample as;
-      QVERIFY(archiveReader.readFrame(index_a, FrameNumber{sequence2 * 10}, as));
-
-      QCOMPARE(as.frameNumber, FrameNumber{sequence2 * 10});
-      QCOMPARE(as.timestamp, Timestamp{sequence2 * 10 * 2});
-      QCOMPARE(as.wallTime, WallClockTime{sequence2 * 10 * 3});
-
-      a = (10 * sequence2 - 1) * 0.1;
-
-      QCOMPARE(as.values[0], static_cast<float>(a));
     }
     else
       QFAIL("Неверная подписка");
@@ -3294,4 +3294,107 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
   QVERIFY(sequence1 > 0);
   QVERIFY(sequence2 > 0);
 
+  ArchiveReader archiveReader;
+
+  QVERIFY(archiveReader.open(getCurrentFolder()));
+
+  QVERIFY(archiveReader.isOpen());
+
+  description = archiveReader.description();
+  QCOMPARE(description.version, ArchiveDescriptionVersion);
+
+  std::size_t fileIndex;
+  ArchiveSample sample;
+  const DataFileHeader *fileHeader;
+
+  // Raw0
+  fileIndex = findFile(description, SignalKind::Raw, 1000);
+  QVERIFY(fileIndex >= 0);
+  fileHeader = archiveReader.fileHeader(fileIndex);
+  QVERIFY(fileHeader);
+  QVERIFY(fileHeader->recordCount > 0);
+  QCOMPARE(fileHeader->sampleFrequency, 1000);
+  QCOMPARE(fileHeader->channelCount, 1u);
+
+  for (uint64_t i = 1; i <= fileHeader->recordCount; ++i)
+  {
+    QVERIFY(archiveReader.read(fileIndex, sample));
+    QCOMPARE(sample.frameNumber, FrameNumber{i});
+    QCOMPARE(sample.timestamp, Timestamp{i * 2});
+    QCOMPARE(sample.wallTime, WallClockTime{static_cast<int64_t>(i * 3)});
+
+    double raw0 = static_cast<double>(i - 1);
+
+    QCOMPARE(sample.values[0], static_cast<float>(raw0));
+  }
+
+  // Raw1
+  fileIndex = findFile(description, SignalKind::Raw, 100);
+  QVERIFY(fileIndex >= 0);
+  fileHeader = archiveReader.fileHeader(fileIndex);
+  QVERIFY(fileHeader);
+  QVERIFY(fileHeader->recordCount > 0);
+  QCOMPARE(fileHeader->sampleFrequency, 100);
+  QCOMPARE(fileHeader->channelCount, 1u);
+
+  for (uint64_t i = 1; i <= fileHeader->recordCount; ++i)
+  {
+    QVERIFY(archiveReader.read(fileIndex, sample));
+    QCOMPARE(sample.frameNumber, FrameNumber{i * 10});
+    QCOMPARE(sample.timestamp, Timestamp{i * 2 * 10});
+    QCOMPARE(sample.wallTime, WallClockTime{static_cast<int64_t>(i * 3 * 10)});
+
+    double raw1 = static_cast<double>((i * 10 * 10) - 10);
+
+    QCOMPARE(sample.values[0], static_cast<float>(raw1));
+  }
+
+  // A
+  fileIndex = findFile(description, SignalKind::Calculated, 100);
+  QVERIFY(fileIndex >= 0);
+  fileHeader = archiveReader.fileHeader(fileIndex);
+  QVERIFY(fileHeader);
+  QVERIFY(fileHeader->recordCount > 0);
+  QCOMPARE(fileHeader->sampleFrequency, 100);
+  QCOMPARE(fileHeader->channelCount, 1u);
+
+  for (uint64_t i = 1; i <= fileHeader->recordCount; ++i)
+  {
+    QVERIFY(archiveReader.read(fileIndex, sample));
+    QCOMPARE(sample.frameNumber, FrameNumber{i * 10});
+    QCOMPARE(sample.timestamp, Timestamp{i * 2 * 10});
+    QCOMPARE(sample.wallTime, WallClockTime{static_cast<int64_t>(i * 3 * 10)});
+
+    double a = static_cast<double>((i * 10 - 1) * 0.1);
+
+    QCOMPARE(sample.values[0], static_cast<float>(a));
+  }
+
+  // B C
+  fileIndex = findFile(description, SignalKind::Calculated, 10);
+  QVERIFY(fileIndex >= 0);
+  fileHeader = archiveReader.fileHeader(fileIndex);
+  QVERIFY(fileHeader);
+  QVERIFY(fileHeader->recordCount > 0);
+  QCOMPARE(fileHeader->sampleFrequency, 10);
+  QCOMPARE(fileHeader->channelCount, 2u);
+
+  for (uint64_t i = 1; i <= fileHeader->recordCount; ++i)
+  {
+    QVERIFY(archiveReader.read(fileIndex, sample));
+    QCOMPARE(sample.frameNumber, FrameNumber{i * 100});
+    QCOMPARE(sample.timestamp, Timestamp{i * 2 * 100});
+    QCOMPARE(sample.wallTime, WallClockTime{static_cast<int64_t>(i * 3 * 100)});
+
+    double a = static_cast<double>((i * 100 - 1) * 0.1);
+    double b = static_cast<double>(970 + (i - 1) * 1000);
+    double c = a + b;
+
+    QCOMPARE(sample.values[0], static_cast<float>(b));
+    QCOMPARE(sample.values[1], static_cast<float>(c));
+  }
+
+  archiveReader.close();
+  QVERIFY(!archiveReader.isOpen());
+  QVERIFY(archiveReader.fileHeader(0) == nullptr);
 }

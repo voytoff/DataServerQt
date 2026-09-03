@@ -4,6 +4,7 @@
 #include "datasourcemanager.h"
 #include "iframepublisher.h"
 #include "iarchivewriter.h"
+#include "ilogger.h"
 #include "ischedulerclock.h"
 #include "signalprocessor.h"
 
@@ -23,7 +24,8 @@ public:
     BufferManager& buffers,
     IArchiveWriter& archive,
     IFramePublisher& publisher,
-    ISchedulerClock& clock) noexcept;
+    ISchedulerClock& clock,
+    ILogger& logger) noexcept;
 
   [[nodiscard]]
   bool process() noexcept;
@@ -44,6 +46,8 @@ private:
   IFramePublisher* m_publisher = nullptr;
 
   ISchedulerClock* m_clock = nullptr;
+
+  ILogger* m_logger = nullptr;
 
   bool m_initialized = false;
   bool m_running = false;

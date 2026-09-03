@@ -5,6 +5,7 @@
 #include "testpublisher.h"
 #include "testarchivewriter.h"
 #include "udpsender.h"
+#include "logger.h"
 
 #include <QCoreApplication>
 
@@ -52,6 +53,7 @@ int main(int argc, char *argv[]) {
   qds::TestPublisher publisher;
   qds::FakeSchedulerClock clock;
   qds::UdpSender sender;
+  qds::Logger logger(std::filesystem::current_path() / "file.log");
 
   qds::DataServer server(
     cfg,
@@ -59,7 +61,8 @@ int main(int argc, char *argv[]) {
     factory,
     archive,
     clock,
-    sender);
+    sender,
+    logger);
 
   if (!server.start())
     return -1;

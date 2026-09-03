@@ -12,6 +12,7 @@
 #include "formulabuilder.h"
 #include "formulacopy.h"
 #include "formularepository.h"
+#include "logger.h"
 #include "nullframepublisher.h"
 #include "schedulerclock.h"
 #include "testarchivewriter.h"
@@ -74,6 +75,7 @@ void tst_engine::test_pipeline_archive_copy()
   DataEngine engine;
 
   FakeSchedulerClock clock;
+  Logger logger(getFilePath("file.log"));
 
   QVERIFY(engine.initialize(
     manager,
@@ -81,7 +83,8 @@ void tst_engine::test_pipeline_archive_copy()
     buffers,
     archive,
     publisher,
-    clock));
+    clock,
+    logger));
 
   QVERIFY(engine.process());
 
@@ -155,6 +158,7 @@ void tst_engine::test_dataEngine_simple_runtime()
   uint64_t wallClockStep = 75;
 
   FakeSchedulerClock clock(timestampStep, wallClockStep);
+  Logger logger(getFilePath("file.log"));
 
   QVERIFY(engine.initialize(
     manager,
@@ -162,7 +166,8 @@ void tst_engine::test_dataEngine_simple_runtime()
     buffers,
     archive,
     publisher,
-    clock));
+    clock,
+    logger));
 
   for (int i = 0; i < 10; i++)
   {
@@ -252,6 +257,7 @@ void tst_engine::test_dataEngine_failOnceArchiveWriter()
 
   DataEngine engine;
   FakeSchedulerClock clock(2, 5);
+  Logger logger(getFilePath("file.log"));
 
   QVERIFY(engine.initialize(
     manager,
@@ -259,7 +265,8 @@ void tst_engine::test_dataEngine_failOnceArchiveWriter()
     buffers,
     archive,
     publisher,
-    clock));
+    clock,
+    logger));
 
   QVERIFY(engine.process());
   QVERIFY(buffers.ready());

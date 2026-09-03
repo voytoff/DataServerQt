@@ -31,7 +31,11 @@ public:
 
   [[nodiscard]]
   const ArchiveFileDescription& fileDescription(
-    std::size_t index) const;
+    std::size_t fileIndex) const;
+
+  [[nodiscard]]
+  const DataFileHeader* fileHeader(
+    std::size_t fileIndex);
 
   bool read(
     std::size_t fileIndex,

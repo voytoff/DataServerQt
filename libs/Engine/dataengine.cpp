@@ -9,7 +9,8 @@ bool DataEngine::initialize(
   BufferManager& buffers,
   IArchiveWriter& archive,
   IFramePublisher& publisher,
-  ISchedulerClock& clock) noexcept
+  ISchedulerClock& clock,
+  ILogger &logger) noexcept
 {
   m_dataSources = &dataSources;
   m_signalProcessor = &signalProcessor;
@@ -20,6 +21,8 @@ bool DataEngine::initialize(
   m_publisher = &publisher;
 
   m_clock = &clock;
+
+  m_logger = &logger;
 
   m_initialized = true;
   m_running = true;
@@ -70,7 +73,7 @@ bool DataEngine::process() noexcept
 
   if (!m_archive->write(published))
   {
-    // TODO: регистрация ошибки архива / recovery state
+    m_logger->error("Archive write failed");
   }
 
   return true;

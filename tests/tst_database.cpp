@@ -8,6 +8,7 @@
 #include "db.h"
 #include "archiveformat.h"
 #include "fakeschedulerclock.h"
+#include "logger.h"
 #include "nullarchivewriter.h"
 #include "protocol/publishheader.h"
 #include "runtimesystem.h"
@@ -310,6 +311,7 @@ void tst_database::test_database_pipeline()
   RuntimeSystem runtime;
 
   SystemBuilder builder;
+  Logger logger(getFilePath("file.log"));
 
   QVERIFY(builder.build(
     cfg,
@@ -323,7 +325,8 @@ void tst_database::test_database_pipeline()
     runtime.buffers,
     archive,
     publisher,
-    clock));
+    clock,
+    logger));
 
   QCOMPARE(runtime.calibrations.sizeSignals(), 1);
   QCOMPARE(runtime.calibrations.sizeSignalTypes(), 1);
@@ -423,6 +426,7 @@ void tst_database::test_database_archive()
 
   TestPublisher publisher;
   FakeSchedulerClock clock(2, 3);
+  Logger logger(getFilePath("file.log"));
 
   QVERIFY(runtime.engine->initialize(
     runtime.dataSources,
@@ -430,7 +434,8 @@ void tst_database::test_database_archive()
     runtime.buffers,
     archive,
     publisher,
-    clock));
+    clock,
+    logger));
 
   QCOMPARE(runtime.calibrations.sizeSignals(), 1);
   QCOMPARE(runtime.calibrations.sizeSignalTypes(), 1);
@@ -590,6 +595,7 @@ void tst_database::test_archiveReader_open()
   reader.close();
 
   QVERIFY(!reader.isOpen());
+  QVERIFY(reader.fileHeader(0) == nullptr);
 }
 
 void tst_database::test_archiveReader_read()
@@ -659,6 +665,7 @@ void tst_database::test_archiveReader_read()
   reader.close();
 
   QVERIFY(!reader.isOpen());
+  QVERIFY(reader.fileHeader(0) == nullptr);
 }
 
 void tst_database::test_archiveReader_readFrame()
@@ -730,6 +737,7 @@ void tst_database::test_archiveReader_readFrame()
   reader.close();
 
   QVERIFY(!reader.isOpen());
+  QVERIFY(reader.fileHeader(0) == nullptr);
 }
 
 void tst_database::test_publisher()
@@ -773,6 +781,7 @@ void tst_database::test_publisher()
   TestPublisherSender sender;
   Publisher publisher(runtime.layout, subscriptions, sender, 1000);
   FakeSchedulerClock clock(2, 3);
+  Logger logger(getFilePath("file.log"));
 
   const auto &definitions = cfg.signalDefinitions();
   QCOMPARE(definitions.size(), 5);
@@ -793,7 +802,8 @@ void tst_database::test_publisher()
     runtime.buffers,
     archive,
     publisher,
-    clock));
+    clock,
+    logger));
 
   for (int i = 0; i < 1000; ++i)
   {
@@ -902,6 +912,7 @@ void tst_database::test_publisher_raw_calculated()
   TestPublisherSender sender;
   Publisher publisher(runtime.layout, subscriptions, sender, 1000);
   FakeSchedulerClock clock(2, 3);
+  Logger logger(getFilePath("file.log"));
 
   const auto &definitions = cfg.signalDefinitions();
   QCOMPARE(definitions.size(), 5);
@@ -926,7 +937,8 @@ void tst_database::test_publisher_raw_calculated()
     runtime.buffers,
     archive,
     publisher,
-    clock));
+    clock,
+    logger));
 
   for (int i = 0; i < 1000; ++i)
   {

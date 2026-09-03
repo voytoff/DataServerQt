@@ -12,6 +12,7 @@ DataServer::DataServer(
   IArchiveWriter& archive,
   ISchedulerClock& clock,
   ISender& sender,
+  ILogger &logger,
   QObject* parent)
   : QObject(parent)
   , m_configuration(std::move(configuration))
@@ -20,6 +21,7 @@ DataServer::DataServer(
   , m_archive(archive)
   , m_clock(clock)
   , m_sender(sender)
+  , m_logger(logger)
 {
   connect(
     &m_timer,
@@ -73,7 +75,8 @@ bool DataServer::start()
         m_runtime.buffers,
         m_archive,
         *m_publisher,
-        m_clock))
+        m_clock,
+        m_logger))
   {
     cleanup();
     return false;

@@ -21,4 +21,5 @@ target_link_libraries(Engine
         SignalProcessor
         DataArchive
         Publisher
+        Logger
 )

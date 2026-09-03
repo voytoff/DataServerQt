@@ -13,6 +13,7 @@
 #include "iarchivewriter.h"
 #include "ischedulerclock.h"
 #include "isender.h"
+#include "ilogger.h"
 #include "udpserver.h"
 
 namespace qds
@@ -31,6 +32,7 @@ public:
     IArchiveWriter& archive,
     ISchedulerClock& clock,
     ISender& sender,
+    ILogger& logger,
     QObject* parent = nullptr);
 
   bool start();
@@ -55,6 +57,7 @@ private:
   IArchiveWriter& m_archive;
   ISchedulerClock& m_clock;
   ISender& m_sender;
+  ILogger& m_logger;
 
   RuntimeSystem m_runtime;
 

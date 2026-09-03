@@ -10,6 +10,9 @@ public:
   ~tst_dataserver() override;
 
 private slots:
+
+  void test_dataServer_publish_archive_pipeline();
+
   void test_systemBuilder_success();
   void test_systemBuilder_process();
 
@@ -44,8 +47,6 @@ private slots:
   void test_dataServer_start_twice();
   void test_dataServer_stop_before_start();
   void test_dataServer_udp_pipeline();
-
-  void test_dataServer_publish_archive_pipeline();
 
 };
 

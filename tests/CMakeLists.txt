@@ -37,6 +37,7 @@ add_executable(unit_tests
     tst_dataserver.h tst_dataserver.cpp
     tst_database.h tst_database.cpp
     udp.h
+    tst_logger.h tst_logger.cpp
 )
 
 target_link_libraries(unit_tests
@@ -54,6 +55,7 @@ target_link_libraries(unit_tests
     HardwareFactory
     DataArchive
     SignalStorage
+    Logger
   PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Test

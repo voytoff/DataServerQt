@@ -199,11 +199,24 @@ std::size_t ArchiveReader::fileCount() const noexcept
   return m_files.size();
 }
 
-const ArchiveFileDescription &ArchiveReader::fileDescription(std::size_t index) const
+const ArchiveFileDescription &ArchiveReader::fileDescription(std::size_t fileIndex) const
 {
-  assert(index < m_files.size()); // ??? m_open == false;
+  assert(fileIndex < m_files.size()); // ??? m_open == false;
 
-  return m_files.at(index).description;
+  return m_files[fileIndex].description;
+}
+
+const DataFileHeader *ArchiveReader::fileHeader(std::size_t fileIndex)
+{
+  assert(fileIndex < m_files.size());
+
+  if (!m_open)
+    return nullptr;
+
+  if (!ensureOpen(fileIndex))
+    return nullptr;
+
+  return &m_files[fileIndex].archive.header();
 }
 
 bool ArchiveReader::read(std::size_t fileIndex, ArchiveSample& sample)
@@ -291,22 +304,23 @@ bool ArchiveReader::readFrame(
   return sample.frameNumber == frameNumber;
 }
 
-bool ArchiveReader::ensureOpen(
-  std::size_t fileIndex)
+bool ArchiveReader::ensureOpen(std::size_t fileIndex)
 {
   auto& file = m_files[fileIndex];
 
   if (file.archive.isOpen())
-    return true;
+    return file.archive.header().isValid();
 
-  if (!file.archive.open(
-    file.path,
-    OpenMode::Read))
+  if (!file.archive.open(file.path, OpenMode::Read))
+    return false;
+
+  if (!file.archive.header().isValid())
   {
+    file.archive.close();
     return false;
   }
 
-  return file.archive.header().isValid();
+  return true;
 }
 
 }

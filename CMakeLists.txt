@@ -26,9 +26,9 @@ add_subdirectory(libs/signalstorage)
 add_subdirectory(libs/signalprocessor)
 add_subdirectory(libs/formulas)
 add_subdirectory(libs/dataserverruntime)
+add_subdirectory(libs/logger)
 
 enable_testing()
 add_subdirectory(tests)
 
 add_subdirectory(apps/dataserver)
-

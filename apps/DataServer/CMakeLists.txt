@@ -23,6 +23,7 @@ target_link_libraries(DataServerCore
         PacketDispatcher
         DataServerRuntime
         UdpServer
+        Logger
     PRIVATE
         Qt${QT_VERSION_MAJOR}::Core
         Qt${QT_VERSION_MAJOR}::Network
@@ -42,7 +43,6 @@ target_link_libraries(dataserver
         UdpSender
         DataServerRuntime
         DataServerCore
-
     PRIVATE
       Qt${QT_VERSION_MAJOR}::Core
       Qt${QT_VERSION_MAJOR}::Network

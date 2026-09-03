@@ -11,6 +11,7 @@
 #include "fakedatasource.h"
 #include "fakeschedulerclock.h"
 #include "formulabuilder.h"
+#include "logger.h"
 #include "parser/formulaparser.h"
 #include "parser/identifierresolver.h"
 #include "signalprocessor.h"
@@ -320,6 +321,7 @@ void tst_signalprocessor::test_signalProcessor_failOnceDataSource()
 
   DataEngine engine;
   FakeSchedulerClock clock;
+  Logger logger(getFilePath("file.log"));
 
   QVERIFY(engine.initialize(
     manager,
@@ -327,7 +329,8 @@ void tst_signalprocessor::test_signalProcessor_failOnceDataSource()
     buffers,
     archive,
     publisher,
-    clock));
+    clock,
+    logger));
 
   QVERIFY(!engine.process());
 
@@ -443,6 +446,7 @@ void tst_signalprocessor::test_signalProcessor_failFormula()
 
   DataEngine engine;
   FakeSchedulerClock clock;
+  Logger logger(getFilePath("file.log"));
 
   QVERIFY(engine.initialize(
     manager,
@@ -450,7 +454,8 @@ void tst_signalprocessor::test_signalProcessor_failFormula()
     buffers,
     archive,
     publisher,
-    clock));
+    clock,
+    logger));
 
   QVERIFY(!engine.process());
 
@@ -529,6 +534,7 @@ void tst_signalprocessor::test_signalProcessor_cycle()
 
   DataEngine engine;
   FakeSchedulerClock clock(2, 5);
+  Logger logger(getFilePath("file.log"));
 
   QVERIFY(engine.initialize(
     manager,
@@ -536,7 +542,8 @@ void tst_signalprocessor::test_signalProcessor_cycle()
     buffers,
     archive,
     publisher,
-    clock));
+    clock,
+    logger));
 
   for (int n = 0; n < 1000; n++)
   {
