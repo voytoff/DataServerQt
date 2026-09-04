@@ -3,13 +3,14 @@
 namespace qds
 {
 
-bool FakeLCardModule::start()
+bool FakeLCardModule::start() noexcept
 {
   if (m_running)
     return false;
 
   ++startCalls;
   m_running = true;
+
   return true;
 }
 
@@ -19,15 +20,16 @@ void FakeLCardModule::stop() noexcept
   m_running = false;
 }
 
-bool FakeLCardModule::read(std::span<float> values)
+bool FakeLCardModule::read(std::span<double> values) noexcept
 {
   if (!m_running)
     return false;
 
   ++readCalls;
-  for (int n = 0; n < values.size(); n++) {
-    values[n] = counter++;
-  }
+
+  for (std::size_t n = 0; n < values.size(); ++n)
+    values[n] = m_counter++;
+
   return true;
 }
 

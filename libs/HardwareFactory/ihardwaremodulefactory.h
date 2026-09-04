@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ihardwaremodule.h"
+#include "ilcardmodule.h"
 #include "moduleinfo.h"
 #include <memory>
 

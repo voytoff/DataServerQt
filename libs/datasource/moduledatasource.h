@@ -3,7 +3,7 @@
 #include <memory>
 #include "iclock.h"
 #include "iactivedatasource.h"
-#include "ihardwaremodule.h"
+#include "ilcardmodule.h"
 #include "imoduledatasink.h"
 #include "systemconfiguration.h"
 

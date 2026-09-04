@@ -1,6 +1,6 @@
 #include "hardwaremodulefactory.h"
 #include "fakelcardmodule.h"
-#include "ihardwaremodule.h"
+#include "ilcardmodule.h"
 #include "moduleinfo.h"
 #include <memory>
 

@@ -1,28 +1,28 @@
 #pragma once
 
-#include "ihardwaremodule.h"
+#include "ilcardmodule.h"
+
 #include <cstdint>
 
 namespace qds
 {
 
-class FakeLCardModule : public IHardwareModule
+class FakeLCardModule : public ILCardModule
 {
 public:
-  bool start() override;
+  bool start() noexcept override;
   void stop() noexcept override;
 
-  bool read(std::span<float> values) override;
+  bool read(std::span<double> values) noexcept override;
 
 public:
   uint32_t startCalls = 0;
   uint32_t stopCalls = 0;
   uint32_t readCalls = 0;
 
-
 private:
   bool m_running = false;
-  float counter = 0;
+  double m_counter = 0.0;
 };
 
 }
