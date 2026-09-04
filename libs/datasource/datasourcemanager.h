@@ -26,6 +26,10 @@ public:
     const SignalMemoryLayout& layout,
     const DataSourceFactory& factory);
 
+  bool start() noexcept;
+
+  void stop() noexcept;
+
   [[nodiscard]]
   bool acquire(RawMemory& memory);
 

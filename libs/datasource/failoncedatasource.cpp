@@ -22,4 +22,14 @@ bool FailOnceDataSource::acquire(std::span<double> values)
   return true;
 }
 
+bool FailOnceDataSource::start() noexcept
+{
+  return true;
+}
+
+void FailOnceDataSource::stop() noexcept
+{
+
+}
+
 }

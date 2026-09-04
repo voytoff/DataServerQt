@@ -37,4 +37,6 @@ private slots:
   void test_dataSourceManager_successInit();
   void test_datasource_fail_repeat();
 
+  void test_datasource_start_stop();
+
 };

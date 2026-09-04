@@ -30,7 +30,7 @@ std::string formatTimeWithMs(int64_t micro_val) {
   std::time_t tt = system_clock::to_time_t(tp_seconds);
   std::tm gmt;
 
-#if defined(_MSC_VER)
+#ifdef _WIN32
   gmtime_s(&gmt, &tt);
 #else
   gmtime_r(&tt, &gmt); // Для macOS (Xcode) и Linux
@@ -61,6 +61,8 @@ Logger::Logger(
 
 Logger::~Logger()
 {
+  std::lock_guard lock(m_mutex);
+
   if (m_stream.is_open())
     m_stream.close();
 }
@@ -89,6 +91,8 @@ bool Logger::write(
   LogLevel level,
   std::string_view message)
 {
+  std::lock_guard lock(m_mutex);
+
   const auto wallTime = m_clock.wallClockTime();
   const auto fileName = makeFileName(wallTime);
 
@@ -138,7 +142,7 @@ std::filesystem::path Logger::makeFileName(
 
   std::tm tm_time{};
 
-#if defined(_WIN32)
+#ifdef _WIN32
   gmtime_s(&tm_time, &seconds);
 #else
   gmtime_r(&seconds, &tm_time);

@@ -46,6 +46,26 @@ bool DataSourceManager::initialize(
   return true;
 }
 
+bool DataSourceManager::start() noexcept
+{
+  for (auto& entry : m_sources)
+  {
+    if (!entry.source->start())
+    {
+      stop();
+      return false;
+    }
+  }
+
+  return true;
+}
+
+void DataSourceManager::stop() noexcept
+{
+  for (auto& entry : m_sources)
+    entry.source->stop();
+}
+
 bool DataSourceManager::acquire(RawMemory& memory)
 {
   for (const auto& entry : m_sources)

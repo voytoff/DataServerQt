@@ -32,6 +32,10 @@ int main(int argc, char *argv[])
     rc |= QTest::qExec(&tc, argc, argv);
   }
   {
+    tst_datasource tc;
+    rc |= QTest::qExec(&tc, argc, argv);
+  }
+  {
     tst_dataserver tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
@@ -85,10 +89,6 @@ int main(int argc, char *argv[])
   }
   {
     tst_udpsender tc;
-    rc |= QTest::qExec(&tc, argc, argv);
-  }
-  {
-    tst_datasource tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
   {

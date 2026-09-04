@@ -16,6 +16,13 @@ public:
   {
     return false;
   }
+
+  bool start() noexcept override {
+    return true;
+  }
+
+  void stop() noexcept override {}
+
 };
 
 }

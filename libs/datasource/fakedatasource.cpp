@@ -17,10 +17,27 @@ bool FakeDataSource::acquire(std::span<double> values)
   if (m_size > 0)
     Q_ASSERT(values.size() == m_size);
 
+  if (!m_running)
+    return false;
+
   for (int n = 0; n < values.size(); n++)
     values[n] = ++m_value;
 
   return true;
+}
+
+bool FakeDataSource::start() noexcept
+{
+  if (m_running)
+    return true;
+
+  m_running = true;
+  return true;
+}
+
+void FakeDataSource::stop() noexcept
+{
+  m_running = false;
 }
 
 }

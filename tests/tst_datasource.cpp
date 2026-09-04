@@ -7,6 +7,7 @@
 #include "fakelcardmodule.h"
 #include "generatordatasource.h"
 #include "hardwaremodulefactory.h"
+#include "testdatasource.h"
 #include "testsrv.h"
 #include <qtestcase.h>
 #include <qtestsupport_core.h>
@@ -461,6 +462,8 @@ void tst_datasource::test_datasource_manager()
     layout,
     factory));
 
+  QVERIFY(manager.start());
+
   QVERIFY(manager.acquire(memory.raw()));
 
   std::array<double, 7> array;
@@ -473,6 +476,8 @@ void tst_datasource::test_datasource_manager()
   QCOMPARE(array[4], 3);
   QCOMPARE(array[5], 1);
   QCOMPARE(array[6], 2);
+
+  manager.stop();
 }
 
 void tst_datasource::test_datasource_fail_datasource()
@@ -512,6 +517,7 @@ void tst_datasource::test_datasource_fail_datasource()
     layout,
     factory));
 
+  QVERIFY((manager.start()));
   QVERIFY(!manager.acquire(memory.raw()));
 
   std::array<double, 6> array;
@@ -809,4 +815,58 @@ void tst_datasource::test_datasource_fail_repeat()
     factory2));
 
   QCOMPARE(manager.size(), 0);
+}
+
+void tst_datasource::test_datasource_start_stop()
+{
+  SystemConfiguration cfg = createTestConfig_calculate(ModuleType::LTR11);
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  DataSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::LTR11,
+    [](const ModuleConfiguration& cfg)
+    {
+      return std::make_unique<TestDataSource>(
+        cfg.settings);
+    }));
+
+  DataSourceManager manager;
+
+  QVERIFY(manager.initialize(cfg, layout, factory));
+  QCOMPARE(layout.rawSignalCount(), 2);
+
+  RawMemory raw;
+  raw.initialize(layout.rawSignalCount());
+
+  QVERIFY(manager.start());
+
+  QVERIFY(manager.acquire(raw));
+  QCOMPARE(raw.value(0), 0);
+  QCOMPARE(raw.value(1), 0);
+
+  QVERIFY(manager.acquire(raw));
+  QCOMPARE(raw.value(0), 1);
+  QCOMPARE(raw.value(1), 10);
+
+  manager.stop();
+
+  QVERIFY(!manager.acquire(raw));
+  QCOMPARE(raw.value(0), 1);
+  QCOMPARE(raw.value(1), 10);
+
+  QVERIFY(manager.start());
+
+  QVERIFY(manager.acquire(raw));
+  QCOMPARE(raw.value(0), 2);
+  QCOMPARE(raw.value(1), 20);
+
+  manager.stop();
+
+  QVERIFY(!manager.acquire(raw));
+  QCOMPARE(raw.value(0), 2);
+  QCOMPARE(raw.value(1), 20);
 }

@@ -6,7 +6,7 @@
 
 #include <filesystem>
 #include <fstream>
-#include <string>
+#include <mutex>
 #include <string_view>
 
 namespace qds
@@ -40,8 +40,11 @@ private:
 private:
   std::filesystem::path m_directory;
   const IClock& m_clock;
+
   std::filesystem::path m_currentFileName;
   std::ofstream m_stream;
+
+  std::mutex m_mutex;
 };
 
 }

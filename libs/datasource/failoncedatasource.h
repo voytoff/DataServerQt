@@ -15,9 +15,13 @@ public:
 
   bool acquire(std::span<double> values) override;
 
-private:
+  bool start() noexcept override;
 
+  void stop() noexcept override;
+
+private:
   bool m_fail = true;
+
 };
 
 }
