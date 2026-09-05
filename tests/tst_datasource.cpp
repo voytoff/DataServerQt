@@ -254,7 +254,6 @@ void tst_datasource::test_dataSourceManager_withFakeSource()
   QCOMPARE(source->stepCalls, 1);
   QCOMPARE(source->stopCalls, 1);
 }
-*/
 void tst_datasource::test_hardwareFactory_createFake()
 {
   using namespace qds;
@@ -272,6 +271,7 @@ void tst_datasource::test_hardwareFactory_createFake()
 
   QVERIFY(fake != nullptr);
 }
+*/
 
 void tst_datasource::test_hardwareFactory_unknownType()
 {
@@ -633,6 +633,8 @@ void tst_datasource::test_datasource_repeat_initialize()
 
   QCOMPARE(manager.size(), 3);
 
+  QVERIFY(manager.start());
+
   auto size = manager.size();
 
   QVERIFY(manager.acquire(raw));
@@ -692,6 +694,8 @@ void tst_datasource::test_datasource_acquire_repeat()
     factory));
 
   std::array<double, 7> values;
+
+  QVERIFY(manager.start());
 
   QVERIFY(manager.acquire(raw));
 

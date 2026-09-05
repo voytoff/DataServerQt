@@ -1,102 +1,53 @@
 #include "tst_hardware.h"
-#include "dataengine.h"
-#include "datasourcemanager.h"
-#include "fakeclock.h"
 #include "fakelcardmodule.h"
-#include "moduledatasource.h"
-#include "protocol/publishheader.h"
-#include "testsrv.h"
+#include "signalmemory.h"
 #include <qtestcase.h>
 
 tst_hardware::tst_hardware() { }
 tst_hardware::~tst_hardware() = default;
 
-/*
-void tst_hardware::test_hardware_schedulerPipeline()
+void tst_hardware::test_fakeLCardModule_base()
 {
   using namespace qds;
-  // создаем конфигурацию с одним модулем и несколькими тегами
-  constexpr TagId tags[] { {0}, {1}, {2} };
-  SystemConfiguration cfg = createTestConfig(tags, std::size(tags));
-  // тестовый контейнер
-  TestSrv srv(cfg);
-  // часы
-  FakeClock clock;
-  // источник данных
-  //FakeLCardModule lcmodule;
-  auto lcmodule = std::make_unique<FakeLCardModule>();
-  auto module = lcmodule.get();
-  auto ptr = std::make_unique<ModuleDataSource>(srv.storage, cfg, cfg.modules()[0], std::move(lcmodule), clock);
-  //auto source = ptr.get();
-  // диспетчер данных
-  DataSourceManager manager;
-  QVERIFY(manager.add(std::move(ptr)));
 
-  Subscription sub;
-  sub.rate = PublishRate::Hz1;
-  sub.tags = {{0},{1},{2}};
+  FakeLCardModule module;
 
-  auto id = srv.manager.add(sub);
+  RawMemory raw;
+  raw.initialize(3);
 
-  srv.scheduler.addSubscription(
-    id,
-    PublishRate::Hz1);
+  QVERIFY(!module.read(raw.values()));
 
-  DataEngine engine(manager, srv.scheduler);
+  QCOMPARE(module.readCalls, 0);
 
-  QVERIFY(engine.start());
-  QVERIFY(engine.isRunning());
+  QCOMPARE(raw.values()[0], 0.0);
+  QCOMPARE(raw.values()[1], 0.0);
+  QCOMPARE(raw.values()[2], 0.0);
 
-  uint64_t t = 1234567;
+  QVERIFY(module.start());
+  QVERIFY(!module.start());
 
-  clock.setTimestamp(0);
-  clock.advance(t);
+  QVERIFY(module.read(raw.values()));
+  QCOMPARE(module.readCalls, 1);
 
-  QVERIFY(engine.step());
+  QCOMPARE(raw.values()[0], 0.0);
+  QCOMPARE(raw.values()[1], 1.0);
+  QCOMPARE(raw.values()[2], 2.0);
 
-  QCOMPARE(module->startCalls, 1u);
-  QCOMPARE(module->readCalls, 1u);
+  QVERIFY(module.read(raw.values()));
+  QCOMPARE(module.readCalls, 2);
 
+  QCOMPARE(raw.values()[0], 3.0);
+  QCOMPARE(raw.values()[1], 4.0);
+  QCOMPARE(raw.values()[2], 5.0);
 
-  QCOMPARE(srv.storage.sample(tags[0]).value, 0.f);
+  module.stop();
+  QCOMPARE(module.stopCalls, 1);
 
-  QCOMPARE(srv.storage.sample(tags[1]).value, 1.f);
+  QVERIFY(!module.read(raw.values()));
+  QCOMPARE(module.readCalls, 2);
 
-  QCOMPARE(srv.storage.sample(tags[2]).value, 2.f);
-
-  QCOMPARE(srv.storage.timestamp(tags[0]), t);
-
-  QCOMPARE(srv.publisherSender.sendCount, 1u);
-  QCOMPARE(srv.publisherSender.m_packets.size(), 1);
-
-  PacketReader reader;
-  reader.append(srv.publisherSender.m_packets.front().data(),
-                srv.publisherSender.m_packets.front().size());
-
-  QVERIFY(reader.nextPacket());
-  QCOMPARE(reader.packetType(), PacketType::LiveData);
-
-  PublishHeader hdr;
-  QVERIFY(reader.read(hdr));
-
-  QCOMPARE(hdr.subscriptionId.value, 1u);
-  QCOMPARE(hdr.sequence, 0u);
-  QCOMPARE(hdr.timestamp, t);
-  QCOMPARE(hdr.valueCount, sub.tags.size());
-
-  std::array<Sample,3> samples;
-
-  QVERIFY(reader.readArray(samples.data(), samples.size()));
-
-  QCOMPARE(samples[0].value, 0.f);
-  QCOMPARE(samples[1].value, 1.f);
-  QCOMPARE(samples[2].value, 2.f);
-
-  QCOMPARE(reader.remaining(), std::size_t(0));
-
-  engine.stop();
-  QVERIFY(!engine.isRunning());
-
-  QCOMPARE(module->stopCalls, 1u);
+  QCOMPARE(raw.values()[0], 3.0);
+  QCOMPARE(raw.values()[1], 4.0);
+  QCOMPARE(raw.values()[2], 5.0);
 }
-*/
+

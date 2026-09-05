@@ -1,11 +1,10 @@
 #pragma once
 
-#include <memory>
 #include "iclock.h"
 #include "iactivedatasource.h"
-#include "ilcardmodule.h"
 #include "imoduledatasink.h"
 #include "systemconfiguration.h"
+#include "ihardwaremodule.h"
 
 namespace qds
 {

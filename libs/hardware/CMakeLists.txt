@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(Hardware SHARED
+    ihardwaremodule.h
     ilcardmodule.h
     lcardmodule.h lcardmodule.cpp
     fakelcardmodule.h fakelcardmodule.cpp

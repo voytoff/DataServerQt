@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ilcardmodule.h"
 #include "moduleinfo.h"
+#include "ihardwaremodule.h"
 #include "ihardwaremodulefactory.h"
 #include <memory>
 

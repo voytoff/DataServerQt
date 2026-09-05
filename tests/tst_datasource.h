@@ -18,7 +18,7 @@ private slots:
   //void test_dataSourceManager_withFakeSource();
 
   // TODO перенести в tst_hardware, если тестов hardware станет много
-  void test_hardwareFactory_createFake();
+  //void test_hardwareFactory_createFake();
   void test_hardwareFactory_unknownType();
   void test_dataSourceFactory_registerType_create();
   void test_datasource_layout();

@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <filesystem>
+#include <charconv>
 
 class tst_logger : public QObject
 {

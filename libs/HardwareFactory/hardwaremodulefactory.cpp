@@ -1,6 +1,6 @@
 #include "hardwaremodulefactory.h"
 #include "fakelcardmodule.h"
-#include "ilcardmodule.h"
+#include "ihardwaremodule.h"
 #include "moduleinfo.h"
 #include <memory>
 
@@ -11,8 +11,8 @@ std::unique_ptr<IHardwareModule> HardwareModuleFactory::create(const ModuleInfo 
 {
   switch (info.type)
   {
-  case ModuleType::Fake:
-    return std::make_unique<FakeLCardModule>();
+  //case ModuleType::Fake:
+  //  return std::make_unique<FakeLCardModule>();
 
   //case ModuleType::LTR11:
   //  return std::make_unique<LCardModule>(info);

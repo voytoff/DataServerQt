@@ -11,6 +11,7 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Network)
 
 add_library(DataServerCore SHARED
     dataserver.h dataserver.cpp
+    lcarddatasource.h lcarddatasource.cpp
 )
 
 target_include_directories(DataServerCore
