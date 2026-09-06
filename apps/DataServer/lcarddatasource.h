@@ -9,6 +9,7 @@
 #include <condition_variable>
 #include <memory>
 #include <mutex>
+#include <span>
 #include <thread>
 #include <vector>
 
@@ -20,7 +21,8 @@ class LCardDataSource : public IDataSource
 public:
   explicit LCardDataSource(
     const ModuleConfiguration& configuration,
-    std::unique_ptr<ILCardModule> module);
+    std::unique_ptr<ILCardModule> module,
+    std::chrono::microseconds pollInterval);
 
   ~LCardDataSource() noexcept override;
 

@@ -1,16 +1,24 @@
 #include "lcarddatasource.h"
 
+#include <algorithm>
+
 namespace qds
 {
 
 LCardDataSource::LCardDataSource(
-  const ModuleConfiguration &configuration,
-  std::unique_ptr<ILCardModule> module)
+  const ModuleConfiguration& configuration,
+  std::unique_ptr<ILCardModule> module,
+  std::chrono::microseconds pollInterval)
   : m_configuration(configuration)
   , m_module(std::move(module))
   , m_values(configuration.channelCount, 0.0)
+  , m_pollInterval(pollInterval)
 {
-  m_pollInterval = std::chrono::milliseconds(1);
+}
+
+LCardDataSource::~LCardDataSource() noexcept
+{
+  stop();
 }
 
 bool LCardDataSource::start() noexcept
@@ -46,13 +54,17 @@ void LCardDataSource::stop() noexcept
 
   m_waitCondition.notify_one();
 
-  m_thread.join();
+  if (m_thread.joinable())
+    m_thread.join();
 
   m_module->stop();
 }
 
 bool LCardDataSource::acquire(std::span<double> values)
 {
+  if (!m_running)
+    return false;
+
   if (values.size() != m_values.size())
     return false;
 
@@ -65,14 +77,15 @@ bool LCardDataSource::acquire(std::span<double> values)
 
 void LCardDataSource::run() noexcept
 {
-  std::vector<double> values(m_values.size());
+  std::vector<double> work(m_values.size());
 
   while (m_running)
   {
-    if (m_module->read(values))
+    if (m_module->read(work))
     {
-      std::lock_guard lock(m_waitMutex);
-      std::ranges::copy(values, m_values.begin());
+      std::lock_guard lock(m_valuesMutex);
+
+      std::ranges::copy(work, m_values.begin());
     }
 
     std::unique_lock lock(m_waitMutex);

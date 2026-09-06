@@ -12,5 +12,7 @@ public:
 private slots:
   //void test_hardware_schedulerPipeline();
   void test_fakeLCardModule_base();
+  void test_lCardDataSource();
+  void test_lCardDataSource_data_integrity();
 
 };
