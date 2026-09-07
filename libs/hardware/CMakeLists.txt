@@ -9,6 +9,7 @@ add_library(Hardware SHARED
     ilcardmodule.h
     lcardmodule.h lcardmodule.cpp
     fakelcardmodule.h fakelcardmodule.cpp
+    ltr11module.h ltr11module.cpp
 )
 
 target_include_directories(Hardware
