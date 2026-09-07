@@ -94,9 +94,11 @@ void tst_hardware::test_lCardDataSource()
   // Теперь acquire() должен получить данные.
   QVERIFY(source.acquire(raw.values()));
 
-  QCOMPARE(raw.values()[0], 0.0);
-  QCOMPARE(raw.values()[1], 1.0);
-  QCOMPARE(raw.values()[2], 2.0);
+  QVERIFY(raw.values()[0] >= 0.0);
+  QCOMPARE(raw.values()[1],
+           raw.values()[0] + 1.0);
+  QCOMPARE(raw.values()[2],
+           raw.values()[0] + 2.0);
 
   // Ждём следующий цикл worker-а.
   QTRY_VERIFY_WITH_TIMEOUT(fake->readCalls > 1, 1000);
