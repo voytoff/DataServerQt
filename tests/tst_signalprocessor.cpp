@@ -265,10 +265,10 @@ void tst_signalprocessor::test_signalProcessor_failOnceDataSource()
   DataSourceFactory factory;
   QVERIFY(factory.registerType(
     ModuleType::FailOnce,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FailOnceDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   SignalMemoryLayout layout;
@@ -394,10 +394,10 @@ void tst_signalprocessor::test_signalProcessor_failFormula()
   DataSourceFactory factory;
   QVERIFY(factory.registerType(
     ModuleType::Fake,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   SignalMemoryLayout layout;
@@ -474,10 +474,10 @@ void tst_signalprocessor::test_signalProcessor_cycle()
   DataSourceFactory factory;
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   SignalMemoryLayout layout;

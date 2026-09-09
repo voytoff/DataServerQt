@@ -6,25 +6,28 @@ namespace qds
 {
 
 LCardDataSource::LCardDataSource(
-  const ModuleConfiguration& configuration,
-  std::unique_ptr<ILCardModule> module,
-  std::chrono::microseconds pollInterval)
-  : m_configuration(configuration)
-  , m_module(std::move(module))
-  , m_values(configuration.channelCount, 0.0)
-  , m_pollInterval(pollInterval)
+  uint32_t channelCount,
+  std::unique_ptr<ILCardModule> module)
+  : m_module(std::move(module))
+  , m_values(channelCount, 0.0)
+  , m_work(channelCount, 0.0)
 {
 }
+
 
 LCardDataSource::~LCardDataSource() noexcept
 {
   stop();
 }
 
+
 bool LCardDataSource::start() noexcept
 {
   if (m_running)
     return true;
+
+  if (!m_module)
+    return false;
 
   if (!m_module->start())
     return false;
@@ -33,17 +36,22 @@ bool LCardDataSource::start() noexcept
 
   try
   {
-    m_thread = std::thread(&LCardDataSource::run, this);
+    m_thread =
+      std::thread(
+        &LCardDataSource::run,
+        this);
   }
   catch (...)
   {
     m_running = false;
     m_module->stop();
+
     return false;
   }
 
   return true;
 }
+
 
 void LCardDataSource::stop() noexcept
 {
@@ -52,15 +60,15 @@ void LCardDataSource::stop() noexcept
 
   m_running = false;
 
-  m_waitCondition.notify_one();
-
   if (m_thread.joinable())
     m_thread.join();
 
   m_module->stop();
 }
 
-bool LCardDataSource::acquire(std::span<double> values)
+
+bool LCardDataSource::acquire(
+  std::span<double> values)
 {
   if (!m_running)
     return false;
@@ -70,33 +78,26 @@ bool LCardDataSource::acquire(std::span<double> values)
 
   std::lock_guard lock(m_valuesMutex);
 
-  std::ranges::copy(m_values, values.begin());
+  std::ranges::copy(
+    m_values,
+    values.begin());
 
   return true;
 }
 
+
 void LCardDataSource::run() noexcept
 {
-  std::vector<double> work(m_values.size());
-
   while (m_running)
   {
-    if (m_module->read(work))
-    {
-      std::lock_guard lock(m_valuesMutex);
+    if (!m_module->read(m_work))
+      continue;
 
-      std::ranges::copy(work, m_values.begin());
-    }
+    std::lock_guard lock(m_valuesMutex);
 
-    std::unique_lock lock(m_waitMutex);
-
-    m_waitCondition.wait_for(
-      lock,
-      m_pollInterval,
-      [this]
-      {
-        return !m_running;
-      });
+    std::ranges::copy(
+      m_work,
+      m_values.begin());
   }
 }
 

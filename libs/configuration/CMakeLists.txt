@@ -9,17 +9,20 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Sql)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Sql)
 
 add_library(Configuration SHARED
+  cratetype.h
   moduletype.h
-  taginfo.cpp taginfo.h
+  signaldefinition.h
+  taginfo.h
   moduleinfo.cpp moduleinfo.h
   crateinfo.cpp crateinfo.h
   systemconfiguration.cpp systemconfiguration.h
-  signaldefinition.h
-  moduleconfiguration.h
   configurationrepository.h configurationrepository.cpp
-  cratetype.h
   calibration.h calibration.cpp
   calibrationrepository.h calibrationrepository.cpp
+  runtimemoduleconfiguration.h runtimemoduleconfiguration.cpp
+  configurationmodule.h
+  configurationtag.h
+  moduleruntimeconfiguration.h
 )
 
 target_include_directories(Configuration

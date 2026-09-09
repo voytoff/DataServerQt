@@ -4,22 +4,25 @@ namespace qds
 {
 
 bool DataSourceManager::initialize(
-  const SystemConfiguration &configuration,
-  const SignalMemoryLayout &layout,
-  const DataSourceFactory &factory)
+  const SystemConfiguration& configuration,
+  const SignalMemoryLayout& layout,
+  const DataSourceFactory& factory)
 {
   m_sources.clear();
 
-  for (const auto &module : configuration.modules())
+  for (const auto& module : configuration.modules())
   {
-    ModuleConfiguration mc;
+    ModuleRuntimeConfiguration mc;
 
     mc.module = module;
-    mc.settings = module.settings;
-    mc.channelCount =
+    //mc.settings = module.settings;
+
+    const uint32_t channelCount =
       configuration.moduleChannelCount(module.id);
 
-    auto source = factory.create(mc);
+    auto source =
+      factory.create(
+        mc);
 
     if (source == nullptr)
     {
@@ -27,7 +30,8 @@ bool DataSourceManager::initialize(
       return false;
     }
 
-    const auto rawOffset = layout.rawOffset(module.id);
+    const auto rawOffset =
+      layout.rawOffset(module.id);
 
     if (!rawOffset)
     {
@@ -39,7 +43,7 @@ bool DataSourceManager::initialize(
       DataSourceEntry{
         .source = std::move(source),
         .rawOffset = rawOffset.value(),
-        .channelCount = mc.channelCount
+        .channelCount = channelCount
       });
   }
 

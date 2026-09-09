@@ -3,6 +3,9 @@
 #include <string_view>
 #include <strongidhash.h>
 #include <vector>
+#include "configurationmodule.h"
+#include "configurationtag.h"
+#include "moduleruntimeconfiguration.h"
 #include "taginfo.h"
 #include "moduleinfo.h"
 #include "crateinfo.h"
@@ -55,72 +58,81 @@ class SystemConfiguration
 {
 public:
   void addCrate(const CrateInfo& crate);
+
   bool addModule(const ModuleInfo& module);
   bool addTag(const TagInfo& tag);
   bool addSignalDefinition(const SignalDefinition& definition);
 
-  const std::vector<CrateInfo>& crates() const;
-  const std::vector<ModuleInfo>& modules() const;
-  const std::vector<TagInfo>& tags() const;
-  const std::vector<SignalDefinition>& signalDefinitions() const;
+  const std::vector<CrateInfo>& crates() const noexcept;
+  const std::vector<ModuleInfo>& modules() const noexcept;
+  const std::vector<TagInfo>& tags() const noexcept;
+  const std::vector<SignalDefinition>& signalDefinitions() const noexcept;
 
   const std::vector<TagId>& moduleTags(ModuleId id) const;
 
-  [[nodiscard]]
   bool containsTag(TagId id) const;
-  [[nodiscard]]
   const TagInfo* findTag(TagId id) const;
 
   SignalDefinition* findSignalDefinition(SignalId id);
-  [[nodiscard]]
-  bool containsSignalDefinition(SignalId id) const;
-  [[nodiscard]]
   const SignalDefinition* findSignalDefinition(SignalId id) const;
 
-  [[nodiscard]]
-  const SignalDefinition* findSignalDefinition(std::string_view name) const;
+  bool containsSignalDefinition(SignalId id) const;
 
-  [[nodiscard]]
+  const SignalDefinition* findSignalDefinition(
+    std::string_view name) const;
+
   uint32_t moduleChannelCount(ModuleId id) const;
 
-  void setUdpPort(uint16_t port);
+  const ModuleInfo* findModule(ModuleId id) const;
+  const CrateInfo* findCrate(CrateId id) const;
 
-  [[nodiscard]]
+  bool addConfigurationModule(
+    const ConfigurationModule& configuration);
+
+  bool addConfigurationTag(
+    const ConfigurationTag& configuration);
+
+  const ConfigurationModule* findConfigurationModule(
+    ModuleId id) const;
+
+  std::optional<ModuleRuntimeConfiguration>
+  moduleRuntimeConfiguration(ModuleId id) const;
+
+  void setUdpPort(uint16_t port);
   uint16_t udpPort() const noexcept;
 
   void setName(std::string name);
-
-  [[nodiscard]]
-  std::string name() const noexcept;
+  const std::string& name() const noexcept;
 
   void setDescription(std::string description);
-
-  [[nodiscard]]
-  std::string description() const noexcept;
+  const std::string& description() const noexcept;
 
 private:
-
   std::vector<CrateInfo> m_crates;
-
   std::vector<ModuleInfo> m_modules;
-  std::unordered_map<ModuleId, std::vector<TagId>> m_moduleTags;
 
   std::vector<TagInfo> m_tags;
-  // быстрый поиск TagId -> индекс в m_tags
   std::vector<uint32_t> m_tagIndex;
   std::vector<bool> m_tagExists;
 
+  std::unordered_map<ModuleId, std::vector<TagId>> m_moduleTags;
+
   std::vector<SignalDefinition> m_signalDefinitions;
-  // быстрый поиск SignalId -> индекс в m_signals
   std::vector<uint32_t> m_signalDefinitionIndex;
   std::vector<bool> m_signalDefinitionExists;
 
+  std::vector<ConfigurationModule> m_configurationModules;
+
+  std::vector<ConfigurationTag> m_configurationTags;
+
+  // ModuleId -> indices in m_configurationTags
+  std::unordered_map<ModuleId, std::vector<uint32_t>>
+    m_configurationModuleTags;
+
   uint16_t m_udpPort = 0;
 
-  std::string m_name = "";
-
-  std::string m_description = "";
-
+  std::string m_name;
+  std::string m_description;
 };
 
 }

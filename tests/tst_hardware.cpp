@@ -1,6 +1,7 @@
 #include "tst_hardware.h"
 #include "fakelcardmodule.h"
 #include "lcarddatasource.h"
+#include "moduleruntimeconfiguration.h"
 #include "signalmemory.h"
 #include <QtCore/qtestsupport_core.h>
 #include <qtestcase.h>
@@ -57,16 +58,12 @@ void tst_hardware::test_lCardDataSource()
 {
   using namespace qds;
 
-  ModuleConfiguration configuration;
-  configuration.channelCount = 3;
-
   auto module = std::make_unique<FakeLCardModule>();
   auto* fake = module.get();
 
   LCardDataSource source(
-    configuration,
-    std::move(module),
-    std::chrono::milliseconds(1));
+    3,
+    std::move(module));
 
   RawMemory raw;
   raw.initialize(3);
@@ -139,16 +136,12 @@ void tst_hardware::test_lCardDataSource_data_integrity()
 {
   using namespace qds;
 
-  ModuleConfiguration configuration;
-  configuration.channelCount = 3;
-
   auto module = std::make_unique<FakeLCardModule>();
   auto* fake = module.get();
 
   LCardDataSource source(
-    configuration,
-    std::move(module),
-    std::chrono::milliseconds(1));
+    3,
+    std::move(module));
 
   RawMemory raw;
   raw.initialize(3);

@@ -2,11 +2,8 @@
 
 #include "idatasource.h"
 #include "ilcardmodule.h"
-#include "moduleconfiguration.h"
 
 #include <atomic>
-#include <chrono>
-#include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <span>
@@ -16,13 +13,12 @@
 namespace qds
 {
 
-class LCardDataSource : public IDataSource
+class LCardDataSource final : public IDataSource
 {
 public:
-  explicit LCardDataSource(
-    const ModuleConfiguration& configuration,
-    std::unique_ptr<ILCardModule> module,
-    std::chrono::microseconds pollInterval);
+  LCardDataSource(
+    uint32_t channelCount,
+    std::unique_ptr<ILCardModule> module);
 
   ~LCardDataSource() noexcept override;
 
@@ -35,21 +31,15 @@ private:
   void run() noexcept;
 
 private:
-  const ModuleConfiguration m_configuration;
-
   std::unique_ptr<ILCardModule> m_module;
 
   std::vector<double> m_values;
+  std::vector<double> m_work;
 
   std::thread m_thread;
   std::atomic<bool> m_running{false};
 
   std::mutex m_valuesMutex;
-
-  std::mutex m_waitMutex;
-  std::condition_variable m_waitCondition;
-
-  std::chrono::microseconds m_pollInterval;
 };
 
 }

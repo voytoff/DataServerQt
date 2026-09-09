@@ -620,29 +620,20 @@ static SystemConfiguration createTestConfig_Some_Modules()
   using namespace qds;
   SystemConfiguration cfg;
 
-  QJsonObject jsonObj0;
-  jsonObj0.insert("size", 2);
-
-  ModuleInfo m0{.id = {0}, .type = ModuleType::Fake, .settings = jsonObj0};
+  ModuleInfo m0{.id = {0}, .type = ModuleType::Fake};
   cfg.addModule(m0);
 
   cfg.addTag({.tag = {0}, .module = m0.id, .channel = {0}});
   cfg.addTag({.tag = {1}, .module = m0.id, .channel = {1}});
 
-  QJsonObject jsonObj1;
-  jsonObj1.insert("size", 3);
-
-  ModuleInfo m1{.id = {1}, .type = ModuleType::Fake, .settings = jsonObj1};
+  ModuleInfo m1{.id = {1}, .type = ModuleType::Fake};
   cfg.addModule(m1);
 
   cfg.addTag({.tag = {4}, .module = m1.id, .channel = {0}});
   cfg.addTag({.tag = {6}, .module = m1.id, .channel = {1}});
   cfg.addTag({.tag = {7}, .module = m1.id, .channel = {2}});
 
-  QJsonObject jsonObj2;
-  jsonObj2.insert("size", 2);
-
-  ModuleInfo m2{.id = {2}, .type = ModuleType::Fake, .settings = jsonObj2};
+  ModuleInfo m2{.id = {2}, .type = ModuleType::Fake};
   cfg.addModule(m2);
 
   cfg.addTag({.tag = {8}, .module = m2.id, .channel = {0}});
@@ -670,22 +661,19 @@ static SystemConfiguration createTestConfig_Fail_ModuleType()
   using namespace qds;
   SystemConfiguration cfg;
 
-  QJsonObject jsonObj;
-  jsonObj.insert("size", 2);
-
-  ModuleInfo m0{.id = {0}, .type = ModuleType::Fake, .settings = jsonObj};
+  ModuleInfo m0{.id = {0}, .type = ModuleType::Fake};
   cfg.addModule(m0);
 
   cfg.addTag({.tag = {0}, .module = m0.id, .channel = {0}});
   cfg.addTag({.tag = {1}, .module = m0.id, .channel = {1}});
 
-  ModuleInfo m1{.id = {1}, .type = ModuleType::Failing, .settings = jsonObj};
+  ModuleInfo m1{.id = {1}, .type = ModuleType::Failing};
   cfg.addModule(m1);
 
   cfg.addTag({.tag = {4}, .module = m1.id, .channel = {0}});
   cfg.addTag({.tag = {6}, .module = m1.id, .channel = {1}});
 
-  ModuleInfo m2{.id = {2}, .type = ModuleType::Fake, .settings = jsonObj};
+  ModuleInfo m2{.id = {2}, .type = ModuleType::Fake};
   cfg.addModule(m2);
 
   cfg.addTag({.tag = {8}, .module = m2.id, .channel = {0}});
@@ -714,19 +702,19 @@ static SystemConfiguration createTestConfig_Fail_DataSource()
   QJsonObject jsonObj;
   jsonObj.insert("size", 2);
 
-  ModuleInfo m0{.id = {0}, .type = ModuleType::Fake, .settings = jsonObj};
+  ModuleInfo m0{.id = {0}, .type = ModuleType::Fake};
   cfg.addModule(m0);
 
   cfg.addTag({.tag = {0}, .module = m0.id, .channel = {0}});
   cfg.addTag({.tag = {1}, .module = m0.id, .channel = {1}});
 
-  ModuleInfo m1{.id = {1}, .type = ModuleType::LTR11, .settings = jsonObj};
+  ModuleInfo m1{.id = {1}, .type = ModuleType::LTR11};
   cfg.addModule(m1);
 
   cfg.addTag({.tag = {4}, .module = m1.id, .channel = {0}});
   cfg.addTag({.tag = {6}, .module = m1.id, .channel = {1}});
 
-  ModuleInfo m2{.id = {2}, .type = ModuleType::Fake, .settings = jsonObj};
+  ModuleInfo m2{.id = {2}, .type = ModuleType::Fake};
   cfg.addModule(m2);
 
   cfg.addTag({.tag = {8}, .module = m2.id, .channel = {0}});

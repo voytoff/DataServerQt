@@ -61,8 +61,8 @@ WHERE
     if (!document.isObject())
       return false;
 
-    module.settings =
-      document.object();
+    //module.settings =
+    //  document.object();
 
     // информация о модуле из module
     module.type = static_cast<ModuleType>(query.value("module_type").toUInt());

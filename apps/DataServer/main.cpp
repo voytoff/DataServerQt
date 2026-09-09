@@ -41,13 +41,30 @@ int main(int argc, char *argv[]) {
   qds::DataSourceFactory factory;
 
   if (!factory.registerType(
-    qds::ModuleType::Test,
-    [](const qds::ModuleConfiguration& cfg)
-    {
-      return std::make_unique<qds::TestDataSource>(
-        cfg.settings);
-    }))
-      return -1;
+        qds::ModuleType::Test,
+        [](const qds::ModuleRuntimeConfiguration& config)
+        {
+          return std::make_unique<qds::TestDataSource>(
+            config.module.settings);
+        }))
+    return -1;
+  /*
+  if (!factory.registerType(
+        qds::ModuleType::LTR11,
+        [](const qds::ModuleRuntimeConfiguration& config)
+        {
+          const auto hardwareConfig =
+            qds::Ltr11Configuration::build(config);
+
+          if (!hardwareConfig)
+            return std::unique_ptr<qds::IDataSource>{};
+
+          auto module =
+            std::make_unique<qds::Ltr11Module>(*hardwareConfig);
+
+          return std::make_unique<qds::LCardDataSource>(
+            std::move(module));
+        }))*/
 
   qds::TestArchiveWriter archive;
   qds::TestPublisher publisher;

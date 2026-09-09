@@ -53,10 +53,10 @@ void tst_engine::test_pipeline_archive_copy()
   DataSourceFactory factory;
   QVERIFY(factory.registerType(
     ModuleType::Fake,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   DataSourceManager manager;
@@ -133,10 +133,10 @@ void tst_engine::test_dataEngine_simple_runtime()
   DataSourceFactory factory;
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>( // две ячейки -> 0 - счетчик; 1 - счетчик * 10
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   DataSourceManager manager;
@@ -204,10 +204,10 @@ void tst_engine::test_dataEngine_failOnceArchiveWriter()
   DataSourceFactory factory;
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   SignalMemoryLayout layout;
@@ -320,7 +320,7 @@ void tst_engine::test_dataEngine_FailingDataSource()
     [](const ModuleConfiguration& cfg)
     {
       return std::make_unique<FailingDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   DataSourceManager manager;
@@ -364,7 +364,7 @@ void tst_engine::test_dataEngine_FailingCalculationProcessor()
     [](const ModuleConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   DataSourceManager manager;
@@ -410,7 +410,7 @@ void tst_engine::test_dataEngine_FailingArchiveWriter()
     [](const ModuleConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   DataSourceManager manager;
@@ -458,7 +458,7 @@ void tst_engine::test_dataEngine_simple_pipeline()
     [](const ModuleConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   DataSourceManager manager;

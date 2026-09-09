@@ -298,10 +298,10 @@ void tst_database::test_database_pipeline()
 
   QVERIFY(factory.registerType(
     ModuleType::LTR11,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   TestArchiveWriter archive;
@@ -387,10 +387,10 @@ void tst_database::test_database_archive()
 
   QVERIFY(factory.registerType(
     ModuleType::LTR11,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
 
@@ -759,10 +759,10 @@ void tst_database::test_publisher()
 
   QVERIFY(factory.registerType(
     ModuleType::LTR11,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   RuntimeSystem runtime;
@@ -890,10 +890,10 @@ void tst_database::test_publisher_raw_calculated()
 
   QVERIFY(factory.registerType(
     ModuleType::LTR11,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   RuntimeSystem runtime;

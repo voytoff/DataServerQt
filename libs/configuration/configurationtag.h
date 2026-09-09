@@ -1,17 +1,20 @@
 #pragma once
 
 #include "datatypes.h"
+
 #include <QJsonObject>
 
 namespace qds
 {
 
-struct TagInfo
+struct ConfigurationTag
 {
   TagId tag;
 
   ModuleId module;
   ChannelId channel;
+
+  QJsonObject settings;
 };
 
 }

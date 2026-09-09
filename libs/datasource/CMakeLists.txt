@@ -5,6 +5,9 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
+
 add_library(DataSource SHARED
   iactivedatasource.h
   imoduledatasink.h
@@ -21,6 +24,9 @@ add_library(DataSource SHARED
   failingdatasource.h
   datasourcefactory.h datasourcefactory.cpp
   failoncedatasource.h failoncedatasource.cpp
+  lcarddatasource.h lcarddatasource.cpp
+  moduleconfiguration.h
+  ltr11configurationbuilder.h ltr11configurationbuilder.cpp
 )
 
 target_include_directories(DataSource
@@ -35,4 +41,6 @@ target_link_libraries(DataSource
     Configuration
     Hardware
     SignalStorage
+  PUBLIC
+    Qt${QT_VERSION_MAJOR}::Core
 )

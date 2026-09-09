@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cassert>
+#include <optional>
 #include "systemconfiguration.h"
 
 namespace qds
@@ -183,11 +184,14 @@ const SignalDefinition* SystemConfiguration::findSignalDefinition(
   return &m_signalDefinitions[index];
 }
 
-uint32_t SystemConfiguration::moduleChannelCount(
-  ModuleId id) const
+uint32_t SystemConfiguration::moduleChannelCount(ModuleId id) const
 {
-  return static_cast<uint32_t>(
-    moduleTags(id).size());
+  const auto it = m_moduleTags.find(id);
+
+  if (it == m_moduleTags.end())
+    return 0;
+
+  return static_cast<uint32_t>(it->second.size());
 }
 
 void SystemConfiguration::setUdpPort(uint16_t port)
@@ -205,7 +209,7 @@ void SystemConfiguration::setName(std::string name)
   m_name = name;
 }
 
-std::string SystemConfiguration::name() const noexcept
+const std::string &SystemConfiguration::name() const noexcept
 {
   return m_name;
 }
@@ -215,13 +219,149 @@ void SystemConfiguration::setDescription(std::string description)
   m_description = description;
 }
 
-std::string SystemConfiguration::description() const noexcept
+const std::string &SystemConfiguration::description() const noexcept
 {
   return m_description;
 }
 
-const SignalDefinition*
-SystemConfiguration::findSignalDefinition(
+bool SystemConfiguration::addConfigurationModule(
+  const ConfigurationModule& configuration)
+{
+  if (findModule(configuration.module) == nullptr)
+    return false;
+
+  if (findConfigurationModule(configuration.module) != nullptr)
+    return false;
+
+  m_configurationModules.push_back(configuration);
+  return true;
+}
+
+bool SystemConfiguration::addConfigurationTag(
+  const ConfigurationTag& configuration)
+{
+  const auto* tag = findTag(configuration.tag);
+
+  if (tag == nullptr)
+    return false;
+
+  if (tag->module != configuration.module)
+    return false;
+
+  if (tag->channel != configuration.channel)
+    return false;
+
+  if (findConfigurationModule(configuration.module) == nullptr)
+    return false;
+
+  const auto it = std::find_if(
+    m_configurationTags.begin(),
+    m_configurationTags.end(),
+    [&](const ConfigurationTag& item)
+    {
+      return item.tag == configuration.tag;
+    });
+
+  if (it != m_configurationTags.end())
+    return false;
+
+  const uint32_t index =
+    static_cast<uint32_t>(m_configurationTags.size());
+
+  m_configurationTags.push_back(configuration);
+
+  m_configurationModuleTags[configuration.module].push_back(index);
+
+  return true;
+}
+
+const ConfigurationModule *SystemConfiguration::findConfigurationModule(ModuleId module) const
+{
+  auto it = std::find_if(
+    m_configurationModules.begin(),
+    m_configurationModules.end(),
+    [&](const ConfigurationModule &ci){
+      return ci.module == module;
+    });
+
+  if (it == m_configurationModules.end())
+    return nullptr;
+
+  return &(*it);
+}
+
+const ModuleInfo *SystemConfiguration::findModule(ModuleId id) const
+{
+  auto it = std::find_if(
+    m_modules.begin(),
+    m_modules.end(),
+    [&](const ModuleInfo &mi){
+      return mi.id == id;
+    });
+
+  if (it == m_modules.end())
+    return nullptr;
+
+  return &(*it);
+}
+
+const CrateInfo *SystemConfiguration::findCrate(CrateId id) const
+{
+  auto it = std::find_if(
+    m_crates.begin(),
+    m_crates.end(),
+    [&](const CrateInfo &ci){
+      return ci.id == id;
+    });
+
+  if (it == m_crates.end())
+    return nullptr;
+
+  return &(*it);
+}
+
+std::optional<ModuleRuntimeConfiguration>
+SystemConfiguration::moduleRuntimeConfiguration(ModuleId module) const
+{
+  const auto* moduleInfo = findModule(module);
+  if (moduleInfo == nullptr)
+    return std::nullopt;
+
+  const auto* crateInfo = findCrate(moduleInfo->crate);
+  if (crateInfo == nullptr)
+    return std::nullopt;
+
+  const auto* configuration =
+    findConfigurationModule(module);
+
+  if (configuration == nullptr)
+    return std::nullopt;
+
+  ModuleRuntimeConfiguration result;
+
+  result.module = *moduleInfo;
+  result.crate = *crateInfo;
+  result.configuration = *configuration;
+
+  const auto it = m_configurationModuleTags.find(module);
+
+  if (it != m_configurationModuleTags.end())
+  {
+    result.tags.reserve(it->second.size());
+
+    for (const uint32_t index : it->second)
+    {
+      assert(index < m_configurationTags.size());
+
+      result.tags.push_back(
+        m_configurationTags[index]);
+    }
+  }
+
+  return result;
+}
+
+const SignalDefinition* SystemConfiguration::findSignalDefinition(
   std::string_view name) const
 {
   auto it = std::find_if(

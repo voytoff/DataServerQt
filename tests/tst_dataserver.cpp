@@ -42,10 +42,10 @@ void tst_dataserver::test_systemBuilder_success()
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   TestArchiveWriter archive;
@@ -135,10 +135,10 @@ void tst_dataserver::test_systemBuilder_process()
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   TestArchiveWriter archive;
@@ -198,10 +198,10 @@ void tst_dataserver::test_systemBuilder_failErrorFormula()
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   TestArchiveWriter archive;
@@ -250,10 +250,10 @@ void tst_dataserver::test_systemBuilder_failDataSourceManager()
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   TestArchiveWriter archive;
@@ -302,10 +302,10 @@ void tst_dataserver::test_systemBuilder_cycle()
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   TestArchiveWriter archive;
@@ -391,10 +391,10 @@ void tst_dataserver::test_dataServer_udpSubscription()
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   TestArchiveWriter archive;
@@ -637,10 +637,10 @@ void tst_dataserver::test_dataServer_failStart_moduleType()
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   TestArchiveWriter archive;
@@ -677,10 +677,10 @@ void tst_dataserver::test_dataServer_failSubscribe_invalidSignalId()
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   TestArchiveWriter archive;
@@ -795,10 +795,10 @@ void tst_dataserver::test_dataServer_failSubscribe_duplicateSignalId()
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   TestArchiveWriter archive;
@@ -913,10 +913,10 @@ void tst_dataserver::test_dataServer_failSubscribe_invalidRate()
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   TestArchiveWriter archive;
@@ -1031,10 +1031,10 @@ void tst_dataserver::test_dataServer_failSubscribe_emptyList()
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   TestArchiveWriter archive;
@@ -1139,10 +1139,10 @@ void tst_dataserver::test_dataServer_failSubscribe_tooManySignals()
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   TestArchiveWriter archive;
@@ -1247,10 +1247,10 @@ void tst_dataserver::test_dataServer_unsubscribe_ok()
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   TestArchiveWriter archive;
@@ -1464,10 +1464,10 @@ void tst_dataserver::test_dataServer_unsubscribe_invalidId()
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   TestArchiveWriter archive;
@@ -1680,10 +1680,10 @@ void tst_dataserver::test_dataServer_start_stop()
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   TestArchiveWriter archive;
@@ -1853,10 +1853,10 @@ void tst_dataserver::test_dataServer_start_after_failed_start()
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   FailOnceArchiveWriter archive;
@@ -1880,10 +1880,10 @@ void tst_dataserver::test_dataServer_start_after_failed_start()
 
   QVERIFY(factory.registerType(
     ModuleType::Fake,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   QVERIFY(ds.start());
@@ -1915,10 +1915,10 @@ void tst_dataserver::test_dataServer_failStart_invalidUdpPort()
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   TestArchiveWriter archive;
@@ -2117,10 +2117,10 @@ void tst_dataserver::test_dataServer_subscriptionId_after_restart()
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   TestArchiveWriter archive;
@@ -2316,10 +2316,10 @@ void tst_dataserver::test_dataServer_build_after_failBuild()
 
   QVERIFY(factory.registerType(
     ModuleType::Failing,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FailingDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   TestArchiveWriter archive;
@@ -2341,10 +2341,10 @@ void tst_dataserver::test_dataServer_build_after_failBuild()
 
   QVERIFY(factory.registerType(
     ModuleType::Fake,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   QVERIFY(builder.build(
@@ -2385,10 +2385,10 @@ void tst_dataserver::test_dataEngine_process_dataSourceFailure()
 
   QVERIFY(factory.registerType(
     ModuleType::Failing,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FailingDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   TestArchiveWriter archive;
@@ -2432,10 +2432,10 @@ void tst_dataserver::test_dataEngine_process_without_initialize()
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   TestArchiveWriter archive;
@@ -2469,10 +2469,10 @@ void tst_dataserver::test_dataEngine_process_archiveFailure()
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   FailingArchiveWriter archive;
@@ -2521,10 +2521,10 @@ void tst_dataserver::test_dataEngine_process_success()
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   TestArchiveWriter archive;
@@ -2573,10 +2573,10 @@ void tst_dataserver::test_dataServer_stop_on_dataSourceFailure()
 
   QVERIFY(factory.registerType(
     ModuleType::Failing,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FailingDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   TestArchiveWriter archive;
@@ -2626,10 +2626,10 @@ void tst_dataserver::test_systemBuilder_failedThenSuccess()
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   RuntimeSystem runtime;
@@ -2688,10 +2688,10 @@ void tst_dataserver::test_dataServer_start_twice()
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   TestArchiveWriter archive;
@@ -2730,10 +2730,10 @@ void tst_dataserver::test_dataServer_stop_before_start()
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   TestArchiveWriter archive;
@@ -2775,10 +2775,10 @@ void tst_dataserver::test_dataServer_udp_pipeline()
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   TestArchiveWriter archive;
@@ -3033,10 +3033,10 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
 
   QVERIFY(factory.registerType(
     ModuleType::LTR11,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   ArchiveDescriptionBuilder builder;

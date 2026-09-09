@@ -4,14 +4,11 @@
 #include "datasourcemanager.h"
 #include "failingdatasource.h"
 #include "fakedatasource.h"
-#include "fakelcardmodule.h"
-#include "generatordatasource.h"
 #include "hardwaremodulefactory.h"
 #include "testdatasource.h"
 #include "testsrv.h"
 #include <qtestcase.h>
 #include <qtestsupport_core.h>
-#include "systemclock.h"
 #include "QPointer"
 
 tst_datasource::tst_datasource() { }
@@ -293,16 +290,16 @@ void tst_datasource::test_dataSourceFactory_registerType_create()
   DataSourceFactory factory;
   QVERIFY(factory.registerType(
     ModuleType::Fake,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   QJsonObject jsonObj;
   jsonObj.insert("name", "Fake");
   jsonObj.insert("frequency", 100);
-  ModuleConfiguration cfg{.module = {.type = ModuleType::Fake}, .settings = jsonObj};
+  ModuleRuntimeConfiguration cfg{.module = {.type = ModuleType::Fake}};
 
   auto source = factory.create(cfg);
   QVERIFY(source != nullptr);
@@ -315,19 +312,19 @@ void tst_datasource::test_dataSourceFactory_registerType_create()
   // повторная регистрация
   QVERIFY(!factory.registerType(
     ModuleType::Fake,
-    [](const ModuleConfiguration&)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>();
     }));
 
   // Unknown
-  ModuleConfiguration unknown;
+  ModuleRuntimeConfiguration unknown;
   unknown.module.type = ModuleType::Unknown;
 
   QVERIFY(factory.create(unknown) == nullptr);
 
   // незарегистрированный тип
-  ModuleConfiguration unregistered;
+  ModuleRuntimeConfiguration unregistered;
   unregistered.module.type = ModuleType::LTR11;
 
   QVERIFY(factory.create(unregistered) == nullptr);
@@ -450,10 +447,10 @@ void tst_datasource::test_datasource_manager()
   DataSourceFactory factory;
   QVERIFY(factory.registerType(
     ModuleType::Fake,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   DataSourceManager manager;
@@ -497,18 +494,18 @@ void tst_datasource::test_datasource_fail_datasource()
   DataSourceFactory factory;
   QVERIFY(factory.registerType(
     ModuleType::Fake,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   QVERIFY(factory.registerType(
     ModuleType::Failing,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FailingDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   DataSourceManager manager;
@@ -548,10 +545,10 @@ void tst_datasource::test_datasource_absent_datasource()
   // Нужен FakeDataSource, его нет
   QVERIFY(factory.registerType(
     ModuleType::Failing,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FailingDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   DataSourceManager manager;
@@ -579,18 +576,18 @@ void tst_datasource::test_datasource_missing_datasource()
   DataSourceFactory factory;
   QVERIFY(factory.registerType(
     ModuleType::Fake,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   QVERIFY(factory.registerType(
     ModuleType::Failing,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FailingDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   DataSourceManager manager;
@@ -619,10 +616,10 @@ void tst_datasource::test_datasource_repeat_initialize()
   DataSourceFactory factory;
   QVERIFY(factory.registerType(
     ModuleType::Fake,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   DataSourceManager manager;
@@ -680,10 +677,10 @@ void tst_datasource::test_datasource_acquire_repeat()
 
   QVERIFY(factory.registerType(
     ModuleType::Fake,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   DataSourceManager manager;
@@ -757,10 +754,10 @@ void tst_datasource::test_dataSourceManager_successInit()
   DataSourceFactory factory;
   QVERIFY(factory.registerType(
     ModuleType::Fake,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   DataSourceManager manager;
@@ -794,10 +791,10 @@ void tst_datasource::test_datasource_fail_repeat()
 
   QVERIFY(factory.registerType(
     ModuleType::Fake,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   DataSourceManager manager;
@@ -832,10 +829,10 @@ void tst_datasource::test_datasource_start_stop()
 
   QVERIFY(factory.registerType(
     ModuleType::LTR11,
-    [](const ModuleConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.settings);
+        cfg.module.settings);
     }));
 
   DataSourceManager manager;

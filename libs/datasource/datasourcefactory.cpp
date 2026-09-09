@@ -5,15 +5,14 @@ namespace qds
 
 std::unique_ptr<IDataSource>
 DataSourceFactory::create(
-  const ModuleConfiguration& configuration) const
+  const ModuleRuntimeConfiguration& configuration) const
 {
-  const auto type =
-    configuration.module.type;
+  const auto type = configuration.module.type;
 
   if (type == ModuleType::Unknown)
     return nullptr;
 
-  auto it = m_creators.find(type);
+  const auto it = m_creators.find(type);
 
   if (it == m_creators.end())
     return nullptr;
@@ -31,10 +30,8 @@ bool DataSourceFactory::registerType(
   if (!creator)
     return false;
 
-  auto [it, inserted] =
-    m_creators.emplace(
-      type,
-      std::move(creator));
+  const auto [it, inserted] =
+    m_creators.emplace(type, std::move(creator));
 
   return inserted;
 }
