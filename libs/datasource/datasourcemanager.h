@@ -22,7 +22,7 @@ class DataSourceManager
 {
 public:
   bool initialize(
-    const SystemConfiguration& configuration,
+    const SystemConfiguration &configuration,
     const SignalMemoryLayout& layout,
     const DataSourceFactory& factory);
 

@@ -30,6 +30,7 @@ CREATE TABLE module
     crate_id    INT NOT NULL,
     type        INT NOT NULL,
     serial      VARCHAR(128) NOT NULL,
+	slot        INT NOT NULL;
     description VARCHAR(255) NOT NULL DEFAULT '',
 
     PRIMARY KEY (id),
@@ -104,6 +105,7 @@ CREATE TABLE configuration_tag
 
     module_id        INT NOT NULL,
     channel          INT NOT NULL,
+    settings         longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
 
     PRIMARY KEY (id),
 

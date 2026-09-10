@@ -100,22 +100,22 @@ bool SystemConfiguration::addSignalDefinition(
   return true;
 }
 
-const std::vector<CrateInfo>& SystemConfiguration::crates() const
+const std::vector<CrateInfo>& SystemConfiguration::crates() const noexcept
 {
   return m_crates;
 }
 
-const std::vector<ModuleInfo>& SystemConfiguration::modules() const
+const std::vector<ModuleInfo>& SystemConfiguration::modules() const noexcept
 {
   return m_modules;
 }
 
-const std::vector<TagInfo>& SystemConfiguration::tags() const
+const std::vector<TagInfo>& SystemConfiguration::tags() const noexcept
 {
   return m_tags;
 }
 
-const std::vector<SignalDefinition>& SystemConfiguration::signalDefinitions() const
+const std::vector<SignalDefinition>& SystemConfiguration::signalDefinitions() const noexcept
 {
   return m_signalDefinitions;
 }

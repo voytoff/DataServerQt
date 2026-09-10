@@ -95,8 +95,8 @@ public:
   const ConfigurationModule* findConfigurationModule(
     ModuleId id) const;
 
-  std::optional<ModuleRuntimeConfiguration>
-  moduleRuntimeConfiguration(ModuleId id) const;
+  std::optional<ModuleRuntimeConfiguration> moduleRuntimeConfiguration(
+    ModuleId id) const;
 
   void setUdpPort(uint16_t port);
   uint16_t udpPort() const noexcept;

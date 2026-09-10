@@ -12,17 +12,20 @@ bool DataSourceManager::initialize(
 
   for (const auto& module : configuration.modules())
   {
-    ModuleRuntimeConfiguration mc;
+    const auto runtimeConfiguration =
+      configuration.moduleRuntimeConfiguration(module.id);
 
-    mc.module = module;
-    //mc.settings = module.settings;
+    if (!runtimeConfiguration.has_value())
+    {
+      m_sources.clear();
+      return false;
+    }
 
     const uint32_t channelCount =
-      configuration.moduleChannelCount(module.id);
+      static_cast<uint32_t>(runtimeConfiguration->tags.size());
 
     auto source =
-      factory.create(
-        mc);
+      factory.create(runtimeConfiguration.value());
 
     if (source == nullptr)
     {
@@ -46,6 +49,9 @@ bool DataSourceManager::initialize(
         .channelCount = channelCount
       });
   }
+
+  if (m_sources.empty())
+    return false;
 
   return true;
 }

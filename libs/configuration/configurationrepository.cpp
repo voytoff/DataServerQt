@@ -32,7 +32,7 @@ bool ConfigurationRepository::load(ConfigurationId id, SystemConfiguration &conf
   query = getQuery(R"(
 SELECT
   cm.configuration_id, cm.module_id, cm.settings,
-  m.type as module_type, m.serial as module_serial, m.description as module_description,
+  m.type as module_type, m.serial as module_serial, m.slot as module_slot, m.description as module_description,
   c.id as crate_id, c.type as crate_type, c.serial as crate_serial, c.host as crate_host, c.port as crate_port, c.description as crate_description
 FROM
   configuration_module cm
@@ -50,24 +50,11 @@ WHERE
     ModuleInfo module;
     module.id = ModuleId{query.value("module_id").toUInt()};
 
-    const QByteArray data =
-      query.value("settings")
-        .toString()
-        .toUtf8();
-
-    const QJsonDocument document =
-      QJsonDocument::fromJson(data);
-
-    if (!document.isObject())
-      return false;
-
-    //module.settings =
-    //  document.object();
-
     // информация о модуле из module
     module.type = static_cast<ModuleType>(query.value("module_type").toUInt());
     module.crate = CrateId{query.value("crate_id").toUInt()};
     module.serial = query.value("module_serial").toString();
+    module.slot = query.value("module_slot").toInt();
     module.description = query.value("module_description").toString();
 
     auto crates = cfg.crates();
@@ -89,6 +76,28 @@ WHERE
 
     if (!cfg.addModule(module))
       return false;
+
+    ConfigurationModule configurationModule;
+
+    configurationModule.configurationId = id;
+    configurationModule.module = module.id;
+
+    const QByteArray data =
+      query.value("settings")
+        .toString()
+        .toUtf8();
+
+    const QJsonDocument document =
+      QJsonDocument::fromJson(data);
+
+    if (!document.isObject())
+      return false;
+
+    configurationModule.settings =
+      document.object();
+
+    if (!cfg.addConfigurationModule(configurationModule))
+      return false;
   }
 
   if (cfg.modules().empty())
@@ -96,7 +105,7 @@ WHERE
 
   // загружаем теги
   query = getQuery(
-    "SELECT id, configuration_id, module_id, channel FROM configuration_tag WHERE configuration_id=:id;",
+    "SELECT id, configuration_id, module_id, channel, settings FROM configuration_tag WHERE configuration_id=:id;",
     {{":id", id.value}});
   if (!query.exec()) return false;
 
@@ -106,16 +115,41 @@ WHERE
 
     tag.tag = TagId{query.value("id").toUInt()};
 
-    auto module_id = query.value("module_id").toUInt();
-    auto modules = cfg.modules();
-    auto it = std::find_if(modules.begin(), modules.end(), [&](const ModuleInfo &mi) {return mi.id.value == module_id;});
+    const ModuleId moduleId{
+      query.value("module_id").toUInt()
+    };
 
-    if (it == modules.end()) return false;
+    const auto* module = cfg.findModule(moduleId);
 
-    tag.module = it->id;
+    if (module == nullptr)
+      return false;
+
+    tag.module = module->id;
     tag.channel = ChannelId{query.value("channel").toUInt()};
 
     if (!cfg.addTag(tag))
+      return false;
+
+    ConfigurationTag configurationTag;
+    configurationTag.tag = tag.tag;
+    configurationTag.module = tag.module;
+    configurationTag.channel = tag.channel;
+
+    const QByteArray data =
+      query.value("settings")
+        .toString()
+        .toUtf8();
+
+    const QJsonDocument document =
+      QJsonDocument::fromJson(data);
+
+    if (!document.isObject())
+      return false;
+
+    configurationTag.settings =
+      document.object();
+
+    if (!cfg.addConfigurationTag(configurationTag))
       return false;
   }
 

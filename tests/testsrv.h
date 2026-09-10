@@ -142,7 +142,7 @@ static SystemConfiguration createTestConfig(const TagId* tags, int tagCount) {
   // создаем конфигурацию
   SystemConfiguration cfg;
 
-  ModuleInfo m0{0};
+  ModuleInfo m0{.id = {0}, .crate = {0}};
   cfg.addModule(m0);
 
   for (int i = 0; i < tagCount; i++) {
@@ -163,7 +163,7 @@ static SystemConfiguration createTestConfig(const std::vector<std::vector<TagId>
   SystemConfiguration cfg;
 
   for (uint32_t n = 0; n < modules.size(); n++) {
-    ModuleInfo m{n};
+    ModuleInfo m{.id = {n}, .crate = {0}};
     cfg.addModule(m);
 
     const auto& tags = modules[n];
@@ -183,7 +183,7 @@ static SystemConfiguration createTestConfig00() {
   using namespace qds;
   SystemConfiguration cfg;
 
-  ModuleInfo m{0};
+  ModuleInfo m{.id = {0}, .crate = {0}};
   cfg.addModule(m);
 
   TagInfo t1{.tag = {0}, .module = {0}, .channel = {0}};
@@ -212,7 +212,7 @@ static SystemConfiguration createTestConfig01()
   using namespace qds;
   SystemConfiguration cfg;
 
-  ModuleInfo m{0};
+  ModuleInfo m{.id = {0}, .crate = {0}};
   cfg.addModule(m);
 
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
@@ -245,7 +245,7 @@ static SystemConfiguration createTestConfig02()
   using namespace qds;
   SystemConfiguration cfg;
 
-  ModuleInfo m{0};
+  ModuleInfo m{.id = {0}, .crate = {0}};
   cfg.addModule(m);
 
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
@@ -274,7 +274,7 @@ static SystemConfiguration createTestConfig03()
   using namespace qds;
   SystemConfiguration cfg;
 
-  ModuleInfo m{0};
+  ModuleInfo m{.id = {0}, .crate = {0}};
   cfg.addModule(m);
 
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
@@ -316,7 +316,7 @@ static SystemConfiguration createTestConfig04()
   using namespace qds;
   SystemConfiguration cfg;
 
-  ModuleInfo m{0};
+  ModuleInfo m{.id = {0}, .crate = {0}};
   cfg.addModule(m);
 
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
@@ -354,7 +354,7 @@ static SystemConfiguration createTestConfig05()
   using namespace qds;
   SystemConfiguration cfg;
 
-  ModuleInfo m{0};
+  ModuleInfo m{.id = {0}, .crate = {0}};
   cfg.addModule(m);
 
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
@@ -388,7 +388,7 @@ static SystemConfiguration createTestConfig06()
   using namespace qds;
   SystemConfiguration cfg;
 
-  ModuleInfo m{0};
+  ModuleInfo m{.id = {0}, .crate = {0}};
   cfg.addModule(m);
 
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
@@ -416,7 +416,7 @@ static SystemConfiguration createTestConfig_cycle()
   using namespace qds;
   SystemConfiguration cfg;
 
-  ModuleInfo m{0};
+  ModuleInfo m{.id = {0}, .crate = {0}};
   cfg.addModule(m);
 
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
@@ -442,7 +442,7 @@ static SystemConfiguration createTestConfig_selfReference()
   using namespace qds;
   SystemConfiguration cfg;
 
-  ModuleInfo m{0};
+  ModuleInfo m{.id = {0}, .crate = {0}};
   cfg.addModule(m);
 
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
@@ -476,7 +476,7 @@ static SystemConfiguration createTestConfig09()
   using namespace qds;
   SystemConfiguration cfg;
 
-  ModuleInfo m{0};
+  ModuleInfo m{.id = {0}, .crate = {0}};
   cfg.addModule(m);
 
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
@@ -517,11 +517,31 @@ static SystemConfiguration createTestConfig_Copy_Add(ModuleType type = ModuleTyp
   using namespace qds;
   SystemConfiguration cfg;
 
-  ModuleInfo m{.id = {0}, .type = type};
+  cfg.addCrate({.id = CrateId{0}});
+
+  ModuleInfo m{.id = {0}, .crate = {0}, .type = type};
   cfg.addModule(m);
+  cfg.addConfigurationModule({
+    .configurationId = {0},
+    .module = {0},
+    .settings = {}
+  });
 
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
+  cfg.addConfigurationTag({
+    .tag = {0},
+    .module = {0},
+    .channel = {0},
+    .settings = {}
+  });
+
   cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}});
+  cfg.addConfigurationTag({
+    .tag = {1},
+    .module = {0},
+    .channel = {1},
+    .settings = {}
+  });
 
   SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100};
   cfg.addSignalDefinition(sd0);
@@ -541,16 +561,36 @@ static SystemConfiguration createTestConfig_Copy_Add(ModuleType type = ModuleTyp
   return cfg;
 }
 
-static SystemConfiguration createTestConfig_calculate(ModuleType type = ModuleType::Unknown)
+inline SystemConfiguration createTestConfig_calculate(ModuleType type = ModuleType::Unknown)
 {
   using namespace qds;
   SystemConfiguration cfg;
 
-  ModuleInfo m{.id = {0}, .type = type};
+  cfg.addCrate({.id = CrateId{0}});
+
+  ModuleInfo m{.id = {0}, .crate = {0}, .type = type};
   cfg.addModule(m);
+  cfg.addConfigurationModule({
+    .configurationId = {0},
+    .module = {0},
+    .settings = {}
+  });
 
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
+  cfg.addConfigurationTag({
+    .tag = {0},
+    .module = {0},
+    .channel = {0},
+    .settings = {}
+  });
+
   cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}});
+  cfg.addConfigurationTag({
+    .tag = {1},
+    .module = {0},
+    .channel = {1},
+    .settings = {}
+  });
 
   cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 1000});
   cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 100});
@@ -572,7 +612,7 @@ static SystemConfiguration createTestConfig_Copy_Add_WithoutC()
 
   SystemConfiguration cfg;
 
-  ModuleInfo m{.id = {0}, .type = ModuleType::Unknown};
+  ModuleInfo m{.id = {0}, .crate = {0}, .type = ModuleType::Unknown};
   cfg.addModule(m);
 
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
@@ -615,29 +655,92 @@ static SystemConfiguration createTestConfig_Copy_Add_WithoutC()
   return cfg;
 }
 
-static SystemConfiguration createTestConfig_Some_Modules()
+inline SystemConfiguration createTestConfig_Some_Modules(ModuleType type = ModuleType::Fake, ModuleType fail = ModuleType::Fake)
 {
   using namespace qds;
   SystemConfiguration cfg;
 
-  ModuleInfo m0{.id = {0}, .type = ModuleType::Fake};
+  cfg.addCrate({.id = CrateId{0}});
+
+  ModuleInfo m0{.id = {0}, .crate = {0}, .type = type};
   cfg.addModule(m0);
+  cfg.addConfigurationModule({
+    .configurationId = {0},
+    .module = {0},
+    .settings = {}
+  });
+  
+  cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
+  cfg.addConfigurationTag({
+    .tag = {0},
+    .module = {0},
+    .channel = {0},
+    .settings = {}
+  });
 
-  cfg.addTag({.tag = {0}, .module = m0.id, .channel = {0}});
-  cfg.addTag({.tag = {1}, .module = m0.id, .channel = {1}});
+  cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}});
+  cfg.addConfigurationTag({
+    .tag = {1},
+    .module = {0},
+    .channel = {1},
+    .settings = {}
+  });
 
-  ModuleInfo m1{.id = {1}, .type = ModuleType::Fake};
+  ModuleInfo m1{.id = {1}, .crate = {0}, .type = fail}; // для генерации ошибок
   cfg.addModule(m1);
+  cfg.addConfigurationModule({
+    .configurationId = {0},
+    .module = {1},
+    .settings = {}
+  });
 
   cfg.addTag({.tag = {4}, .module = m1.id, .channel = {0}});
-  cfg.addTag({.tag = {6}, .module = m1.id, .channel = {1}});
-  cfg.addTag({.tag = {7}, .module = m1.id, .channel = {2}});
+  cfg.addConfigurationTag({
+    .tag = {4},
+    .module = {1},
+    .channel = {0},
+    .settings = {}
+  });
 
-  ModuleInfo m2{.id = {2}, .type = ModuleType::Fake};
+  cfg.addTag({.tag = {6}, .module = m1.id, .channel = {1}});
+  cfg.addConfigurationTag({
+    .tag = {6},
+    .module = {1},
+    .channel = {1},
+    .settings = {}
+  });
+
+  cfg.addTag({.tag = {7}, .module = m1.id, .channel = {2}});
+  cfg.addConfigurationTag({
+    .tag = {7},
+    .module = {1},
+    .channel = {2},
+    .settings = {}
+  });
+
+  ModuleInfo m2{.id = {2}, .crate = {0}, .type = type};
   cfg.addModule(m2);
+  cfg.addConfigurationModule({
+    .configurationId = {0},
+    .module = {2},
+    .settings = {}
+  });
 
   cfg.addTag({.tag = {8}, .module = m2.id, .channel = {0}});
+  cfg.addConfigurationTag({
+    .tag = {8},
+    .module = {2},
+    .channel = {0},
+    .settings = {}
+  });
+
   cfg.addTag({.tag = {10}, .module = m2.id, .channel = {1}});
+  cfg.addConfigurationTag({
+    .tag = {10},
+    .module = {2},
+    .channel = {1},
+    .settings = {}
+  });
 
   cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100});
 
@@ -656,69 +759,95 @@ static SystemConfiguration createTestConfig_Some_Modules()
   return cfg;
 }
 
-static SystemConfiguration createTestConfig_Fail_ModuleType()
+inline SystemConfiguration createTestConfig_Fail_ModuleType()
 {
   using namespace qds;
-  SystemConfiguration cfg;
-
-  ModuleInfo m0{.id = {0}, .type = ModuleType::Fake};
-  cfg.addModule(m0);
-
-  cfg.addTag({.tag = {0}, .module = m0.id, .channel = {0}});
-  cfg.addTag({.tag = {1}, .module = m0.id, .channel = {1}});
-
-  ModuleInfo m1{.id = {1}, .type = ModuleType::Failing};
-  cfg.addModule(m1);
-
-  cfg.addTag({.tag = {4}, .module = m1.id, .channel = {0}});
-  cfg.addTag({.tag = {6}, .module = m1.id, .channel = {1}});
-
-  ModuleInfo m2{.id = {2}, .type = ModuleType::Fake};
-  cfg.addModule(m2);
-
-  cfg.addTag({.tag = {8}, .module = m2.id, .channel = {0}});
-  cfg.addTag({.tag = {10}, .module = m2.id, .channel = {1}});
-
-  cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100});
-
-  cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 10});
-
-  cfg.addSignalDefinition({.id = {2}, .name = "Raw2", .kind = SignalKind::Raw, .source = {4}, .archiveFrequency = 1000});
-
-  cfg.addSignalDefinition({.id = {3}, .name = "Raw3", .kind = SignalKind::Raw, .source = {6}, .archiveFrequency = 100});
-
-  cfg.addSignalDefinition({.id = {5}, .name = "Raw5", .kind = SignalKind::Raw, .source = {8}, .archiveFrequency = 100});
-
-  cfg.addSignalDefinition({.id = {6}, .name = "Raw6", .kind = SignalKind::Raw, .source = {10}, .archiveFrequency = 10});
+  SystemConfiguration cfg = createTestConfig_Some_Modules(ModuleType::Fake, ModuleType::Failing);
 
   return cfg;
 }
 
-static SystemConfiguration createTestConfig_Fail_DataSource()
+inline SystemConfiguration createTestConfig_Fail_DataSource()
 {
   using namespace qds;
   SystemConfiguration cfg;
 
+  cfg.addCrate({.id = CrateId{0}});
+
   QJsonObject jsonObj;
   jsonObj.insert("size", 2);
 
-  ModuleInfo m0{.id = {0}, .type = ModuleType::Fake};
+  ModuleInfo m0{.id = {0}, .crate = {0}, .type = ModuleType::Fake};
   cfg.addModule(m0);
+  cfg.addConfigurationModule({
+    .configurationId = {0},
+    .module = {0},
+    .settings = jsonObj
+  });
 
-  cfg.addTag({.tag = {0}, .module = m0.id, .channel = {0}});
-  cfg.addTag({.tag = {1}, .module = m0.id, .channel = {1}});
+  cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
+  cfg.addConfigurationTag({
+    .tag = {0},
+    .module = {0},
+    .channel = {0},
+    .settings = {}
+  });
 
-  ModuleInfo m1{.id = {1}, .type = ModuleType::LTR11};
+  cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}});
+  cfg.addConfigurationTag({
+    .tag = {1},
+    .module = {0},
+    .channel = {1},
+    .settings = {}
+  });
+
+  ModuleInfo m1{.id = {1}, .crate = {0}, .type = ModuleType::LTR43DI4};
   cfg.addModule(m1);
+  cfg.addConfigurationModule({
+    .configurationId = {0},
+    .module = {1},
+    .settings = {}
+  });
 
-  cfg.addTag({.tag = {4}, .module = m1.id, .channel = {0}});
-  cfg.addTag({.tag = {6}, .module = m1.id, .channel = {1}});
+  cfg.addTag({.tag = {4}, .module = {1}, .channel = {0}});
+  cfg.addConfigurationTag({
+    .tag = {4},
+    .module = {1},
+    .channel = {0},
+    .settings = {}
+  });
 
-  ModuleInfo m2{.id = {2}, .type = ModuleType::Fake};
+  cfg.addTag({.tag = {6}, .module = {1}, .channel = {1}});
+  cfg.addConfigurationTag({
+    .tag = {6},
+    .module = {1},
+    .channel = {1},
+    .settings = {}
+  });
+
+  ModuleInfo m2{.id = {2}, .crate = {0}, .type = ModuleType::Fake};
   cfg.addModule(m2);
+  cfg.addConfigurationModule({
+    .configurationId = {0},
+    .module = {2},
+    .settings = {}
+  });
 
-  cfg.addTag({.tag = {8}, .module = m2.id, .channel = {0}});
-  cfg.addTag({.tag = {10}, .module = m2.id, .channel = {1}});
+  cfg.addTag({.tag = {8}, .module = {2}, .channel = {0}});
+  cfg.addConfigurationTag({
+    .tag = {8},
+    .module = {2},
+    .channel = {0},
+    .settings = {}
+  });
+
+  cfg.addTag({.tag = {10}, .module = {2}, .channel = {1}});
+  cfg.addConfigurationTag({
+    .tag = {10},
+    .module = {2},
+    .channel = {1},
+    .settings = {}
+  });
 
   cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100});
 
@@ -740,7 +869,7 @@ static SystemConfiguration createTestConfigUnknownDependency()
   using namespace qds;
   SystemConfiguration cfg;
 
-  ModuleInfo m{0};
+  ModuleInfo m{.id = {0}, .crate = {0}};
   cfg.addModule(m);
 
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});

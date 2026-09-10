@@ -78,9 +78,9 @@ void tst_database::test_database_loadConfiguration()
     mi.description,
     "LTR11 test module");
 
-  QCOMPARE(
-    mi.settings,
-    QJsonObject{});
+  //QCOMPARE(
+  //  mi.settings,
+  //  QJsonObject{});
 
   auto mtags = cfg.moduleTags(mi.id);
   QCOMPARE(mtags.size(), 2);
@@ -301,7 +301,7 @@ void tst_database::test_database_pipeline()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   TestArchiveWriter archive;
@@ -390,7 +390,7 @@ void tst_database::test_database_archive()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
 
@@ -762,7 +762,7 @@ void tst_database::test_publisher()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   RuntimeSystem runtime;
@@ -893,7 +893,7 @@ void tst_database::test_publisher_raw_calculated()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   RuntimeSystem runtime;

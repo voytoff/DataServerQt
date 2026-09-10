@@ -268,7 +268,7 @@ void tst_signalprocessor::test_signalProcessor_failOnceDataSource()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FailOnceDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   SignalMemoryLayout layout;
@@ -397,7 +397,7 @@ void tst_signalprocessor::test_signalProcessor_failFormula()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   SignalMemoryLayout layout;
@@ -477,7 +477,7 @@ void tst_signalprocessor::test_signalProcessor_cycle()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   SignalMemoryLayout layout;

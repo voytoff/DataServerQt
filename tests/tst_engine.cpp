@@ -56,7 +56,7 @@ void tst_engine::test_pipeline_archive_copy()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   DataSourceManager manager;
@@ -136,7 +136,7 @@ void tst_engine::test_dataEngine_simple_runtime()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>( // две ячейки -> 0 - счетчик; 1 - счетчик * 10
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   DataSourceManager manager;
@@ -207,7 +207,7 @@ void tst_engine::test_dataEngine_failOnceArchiveWriter()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   SignalMemoryLayout layout;
@@ -320,7 +320,7 @@ void tst_engine::test_dataEngine_FailingDataSource()
     [](const ModuleConfiguration& cfg)
     {
       return std::make_unique<FailingDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   DataSourceManager manager;
@@ -364,7 +364,7 @@ void tst_engine::test_dataEngine_FailingCalculationProcessor()
     [](const ModuleConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   DataSourceManager manager;
@@ -410,7 +410,7 @@ void tst_engine::test_dataEngine_FailingArchiveWriter()
     [](const ModuleConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   DataSourceManager manager;
@@ -458,7 +458,7 @@ void tst_engine::test_dataEngine_simple_pipeline()
     [](const ModuleConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   DataSourceManager manager;

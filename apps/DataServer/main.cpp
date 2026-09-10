@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
         [](const qds::ModuleRuntimeConfiguration& config)
         {
           return std::make_unique<qds::TestDataSource>(
-            config.module.settings);
+            config.configuration.settings);
         }))
     return -1;
   /*

@@ -45,7 +45,7 @@ void tst_dataserver::test_systemBuilder_success()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   TestArchiveWriter archive;
@@ -138,7 +138,7 @@ void tst_dataserver::test_systemBuilder_process()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   TestArchiveWriter archive;
@@ -201,7 +201,7 @@ void tst_dataserver::test_systemBuilder_failErrorFormula()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   TestArchiveWriter archive;
@@ -253,7 +253,7 @@ void tst_dataserver::test_systemBuilder_failDataSourceManager()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   TestArchiveWriter archive;
@@ -305,7 +305,7 @@ void tst_dataserver::test_systemBuilder_cycle()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   TestArchiveWriter archive;
@@ -394,7 +394,7 @@ void tst_dataserver::test_dataServer_udpSubscription()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   TestArchiveWriter archive;
@@ -640,7 +640,7 @@ void tst_dataserver::test_dataServer_failStart_moduleType()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   TestArchiveWriter archive;
@@ -680,7 +680,7 @@ void tst_dataserver::test_dataServer_failSubscribe_invalidSignalId()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   TestArchiveWriter archive;
@@ -798,7 +798,7 @@ void tst_dataserver::test_dataServer_failSubscribe_duplicateSignalId()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   TestArchiveWriter archive;
@@ -916,7 +916,7 @@ void tst_dataserver::test_dataServer_failSubscribe_invalidRate()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   TestArchiveWriter archive;
@@ -1034,7 +1034,7 @@ void tst_dataserver::test_dataServer_failSubscribe_emptyList()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   TestArchiveWriter archive;
@@ -1142,7 +1142,7 @@ void tst_dataserver::test_dataServer_failSubscribe_tooManySignals()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   TestArchiveWriter archive;
@@ -1250,7 +1250,7 @@ void tst_dataserver::test_dataServer_unsubscribe_ok()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   TestArchiveWriter archive;
@@ -1467,7 +1467,7 @@ void tst_dataserver::test_dataServer_unsubscribe_invalidId()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   TestArchiveWriter archive;
@@ -1683,7 +1683,7 @@ void tst_dataserver::test_dataServer_start_stop()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   TestArchiveWriter archive;
@@ -1856,7 +1856,7 @@ void tst_dataserver::test_dataServer_start_after_failed_start()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   FailOnceArchiveWriter archive;
@@ -1883,7 +1883,7 @@ void tst_dataserver::test_dataServer_start_after_failed_start()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   QVERIFY(ds.start());
@@ -1918,7 +1918,7 @@ void tst_dataserver::test_dataServer_failStart_invalidUdpPort()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   TestArchiveWriter archive;
@@ -2120,7 +2120,7 @@ void tst_dataserver::test_dataServer_subscriptionId_after_restart()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   TestArchiveWriter archive;
@@ -2319,7 +2319,7 @@ void tst_dataserver::test_dataServer_build_after_failBuild()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FailingDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   TestArchiveWriter archive;
@@ -2344,7 +2344,7 @@ void tst_dataserver::test_dataServer_build_after_failBuild()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   QVERIFY(builder.build(
@@ -2388,7 +2388,7 @@ void tst_dataserver::test_dataEngine_process_dataSourceFailure()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FailingDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   TestArchiveWriter archive;
@@ -2435,7 +2435,7 @@ void tst_dataserver::test_dataEngine_process_without_initialize()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   TestArchiveWriter archive;
@@ -2472,7 +2472,7 @@ void tst_dataserver::test_dataEngine_process_archiveFailure()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   FailingArchiveWriter archive;
@@ -2524,7 +2524,7 @@ void tst_dataserver::test_dataEngine_process_success()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   TestArchiveWriter archive;
@@ -2576,7 +2576,7 @@ void tst_dataserver::test_dataServer_stop_on_dataSourceFailure()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FailingDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   TestArchiveWriter archive;
@@ -2629,7 +2629,7 @@ void tst_dataserver::test_systemBuilder_failedThenSuccess()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   RuntimeSystem runtime;
@@ -2691,7 +2691,7 @@ void tst_dataserver::test_dataServer_start_twice()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   TestArchiveWriter archive;
@@ -2733,7 +2733,7 @@ void tst_dataserver::test_dataServer_stop_before_start()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   TestArchiveWriter archive;
@@ -2778,7 +2778,7 @@ void tst_dataserver::test_dataServer_udp_pipeline()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   TestArchiveWriter archive;
@@ -3036,7 +3036,7 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   ArchiveDescriptionBuilder builder;

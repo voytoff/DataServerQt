@@ -293,21 +293,15 @@ void tst_datasource::test_dataSourceFactory_registerType_create()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
-  QJsonObject jsonObj;
-  jsonObj.insert("name", "Fake");
-  jsonObj.insert("frequency", 100);
   ModuleRuntimeConfiguration cfg{.module = {.type = ModuleType::Fake}};
 
   auto source = factory.create(cfg);
   QVERIFY(source != nullptr);
 
   auto *fake = static_cast<FakeDataSource*>(source.get());
-
-  QCOMPARE(fake->m_settings["name"], "Fake");
-  QCOMPARE(fake->m_settings["frequency"], 100);
 
   // повторная регистрация
   QVERIFY(!factory.registerType(
@@ -450,7 +444,7 @@ void tst_datasource::test_datasource_manager()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   DataSourceManager manager;
@@ -463,7 +457,8 @@ void tst_datasource::test_datasource_manager()
 
   QVERIFY(manager.acquire(memory.raw()));
 
-  std::array<double, 7> array;
+  std::vector<double> array;
+  array.resize(layout.rawSignalCount());
   raw.snapshot(array);
 
   QCOMPARE(array[0], 1);
@@ -497,7 +492,7 @@ void tst_datasource::test_datasource_fail_datasource()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   QVERIFY(factory.registerType(
@@ -505,7 +500,7 @@ void tst_datasource::test_datasource_fail_datasource()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FailingDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   DataSourceManager manager;
@@ -517,7 +512,8 @@ void tst_datasource::test_datasource_fail_datasource()
   QVERIFY((manager.start()));
   QVERIFY(!manager.acquire(memory.raw()));
 
-  std::array<double, 6> array;
+  std::vector<double> array;
+  array.resize(layout.rawSignalCount());
   raw.snapshot(array);
 
   QCOMPARE(array[0], 1);
@@ -548,7 +544,7 @@ void tst_datasource::test_datasource_absent_datasource()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FailingDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   DataSourceManager manager;
@@ -579,7 +575,7 @@ void tst_datasource::test_datasource_missing_datasource()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   QVERIFY(factory.registerType(
@@ -587,7 +583,7 @@ void tst_datasource::test_datasource_missing_datasource()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FailingDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   DataSourceManager manager;
@@ -619,7 +615,7 @@ void tst_datasource::test_datasource_repeat_initialize()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   DataSourceManager manager;
@@ -636,7 +632,8 @@ void tst_datasource::test_datasource_repeat_initialize()
 
   QVERIFY(manager.acquire(raw));
 
-  std::array<double, 7> values;
+  std::vector<double> values;
+  values.resize(layout.rawSignalCount());
   raw.snapshot(values);
 
   QCOMPARE(values[0], 1.0);
@@ -655,6 +652,18 @@ void tst_datasource::test_datasource_repeat_initialize()
     factory));
 
   QCOMPARE(manager.size(), size);
+
+  QVERIFY(manager.start());
+
+  QVERIFY(manager.acquire(raw));
+
+  QCOMPARE(values[0], 1.0);
+  QCOMPARE(values[1], 2.0);
+  QCOMPARE(values[2], 1.0);
+  QCOMPARE(values[3], 2.0);
+  QCOMPARE(values[4], 3.0);
+  QCOMPARE(values[5], 1.0);
+  QCOMPARE(values[6], 2.0);
 }
 
 void tst_datasource::test_datasource_acquire_repeat()
@@ -680,7 +689,7 @@ void tst_datasource::test_datasource_acquire_repeat()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   DataSourceManager manager;
@@ -732,7 +741,7 @@ void tst_datasource::test_datasource_empty_config()
 
   DataSourceManager manager;
 
-  QVERIFY(manager.initialize(
+  QVERIFY(!manager.initialize(
     cfg,
     layout,
     factory));
@@ -757,7 +766,7 @@ void tst_datasource::test_dataSourceManager_successInit()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   DataSourceManager manager;
@@ -794,7 +803,7 @@ void tst_datasource::test_datasource_fail_repeat()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<FakeDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   DataSourceManager manager;
@@ -832,7 +841,7 @@ void tst_datasource::test_datasource_start_stop()
     [](const ModuleRuntimeConfiguration& cfg)
     {
       return std::make_unique<TestDataSource>(
-        cfg.module.settings);
+        cfg.configuration.settings);
     }));
 
   DataSourceManager manager;

@@ -4,6 +4,7 @@
 #include "moduletype.h"
 
 #include <QString>
+#include <QJsonObject>
 
 namespace qds
 {
