@@ -15,7 +15,7 @@ VALUES
 -- ============================================================
 
 INSERT INTO module
-    (crate_id, type, serial, description)
+    (crate_id, type, serial, slot, description)
 VALUES
 (
     (SELECT id
@@ -23,8 +23,10 @@ VALUES
      WHERE serial = '3T778029'),
 
     11, -- LTR11
-
+	
     'LTR11-000001',
+	0,
+	
     'LTR11 test module'
 );
 
@@ -64,7 +66,7 @@ VALUES
 -- ============================================================
 
 INSERT INTO configuration_tag
-    (configuration_id, module_id, channel)
+    (configuration_id, module_id, channel, settings)
 VALUES
 (
     (SELECT id
@@ -75,11 +77,12 @@ VALUES
      FROM module
      WHERE serial = 'LTR11-000001'),
 
-    0
+    0,
+	'{}'
 );
 
 INSERT INTO configuration_tag
-    (configuration_id, module_id, channel)
+    (configuration_id, module_id, channel, settings)
 VALUES
 (
     (SELECT id
@@ -90,7 +93,8 @@ VALUES
      FROM module
      WHERE serial = 'LTR11-000001'),
 
-    1
+    1,
+	'{}'
 );
 
 

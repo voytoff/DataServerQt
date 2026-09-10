@@ -313,7 +313,7 @@ bool Ltr11Module::configureChannels() noexcept
   {
     const auto& channel = channels[i];
 
-    if (channel.physicalChannel >= LTR11_MAX_CHANNEL)
+    if (channel.channel >= LTR11_MAX_CHANNEL)
       return false;
 
     if (channel.mode > LTR11_CHMODE_ZERO)
@@ -324,7 +324,7 @@ bool Ltr11Module::configureChannels() noexcept
 
     m_hltr11.LChTbl[i] =
       LTR11_CreateLChannel(
-        channel.physicalChannel,
+        channel.channel,
         channel.mode,
         channel.range);
   }

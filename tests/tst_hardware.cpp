@@ -1,10 +1,13 @@
 #include "tst_hardware.h"
 #include "fakelcardmodule.h"
 #include "lcarddatasource.h"
+#include "ltr11configurationbuilder.h"
 #include "moduleruntimeconfiguration.h"
 #include "signalmemory.h"
 #include <QtCore/qtestsupport_core.h>
 #include <qtestcase.h>
+#include <QJsonObject>
+#include <QHostAddress>
 
 tst_hardware::tst_hardware() { }
 tst_hardware::~tst_hardware() = default;
@@ -167,4 +170,126 @@ void tst_hardware::test_lCardDataSource_data_integrity()
   source.stop();
 
   QCOMPARE(fake->stopCalls, 1u);
+}
+
+void tst_hardware::test_ltr11configurationbuilder()
+{
+  using namespace qds;
+
+  Ltr11Configuration config;
+
+  CrateInfo crate
+  {
+    .id = {0},
+    .serial = "LTR1101",
+    .type = CrateType::LTR_EU_16_1,
+    .host = "127.0.0.1",
+    .port = 11111
+  };
+  ModuleRuntimeConfiguration cfg
+  {
+    .module = {
+      .id = {0},
+      .serial = "12340987",
+      .crate = {0},
+      .slot = 1,
+      .type = ModuleType::LTR11
+    },
+    .crate = crate,
+    .configuration = {
+      .configurationId = {1},
+      .module = {0},
+      .settings = QJsonDocument::fromJson(R"({})").object()
+    },
+    .tags = {
+      {TagId{1}, ModuleId{0}, ChannelId{0}, QJsonDocument::fromJson(R"({"mode":1,"range":0})").object()},
+      {TagId{5}, ModuleId{0}, ChannelId{12}, QJsonDocument::fromJson(R"({"mode":2,"range":1})").object()},
+    }
+  };
+
+  Ltr11ConfigurationBuilder builder;
+
+  QVERIFY(builder.build(cfg, config));
+
+  QCOMPARE(config.address, QHostAddress("127.0.0.1").toIPv4Address());
+  QCOMPARE(config.channelRate, 1000);
+  QCOMPARE(config.crateSerial, "LTR1101");
+  QCOMPARE(config.port, 11111);
+  QCOMPARE(config.slot, 1);
+
+  const auto &channels = config.channels;
+  QCOMPARE(channels.size(), 2);
+
+  const auto &channel0 = channels[0];
+  QCOMPARE(channel0.channel, 0);
+  QCOMPARE(channel0.mode, 1);
+  QCOMPARE(channel0.range, 0);
+
+  const auto &channel1 = channels[1];
+  QCOMPARE(channel1.channel, 12);
+  QCOMPARE(channel1.mode, 2);
+  QCOMPARE(channel1.range, 1);
+
+  const auto validConfiguration = config;
+
+  cfg.tags.push_back(
+    {TagId{9}, ModuleId{0}, ChannelId{17}, QJsonDocument::fromJson(R"({"range":2})").object()}
+    );
+  QCOMPARE(cfg.tags.size(), 3);
+
+  QVERIFY(!builder.build(cfg, config));
+
+  cfg.tags.pop_back();
+
+  cfg.tags.push_back(
+    {TagId{9}, ModuleId{0}, ChannelId{17}, QJsonDocument::fromJson(R"({"mode":2})").object()}
+    );
+  QCOMPARE(cfg.tags.size(), 3);
+
+  QVERIFY(!builder.build(cfg, config));
+
+  cfg.tags.pop_back();
+
+  cfg.tags.push_back(
+    {TagId{9}, ModuleId{0}, ChannelId{17},
+     QJsonDocument::fromJson(R"({})").object()}
+    );
+
+  QVERIFY(!builder.build(cfg, config));
+
+  cfg.tags.pop_back();
+
+  cfg.tags.push_back(
+    {TagId{9}, ModuleId{0}, ChannelId{17}, QJsonDocument::fromJson(R"({"mode":3,"range":1})").object()}
+    );
+  QCOMPARE(cfg.tags.size(), 3);
+
+  QVERIFY(!builder.build(cfg, config));
+
+  cfg.tags.pop_back();
+
+  cfg.tags.push_back(
+    {TagId{9}, ModuleId{0}, ChannelId{17}, QJsonDocument::fromJson(R"({"mode":1,"range":4})").object()}
+    );
+  QCOMPARE(cfg.tags.size(), 3);
+
+  QVERIFY(!builder.build(cfg, config));
+
+  QCOMPARE(config.address, validConfiguration.address);
+  QCOMPARE(config.channels.size(), validConfiguration.channels.size());
+
+
+  cfg.tags.pop_back();
+  QCOMPARE(cfg.tags.size(), 2);
+  QVERIFY(builder.build(cfg, config));
+
+
+  cfg.crate.host = "127.0.256.1";
+  QVERIFY(!builder.build(cfg, config));
+
+  cfg.crate.host = "127.0.0.1";
+  QVERIFY(builder.build(cfg, config));
+
+  cfg.tags.clear();
+  QVERIFY(!builder.build(cfg, config));
 }

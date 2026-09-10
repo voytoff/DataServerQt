@@ -30,7 +30,7 @@ CREATE TABLE module
     crate_id    INT NOT NULL,
     type        INT NOT NULL,
     serial      VARCHAR(128) NOT NULL,
-	slot        INT NOT NULL;
+	slot        INT NOT NULL,
     description VARCHAR(255) NOT NULL DEFAULT '',
 
     PRIMARY KEY (id),

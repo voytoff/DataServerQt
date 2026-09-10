@@ -28,6 +28,10 @@ int main(int argc, char *argv[])
   int rc = 0;
 
   {
+    tst_hardware tc;
+    rc |= QTest::qExec(&tc, argc, argv);
+  }
+  {
     tst_logger tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
@@ -89,10 +93,6 @@ int main(int argc, char *argv[])
   }
   {
     tst_udpsender tc;
-    rc |= QTest::qExec(&tc, argc, argv);
-  }
-  {
-    tst_hardware tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
   {

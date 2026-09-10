@@ -9,7 +9,7 @@ namespace qds
 
 struct Ltr11ChannelConfiguration
 {
-  uint8_t physicalChannel = 0;
+  uint8_t channel = 0;
   uint8_t mode = 0;
   uint8_t range = 0;
 };
