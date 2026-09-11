@@ -22,17 +22,14 @@ add_library(Hardware SHARED
 if(WIN32)
 
     set(LCARD_DIR "C:/Program Files (x86)/L-Card")
-
     target_include_directories(Hardware
         PRIVATE
             "${LCARD_DIR}/ltr/include"
     )
-
     target_link_directories(Hardware
         PRIVATE
             "${LCARD_DIR}/ltr/lib/msvc64"
     )
-
     target_link_libraries(Hardware
         PRIVATE
             ltrapi.lib
@@ -45,12 +42,10 @@ elseif(LINUX)
         PRIVATE
             /usr/include/ltr/include
     )
-
     target_link_directories(Hardware
         PRIVATE
             /usr/lib
     )
-
     target_link_libraries(Hardware
         PRIVATE
             ltrapi

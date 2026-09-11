@@ -287,7 +287,7 @@ void tst_hardware::test_ltr11configurationbuilder()
   cfg.crate.host = "127.0.256.1";
   QVERIFY(!builder.build(cfg, config));
 
-  cfg.crate.host = "127.0.0.1";
+  cfg.crate.host = "";
   QVERIFY(builder.build(cfg, config));
 
   cfg.tags.clear();

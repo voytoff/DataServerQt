@@ -1,5 +1,7 @@
 #include "networkutils.h"
 
+#include "ltrapidefine.h"
+
 namespace qds
 {
 
@@ -7,6 +9,12 @@ bool parseIpv4Address(
   std::string_view address,
   uint32_t& result) noexcept
 {
+  if (address.empty())
+  {
+    result = LTRD_ADDR_DEFAULT;
+    return true;
+  }
+
   uint32_t value = 0;
   uint32_t part = 0;
   int digits = 0;
@@ -19,8 +27,9 @@ bool parseIpv4Address(
       if (++digits > 3)
         return false;
 
-      part = part * 10 +
-             static_cast<uint32_t>(ch - '0');
+      part =
+        part * 10 +
+        static_cast<uint32_t>(ch - '0');
 
       if (part > 255)
         return false;
@@ -30,10 +39,12 @@ bool parseIpv4Address(
       if (digits == 0)
         return false;
 
-      value = (value << 8) | part;
+      value =
+        (value << 8) | part;
 
       part = 0;
       digits = 0;
+
       ++parts;
 
       if (parts > 3)
@@ -48,11 +59,12 @@ bool parseIpv4Address(
   if (digits == 0 || parts != 3)
     return false;
 
-  value = (value << 8) | part;
+  value =
+    (value << 8) | part;
 
   result = value;
 
   return true;
 }
 
-}
+} // namespace qds

@@ -38,6 +38,7 @@ add_executable(unit_tests
     tst_dataserver.h tst_dataserver.cpp
     tst_database.h tst_database.cpp
     tst_logger.h tst_logger.cpp
+    tst_ltr11module.h tst_ltr11module.cpp
 )
 
 target_link_libraries(unit_tests
@@ -52,6 +53,7 @@ target_link_libraries(unit_tests
     UdpSender
     DataSource
     Engine
+    Hardware
     HardwareFactory
     DataArchive
     SignalStorage

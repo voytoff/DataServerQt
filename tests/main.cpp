@@ -13,6 +13,7 @@
 #include "tst_formulas.h"
 #include "tst_hardware.h"
 #include "tst_logger.h"
+#include "tst_ltr11module.h"
 #include "tst_packetdispatcher.h"
 #include "tst_publisher.h"
 #include "tst_signalprocessor.h"
@@ -27,6 +28,10 @@ int main(int argc, char *argv[])
 
   int rc = 0;
 
+  {
+    tst_ltr11module tc;
+    rc |= QTest::qExec(&tc, argc, argv);
+  }
   {
     tst_hardware tc;
     rc |= QTest::qExec(&tc, argc, argv);

@@ -1,6 +1,10 @@
 #include "ltr11module.h"
 
+#include "ltr11api.h"
+
 #include <algorithm>
+#include <cstdint>
+#include <vector>
 
 namespace qds
 {
@@ -8,53 +12,116 @@ namespace qds
 namespace
 {
 
-constexpr std::size_t RecvFrameCount = 8;
-constexpr std::size_t DefaultRecvDataCount = 32;
+constexpr std::size_t RecvBlockFrameCount = 10;
 constexpr WORD DefaultPort = LTRD_PORT_DEFAULT;
+constexpr DWORD RecvTimeoutMs = 100;
 
 }
 
-Ltr11Module::Ltr11Module(const Ltr11Configuration& configuration)
-  : m_configuration(configuration)
+class Ltr11Module::Impl
 {
-  m_channelCount = m_configuration.channels.size();
+public:
+  explicit Impl(
+    const Ltr11Configuration& configuration);
 
-  /*
-     * LTR11_Recv() works with raw DWORD words.
-     *
-     * 32 is a reasonable minimum block size.
-     * If the number of logical channels is larger,
-     * make the buffer large enough to contain at least
-     * one complete frame.
-     */
-  m_recvDataCount = std::max(
-    DefaultRecvDataCount,
-    m_channelCount * RecvFrameCount);
+  bool start() noexcept;
+  void stop() noexcept;
+  bool read(std::span<double> values) noexcept;
 
-  m_recvBuffer.resize(m_recvDataCount);
+private:
+  bool configureConnection() noexcept;
+  bool configureChannels() noexcept;
+  bool configureFrequency() noexcept;
 
-  /*
-     * ProcessData() writes converted values here.
-     *
-     * The buffer may contain several complete frames.
-     */
-  m_data.resize(m_recvDataCount);
-}
+  bool processReceivedData(
+    const DWORD* data,
+    int count,
+    std::span<double> values) noexcept;
 
-Ltr11Module::~Ltr11Module() noexcept
+private:
+  Ltr11Configuration m_configuration;
+
+  TLTR11 m_hltr11{};
+
+  std::size_t m_channelCount = 0;
+  uint32_t m_recvDataCount = 0;
+
+  std::vector<DWORD> m_recvBuffer;
+  std::vector<double> m_data;
+
+  bool m_initialized = false;
+  bool m_opened = false;
+  bool m_started = false;
+};
+
+Ltr11Module::Ltr11Module(
+  const Ltr11Configuration& configuration)
+  : m_impl(
+      std::make_unique<Impl>(configuration))
 {
-  stop();
 }
 
+Ltr11Module::~Ltr11Module() noexcept = default;
 
 bool Ltr11Module::start() noexcept
+{
+  return m_impl->start();
+}
+
+void Ltr11Module::stop() noexcept
+{
+  m_impl->stop();
+}
+
+bool Ltr11Module::read(
+  std::span<double> values) noexcept
+{
+  return m_impl->read(values);
+}
+
+Ltr11Module::Impl::Impl(
+  const Ltr11Configuration& configuration)
+  : m_configuration(configuration)
+{
+  m_channelCount =
+    m_configuration.channels.size();
+
+  /*
+   * One frame contains one value for each logical channel.
+   *
+   * Receive up to 10 complete frames in one block.
+   */
+  m_recvDataCount =
+    static_cast<uint32_t>(
+      m_channelCount * RecvBlockFrameCount);
+
+  m_recvBuffer.resize(m_recvDataCount);
+  /*
+   * ProcessData() writes converted values here.
+   *
+   * The buffer may contain several complete frames.
+   */
+  m_data.resize(m_recvDataCount);
+
+
+  const double blockDurationMs =
+    1000.0 *
+    static_cast<double>(RecvBlockFrameCount) /
+    m_configuration.channelRate;
+
+  const DWORD timeout =
+    static_cast<DWORD>(blockDurationMs) + 100;
+}
+
+
+bool Ltr11Module::Impl::start() noexcept
 {
   if (m_started)
     return true;
 
   /*
-     * Initialize descriptor.
-     */
+   * Initialize descriptor.
+   */
   if (!m_initialized)
   {
     if (LTR11_Init(&m_hltr11) != 0)
@@ -64,8 +131,8 @@ bool Ltr11Module::start() noexcept
   }
 
   /*
-     * Open connection to LTRD/module.
-     */
+   * Open connection to LTRD/module.
+   */
   if (!configureConnection())
   {
     if (m_initialized)
@@ -79,8 +146,8 @@ bool Ltr11Module::start() noexcept
   }
 
   /*
-     * Configure logical channels.
-     */
+   * Configure logical channels.
+   */
   if (!configureChannels())
   {
     LTR11_Close(&m_hltr11);
@@ -91,8 +158,8 @@ bool Ltr11Module::start() noexcept
   }
 
   /*
-     * Configure ADC frequency.
-     */
+   * Configure ADC frequency.
+   */
   if (!configureFrequency())
   {
     LTR11_Close(&m_hltr11);
@@ -103,15 +170,15 @@ bool Ltr11Module::start() noexcept
   }
 
   /*
-     * For now these modes are fixed.
-     */
+   * For now these modes are fixed.
+   */
   m_hltr11.StartADCMode = LTR11_STARTADCMODE_INT;
   m_hltr11.InpMode      = LTR11_INPMODE_INT;
   m_hltr11.ADCMode      = LTR11_ADCMODE_ACQ;
 
   /*
-     * Send ADC configuration to module.
-     */
+   * передаем настройки в модуль.
+   */
   if (LTR11_SetADC(&m_hltr11) != 0)
   {
     LTR11_Close(&m_hltr11);
@@ -122,8 +189,8 @@ bool Ltr11Module::start() noexcept
   }
 
   /*
-     * Start data acquisition.
-     */
+   * Start data acquisition.
+   */
   if (LTR11_Start(&m_hltr11) != 0)
   {
     LTR11_Close(&m_hltr11);
@@ -139,7 +206,7 @@ bool Ltr11Module::start() noexcept
 }
 
 
-void Ltr11Module::stop() noexcept
+void Ltr11Module::Impl::stop() noexcept
 {
   if (m_started)
   {
@@ -157,7 +224,7 @@ void Ltr11Module::stop() noexcept
 }
 
 
-bool Ltr11Module::read(std::span<double> values) noexcept
+bool Ltr11Module::Impl::read(std::span<double> values) noexcept
 {
   if (!m_started)
     return false;
@@ -169,18 +236,21 @@ bool Ltr11Module::read(std::span<double> values) noexcept
     return false;
 
   /*
-     * LTR11_Recv() returns the actual number of received
-     * raw DWORDs.
-     *
-     * It may be smaller than m_recvDataCount because of
-     * timeout, therefore we must use the returned value.
-     */
+   * LTR11_Recv() returns the actual number of received
+   * raw DWORDs.
+   *
+   * It may be smaller than m_recvDataCount because of
+   * timeout, therefore we must use the returned value.
+   */
+  //const DWORD time_out = 1000 + (DWORD)(RecvBlockFrameCount/m_hltr11.ChRate);
+  //const DWORD time_out = 4000 + (DWORD)(RecvBlockFrameCount/m_hltr11.ChRate + 1);
+
   const int received = LTR11_Recv(
     &m_hltr11,
     m_recvBuffer.data(),
     nullptr,
     static_cast<DWORD>(m_recvBuffer.size()),
-    100);
+    RecvTimeoutMs);
 
   if (received < 0)
     return false;
@@ -188,14 +258,16 @@ bool Ltr11Module::read(std::span<double> values) noexcept
   if (received == 0)
     return false;
 
+  int processedCount = received;
+
   return processReceivedData(
     m_recvBuffer.data(),
-    received,
+    processedCount,
     values);
 }
 
 
-bool Ltr11Module::processReceivedData(
+bool Ltr11Module::Impl::processReceivedData(
   const DWORD* data,
   int count,
   std::span<double> values) noexcept
@@ -262,7 +334,7 @@ bool Ltr11Module::processReceivedData(
 }
 
 
-bool Ltr11Module::configureConnection() noexcept
+bool Ltr11Module::Impl::configureConnection() noexcept
 {
   if (m_opened)
     return true;
@@ -294,7 +366,7 @@ bool Ltr11Module::configureConnection() noexcept
   return true;
 }
 
-bool Ltr11Module::configureChannels() noexcept
+bool Ltr11Module::Impl::configureChannels() noexcept
 {
   const auto& channels = m_configuration.channels;
 
@@ -332,22 +404,22 @@ bool Ltr11Module::configureChannels() noexcept
   return true;
 }
 
-bool Ltr11Module::configureFrequency() noexcept
+bool Ltr11Module::Impl::configureFrequency() noexcept
 {
   if (m_channelCount == 0)
     return false;
 
   /*
-     * channelRate is the required sampling frequency
-     * of ONE logical channel, in Hz.
-     *
-     * Example:
-     *
-     *     channelRate = 1000 Hz
-     *     channels    = 4
-     *
-     *     ADC frequency = 4000 Hz
-     */
+   * channelRate is the required sampling frequency
+   * of ONE logical channel, in Hz.
+   *
+   * Example:
+   *
+   *     channelRate = 1000 Hz
+   *     channels    = 4
+   *
+   *     ADC frequency = 4000 Hz
+   */
   const double channelRate = m_configuration.channelRate;
 
   if (channelRate <= 0.0)
@@ -358,9 +430,9 @@ bool Ltr11Module::configureFrequency() noexcept
     static_cast<double>(m_channelCount);
 
   /*
-     * LTR11_FindAdcFreqParams() accepts total ADC frequency
-     * in Hz.
-     */
+   * LTR11_FindAdcFreqParams() accepts total ADC frequency
+   * in Hz.
+   */
   double resultAdcFreq = 0.0;
 
   const int err = LTR11_FindAdcFreqParams(
@@ -376,10 +448,10 @@ bool Ltr11Module::configureFrequency() noexcept
     return false;
 
   /*
-     * Actual frequency of one logical channel.
-     *
-     * ChRate is stored by LTR11 in kHz.
-     */
+   * Actual frequency of one logical channel.
+   *
+   * ChRate is stored by LTR11 in kHz.
+   */
   m_hltr11.ChRate =
     resultAdcFreq /
     (1000.0 *
