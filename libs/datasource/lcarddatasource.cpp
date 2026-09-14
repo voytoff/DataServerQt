@@ -9,9 +9,16 @@ LCardDataSource::LCardDataSource(
   uint32_t channelCount,
   std::unique_ptr<ILCardModule> module)
   : m_module(std::move(module))
+  , m_channelCount(channelCount)
   , m_values(channelCount, 0.0)
-  , m_work(channelCount, 0.0)
 {
+  if (m_module)
+  {
+    m_work.resize(
+      channelCount *
+        m_module->blockFrameCapacity(),
+      0.0);
+  }
 }
 
 
@@ -19,7 +26,6 @@ LCardDataSource::~LCardDataSource() noexcept
 {
   stop();
 }
-
 
 bool LCardDataSource::start() noexcept
 {
@@ -85,19 +91,29 @@ bool LCardDataSource::acquire(
   return true;
 }
 
-
 void LCardDataSource::run() noexcept
 {
   while (m_running)
   {
-    if (!m_module->read(m_work))
+    const std::size_t frameCount =
+      m_module->readBlock(m_work);
+
+    if (frameCount == 0)
       continue;
 
-    std::lock_guard lock(m_valuesMutex);
+    const std::size_t offset =
+      (frameCount - 1) * m_channelCount;
 
-    std::ranges::copy(
-      m_work,
-      m_values.begin());
+    {
+      std::lock_guard lock(m_valuesMutex);
+
+      std::copy_n(
+        m_work.data() + offset,
+        m_channelCount,
+        m_values.data());
+    }
+
+    // весь m_block передаём в архив
   }
 }
 

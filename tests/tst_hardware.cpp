@@ -16,52 +16,104 @@ void tst_hardware::test_fakeLCardModule_base()
 {
   using namespace qds;
 
-  FakeLCardModule module;
+  FakeLCardModule module(4, 3);
 
   RawMemory raw;
-  raw.initialize(3);
+  raw.initialize(4 * 3);
+  const auto &values = raw.values();
 
-  QVERIFY(!module.read(raw.values()));
+  std::size_t frameCount = module.readBlock(raw.values());
 
   QCOMPARE(module.readCalls, 0);
+  QCOMPARE(frameCount, std::size_t{0});
 
-  QCOMPARE(raw.values()[0], 0.0);
-  QCOMPARE(raw.values()[1], 0.0);
-  QCOMPARE(raw.values()[2], 0.0);
+  QCOMPARE(values[0], 0.0);
+  QCOMPARE(values[1], 0.0);
+  QCOMPARE(values[2], 0.0);
+  QCOMPARE(values[4], 0.0);
+
+  QCOMPARE(values[4], 0.0);
+  QCOMPARE(values[5], 0.0);
+  QCOMPARE(values[6], 0.0);
+  QCOMPARE(values[7], 0.0);
+
+  QCOMPARE(values[8], 0.0);
+  QCOMPARE(values[9], 0.0);
+  QCOMPARE(values[10], 0.0);
+  QCOMPARE(values[11], 0.0);
 
   QVERIFY(module.start());
   QVERIFY(!module.start());
 
-  QVERIFY(module.read(raw.values()));
+  frameCount = module.readBlock(raw.values());
+
   QCOMPARE(module.readCalls, 1);
+  QCOMPARE(frameCount, std::size_t{3});
 
-  QCOMPARE(raw.values()[0], 0.0);
-  QCOMPARE(raw.values()[1], 1.0);
-  QCOMPARE(raw.values()[2], 2.0);
+  QCOMPARE(values[0], 0.0);
+  QCOMPARE(values[1], 1.0);
+  QCOMPARE(values[2], 2.0);
+  QCOMPARE(values[3], 3.0);
 
-  QVERIFY(module.read(raw.values()));
+  QCOMPARE(values[4], 4.0);
+  QCOMPARE(values[5], 5.0);
+  QCOMPARE(values[6], 6.0);
+  QCOMPARE(values[7], 7.0);
+
+  QCOMPARE(values[8], 8.0);
+  QCOMPARE(values[9], 9.0);
+  QCOMPARE(values[10], 10.0);
+  QCOMPARE(values[11], 11.0);
+
+  frameCount = module.readBlock(raw.values());
+
   QCOMPARE(module.readCalls, 2);
+  QCOMPARE(frameCount, std::size_t{3});
 
-  QCOMPARE(raw.values()[0], 3.0);
-  QCOMPARE(raw.values()[1], 4.0);
-  QCOMPARE(raw.values()[2], 5.0);
+  QCOMPARE(values[0], 12.0);
+  QCOMPARE(values[1], 13.0);
+  QCOMPARE(values[2], 14.0);
+  QCOMPARE(values[3], 15.0);
+
+  QCOMPARE(values[4], 16.0);
+  QCOMPARE(values[5], 17.0);
+  QCOMPARE(values[6], 18.0);
+  QCOMPARE(values[7], 19.0);
+
+  QCOMPARE(values[8], 20.0);
+  QCOMPARE(values[9], 21.0);
+  QCOMPARE(values[10], 22.0);
+  QCOMPARE(values[11], 23.0);
 
   module.stop();
   QCOMPARE(module.stopCalls, 1);
 
-  QVERIFY(!module.read(raw.values()));
-  QCOMPARE(module.readCalls, 2);
+  frameCount = module.readBlock(raw.values());
 
-  QCOMPARE(raw.values()[0], 3.0);
-  QCOMPARE(raw.values()[1], 4.0);
-  QCOMPARE(raw.values()[2], 5.0);
+  QCOMPARE(module.readCalls, 2);
+  QCOMPARE(frameCount, std::size_t{0});
+
+  QCOMPARE(values[0], 12.0);
+  QCOMPARE(values[1], 13.0);
+  QCOMPARE(values[2], 14.0);
+  QCOMPARE(values[3], 15.0);
+
+  QCOMPARE(values[4], 16.0);
+  QCOMPARE(values[5], 17.0);
+  QCOMPARE(values[6], 18.0);
+  QCOMPARE(values[7], 19.0);
+
+  QCOMPARE(values[8], 20.0);
+  QCOMPARE(values[9], 21.0);
+  QCOMPARE(values[10], 22.0);
+  QCOMPARE(values[11], 23.0);
 }
 
 void tst_hardware::test_lCardDataSource()
 {
   using namespace qds;
 
-  auto module = std::make_unique<FakeLCardModule>();
+  auto module = std::make_unique<FakeLCardModule>(3, 3);
   auto* fake = module.get();
 
   LCardDataSource source(
@@ -95,10 +147,8 @@ void tst_hardware::test_lCardDataSource()
   QVERIFY(source.acquire(raw.values()));
 
   QVERIFY(raw.values()[0] >= 0.0);
-  QCOMPARE(raw.values()[1],
-           raw.values()[0] + 1.0);
-  QCOMPARE(raw.values()[2],
-           raw.values()[0] + 2.0);
+  QCOMPARE(raw.values()[1], raw.values()[0] + 1.0);
+  QCOMPARE(raw.values()[2], raw.values()[0] + 2.0);
 
   // Ждём следующий цикл worker-а.
   QTRY_VERIFY_WITH_TIMEOUT(fake->readCalls > 1, 1000);
@@ -106,10 +156,8 @@ void tst_hardware::test_lCardDataSource()
   QVERIFY(source.acquire(raw.values()));
 
   QVERIFY(raw.values()[0] >= 3.0);
-  QCOMPARE(raw.values()[1],
-           raw.values()[0] + 1.0);
-  QCOMPARE(raw.values()[2],
-           raw.values()[0] + 2.0);
+  QCOMPARE(raw.values()[1], raw.values()[0] + 1.0);
+  QCOMPARE(raw.values()[2], raw.values()[0] + 2.0);
 
   // Запоминаем последние данные.
   const auto value0 = raw.values()[0];
@@ -139,7 +187,7 @@ void tst_hardware::test_lCardDataSource_data_integrity()
 {
   using namespace qds;
 
-  auto module = std::make_unique<FakeLCardModule>();
+  auto module = std::make_unique<FakeLCardModule>(3, 10);
   auto* fake = module.get();
 
   LCardDataSource source(
@@ -160,11 +208,9 @@ void tst_hardware::test_lCardDataSource_data_integrity()
 
     QVERIFY(static_cast<int>(raw.values()[2] + 1) % 3 == 0);
 
-    QCOMPARE(raw.values()[1],
-             raw.values()[0] + 1.0);
+    QCOMPARE(raw.values()[1], raw.values()[0] + 1.0);
 
-    QCOMPARE(raw.values()[2],
-             raw.values()[1] + 1.0);
+    QCOMPARE(raw.values()[2], raw.values()[1] + 1.0);
   }
 
   source.stop();
@@ -292,4 +338,34 @@ void tst_hardware::test_ltr11configurationbuilder()
 
   cfg.tags.clear();
   QVERIFY(!builder.build(cfg, config));
+}
+
+void tst_hardware::test_acquire_returns_last_frame()
+{
+  using namespace qds;
+
+  constexpr std::size_t ChannelCount = 4;
+  constexpr std::size_t FrameCount = 3;
+
+  auto module =
+    std::make_unique<OneBlockLCardModule>();
+
+  LCardDataSource source(
+    ChannelCount,
+    std::move(module));
+
+  QVERIFY(source.start());
+
+  QTest::qWait(10);
+
+  std::array<double, ChannelCount> values{};
+
+  QVERIFY(source.acquire(values));
+
+  source.stop();
+
+  QCOMPARE(values[0], 8.0);
+  QCOMPARE(values[1], 9.0);
+  QCOMPARE(values[2], 10.0);
+  QCOMPARE(values[3], 11.0);
 }

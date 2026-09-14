@@ -10,10 +10,14 @@ public:
   tst_ltr11module();
   ~tst_ltr11module() override;
 
+
+  void test_LCardDataSource_update_frequency();
+
 private slots:
   void test_Ltr11Module_base();
   void test_Ltr11Module_without_print();
   void test_LCardDataSource_base();
+
 };
 
 inline qds::ModuleRuntimeConfiguration createModuleRuntimeConfiguration() {

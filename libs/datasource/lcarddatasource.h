@@ -32,6 +32,7 @@ private:
 
 private:
   std::unique_ptr<ILCardModule> m_module;
+  uint32_t m_channelCount;
 
   std::vector<double> m_values;
   std::vector<double> m_work;

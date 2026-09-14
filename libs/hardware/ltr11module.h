@@ -20,7 +20,12 @@ public:
   bool start() noexcept override;
   void stop() noexcept override;
 
-  bool read(std::span<double> values) noexcept override;
+  [[nodiscard]]
+  std::size_t blockFrameCapacity() const noexcept override;
+
+  [[nodiscard]]
+  std::size_t readBlock(
+    std::span<double> values) noexcept override;
 
 private:
   class Impl;

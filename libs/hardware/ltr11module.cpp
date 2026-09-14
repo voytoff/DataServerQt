@@ -13,7 +13,6 @@ namespace
 {
 
 constexpr std::size_t RecvBlockFrameCount = 10;
-constexpr WORD DefaultPort = LTRD_PORT_DEFAULT;
 constexpr DWORD RecvTimeoutMs = 100;
 
 }
@@ -26,17 +25,13 @@ public:
 
   bool start() noexcept;
   void stop() noexcept;
-  bool read(std::span<double> values) noexcept;
+  std::size_t blockFrameCapacity() const noexcept;
+  std::size_t readBlock(std::span<double> values) noexcept;
 
 private:
   bool configureConnection() noexcept;
   bool configureChannels() noexcept;
   bool configureFrequency() noexcept;
-
-  bool processReceivedData(
-    const DWORD* data,
-    int count,
-    std::span<double> values) noexcept;
 
 private:
   Ltr11Configuration m_configuration;
@@ -56,8 +51,7 @@ private:
 
 Ltr11Module::Ltr11Module(
   const Ltr11Configuration& configuration)
-  : m_impl(
-      std::make_unique<Impl>(configuration))
+  : m_impl(std::make_unique<Impl>(configuration))
 {
 }
 
@@ -73,10 +67,14 @@ void Ltr11Module::stop() noexcept
   m_impl->stop();
 }
 
-bool Ltr11Module::read(
-  std::span<double> values) noexcept
+std::size_t Ltr11Module::blockFrameCapacity() const noexcept
 {
-  return m_impl->read(values);
+  return m_impl->blockFrameCapacity();
+}
+
+std::size_t Ltr11Module::readBlock(std::span<double> values) noexcept
+{
+  return m_impl->readBlock(values);
 }
 
 Ltr11Module::Impl::Impl(
@@ -103,7 +101,7 @@ Ltr11Module::Impl::Impl(
    */
   m_data.resize(m_recvDataCount);
 
-
+  /*
   const double blockDurationMs =
     1000.0 *
     static_cast<double>(RecvBlockFrameCount) /
@@ -111,6 +109,7 @@ Ltr11Module::Impl::Impl(
 
   const DWORD timeout =
     static_cast<DWORD>(blockDurationMs) + 100;
+*/
 }
 
 
@@ -223,27 +222,25 @@ void Ltr11Module::Impl::stop() noexcept
   m_initialized = false;
 }
 
+std::size_t Ltr11Module::Impl::blockFrameCapacity() const noexcept
+{
+  return RecvBlockFrameCount;
+}
 
-bool Ltr11Module::Impl::read(std::span<double> values) noexcept
+std::size_t Ltr11Module::Impl::readBlock(
+  std::span<double> values) noexcept
 {
   if (!m_started)
-    return false;
+    return 0;
 
-  if (values.size() != m_channelCount)
-    return false;
+  if (m_channelCount == 0)
+    return 0;
 
-  if (values.empty())
-    return false;
+  const std::size_t requiredSize =
+    m_channelCount * RecvBlockFrameCount;
 
-  /*
-   * LTR11_Recv() returns the actual number of received
-   * raw DWORDs.
-   *
-   * It may be smaller than m_recvDataCount because of
-   * timeout, therefore we must use the returned value.
-   */
-  //const DWORD time_out = 1000 + (DWORD)(RecvBlockFrameCount/m_hltr11.ChRate);
-  //const DWORD time_out = 4000 + (DWORD)(RecvBlockFrameCount/m_hltr11.ChRate + 1);
+  if (values.size() < requiredSize)
+    return 0;
 
   const int received = LTR11_Recv(
     &m_hltr11,
@@ -252,87 +249,42 @@ bool Ltr11Module::Impl::read(std::span<double> values) noexcept
     static_cast<DWORD>(m_recvBuffer.size()),
     RecvTimeoutMs);
 
-  if (received < 0)
-    return false;
-
-  if (received == 0)
-    return false;
+  if (received <= 0)
+    return 0;
 
   int processedCount = received;
 
-  return processReceivedData(
-    m_recvBuffer.data(),
-    processedCount,
-    values);
-}
-
-
-bool Ltr11Module::Impl::processReceivedData(
-  const DWORD* data,
-  int count,
-  std::span<double> values) noexcept
-{
-  if (data == nullptr)
-    return false;
-
-  if (count <= 0)
-    return false;
-
-  /*
-     * ProcessData() uses size as an input/output parameter.
-     *
-     * Input:
-     *     number of raw words in data
-     *
-     * Output:
-     *     number of processed double values.
-     */
-  int processedCount = count;
-
   const int err = LTR11_ProcessData(
     &m_hltr11,
-    data,
+    m_recvBuffer.data(),
     m_data.data(),
     &processedCount,
     TRUE,
     TRUE);
 
   if (err != 0)
-    return false;
+    return 0;
 
   if (processedCount <= 0)
-    return false;
+    return 0;
 
-  /*
-     * One frame consists of LChQnt values.
-     *
-     * We don't require the whole processed buffer to be
-     * aligned. If the last frame is incomplete, simply
-     * ignore it and use the last complete frame.
-     */
-  const int frameSize =
-    static_cast<int>(m_channelCount);
+  const std::size_t frameCount =
+    static_cast<std::size_t>(processedCount) /
+    m_channelCount;
 
-  if (frameSize <= 0)
-    return false;
+  if (frameCount == 0)
+    return 0;
 
-  const int frameCount =
-    processedCount / frameSize;
-
-  if (frameCount <= 0)
-    return false;
-
-  const int lastFrameOffset =
-    (frameCount - 1) * frameSize;
+  const std::size_t valueCount =
+    frameCount * m_channelCount;
 
   std::copy_n(
-    m_data.data() + lastFrameOffset,
-    frameSize,
+    m_data.data(),
+    valueCount,
     values.data());
 
-  return true;
+  return frameCount;
 }
-
 
 bool Ltr11Module::Impl::configureConnection() noexcept
 {

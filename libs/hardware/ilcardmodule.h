@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <span>
 
 namespace qds
@@ -13,9 +14,12 @@ public:
   virtual bool start() noexcept = 0;
   virtual void stop() noexcept = 0;
 
-  // Возвращает последние полученные значения.
-  // Непосредственный опрос оборудования здесь не выполняется.
-  virtual bool read(std::span<double> values) noexcept = 0;
+  [[nodiscard]]
+  virtual std::size_t blockFrameCapacity() const noexcept = 0;
+
+  [[nodiscard]]
+  virtual std::size_t readBlock(
+    std::span<double> values) noexcept = 0;
 };
 
 }
