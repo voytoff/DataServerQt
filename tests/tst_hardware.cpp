@@ -1,4 +1,5 @@
 #include "tst_hardware.h"
+#include "fakedatablocksink.h"
 #include "fakelcardmodule.h"
 #include "lcarddatasource.h"
 #include "ltr11configurationbuilder.h"
@@ -117,6 +118,7 @@ void tst_hardware::test_lCardDataSource()
   auto* fake = module.get();
 
   LCardDataSource source(
+    ModuleId{0},
     3,
     std::move(module));
 
@@ -191,6 +193,7 @@ void tst_hardware::test_lCardDataSource_data_integrity()
   auto* fake = module.get();
 
   LCardDataSource source(
+    ModuleId{0},
     3,
     std::move(module));
 
@@ -351,6 +354,7 @@ void tst_hardware::test_acquire_returns_last_frame()
     std::make_unique<OneBlockLCardModule>();
 
   LCardDataSource source(
+    ModuleId{0},
     ChannelCount,
     std::move(module));
 
@@ -368,4 +372,48 @@ void tst_hardware::test_acquire_returns_last_frame()
   QCOMPARE(values[1], 9.0);
   QCOMPARE(values[2], 10.0);
   QCOMPARE(values[3], 11.0);
+}
+
+void tst_hardware::test_lCardDataSource_fake_push_archive()
+{
+  using namespace qds;
+
+  constexpr std::size_t ChannelCount = 3;
+
+  auto module = std::make_unique<OneBlockLCardModule>();
+
+  FakeDataBlockSink dataSink;
+
+  LCardDataSource source(
+    ModuleId{0},
+    ChannelCount,
+    std::move(module),
+    &dataSink);
+
+  RawMemory raw;
+  raw.initialize(ChannelCount);
+
+  QVERIFY(source.start());
+
+  QTest::qWait(10);
+  QVERIFY(source.acquire(raw.values()));
+  source.stop();
+
+  QCOMPARE(dataSink.m_channelCount, std::size_t{3});
+  QCOMPARE(dataSink.m_frameCount, std::size_t{3});
+  QCOMPARE(dataSink.m_values.size(), std::size_t{9});
+
+  QCOMPARE(dataSink.m_values[0], 0.0);
+  QCOMPARE(dataSink.m_values[1], 1.0);
+  QCOMPARE(dataSink.m_values[2], 2.0);
+  QCOMPARE(dataSink.m_values[3], 3.0);
+  QCOMPARE(dataSink.m_values[4], 4.0);
+  QCOMPARE(dataSink.m_values[5], 5.0);
+  QCOMPARE(dataSink.m_values[6], 6.0);
+  QCOMPARE(dataSink.m_values[7], 7.0);
+  QCOMPARE(dataSink.m_values[8], 8.0);
+
+  QCOMPARE(raw.values()[0], 6.0);
+  QCOMPARE(raw.values()[1], 7.0);
+  QCOMPARE(raw.values()[2], 8.0);
 }

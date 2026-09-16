@@ -38,6 +38,11 @@ private slots:
   void test_archiveDescription_writeCalculatedSignals();
   void test_archiveDescription_writeMultipleFiles();
 
-  void test_archiveDescription_archiveDescriptionBuilder();  
+  void test_archiveDescription_archiveDescriptionBuilder();
+
+  void test_DataBlockQueue_deque();
+  void test_DataBlockQueue_waitPop();
+  void test_DataBlockQueue_stop();
+  void test_DataBlockQueue_stop_drains_queue();
 
 };

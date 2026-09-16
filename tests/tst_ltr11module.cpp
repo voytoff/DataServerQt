@@ -161,6 +161,7 @@ void tst_ltr11module::test_LCardDataSource_base()
   auto module = std::make_unique<Ltr11Module>(config);
 
   LCardDataSource source(
+    ModuleId{0},
     config.channels.size(),
     std::move(module));
 
@@ -213,6 +214,7 @@ void tst_ltr11module::test_LCardDataSource_update_frequency()
     std::make_unique<Ltr11Module>(config);
 
   LCardDataSource source(
+    ModuleId{0},
     config.channels.size(),
     std::move(module));
 

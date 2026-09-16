@@ -19,6 +19,7 @@ private slots:
   void test_ltr11configurationbuilder();
 
   void test_acquire_returns_last_frame();
+  void test_lCardDataSource_fake_push_archive();
 
 };
 

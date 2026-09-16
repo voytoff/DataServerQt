@@ -1,5 +1,6 @@
 #pragma once
 
+#include "idatablocksink.h"
 #include "idatasource.h"
 #include "ilcardmodule.h"
 
@@ -17,8 +18,10 @@ class LCardDataSource final : public IDataSource
 {
 public:
   LCardDataSource(
+    ModuleId moduleId,
     uint32_t channelCount,
-    std::unique_ptr<ILCardModule> module);
+    std::unique_ptr<ILCardModule> module,
+    IDataBlockSink* blockSink = nullptr);
 
   ~LCardDataSource() noexcept override;
 
@@ -31,6 +34,8 @@ private:
   void run() noexcept;
 
 private:
+  ModuleId m_moduleId;
+
   std::unique_ptr<ILCardModule> m_module;
   uint32_t m_channelCount;
 
@@ -41,6 +46,8 @@ private:
   std::atomic<bool> m_running{false};
 
   std::mutex m_valuesMutex;
+
+  IDataBlockSink* m_blockSink = nullptr;
 };
 
 }

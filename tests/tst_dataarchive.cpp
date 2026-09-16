@@ -5,6 +5,9 @@
 #include "archivefile.h"
 #include "archiveformat.h"
 #include "archivewriter.h"
+#include "datablockqueue.h"
+#include "fakelcardmodule.h"
+#include "lcarddatasource.h"
 #include "moduletype.h"
 #include "testsrv.h"
 #include <QtTest/qtestcase.h>
@@ -13,6 +16,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <array>
+#include <qtestsupport_core.h>
 
 tst_dataarchive::tst_dataarchive() { }
 tst_dataarchive::~tst_dataarchive() = default;
@@ -1503,4 +1507,211 @@ void tst_dataarchive::test_archiveDescription_archiveDescriptionBuilder()
 
   QCOMPARE(
     signal.contains("channel"), false);
+}
+
+void tst_dataarchive::test_DataBlockQueue_deque()
+{
+  using namespace qds;
+
+  FakeLCardModule module(3, 3);
+
+  RawMemory raw;
+  raw.initialize(9);
+
+  QVERIFY(module.start());
+
+  DataBlockQueue queue;
+
+  //
+  // Block 1
+  //
+  QCOMPARE(
+    module.readBlock(raw.values()),
+    std::size_t{3});
+
+  queue.push(
+    ModuleId{10},
+    raw.values(),
+    3,
+    3);
+
+  //
+  // Block 2
+  //
+  QCOMPARE(
+    module.readBlock(raw.values()),
+    std::size_t{3});
+
+  queue.push(
+    ModuleId{20},
+    raw.values(),
+    3,
+    3);
+
+  module.stop();
+
+  //
+  // Pop block 1
+  //
+  DataBlock block;
+
+  QVERIFY(queue.pop(block));
+
+  QCOMPARE(block.module, ModuleId{10});
+  QCOMPARE(block.channelCount, std::size_t{3});
+  QCOMPARE(block.frameCount, std::size_t{3});
+  QCOMPARE(block.values.size(), std::size_t{9});
+
+  QCOMPARE(block.values[0], 0.0);
+  QCOMPARE(block.values[1], 1.0);
+  QCOMPARE(block.values[2], 2.0);
+  QCOMPARE(block.values[3], 3.0);
+  QCOMPARE(block.values[4], 4.0);
+  QCOMPARE(block.values[5], 5.0);
+  QCOMPARE(block.values[6], 6.0);
+  QCOMPARE(block.values[7], 7.0);
+  QCOMPARE(block.values[8], 8.0);
+
+  //
+  // Pop block 2
+  //
+  QVERIFY(queue.pop(block));
+
+  QCOMPARE(block.module, ModuleId{20});
+  QCOMPARE(block.channelCount, std::size_t{3});
+  QCOMPARE(block.frameCount, std::size_t{3});
+  QCOMPARE(block.values.size(), std::size_t{9});
+
+  QCOMPARE(block.values[0], 9.0);
+  QCOMPARE(block.values[1], 10.0);
+  QCOMPARE(block.values[2], 11.0);
+  QCOMPARE(block.values[3], 12.0);
+  QCOMPARE(block.values[4], 13.0);
+  QCOMPARE(block.values[5], 14.0);
+  QCOMPARE(block.values[6], 15.0);
+  QCOMPARE(block.values[7], 16.0);
+  QCOMPARE(block.values[8], 17.0);
+
+  //
+  // Queue empty
+  //
+  QVERIFY(!queue.pop(block));
+}
+
+void tst_dataarchive::test_DataBlockQueue_waitPop()
+{
+  using namespace qds;
+
+  FakeLCardModule module(3, 3);
+
+  RawMemory raw;
+  raw.initialize(9);
+
+  QVERIFY(module.start());
+
+  DataBlock block;
+  DataBlockQueue queue;
+
+  bool result = false;
+
+  std::thread thread(
+    [&]() {
+      result = queue.waitPop(block);
+    });
+
+  QCOMPARE(
+    module.readBlock(raw.values()),
+    std::size_t{3});
+
+  queue.push(
+    ModuleId{777},
+    raw.values(),
+    3,
+    3);
+
+  thread.join();
+
+  QVERIFY(result);
+
+  QCOMPARE(block.module, ModuleId{777});
+  QCOMPARE(block.channelCount, std::size_t{3});
+  QCOMPARE(block.frameCount, std::size_t{3});
+  QCOMPARE(block.values.size(), std::size_t{9});
+
+  QCOMPARE(block.values[0], 0.0);
+  QCOMPARE(block.values[1], 1.0);
+  QCOMPARE(block.values[2], 2.0);
+  QCOMPARE(block.values[3], 3.0);
+  QCOMPARE(block.values[4], 4.0);
+  QCOMPARE(block.values[5], 5.0);
+  QCOMPARE(block.values[6], 6.0);
+  QCOMPARE(block.values[7], 7.0);
+  QCOMPARE(block.values[8], 8.0);
+}
+
+void tst_dataarchive::test_DataBlockQueue_stop()
+{
+  using namespace qds;
+
+  DataBlock block;
+  DataBlockQueue queue;
+
+  bool result = true;
+
+  std::thread thread(
+    [&]() {
+      result = queue.waitPop(block);
+    });
+
+  queue.stop();
+
+  thread.join();
+
+  QVERIFY(!result);
+
+  QCOMPARE(block.module, ModuleId{0});
+  QCOMPARE(block.channelCount, std::size_t{0});
+  QCOMPARE(block.frameCount, std::size_t{0});
+  QCOMPARE(block.values.size(), std::size_t{0});
+}
+
+void tst_dataarchive::test_DataBlockQueue_stop_drains_queue()
+{
+  using namespace qds;
+
+  DataBlockQueue queue;
+
+  const std::vector<double> values1{
+    1.0, 2.0, 3.0
+  };
+
+  const std::vector<double> values2{
+    4.0, 5.0, 6.0
+  };
+
+  queue.push(
+    ModuleId{10},
+    values1,
+    3,
+    1);
+
+  queue.push(
+    ModuleId{20},
+    values2,
+    3,
+    1);
+
+  queue.stop();
+
+  DataBlock block;
+
+  QVERIFY(queue.waitPop(block));
+  QCOMPARE(block.module, ModuleId{10});
+  QCOMPARE(block.values[0], 1.0);
+
+  QVERIFY(queue.waitPop(block));
+  QCOMPARE(block.module, ModuleId{20});
+  QCOMPARE(block.values[0], 4.0);
+
+  QVERIFY(!queue.waitPop(block));
 }

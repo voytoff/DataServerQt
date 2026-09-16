@@ -29,6 +29,10 @@ int main(int argc, char *argv[])
   int rc = 0;
 
   {
+    tst_dataarchive tc;
+    rc |= QTest::qExec(&tc, argc, argv);
+  }
+  {
     tst_ltr11module tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
@@ -58,10 +62,6 @@ int main(int argc, char *argv[])
   }
   {
     tst_packetdispatcher tc;
-    rc |= QTest::qExec(&tc, argc, argv);
-  }
-  {
-    tst_dataarchive tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
   {

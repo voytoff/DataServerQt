@@ -6,11 +6,15 @@ namespace qds
 {
 
 LCardDataSource::LCardDataSource(
+  ModuleId moduleId,
   uint32_t channelCount,
-  std::unique_ptr<ILCardModule> module)
-  : m_module(std::move(module))
+  std::unique_ptr<ILCardModule> module,
+  IDataBlockSink *blockSink)
+  : m_moduleId(moduleId)
+  , m_module(std::move(module))
   , m_channelCount(channelCount)
   , m_values(channelCount, 0.0)
+  , m_blockSink(blockSink)
 {
   if (m_module)
   {
@@ -101,6 +105,17 @@ void LCardDataSource::run() noexcept
     if (frameCount == 0)
       continue;
 
+    if (m_blockSink)
+    {
+      m_blockSink->push(
+        m_moduleId,
+        std::span(
+          m_work.data(),
+          frameCount * m_channelCount),
+        m_channelCount,
+        frameCount);
+    }
+
     const std::size_t offset =
       (frameCount - 1) * m_channelCount;
 
@@ -112,8 +127,6 @@ void LCardDataSource::run() noexcept
         m_channelCount,
         m_values.data());
     }
-
-    // весь m_block передаём в архив
   }
 }
 

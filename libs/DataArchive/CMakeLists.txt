@@ -23,6 +23,8 @@ add_library(DataArchive SHARED
     archivedescription.h
     archivedescriptionwriter.h archivedescriptionwriter.cpp
     archivedescriptionbuilder.h archivedescriptionbuilder.cpp
+    datablockqueue.h datablockqueue.cpp
+    datablock.h
 )
 
 target_include_directories(DataArchive
@@ -35,5 +37,6 @@ target_link_libraries(DataArchive
     PUBLIC
       Configuration
       SignalStorage
+      DataSource
       Qt6::Core
 )
