@@ -78,7 +78,7 @@ VALUES
      WHERE serial = 'LTR11-000001'),
 
     0,
-	'{}'
+	'{"mode":0,"range":0}'
 );
 
 INSERT INTO configuration_tag
@@ -94,7 +94,7 @@ VALUES
      WHERE serial = 'LTR11-000001'),
 
     1,
-	'{}'
+	'{"mode":2,"range":1}'
 );
 
 
