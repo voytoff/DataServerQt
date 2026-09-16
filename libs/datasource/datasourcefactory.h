@@ -24,25 +24,7 @@ public:
   std::unique_ptr<IDataSource> create(
     const ModuleRuntimeConfiguration& configuration) const;
 
-  /*
-  template<class T, class Settings>
-  void registerType(ModuleType type)
-  {
-    registerType(
-      type,
-      [](const ModuleConfiguration& config, uint32_t channelCount)
-      {
-        auto settings =
-          Settings::fromJson(config.settings);
-
-        return std::make_unique<T>(
-          settings,
-          channelCount);
-      });
-  }
-  */
-
-private:
+ private:
   std::unordered_map<ModuleType, Creator> m_creators;
 };
 
