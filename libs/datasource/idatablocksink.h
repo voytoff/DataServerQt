@@ -13,9 +13,12 @@ public:
 
   virtual void push(
     ModuleId module,
+    uint64_t firstFrameIndex,
     std::span<const double> values,
     std::size_t channelCount,
-    std::size_t frameCount) = 0;
+    std::size_t frameCount,
+    double frameRate) = 0;
+
 };
 
 }

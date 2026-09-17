@@ -24,6 +24,9 @@ public:
   std::size_t blockFrameCapacity() const noexcept override;
 
   [[nodiscard]]
+  double frameRate() const noexcept override;
+
+  [[nodiscard]]
   std::size_t readBlock(
     std::span<double> values) noexcept override;
 

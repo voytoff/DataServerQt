@@ -45,6 +45,11 @@ public:
     return 3;
   }
 
+  double frameRate() const noexcept override
+  {
+    return 1000;
+  }
+
   std::size_t readBlock(
     std::span<double> values) noexcept override
   {

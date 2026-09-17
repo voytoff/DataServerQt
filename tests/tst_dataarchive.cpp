@@ -1531,9 +1531,11 @@ void tst_dataarchive::test_DataBlockQueue_deque()
 
   queue.push(
     ModuleId{10},
+    100,
     raw.values(),
     3,
-    3);
+    3,
+    1000);
 
   //
   // Block 2
@@ -1544,9 +1546,11 @@ void tst_dataarchive::test_DataBlockQueue_deque()
 
   queue.push(
     ModuleId{20},
+    101,
     raw.values(),
     3,
-    3);
+    3,
+    1000);
 
   module.stop();
 
@@ -1558,9 +1562,11 @@ void tst_dataarchive::test_DataBlockQueue_deque()
   QVERIFY(queue.pop(block));
 
   QCOMPARE(block.module, ModuleId{10});
+  QCOMPARE(block.firstFrameIndex, 100);
   QCOMPARE(block.channelCount, std::size_t{3});
   QCOMPARE(block.frameCount, std::size_t{3});
   QCOMPARE(block.values.size(), std::size_t{9});
+  QCOMPARE(block.frameRate, 1000.0);
 
   QCOMPARE(block.values[0], 0.0);
   QCOMPARE(block.values[1], 1.0);
@@ -1578,9 +1584,11 @@ void tst_dataarchive::test_DataBlockQueue_deque()
   QVERIFY(queue.pop(block));
 
   QCOMPARE(block.module, ModuleId{20});
+  QCOMPARE(block.firstFrameIndex, 101);
   QCOMPARE(block.channelCount, std::size_t{3});
   QCOMPARE(block.frameCount, std::size_t{3});
   QCOMPARE(block.values.size(), std::size_t{9});
+  QCOMPARE(block.frameRate, 1000.0);
 
   QCOMPARE(block.values[0], 9.0);
   QCOMPARE(block.values[1], 10.0);
@@ -1625,18 +1633,22 @@ void tst_dataarchive::test_DataBlockQueue_waitPop()
 
   queue.push(
     ModuleId{777},
+    1,
     raw.values(),
     3,
-    3);
+    3,
+    1000);
 
   thread.join();
 
   QVERIFY(result);
 
   QCOMPARE(block.module, ModuleId{777});
+  QCOMPARE(block.firstFrameIndex, 1);
   QCOMPARE(block.channelCount, std::size_t{3});
   QCOMPARE(block.frameCount, std::size_t{3});
   QCOMPARE(block.values.size(), std::size_t{9});
+  QCOMPARE(block.frameRate, 1000.0);
 
   QCOMPARE(block.values[0], 0.0);
   QCOMPARE(block.values[1], 1.0);
@@ -1670,6 +1682,7 @@ void tst_dataarchive::test_DataBlockQueue_stop()
   QVERIFY(!result);
 
   QCOMPARE(block.module, ModuleId{0});
+  QCOMPARE(block.firstFrameIndex, 0);
   QCOMPARE(block.channelCount, std::size_t{0});
   QCOMPARE(block.frameCount, std::size_t{0});
   QCOMPARE(block.values.size(), std::size_t{0});
@@ -1691,15 +1704,19 @@ void tst_dataarchive::test_DataBlockQueue_stop_drains_queue()
 
   queue.push(
     ModuleId{10},
+    777,
     values1,
     3,
-    1);
+    1,
+    1000);
 
   queue.push(
     ModuleId{20},
+    777,
     values2,
     3,
-    1);
+    1,
+    1000);
 
   queue.stop();
 
@@ -1707,11 +1724,15 @@ void tst_dataarchive::test_DataBlockQueue_stop_drains_queue()
 
   QVERIFY(queue.waitPop(block));
   QCOMPARE(block.module, ModuleId{10});
+  QCOMPARE(block.firstFrameIndex, 777);
   QCOMPARE(block.values[0], 1.0);
+  QCOMPARE(block.frameRate, 1000.0);
 
   QVERIFY(queue.waitPop(block));
   QCOMPARE(block.module, ModuleId{20});
+  QCOMPARE(block.firstFrameIndex, 777);
   QCOMPARE(block.values[0], 4.0);
+  QCOMPARE(block.frameRate, 1000.0);
 
   QVERIFY(!queue.waitPop(block));
 }

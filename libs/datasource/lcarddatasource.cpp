@@ -107,13 +107,18 @@ void LCardDataSource::run() noexcept
 
     if (m_blockSink)
     {
+      const uint64_t firstFrameIndex =
+        m_nextFrameIndex;
+
+      m_nextFrameIndex += frameCount;
+
       m_blockSink->push(
         m_moduleId,
-        std::span(
-          m_work.data(),
-          frameCount * m_channelCount),
+        firstFrameIndex,
+        std::span(m_work.data(), frameCount * m_channelCount),
         m_channelCount,
-        frameCount);
+        frameCount,
+        m_module->frameRate());
     }
 
     const std::size_t offset =

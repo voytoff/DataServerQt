@@ -391,7 +391,7 @@ void tst_hardware::test_lCardDataSource_fake_push_archive()
     &dataSink);
 
   RawMemory raw;
-  raw.initialize(ChannelCount);
+  raw.initialize(ChannelCount * 3);
 
   QVERIFY(source.start());
 

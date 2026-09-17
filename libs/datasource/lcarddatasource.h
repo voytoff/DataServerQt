@@ -38,6 +38,7 @@ private:
 
   std::unique_ptr<ILCardModule> m_module;
   uint32_t m_channelCount;
+  uint64_t m_nextFrameIndex = 0;
 
   std::vector<double> m_values;
   std::vector<double> m_work;

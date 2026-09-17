@@ -5,9 +5,11 @@ namespace qds
 
 FakeLCardModule::FakeLCardModule(
   std::size_t channelCount,
-  std::size_t blockFrameCount)
-  : m_channelCount(channelCount),
-  m_blockFrameCount(blockFrameCount)
+  std::size_t blockFrameCount,
+  double frameRate)
+  : m_channelCount(channelCount)
+  , m_blockFrameCount(blockFrameCount)
+  , m_frameRate(frameRate)
 {
 }
 
@@ -32,6 +34,11 @@ std::size_t
 FakeLCardModule::blockFrameCapacity() const noexcept
 {
   return m_blockFrameCount;
+}
+
+double FakeLCardModule::frameRate() const noexcept
+{
+  return m_frameRate;
 }
 
 std::size_t FakeLCardModule::readBlock(

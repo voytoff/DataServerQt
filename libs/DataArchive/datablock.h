@@ -14,10 +14,8 @@ struct DataBlock
 {
   ModuleId module;
 
-  Timestamp firstTimestamp;
-  WallClockTime firstWallTime;
-
-  uint64_t framePeriodMicroseconds = 0;
+  uint64_t firstFrameIndex = 0;
+  double frameRate = 0.0;
 
   std::size_t channelCount = 0;
   std::size_t frameCount = 0;

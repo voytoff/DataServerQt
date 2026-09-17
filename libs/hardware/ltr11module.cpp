@@ -25,7 +25,9 @@ public:
 
   bool start() noexcept;
   void stop() noexcept;
+
   std::size_t blockFrameCapacity() const noexcept;
+  double frameRate() const noexcept;
   std::size_t readBlock(std::span<double> values) noexcept;
 
 private:
@@ -40,6 +42,7 @@ private:
 
   std::size_t m_channelCount = 0;
   uint32_t m_recvDataCount = 0;
+  double m_frameRate = 0.0;
 
   std::vector<DWORD> m_recvBuffer;
   std::vector<double> m_data;
@@ -227,6 +230,16 @@ std::size_t Ltr11Module::Impl::blockFrameCapacity() const noexcept
   return RecvBlockFrameCount;
 }
 
+double Ltr11Module::Impl::frameRate() const noexcept
+{
+  return m_frameRate;// m_configuration.channelRate;
+}
+
+double Ltr11Module::frameRate() const noexcept
+{
+  return m_impl->frameRate();
+}
+
 std::size_t Ltr11Module::Impl::readBlock(
   std::span<double> values) noexcept
 {
@@ -405,9 +418,9 @@ bool Ltr11Module::Impl::configureFrequency() noexcept
    * ChRate is stored by LTR11 in kHz.
    */
   m_hltr11.ChRate =
-    resultAdcFreq /
-    (1000.0 *
-     static_cast<double>(m_channelCount));
+    resultAdcFreq / (1000.0 * static_cast<double>(m_channelCount));
+
+  m_frameRate = resultAdcFreq / static_cast<double>(m_channelCount);
 
   return true;
 }

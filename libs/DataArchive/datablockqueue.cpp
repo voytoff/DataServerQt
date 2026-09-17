@@ -11,9 +11,10 @@ namespace qds
 
 void DataBlockQueue::push(
   ModuleId module,
+  uint64_t firstFrameIndex,
   std::span<const double> values,
   std::size_t channelCount,
-  std::size_t frameCount)
+  std::size_t frameCount, double frameRate)
 {
   if (values.size() != channelCount * frameCount)
     return;
@@ -21,8 +22,10 @@ void DataBlockQueue::push(
   DataBlock block;
 
   block.module = module;
+  block.firstFrameIndex = firstFrameIndex;
   block.channelCount = channelCount;
   block.frameCount = frameCount;
+  block.frameRate = frameRate;
 
   block.values.assign(
     values.begin(),

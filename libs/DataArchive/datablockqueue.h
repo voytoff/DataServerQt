@@ -14,9 +14,11 @@ class DataBlockQueue final : public IDataBlockSink
 public:
   void push(
     ModuleId module,
+    uint64_t firstFrameIndex,
     std::span<const double> values,
     std::size_t channelCount,
-    std::size_t frameCount) override;
+    std::size_t frameCount,
+    double frameRate) override;
 
   bool pop(DataBlock& block);
 
