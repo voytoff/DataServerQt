@@ -17,6 +17,9 @@ add_library(Hardware SHARED
 
     ltr11module.h ltr11module.cpp
     ltr11configuration.h
+
+    smartblocklcardmodule.cpp
+    smartblocklcardmodule.h
 )
 
 if(WIN32)

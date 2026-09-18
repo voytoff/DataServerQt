@@ -9,12 +9,16 @@ LCardDataSource::LCardDataSource(
   ModuleId moduleId,
   uint32_t channelCount,
   std::unique_ptr<ILCardModule> module,
-  IDataBlockSink *blockSink)
+  IClock &clock,
+  IDataBlockSink *blockSink,
+  IDataStreamEventSink *eventSink)
   : m_moduleId(moduleId)
   , m_module(std::move(module))
   , m_channelCount(channelCount)
   , m_values(channelCount, 0.0)
+  , m_clock(clock)
   , m_blockSink(blockSink)
+  , m_eventSink(eventSink)
 {
   if (m_module)
   {
@@ -39,8 +43,27 @@ bool LCardDataSource::start() noexcept
   if (!m_module)
     return false;
 
+  const Timestamp startTimestamp =
+    m_clock.timestamp();
+
+  const WallClockTime startWallTime =
+    m_clock.wallClockTime();
+
   if (!m_module->start())
     return false;
+
+  if (m_eventSink)
+  {
+    DataStreamAnchor anchor;
+
+    anchor.module = m_moduleId;
+    anchor.firstFrameIndex = m_nextFrameIndex;
+    anchor.startTimestamp = startTimestamp;
+    anchor.startWallTime = startWallTime;
+    anchor.frameRate = m_module->frameRate();
+
+    m_eventSink->startStream(anchor);
+  }
 
   m_running = true;
 
@@ -105,17 +128,19 @@ void LCardDataSource::run() noexcept
     if (frameCount == 0)
       continue;
 
+    const uint64_t firstFrameIndex =
+      m_nextFrameIndex;
+
+    m_nextFrameIndex += frameCount;
+
     if (m_blockSink)
     {
-      const uint64_t firstFrameIndex =
-        m_nextFrameIndex;
-
-      m_nextFrameIndex += frameCount;
-
       m_blockSink->push(
         m_moduleId,
         firstFrameIndex,
-        std::span(m_work.data(), frameCount * m_channelCount),
+        std::span(
+          m_work.data(),
+          frameCount * m_channelCount),
         m_channelCount,
         frameCount,
         m_module->frameRate());

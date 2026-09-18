@@ -6,9 +6,13 @@
 #include "archiveformat.h"
 #include "archivewriter.h"
 #include "datablockqueue.h"
+#include "fakeclock.h"
+#include "fakedatablocksink.h"
+#include "fakedatastreameventsink.h"
 #include "fakelcardmodule.h"
 #include "lcarddatasource.h"
 #include "moduletype.h"
+#include "smartblocklcardmodule.h"
 #include "testsrv.h"
 #include <QtTest/qtestcase.h>
 #include <QJsonParseError>
@@ -1735,4 +1739,257 @@ void tst_dataarchive::test_DataBlockQueue_stop_drains_queue()
   QCOMPARE(block.frameRate, 1000.0);
 
   QVERIFY(!queue.waitPop(block));
+}
+
+void tst_dataarchive::test_DataBlockQueue_firstFrameIndex()
+{
+  using namespace qds;
+
+  auto module = std::make_unique<FakeLCardModule>(3, 3);
+
+  DataBlockQueue queue;
+  FakeClock clock;
+
+  LCardDataSource source(
+    ModuleId{0},
+    3,
+    std::move(module),
+    clock,
+    &queue);
+
+  RawMemory raw;
+  raw.initialize(3);
+
+  DataBlock block;
+
+  QVERIFY(source.start());
+
+  QTest::qWait(10);
+  source.stop();
+
+  QVERIFY(queue.waitPop(block));
+
+  QCOMPARE(block.module, ModuleId{0});
+  QCOMPARE(block.firstFrameIndex, 0);
+  QCOMPARE(block.channelCount, std::size_t{3});
+  QCOMPARE(block.frameCount, std::size_t{3});
+  QCOMPARE(block.values.size(), std::size_t{9});
+  QCOMPARE(block.frameRate, 1000.0);
+
+  QCOMPARE(block.values[0], 0.0);
+  QCOMPARE(block.values[1], 1.0);
+  QCOMPARE(block.values[2], 2.0);
+  QCOMPARE(block.values[3], 3.0);
+  QCOMPARE(block.values[4], 4.0);
+  QCOMPARE(block.values[5], 5.0);
+  QCOMPARE(block.values[6], 6.0);
+  QCOMPARE(block.values[7], 7.0);
+  QCOMPARE(block.values[8], 8.0);
+
+  QVERIFY(queue.waitPop(block));
+
+  QCOMPARE(block.module, ModuleId{0});
+  QCOMPARE(block.firstFrameIndex, 3);
+  QCOMPARE(block.channelCount, std::size_t{3});
+  QCOMPARE(block.frameCount, std::size_t{3});
+  QCOMPARE(block.values.size(), std::size_t{9});
+  QCOMPARE(block.frameRate, 1000.0);
+
+  QCOMPARE(block.values[0], 9.0);
+  QCOMPARE(block.values[1], 10.0);
+  QCOMPARE(block.values[2], 11.0);
+  QCOMPARE(block.values[3], 12.0);
+  QCOMPARE(block.values[4], 13.0);
+  QCOMPARE(block.values[5], 14.0);
+  QCOMPARE(block.values[6], 15.0);
+  QCOMPARE(block.values[7], 16.0);
+  QCOMPARE(block.values[8], 17.0);
+
+  auto index = block.firstFrameIndex / 3;
+  while (queue.size() > 0 && queue.waitPop(block))
+  {
+    QCOMPARE(block.module, ModuleId{0});
+    QCOMPARE(block.firstFrameIndex, ++index * 3);
+    QCOMPARE(block.channelCount, std::size_t{3});
+    QCOMPARE(block.frameCount, std::size_t{3});
+    QCOMPARE(block.values.size(), std::size_t{9});
+    QCOMPARE(block.frameRate, 1000.0);
+
+    QCOMPARE(block.values[0], static_cast<double>(index * 9.0));
+  }
+
+  auto lastBlock = block;
+
+  QVERIFY(source.start());
+
+  QTest::qWait(10);
+  source.stop();
+
+  QVERIFY(queue.waitPop(block));
+
+  QCOMPARE(block.module, ModuleId{0});
+  QCOMPARE(block.firstFrameIndex, lastBlock.firstFrameIndex + 3);
+  QCOMPARE(block.channelCount, std::size_t{3});
+  QCOMPARE(block.frameCount, std::size_t{3});
+  QCOMPARE(block.values.size(), std::size_t{9});
+  QCOMPARE(block.frameRate, 1000.0);
+
+  QCOMPARE(block.values[0], static_cast<double>(block.firstFrameIndex * (9.0 / 3)));
+
+  source.stop();
+}
+
+void tst_dataarchive::test_DataBlockQueue_firstFrameIndex_two_blocks()
+{
+  using namespace qds;
+
+  auto module = std::make_unique<FakeLCardModule>(3, 3);
+
+  DataBlockQueue queue;
+  FakeClock clock;
+
+  LCardDataSource source(
+    ModuleId{0},
+    3,
+    std::move(module),
+    clock,
+    &queue);
+
+  RawMemory raw;
+  raw.initialize(3);
+
+  DataBlock block;
+
+  QVERIFY(source.start());
+
+  QTest::qWait(1);
+
+  source.stop();
+
+  DataBlock block1;
+  DataBlock block2;
+
+  QVERIFY(queue.pop(block1));
+  QVERIFY(queue.pop(block2));
+
+  QCOMPARE(block1.firstFrameIndex, uint64_t{0});
+  QCOMPARE(block1.frameCount, std::size_t{3});
+
+  QCOMPARE(
+    block2.firstFrameIndex,
+    block1.firstFrameIndex +
+      block1.frameCount);
+
+}
+
+void tst_dataarchive::test_DataBlockQueue_firstFrameIndex_three_blocks()
+{
+  using namespace qds;
+
+  auto module = std::make_unique<SmartBlockLCardModule>(3, 3, 3);
+  auto* fake = module.get();
+
+  DataBlockQueue queue;
+  FakeClock clock;
+
+  LCardDataSource source(
+    ModuleId{0},
+    3,
+    std::move(module),
+    clock,
+    &queue);
+
+  RawMemory raw;
+  raw.initialize(3);
+
+
+  QVERIFY(source.start());
+  QTest::qWait(5);
+
+  source.stop();
+
+  DataBlock block;
+  DataBlock block1;
+  DataBlock block2;
+  DataBlock block3;
+
+  QVERIFY(queue.pop(block1));
+  QVERIFY(queue.pop(block2));
+  QVERIFY(queue.pop(block3));
+
+  QVERIFY(!queue.pop(block));
+
+  QCOMPARE(block1.firstFrameIndex, uint64_t{0});
+  QCOMPARE(block1.frameCount, std::size_t{3});
+
+  QCOMPARE(block2.firstFrameIndex, block1.firstFrameIndex + block1.frameCount);
+  QCOMPARE(block3.firstFrameIndex, block2.firstFrameIndex + block2.frameCount);
+
+  fake->setCount(3);
+
+  QVERIFY(source.start());
+  QTest::qWait(5);
+
+  source.stop();
+
+  QVERIFY(queue.pop(block1));
+  QVERIFY(queue.pop(block2));
+  QVERIFY(queue.pop(block3));
+
+  QVERIFY(!queue.pop(block));
+
+  QCOMPARE(block1.firstFrameIndex, uint64_t{9});
+  QCOMPARE(block1.frameCount, std::size_t{3});
+
+  QCOMPARE(block2.firstFrameIndex, block1.firstFrameIndex + block1.frameCount);
+  QCOMPARE(block3.firstFrameIndex, block2.firstFrameIndex + block2.frameCount);
+}
+
+void tst_dataarchive::test_iDataStreamEventSink_base()
+{
+  using namespace qds;
+
+  FakeClock clock;
+  clock.setTimestamp(123456);
+  clock.setWallClockTime(987654);
+
+  auto module = std::make_unique<SmartBlockLCardModule>(3, 3, 3);
+
+  FakeDataStreamEventSink sink;
+
+  DataBlockQueue queue;
+
+  LCardDataSource source(
+    ModuleId{777},
+    3,
+    std::move(module),
+    clock,
+    &queue,
+    &sink);
+
+  QVERIFY(source.start());
+  QTest::qWait(5);
+
+  source.stop();
+
+  auto const &anchor = sink.m_anchor;
+
+  QCOMPARE(anchor.module, ModuleId{777});
+  QCOMPARE(anchor.firstFrameIndex, 0);
+  QCOMPARE(anchor.startTimestamp, Timestamp{123456});
+  QCOMPARE(anchor.startWallTime, WallClockTime{987654});
+  QCOMPARE(anchor.frameRate, 1000);
+
+  clock.advance(500000);
+
+  QVERIFY(source.start());
+  QTest::qWait(5);
+
+  source.stop();
+
+  QCOMPARE(anchor.module, ModuleId{777});
+  QCOMPARE(anchor.firstFrameIndex, uint64_t{9});
+  QCOMPARE(anchor.startTimestamp, Timestamp{623456});
+  QCOMPARE(anchor.startWallTime, WallClockTime{1487654});
+  QCOMPARE(anchor.frameRate, 1000.0);
 }

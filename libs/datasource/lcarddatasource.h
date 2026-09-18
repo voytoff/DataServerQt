@@ -1,7 +1,9 @@
 #pragma once
 
+#include "iclock.h"
 #include "idatablocksink.h"
 #include "idatasource.h"
+#include "idatastreameventsink.h"
 #include "ilcardmodule.h"
 
 #include <atomic>
@@ -21,7 +23,9 @@ public:
     ModuleId moduleId,
     uint32_t channelCount,
     std::unique_ptr<ILCardModule> module,
-    IDataBlockSink* blockSink = nullptr);
+    IClock& clock,
+    IDataBlockSink* blockSink = nullptr,
+    IDataStreamEventSink* eventSink = nullptr);
 
   ~LCardDataSource() noexcept override;
 
@@ -48,7 +52,10 @@ private:
 
   std::mutex m_valuesMutex;
 
+  IClock& m_clock;
+
   IDataBlockSink* m_blockSink = nullptr;
+  IDataStreamEventSink* m_eventSink = nullptr;
 };
 
 }

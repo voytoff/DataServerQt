@@ -26,6 +26,8 @@ public:
 
   void stop() noexcept;
 
+  std::size_t size() noexcept;
+
 private:
   std::mutex m_mutex;
   std::condition_variable m_condition;

@@ -20,6 +20,7 @@ public:
 
 public:
   ModuleId m_module;
+  uint64_t m_firstFrameIndex;
   std::vector<double> m_values;
   std::size_t m_channelCount = 0;
   std::size_t m_frameCount = 0;

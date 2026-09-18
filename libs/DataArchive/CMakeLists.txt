@@ -24,7 +24,6 @@ add_library(DataArchive SHARED
     archivedescriptionwriter.h archivedescriptionwriter.cpp
     archivedescriptionbuilder.h archivedescriptionbuilder.cpp
     datablockqueue.h datablockqueue.cpp
-    datablock.h
 )
 
 target_include_directories(DataArchive

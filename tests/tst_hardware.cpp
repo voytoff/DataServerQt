@@ -1,9 +1,11 @@
 #include "tst_hardware.h"
+#include "fakeclock.h"
 #include "fakedatablocksink.h"
 #include "fakelcardmodule.h"
 #include "lcarddatasource.h"
 #include "ltr11configurationbuilder.h"
 #include "moduleruntimeconfiguration.h"
+#include "smartblocklcardmodule.h"
 #include "signalmemory.h"
 #include <QtCore/qtestsupport_core.h>
 #include <qtestcase.h>
@@ -117,10 +119,13 @@ void tst_hardware::test_lCardDataSource()
   auto module = std::make_unique<FakeLCardModule>(3, 3);
   auto* fake = module.get();
 
+  FakeClock clock;
+
   LCardDataSource source(
     ModuleId{0},
     3,
-    std::move(module));
+    std::move(module),
+    clock);
 
   RawMemory raw;
   raw.initialize(3);
@@ -192,10 +197,13 @@ void tst_hardware::test_lCardDataSource_data_integrity()
   auto module = std::make_unique<FakeLCardModule>(3, 10);
   auto* fake = module.get();
 
+  FakeClock clock;
+
   LCardDataSource source(
     ModuleId{0},
     3,
-    std::move(module));
+    std::move(module),
+    clock);
 
   RawMemory raw;
   raw.initialize(3);
@@ -351,12 +359,15 @@ void tst_hardware::test_acquire_returns_last_frame()
   constexpr std::size_t FrameCount = 3;
 
   auto module =
-    std::make_unique<OneBlockLCardModule>();
+    std::make_unique<SmartBlockLCardModule>(3, 4, 1);
+
+  FakeClock clock;
 
   LCardDataSource source(
     ModuleId{0},
     ChannelCount,
-    std::move(module));
+    std::move(module),
+    clock);
 
   QVERIFY(source.start());
 
@@ -378,20 +389,22 @@ void tst_hardware::test_lCardDataSource_fake_push_archive()
 {
   using namespace qds;
 
-  constexpr std::size_t ChannelCount = 3;
+  constexpr std::size_t ChannelCount = 4;
 
-  auto module = std::make_unique<OneBlockLCardModule>();
+  auto module = std::make_unique<SmartBlockLCardModule>(3, 3, 1);
 
   FakeDataBlockSink dataSink;
+  FakeClock clock;
 
   LCardDataSource source(
     ModuleId{0},
     ChannelCount,
     std::move(module),
+    clock,
     &dataSink);
 
   RawMemory raw;
-  raw.initialize(ChannelCount * 3);
+  raw.initialize(ChannelCount);
 
   QVERIFY(source.start());
 
@@ -402,6 +415,7 @@ void tst_hardware::test_lCardDataSource_fake_push_archive()
   QCOMPARE(dataSink.m_channelCount, std::size_t{3});
   QCOMPARE(dataSink.m_frameCount, std::size_t{3});
   QCOMPARE(dataSink.m_values.size(), std::size_t{9});
+  QCOMPARE(dataSink.m_firstFrameIndex, 0);
 
   QCOMPARE(dataSink.m_values[0], 0.0);
   QCOMPARE(dataSink.m_values[1], 1.0);

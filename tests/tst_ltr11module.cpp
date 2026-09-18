@@ -3,6 +3,7 @@
 #include <qelapsedtimer.h>
 #include <qtestcase.h>
 #include <qtestsupport_core.h>
+#include "fakeclock.h"
 #include "lcarddatasource.h"
 #include "ltr11configurationbuilder.h"
 #include "ltr11module.h"
@@ -159,11 +160,13 @@ void tst_ltr11module::test_LCardDataSource_base()
   raw.initialize(config.channels.size());
 
   auto module = std::make_unique<Ltr11Module>(config);
+  FakeClock clock;
 
   LCardDataSource source(
     ModuleId{0},
     config.channels.size(),
-    std::move(module));
+    std::move(module),
+    clock);
 
   QVERIFY(source.start());
 
@@ -212,11 +215,14 @@ void tst_ltr11module::test_LCardDataSource_update_frequency()
 
   auto module =
     std::make_unique<Ltr11Module>(config);
+  FakeClock clock;
+
 
   LCardDataSource source(
     ModuleId{0},
     config.channels.size(),
-    std::move(module));
+    std::move(module),
+    clock);
 
   QVERIFY(source.start());
 

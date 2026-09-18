@@ -45,4 +45,10 @@ private slots:
   void test_DataBlockQueue_stop();
   void test_DataBlockQueue_stop_drains_queue();
 
+  void test_DataBlockQueue_firstFrameIndex();
+  void test_DataBlockQueue_firstFrameIndex_two_blocks();
+  void test_DataBlockQueue_firstFrameIndex_three_blocks();
+
+  void test_iDataStreamEventSink_base();
+
 };

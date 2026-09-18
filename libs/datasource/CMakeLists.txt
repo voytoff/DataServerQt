@@ -12,22 +12,25 @@ add_library(DataSource SHARED
   iactivedatasource.h
   imoduledatasink.h
   imodulegenerator.h
+  idatabuffer.h
+  idatasource.h
+  idatablocksink.h
+  failingdatasource.h
+  datastreamanchor.h
+  idatastreameventsink.h
+  datablock.h
+  moduleconfiguration.h
   generatordatasource.h generatordatasource.cpp
   countergenerator.h countergenerator.cpp
   datasourcemanager.h datasourcemanager.cpp
   fakeactivedatasource.h fakeactivedatasource.cpp
   moduledatasource.h moduledatasource.cpp
-  idatabuffer.h
-  idatasource.h
   fakedatasource.h fakedatasource.cpp
   testdatasource.h testdatasource.cpp
-  failingdatasource.h
   datasourcefactory.h datasourcefactory.cpp
   failoncedatasource.h failoncedatasource.cpp
   lcarddatasource.h lcarddatasource.cpp
-  moduleconfiguration.h
   ltr11configurationbuilder.h ltr11configurationbuilder.cpp
-  idatablocksink.h
   fakedatablocksink.h fakedatablocksink.cpp
 )
 

@@ -17,6 +17,7 @@ void FakeDataBlockSink::push(
     values.begin(),
     values.end());
 
+  m_firstFrameIndex = firstFrameIndex;
   m_channelCount = channelCount;
   m_frameCount = frameCount;
   m_frameRate = frameRate;

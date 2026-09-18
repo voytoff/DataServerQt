@@ -91,4 +91,9 @@ void DataBlockQueue::stop() noexcept
   m_condition.notify_all();
 }
 
+std::size_t DataBlockQueue::size() noexcept
+{
+  return m_deque.size();
+}
+
 }
