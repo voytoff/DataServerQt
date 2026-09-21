@@ -1,7 +1,8 @@
 #pragma once
 
-#include "datablock.h"
+#include "datastreamevent.h"
 #include "idatablocksink.h"
+#include "idatastreameventsink.h"
 #include <condition_variable>
 #include <deque>
 #include <mutex>
@@ -9,7 +10,9 @@
 namespace qds
 {
 
-class DataBlockQueue final : public IDataBlockSink
+class DataBlockQueue final
+  : public IDataBlockSink
+  , public IDataStreamEventSink
 {
 public:
   void push(
@@ -20,9 +23,14 @@ public:
     std::size_t frameCount,
     double frameRate) override;
 
-  bool pop(DataBlock& block);
+  void startStream(
+    const DataStreamAnchor& anchor) override;
 
-  bool waitPop(DataBlock& block);
+  bool pop(DataStreamEvent& event);
+  bool waitPop(DataStreamEvent& event);
+
+  //bool popEvent(DataStreamEvent& event);
+  //bool waitPopEvent(DataStreamEvent& event);
 
   void stop() noexcept;
 
@@ -31,9 +39,10 @@ public:
 private:
   std::mutex m_mutex;
   std::condition_variable m_condition;
-  std::deque<DataBlock> m_deque;
+  std::deque<DataStreamEvent> m_deque;
 
   bool m_stopped = false;
+
 };
 
 }

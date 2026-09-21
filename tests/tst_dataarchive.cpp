@@ -6,6 +6,8 @@
 #include "archiveformat.h"
 #include "archivewriter.h"
 #include "datablockqueue.h"
+#include "datastreamreader.h"
+#include "datastreamtime.h"
 #include "fakeclock.h"
 #include "fakedatablocksink.h"
 #include "fakedatastreameventsink.h"
@@ -1561,9 +1563,11 @@ void tst_dataarchive::test_DataBlockQueue_deque()
   //
   // Pop block 1
   //
-  DataBlock block;
+  DataStreamEvent event;
+  const auto& block =
+    std::get<DataBlock>(event);
 
-  QVERIFY(queue.pop(block));
+  QVERIFY(queue.pop(event));
 
   QCOMPARE(block.module, ModuleId{10});
   QCOMPARE(block.firstFrameIndex, 100);
@@ -1585,7 +1589,7 @@ void tst_dataarchive::test_DataBlockQueue_deque()
   //
   // Pop block 2
   //
-  QVERIFY(queue.pop(block));
+  QVERIFY(queue.pop(event));
 
   QCOMPARE(block.module, ModuleId{20});
   QCOMPARE(block.firstFrameIndex, 101);
@@ -1607,7 +1611,7 @@ void tst_dataarchive::test_DataBlockQueue_deque()
   //
   // Queue empty
   //
-  QVERIFY(!queue.pop(block));
+  QVERIFY(!queue.pop(event));
 }
 
 void tst_dataarchive::test_DataBlockQueue_waitPop()
@@ -1621,14 +1625,17 @@ void tst_dataarchive::test_DataBlockQueue_waitPop()
 
   QVERIFY(module.start());
 
-  DataBlock block;
   DataBlockQueue queue;
+
+  DataStreamEvent event;
+  const auto& block =
+    std::get<DataBlock>(event);
 
   bool result = false;
 
   std::thread thread(
     [&]() {
-      result = queue.waitPop(block);
+      result = queue.waitPop(event);
     });
 
   QCOMPARE(
@@ -1669,14 +1676,17 @@ void tst_dataarchive::test_DataBlockQueue_stop()
 {
   using namespace qds;
 
-  DataBlock block;
+  DataStreamEvent event;
+  const auto& block =
+    std::get<DataBlock>(event);
+
   DataBlockQueue queue;
 
   bool result = true;
 
   std::thread thread(
     [&]() {
-      result = queue.waitPop(block);
+      result = queue.waitPop(event);
     });
 
   queue.stop();
@@ -1724,21 +1734,23 @@ void tst_dataarchive::test_DataBlockQueue_stop_drains_queue()
 
   queue.stop();
 
-  DataBlock block;
+  DataStreamEvent event;
+  const auto& block =
+    std::get<DataBlock>(event);
 
-  QVERIFY(queue.waitPop(block));
+  QVERIFY(queue.waitPop(event));
   QCOMPARE(block.module, ModuleId{10});
   QCOMPARE(block.firstFrameIndex, 777);
   QCOMPARE(block.values[0], 1.0);
   QCOMPARE(block.frameRate, 1000.0);
 
-  QVERIFY(queue.waitPop(block));
+  QVERIFY(queue.waitPop(event));
   QCOMPARE(block.module, ModuleId{20});
   QCOMPARE(block.firstFrameIndex, 777);
   QCOMPARE(block.values[0], 4.0);
   QCOMPARE(block.frameRate, 1000.0);
 
-  QVERIFY(!queue.waitPop(block));
+  QVERIFY(!queue.waitPop(event));
 }
 
 void tst_dataarchive::test_DataBlockQueue_firstFrameIndex()
@@ -1760,14 +1772,17 @@ void tst_dataarchive::test_DataBlockQueue_firstFrameIndex()
   RawMemory raw;
   raw.initialize(3);
 
-  DataBlock block;
+  DataStreamEvent event;
+  const auto& block =
+    std::get<DataBlock>(event);
+
 
   QVERIFY(source.start());
 
   QTest::qWait(10);
   source.stop();
 
-  QVERIFY(queue.waitPop(block));
+  QVERIFY(queue.waitPop(event));
 
   QCOMPARE(block.module, ModuleId{0});
   QCOMPARE(block.firstFrameIndex, 0);
@@ -1786,7 +1801,7 @@ void tst_dataarchive::test_DataBlockQueue_firstFrameIndex()
   QCOMPARE(block.values[7], 7.0);
   QCOMPARE(block.values[8], 8.0);
 
-  QVERIFY(queue.waitPop(block));
+  QVERIFY(queue.waitPop(event));
 
   QCOMPARE(block.module, ModuleId{0});
   QCOMPARE(block.firstFrameIndex, 3);
@@ -1806,7 +1821,7 @@ void tst_dataarchive::test_DataBlockQueue_firstFrameIndex()
   QCOMPARE(block.values[8], 17.0);
 
   auto index = block.firstFrameIndex / 3;
-  while (queue.size() > 0 && queue.waitPop(block))
+  while (queue.size() > 0 && queue.waitPop(event))
   {
     QCOMPARE(block.module, ModuleId{0});
     QCOMPARE(block.firstFrameIndex, ++index * 3);
@@ -1825,7 +1840,7 @@ void tst_dataarchive::test_DataBlockQueue_firstFrameIndex()
   QTest::qWait(10);
   source.stop();
 
-  QVERIFY(queue.waitPop(block));
+  QVERIFY(queue.waitPop(event));
 
   QCOMPARE(block.module, ModuleId{0});
   QCOMPARE(block.firstFrameIndex, lastBlock.firstFrameIndex + 3);
@@ -1866,11 +1881,16 @@ void tst_dataarchive::test_DataBlockQueue_firstFrameIndex_two_blocks()
 
   source.stop();
 
-  DataBlock block1;
-  DataBlock block2;
+  DataStreamEvent event1;
+  const auto& block1 =
+    std::get<DataBlock>(event1);
 
-  QVERIFY(queue.pop(block1));
-  QVERIFY(queue.pop(block2));
+  DataStreamEvent event2;
+  const auto& block2 =
+    std::get<DataBlock>(event2);
+
+  QVERIFY(queue.pop(event1));
+  QVERIFY(queue.pop(event2));
 
   QCOMPARE(block1.firstFrameIndex, uint64_t{0});
   QCOMPARE(block1.frameCount, std::size_t{3});
@@ -1908,16 +1928,27 @@ void tst_dataarchive::test_DataBlockQueue_firstFrameIndex_three_blocks()
 
   source.stop();
 
-  DataBlock block;
-  DataBlock block1;
-  DataBlock block2;
-  DataBlock block3;
+  DataStreamEvent event;
+  const auto& block =
+    std::get<DataBlock>(event);
 
-  QVERIFY(queue.pop(block1));
-  QVERIFY(queue.pop(block2));
-  QVERIFY(queue.pop(block3));
+  DataStreamEvent event1;
+  const auto& block1 =
+    std::get<DataBlock>(event1);
 
-  QVERIFY(!queue.pop(block));
+  DataStreamEvent event2;
+  const auto& block2 =
+    std::get<DataBlock>(event2);
+
+  DataStreamEvent event3;
+  const auto& block3 =
+    std::get<DataBlock>(event3);
+
+  QVERIFY(queue.pop(event1));
+  QVERIFY(queue.pop(event2));
+  QVERIFY(queue.pop(event3));
+
+  QVERIFY(!queue.pop(event));
 
   QCOMPARE(block1.firstFrameIndex, uint64_t{0});
   QCOMPARE(block1.frameCount, std::size_t{3});
@@ -1932,11 +1963,11 @@ void tst_dataarchive::test_DataBlockQueue_firstFrameIndex_three_blocks()
 
   source.stop();
 
-  QVERIFY(queue.pop(block1));
-  QVERIFY(queue.pop(block2));
-  QVERIFY(queue.pop(block3));
+  QVERIFY(queue.pop(event1));
+  QVERIFY(queue.pop(event2));
+  QVERIFY(queue.pop(event3));
 
-  QVERIFY(!queue.pop(block));
+  QVERIFY(!queue.pop(event));
 
   QCOMPARE(block1.firstFrameIndex, uint64_t{9});
   QCOMPARE(block1.frameCount, std::size_t{3});
@@ -1945,7 +1976,7 @@ void tst_dataarchive::test_DataBlockQueue_firstFrameIndex_three_blocks()
   QCOMPARE(block3.firstFrameIndex, block2.firstFrameIndex + block2.frameCount);
 }
 
-void tst_dataarchive::test_iDataStreamEventSink_base()
+void tst_dataarchive::test_DataStreamEventSink_base()
 {
   using namespace qds;
 
@@ -1992,4 +2023,729 @@ void tst_dataarchive::test_iDataStreamEventSink_base()
   QCOMPARE(anchor.startTimestamp, Timestamp{623456});
   QCOMPARE(anchor.startWallTime, WallClockTime{1487654});
   QCOMPARE(anchor.frameRate, 1000.0);
+}
+
+void tst_dataarchive::test_DataStreamEvent_base()
+{
+  using namespace qds;
+
+  DataStreamEvent event;
+
+  QVERIFY(
+    std::holds_alternative<DataStreamAnchor>(
+      event));
+}
+
+void tst_dataarchive::test_DataBlockQueue_anchor_only()
+{
+  using namespace qds;
+
+  DataBlockQueue queue;
+
+  DataStreamAnchor anchor;
+  anchor.module = ModuleId{10};
+  anchor.firstFrameIndex = 0;
+  anchor.startTimestamp = Timestamp{1000};
+  anchor.startWallTime = WallClockTime{2000};
+  anchor.frameRate = 1000.0;
+
+  queue.startStream(anchor);
+
+  DataStreamEvent event;
+
+  QVERIFY(queue.pop(event));
+
+  QVERIFY(
+    std::holds_alternative<DataStreamAnchor>(
+      event));
+
+  const auto& result =
+    std::get<DataStreamAnchor>(event);
+
+  QCOMPARE(result.module, ModuleId{10});
+  QCOMPARE(result.firstFrameIndex, uint64_t{0});
+  QCOMPARE(result.startTimestamp, Timestamp{1000});
+  QCOMPARE(result.startWallTime, WallClockTime{2000});
+  QCOMPARE(result.frameRate, 1000.0);
+
+  QVERIFY(!queue.pop(event));
+}
+
+void tst_dataarchive::test_DataBlockQueue_anchor_block()
+{
+  using namespace qds;
+
+  DataBlockQueue queue;
+
+  DataStreamAnchor anchor;
+  anchor.module = ModuleId{10};
+  anchor.firstFrameIndex = 0;
+  anchor.startTimestamp = Timestamp{1000};
+  anchor.startWallTime = WallClockTime{2000};
+  anchor.frameRate = 1000.0;
+
+  queue.startStream(anchor);
+
+  const std::vector<double> values{
+    0.0, 1.0, 2.0,
+    3.0, 4.0, 5.0,
+    6.0, 7.0, 8.0
+  };
+
+  queue.push(
+    ModuleId{10},
+    0,
+    values,
+    3,
+    3,
+    1000.0);
+
+  DataStreamEvent event;
+
+  QVERIFY(queue.pop(event));
+  QVERIFY(
+    std::holds_alternative<DataStreamAnchor>(
+      event));
+
+  QVERIFY(queue.pop(event));
+  QVERIFY(
+    std::holds_alternative<DataBlock>(
+      event));
+
+  const auto& block =
+    std::get<DataBlock>(event);
+
+  QCOMPARE(block.module, ModuleId{10});
+  QCOMPARE(block.firstFrameIndex, uint64_t{0});
+  QCOMPARE(block.channelCount, std::size_t{3});
+  QCOMPARE(block.frameCount, std::size_t{3});
+  QCOMPARE(block.values.size(), std::size_t{9});
+
+  QVERIFY(!queue.pop(event));
+}
+
+void tst_dataarchive::test_DataBlockQueue_three_blocks()
+{
+  using namespace qds;
+
+  DataBlockQueue queue;
+
+  DataStreamAnchor anchor;
+  anchor.module = ModuleId{777};
+  anchor.firstFrameIndex = 0;
+  anchor.frameRate = 1000.0;
+
+  queue.startStream(anchor);
+
+  const std::vector<double> values(9, 1.0);
+
+  queue.push(
+    ModuleId{777}, 0,
+    values, 3, 3, 1000.0);
+
+  queue.push(
+    ModuleId{777}, 3,
+    values, 3, 3, 1000.0);
+
+  queue.push(
+    ModuleId{777}, 6,
+    values, 3, 3, 1000.0);
+
+  QCOMPARE(queue.size(), std::size_t{4});
+
+  DataStreamEvent event;
+
+  QVERIFY(queue.pop(event));
+  QVERIFY(
+    std::holds_alternative<DataStreamAnchor>(
+      event));
+
+  for (uint64_t index :
+       {uint64_t{0}, uint64_t{3}, uint64_t{6}})
+  {
+    QVERIFY(queue.pop(event));
+
+    QVERIFY(
+      std::holds_alternative<DataBlock>(
+        event));
+
+    const auto& block =
+      std::get<DataBlock>(event);
+
+    QCOMPARE(
+      block.firstFrameIndex,
+      index);
+  }
+
+  QVERIFY(!queue.pop(event));
+}
+
+void tst_dataarchive::test_LCardDataSource_stream_events()
+{
+  using namespace qds;
+
+  FakeClock clock;
+  clock.setTimestamp(123456);
+  clock.setWallClockTime(987654);
+
+  auto module =
+    std::make_unique<SmartBlockLCardModule>(
+      3,  // frames per block
+      3,  // channels
+      3); // blocks
+
+  auto* fake = module.get();
+
+  DataBlockQueue queue;
+
+  LCardDataSource source(
+    ModuleId{777},
+    3,
+    std::move(module),
+    clock,
+    &queue,
+    &queue);
+
+  QVERIFY(source.start());
+  QTest::qWait(5);
+  source.stop();
+
+  DataStreamEvent event;
+
+  // Anchor #1
+  QVERIFY(queue.pop(event));
+  QVERIFY(
+    std::holds_alternative<DataStreamAnchor>(
+      event));
+
+  {
+    const auto& anchor =
+      std::get<DataStreamAnchor>(event);
+
+    QCOMPARE(anchor.module, ModuleId{777});
+    QCOMPARE(anchor.firstFrameIndex, uint64_t{0});
+    QCOMPARE(anchor.startTimestamp, Timestamp{123456});
+    QCOMPARE(anchor.startWallTime, WallClockTime{987654});
+    QCOMPARE(anchor.frameRate, 1000.0);
+  }
+
+  // Block #1
+  QVERIFY(queue.pop(event));
+  QVERIFY(std::holds_alternative<DataBlock>(event));
+  {
+    const auto& block =
+      std::get<DataBlock>(event);
+
+    QCOMPARE(block.module, ModuleId{777});
+    QCOMPARE(block.firstFrameIndex, uint64_t{0});
+    QCOMPARE(block.channelCount, std::size_t{3});
+    QCOMPARE(block.frameCount, std::size_t{3});
+    QCOMPARE(block.frameRate, 1000.0);
+  }
+
+  // Block #2
+  QVERIFY(queue.pop(event));
+  QVERIFY(std::holds_alternative<DataBlock>(event));
+  {
+    const auto& block =
+      std::get<DataBlock>(event);
+
+    QCOMPARE(block.firstFrameIndex, uint64_t{3});
+  }
+
+  // Block #3
+  QVERIFY(queue.pop(event));
+  QVERIFY(std::holds_alternative<DataBlock>(event));
+
+  {
+    const auto& block =
+      std::get<DataBlock>(event);
+
+    QCOMPARE(block.firstFrameIndex, uint64_t{6});
+  }
+
+  QVERIFY(!queue.pop(event));
+
+  // Новый acquisition segment.
+  clock.advance(500000);
+  fake->setCount(3);
+
+  QVERIFY(source.start());
+  QTest::qWait(5);
+  source.stop();
+
+  // Anchor #2
+  QVERIFY(queue.pop(event));
+  QVERIFY(
+    std::holds_alternative<DataStreamAnchor>(
+      event));
+
+  {
+    const auto& anchor =
+      std::get<DataStreamAnchor>(event);
+
+    QCOMPARE(anchor.module, ModuleId{777});
+    QCOMPARE(anchor.firstFrameIndex, uint64_t{9});
+
+    QCOMPARE(
+      anchor.startTimestamp,
+      Timestamp{623456});
+
+    QCOMPARE(
+      anchor.startWallTime,
+      WallClockTime{1487654});
+
+    QCOMPARE(anchor.frameRate, 1000.0);
+  }
+
+  // Первый block нового segment.
+  QVERIFY(queue.pop(event));
+  QVERIFY(std::holds_alternative<DataBlock>(event));
+  {
+    const auto& block =
+      std::get<DataBlock>(event);
+
+    QCOMPARE(block.firstFrameIndex, uint64_t{9});
+  }
+}
+
+void tst_dataarchive::test_DataBlockQueue_stream_events()
+{
+  using namespace qds;
+
+  DataBlockQueue queue;
+
+  DataStreamAnchor anchor;
+  anchor.module = ModuleId{10};
+  anchor.firstFrameIndex = 0;
+  anchor.startTimestamp = Timestamp{1000};
+  anchor.startWallTime = WallClockTime{2000};
+  anchor.frameRate = 1000.0;
+
+  queue.startStream(anchor);
+
+  const std::vector<double> values{
+    0.0, 1.0, 2.0,
+    3.0, 4.0, 5.0,
+    6.0, 7.0, 8.0
+  };
+
+  queue.push(
+    ModuleId{10},
+    0,
+    values,
+    3,
+    3,
+    1000.0);
+
+  DataStreamEvent event;
+
+  QVERIFY(queue.pop(event));
+
+  QVERIFY(
+    std::holds_alternative<DataStreamAnchor>(
+      event));
+
+  const auto& resultAnchor =
+    std::get<DataStreamAnchor>(event);
+
+  QCOMPARE(
+    resultAnchor.module,
+    ModuleId{10});
+
+  QCOMPARE(
+    resultAnchor.firstFrameIndex,
+    uint64_t{0});
+
+  QCOMPARE(
+    resultAnchor.startTimestamp,
+    Timestamp{1000});
+
+  QVERIFY(queue.pop(event));
+
+  QVERIFY(
+    std::holds_alternative<DataBlock>(
+      event));
+
+  const auto& block =
+    std::get<DataBlock>(event);
+
+  QCOMPARE(block.module, ModuleId{10});
+  QCOMPARE(block.firstFrameIndex, uint64_t{0});
+  QCOMPARE(block.frameCount, std::size_t{3});
+
+  QVERIFY(!queue.pop(event));
+}
+
+void tst_dataarchive::test_DataStreamTime_base()
+{
+  using namespace qds;
+
+  DataStreamTime time;
+
+  DataStreamAnchor anchor;
+  anchor.module = ModuleId{10};
+  anchor.firstFrameIndex = 100;
+  anchor.startTimestamp = Timestamp{1'000'000};
+  anchor.startWallTime = WallClockTime{10'000'000};
+  anchor.frameRate = 1000.0;
+
+  time.startStream(anchor);
+
+  Timestamp timestamp;
+  WallClockTime wallTime;
+
+  QVERIFY(
+    time.timestamp(
+      ModuleId{10},
+      100,
+      timestamp,
+      wallTime));
+
+  QCOMPARE(
+    timestamp,
+    Timestamp{1'000'000});
+
+  QCOMPARE(
+    wallTime,
+    WallClockTime{10'000'000});
+
+  QVERIFY(
+    time.timestamp(
+      ModuleId{10},
+      103,
+      timestamp,
+      wallTime));
+
+  QCOMPARE(
+    timestamp,
+    Timestamp{1'003'000});
+
+  QCOMPARE(
+    wallTime,
+    WallClockTime{10'003'000});
+
+
+  QVERIFY(
+    !time.timestamp(
+      ModuleId{11},
+      100,
+      timestamp,
+      wallTime));
+
+  QVERIFY(
+    !time.timestamp(
+      ModuleId{10},
+      99,
+      timestamp,
+      wallTime));
+}
+
+void tst_dataarchive::test_DataStreamTime_frameRate_0()
+{
+  using namespace qds;
+
+  DataStreamTime time;
+
+  DataStreamAnchor anchor;
+  anchor.module = ModuleId{10};
+  anchor.firstFrameIndex = 100;
+  anchor.startTimestamp = Timestamp{1'000'000};
+  anchor.startWallTime = WallClockTime{10'000'000};
+  anchor.frameRate = 0;
+
+  time.startStream(anchor);
+
+  Timestamp timestamp;
+  WallClockTime wallTime;
+
+  QVERIFY(
+    !time.timestamp(
+      ModuleId{10},
+      100,
+      timestamp,
+      wallTime));
+
+  QCOMPARE(
+    timestamp,
+    Timestamp{0});
+
+  QCOMPARE(
+    wallTime,
+    WallClockTime{0});
+
+}
+
+void tst_dataarchive::test_DataStreamTime_restart()
+{
+  using namespace qds;
+
+  DataStreamTime time;
+
+  DataStreamAnchor anchor1;
+  anchor1.module = ModuleId{10};
+  anchor1.firstFrameIndex = 0;
+  anchor1.startTimestamp = Timestamp{1'000'000};
+  anchor1.startWallTime =
+    WallClockTime{10'000'000};
+  anchor1.frameRate = 1000.0;
+
+  time.startStream(anchor1);
+
+  Timestamp timestamp;
+  WallClockTime wallTime;
+
+  QVERIFY(
+    time.timestamp(
+      ModuleId{10},
+      9,
+      timestamp,
+      wallTime));
+
+  QCOMPARE(
+    timestamp,
+    Timestamp{1'009'000});
+
+  QCOMPARE(
+    wallTime,
+    WallClockTime{10'009'000});
+
+  // Новый acquisition segment.
+  DataStreamAnchor anchor2;
+  anchor2.module = ModuleId{10};
+  anchor2.firstFrameIndex = 10;
+  anchor2.startTimestamp = Timestamp{2'000'000};
+  anchor2.startWallTime =
+    WallClockTime{20'000'000};
+  anchor2.frameRate = 1000.0;
+
+  time.startStream(anchor2);
+
+  QVERIFY(
+    !time.timestamp(
+      ModuleId{10},
+      9,
+      timestamp,
+      wallTime));
+
+  QVERIFY(
+    time.timestamp(
+      ModuleId{10},
+      10,
+      timestamp,
+      wallTime));
+
+  QCOMPARE(
+    timestamp,
+    Timestamp{2'000'000});
+
+  QCOMPARE(
+    wallTime,
+    WallClockTime{20'000'000});
+
+  QVERIFY(
+    time.timestamp(
+      ModuleId{10},
+      13,
+      timestamp,
+      wallTime));
+
+  QCOMPARE(
+    timestamp,
+    Timestamp{2'003'000});
+
+  QCOMPARE(
+    wallTime,
+    WallClockTime{20'003'000});
+}
+
+void tst_dataarchive::test_DataStreamTime_frameRate_44100()
+{
+  using namespace qds;
+
+  DataStreamTime time;
+
+  DataStreamAnchor anchor;
+  anchor.module = ModuleId{10};
+  anchor.firstFrameIndex = 0;
+  anchor.startTimestamp = Timestamp{0};
+  anchor.startWallTime = WallClockTime{0};
+  anchor.frameRate = 44100.0;
+
+  time.startStream(anchor);
+
+
+  Timestamp timestamp;
+  WallClockTime wallTime;
+
+  QVERIFY(
+    time.timestamp(
+      ModuleId{10},
+      1,
+      timestamp,
+      wallTime));
+
+  QCOMPARE(timestamp, Timestamp{23});
+
+  QVERIFY(
+    time.timestamp(
+      ModuleId{10},
+      7,
+      timestamp,
+      wallTime));
+
+  QCOMPARE(timestamp, Timestamp{159});
+
+  QVERIFY(
+    time.timestamp(
+      ModuleId{10},
+      10,
+      timestamp,
+      wallTime));
+
+  QCOMPARE(timestamp, Timestamp{227});
+
+  QVERIFY(
+    time.timestamp(
+      ModuleId{10},
+      70,
+      timestamp,
+      wallTime));
+
+  QCOMPARE(timestamp, Timestamp{1587});
+
+}
+
+void tst_dataarchive::
+  test_DataStreamReader_block()
+{
+  using namespace qds;
+
+  DataStreamReader reader;
+
+  DataStreamAnchor anchor;
+  anchor.module = ModuleId{10};
+  anchor.firstFrameIndex = 100;
+  anchor.startTimestamp = Timestamp{1'000'000};
+  anchor.startWallTime =
+    WallClockTime{10'000'000};
+  anchor.frameRate = 1000.0;
+
+  DataStreamEvent event = anchor;
+
+  std::vector<DataStreamFrame> frames;
+
+  QVERIFY(reader.process(event, frames));
+  QVERIFY(frames.empty());
+
+  DataBlock block;
+  block.module = ModuleId{10};
+  block.firstFrameIndex = 100;
+  block.frameRate = 1000.0;
+  block.channelCount = 3;
+  block.frameCount = 3;
+
+  block.values = {
+    10, 11, 12,
+    20, 21, 22,
+    30, 31, 32
+  };
+
+  event = block;
+
+  QVERIFY(reader.process(event, frames));
+
+  QCOMPARE(frames.size(), std::size_t{3});
+
+  QCOMPARE(frames[0].module, ModuleId{10});
+  QCOMPARE(frames[0].frameIndex, uint64_t{100});
+  QCOMPARE(frames[0].timestamp, Timestamp{1'000'000});
+  QCOMPARE(frames[0].wallTime, WallClockTime{10'000'000});
+
+  QCOMPARE(frames[1].frameIndex, uint64_t{101});
+  QCOMPARE(frames[1].timestamp, Timestamp{1'001'000});
+
+  QCOMPARE(frames[2].frameIndex, uint64_t{102});
+  QCOMPARE(frames[2].timestamp, Timestamp{1'002'000});
+
+  QCOMPARE(
+    frames[0].values,
+    std::vector<double>({10, 11, 12}));
+
+  QCOMPARE(
+    frames[1].values,
+    std::vector<double>({20, 21, 22}));
+
+  QCOMPARE(
+    frames[2].values,
+    std::vector<double>({30, 31, 32}));
+}
+
+void tst_dataarchive::test_DataStreamReader_block_before_anchor()
+{
+  using namespace qds;
+
+  DataStreamReader reader;
+
+  DataBlock block;
+  block.module = ModuleId{10};
+  block.firstFrameIndex = 100;
+  block.frameRate = 1000.0;
+  block.channelCount = 3;
+  block.frameCount = 3;
+
+  block.values = {
+    10, 11, 12,
+    20, 21, 22,
+    30, 31, 32
+  };
+
+  DataStreamEvent event = block;
+
+  std::vector<DataStreamFrame> frames;
+
+  QVERIFY(
+    !reader.process(
+      event,
+      frames));
+
+  QVERIFY(frames.empty());
+}
+
+void tst_dataarchive::test_DataStreamReader_bad_block()
+{
+  using namespace qds;
+
+  DataStreamReader reader;
+
+  DataStreamAnchor anchor;
+  anchor.module = ModuleId{10};
+  anchor.firstFrameIndex = 100;
+  anchor.startTimestamp = Timestamp{1'000'000};
+  anchor.startWallTime = WallClockTime{10'000'000};
+  anchor.frameRate = 1000.0;
+
+  DataStreamEvent event = anchor;
+
+  std::vector<DataStreamFrame> frames;
+
+  QVERIFY(reader.process(event, frames));
+
+  DataBlock block;
+  block.module = ModuleId{10};
+  block.firstFrameIndex = 100;
+  block.frameRate = 1000.0;
+  block.channelCount = 3;
+  block.frameCount = 3;
+
+  block.values = {
+    10, 11, 12,
+    20, 21, 22,
+    30, 31
+  };
+
+  event = block;
+
+  QVERIFY(!reader.process(event, frames));
+  QVERIFY(frames.empty());
 }

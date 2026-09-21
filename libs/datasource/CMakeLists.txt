@@ -32,6 +32,8 @@ add_library(DataSource SHARED
   lcarddatasource.h lcarddatasource.cpp
   ltr11configurationbuilder.h ltr11configurationbuilder.cpp
   fakedatablocksink.h fakedatablocksink.cpp
+  datastreamevent.h
+  datastreamtime.h datastreamtime.cpp
 )
 
 target_include_directories(DataSource

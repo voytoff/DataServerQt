@@ -14,11 +14,9 @@ void DataBlockQueue::push(
   uint64_t firstFrameIndex,
   std::span<const double> values,
   std::size_t channelCount,
-  std::size_t frameCount, double frameRate)
+  std::size_t frameCount,
+  double frameRate)
 {
-  if (values.size() != channelCount * frameCount)
-    return;
-
   DataBlock block;
 
   block.module = module;
@@ -37,30 +35,44 @@ void DataBlockQueue::push(
     if (m_stopped)
       return;
 
-    m_deque.push_back(std::move(block));
+    m_deque.emplace_back(
+      std::move(block));
+  }
+
+  m_condition.notify_one();
+}
+
+void DataBlockQueue::startStream(
+  const DataStreamAnchor& anchor)
+{
+  {
+    std::lock_guard lock(m_mutex);
+
+    if (m_stopped)
+      return;
+
+    m_deque.emplace_back(anchor);
   }
 
   m_condition.notify_one();
 }
 
 bool DataBlockQueue::pop(
-  DataBlock& block)
+  DataStreamEvent& event)
 {
   std::lock_guard lock(m_mutex);
 
   if (m_deque.empty())
     return false;
 
-  block =
-    std::move(m_deque.front());
-
+  event = std::move(m_deque.front());
   m_deque.pop_front();
 
   return true;
 }
 
 bool DataBlockQueue::waitPop(
-  DataBlock& block)
+  DataStreamEvent& event)
 {
   std::unique_lock lock(m_mutex);
 
@@ -75,7 +87,7 @@ bool DataBlockQueue::waitPop(
   if (m_deque.empty())
     return false;
 
-  block = std::move(m_deque.front());
+  event = std::move(m_deque.front());
   m_deque.pop_front();
 
   return true;
@@ -93,6 +105,7 @@ void DataBlockQueue::stop() noexcept
 
 std::size_t DataBlockQueue::size() noexcept
 {
+  std::lock_guard lock(m_mutex);
   return m_deque.size();
 }
 

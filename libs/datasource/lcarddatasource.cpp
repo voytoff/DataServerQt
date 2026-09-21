@@ -1,6 +1,7 @@
 #include "lcarddatasource.h"
 
 #include <algorithm>
+#include <cassert>
 
 namespace qds
 {
@@ -127,6 +128,14 @@ void LCardDataSource::run() noexcept
 
     if (frameCount == 0)
       continue;
+
+    assert(
+      frameCount <=
+      m_module->blockFrameCapacity());
+
+    assert(
+      frameCount * m_channelCount <=
+      m_work.size());
 
     const uint64_t firstFrameIndex =
       m_nextFrameIndex;

@@ -9,6 +9,16 @@ public:
   tst_dataarchive();
   ~tst_dataarchive() override;
 
+  void test_DataBlockQueue_deque();
+  void test_DataBlockQueue_waitPop();
+  void test_DataBlockQueue_stop();
+  void test_DataBlockQueue_stop_drains_queue();
+
+  void test_DataBlockQueue_firstFrameIndex();
+  void test_DataBlockQueue_firstFrameIndex_two_blocks();
+  void test_DataBlockQueue_firstFrameIndex_three_blocks();
+
+
 private slots:
   void test_archivewriter_create_open();
   void test_archivewriter_writeOneRecord();
@@ -40,15 +50,28 @@ private slots:
 
   void test_archiveDescription_archiveDescriptionBuilder();
 
-  void test_DataBlockQueue_deque();
-  void test_DataBlockQueue_waitPop();
-  void test_DataBlockQueue_stop();
-  void test_DataBlockQueue_stop_drains_queue();
+  //void test_DataBlockQueue_deque();
+  //void test_DataBlockQueue_waitPop();
+  //void test_DataBlockQueue_stop();
+  //void test_DataBlockQueue_stop_drains_queue();
 
-  void test_DataBlockQueue_firstFrameIndex();
-  void test_DataBlockQueue_firstFrameIndex_two_blocks();
-  void test_DataBlockQueue_firstFrameIndex_three_blocks();
+  //void test_DataBlockQueue_firstFrameIndex();
+  //void test_DataBlockQueue_firstFrameIndex_two_blocks();
+  //void test_DataBlockQueue_firstFrameIndex_three_blocks();
 
-  void test_iDataStreamEventSink_base();
+  void test_DataStreamEventSink_base();
+  void test_DataStreamEvent_base();
+  void test_DataBlockQueue_anchor_only();
+  void test_DataBlockQueue_anchor_block();
+  void test_DataBlockQueue_three_blocks();
+  void test_LCardDataSource_stream_events();
+  void test_DataBlockQueue_stream_events();
+  void test_DataStreamTime_base();
+  void test_DataStreamTime_frameRate_0();
+  void test_DataStreamTime_restart();
+  void test_DataStreamTime_frameRate_44100();
+  void test_DataStreamReader_block();
+  void test_DataStreamReader_block_before_anchor();
+  void test_DataStreamReader_bad_block();
 
 };

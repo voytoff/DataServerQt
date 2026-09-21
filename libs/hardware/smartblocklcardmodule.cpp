@@ -1,4 +1,5 @@
 #include "smartblocklcardmodule.h"
+#include <cassert>
 #include  <thread>
 
 namespace qds
@@ -51,6 +52,8 @@ std::size_t SmartBlockLCardModule::readBlock(
 
   const std::size_t valueCount =
     m_frameCount * m_channelCount;
+
+  assert(values.size() >= valueCount);
 
   if (values.size() < valueCount)
     return 0;

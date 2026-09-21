@@ -51,7 +51,7 @@ bool Ltr11ConfigurationBuilder::build(
 
     cfg.channels.push_back(
       Ltr11ChannelConfiguration{
-        .channel = tag.channel.value,
+        .channel = static_cast<uint8_t>(tag.channel.value),
         .mode = static_cast<uint8_t>(mode),
         .range = static_cast<uint8_t>(range)
       });
