@@ -3,9 +3,13 @@
 #include <cstdint>
 #include <span>
 #include <vector>
+#include <limits>
 
 namespace qds
 {
+
+inline constexpr double InvalidSignalValue =
+  std::numeric_limits<double>::quiet_NaN();
 
 class SignalMemory
 {

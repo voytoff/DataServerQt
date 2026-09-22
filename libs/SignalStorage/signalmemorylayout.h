@@ -47,6 +47,10 @@ public:
 
   const SignalLocation &location(SignalId id) const;
 
+  [[nodiscard]]
+  std::optional<uint32_t> rawCount(
+    ModuleId module) const;
+
 private:
 
   std::unordered_map<
@@ -57,9 +61,14 @@ private:
     ModuleId,
     uint32_t> m_rawOffsets;
 
+  std::unordered_map<
+    ModuleId,
+    uint32_t> m_rawCounts;
+
   uint32_t m_rawSignalCount = 0;
 
   uint32_t m_calculatedSignalCount = 0;
+
 };
 
 }

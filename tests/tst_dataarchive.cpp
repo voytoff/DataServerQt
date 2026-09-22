@@ -9,9 +9,10 @@
 #include "datastreamreader.h"
 #include "datastreamtime.h"
 #include "fakeclock.h"
-#include "fakedatablocksink.h"
+#include "framestartpolicy.h"
 #include "fakedatastreameventsink.h"
 #include "fakelcardmodule.h"
+#include "frameassembler.h"
 #include "lcarddatasource.h"
 #include "moduletype.h"
 #include "smartblocklcardmodule.h"
@@ -2748,4 +2749,215 @@ void tst_dataarchive::test_DataStreamReader_bad_block()
 
   QVERIFY(!reader.process(event, frames));
   QVERIFY(frames.empty());
+}
+
+void tst_dataarchive::test_FrameAssembler_wait_for_all_modules()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Some_Modules();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FrameAssembler assembler(
+    cfg,
+    layout);
+
+  DataStreamFrame a0;
+  a0.module = ModuleId{0};
+  a0.frameIndex = 0;
+  a0.timestamp = Timestamp{1'000};
+  a0.wallTime = WallClockTime{10'000};
+  a0.values = {10, 11};
+
+  auto result =
+    assembler.push(a0);
+
+  QVERIFY(!result.has_value());
+
+  DataStreamFrame a1;
+  a1.module = ModuleId{0};
+  a1.frameIndex = 1;
+  a1.timestamp = Timestamp{2'000};
+  a1.wallTime = WallClockTime{11'000};
+  a1.values = {20, 21};
+
+  result = assembler.push(a1);
+
+  QVERIFY(!result.has_value());
+
+  DataStreamFrame b0;
+  b0.module = ModuleId{1};
+  b0.frameIndex = 0;
+  b0.timestamp = Timestamp{2'500};
+  b0.wallTime = WallClockTime{11'500};
+  b0.values = {30, 31, 32};
+
+  result = assembler.push(b0);
+
+  QVERIFY(!result.has_value());
+
+  DataStreamFrame c0;
+  c0.module = ModuleId{2};
+  c0.frameIndex = 0;
+  c0.timestamp = Timestamp{3'000};
+  c0.wallTime = WallClockTime{12'000};
+  c0.values = {40, 41};
+
+  result = assembler.push(c0);
+
+  QVERIFY(result.has_value());
+
+  QCOMPARE(
+    result->timestamp,
+    Timestamp{3'000});
+
+  QCOMPARE(
+    result->wallTime,
+    WallClockTime{12'000});
+
+  QCOMPARE(
+    result->number,
+    FrameNumber{0});
+
+  QCOMPARE(result->raw().value(0), 20.0);
+  QCOMPARE(result->raw().value(1), 21.0);
+
+  QCOMPARE(result->raw().value(2), 30.0);
+  QCOMPARE(result->raw().value(3), 31.0);
+  QCOMPARE(result->raw().value(4), 32.0);
+
+  QCOMPARE(result->raw().value(5), 40.0);
+  QCOMPARE(result->raw().value(6), 41.0);
+
+
+  DataStreamFrame d0;
+  d0.module = ModuleId{30};
+  d0.frameIndex = 0;
+  d0.timestamp = Timestamp{3'500};
+  d0.wallTime = WallClockTime{13'000};
+  d0.values = {50, 49, 48};
+
+  result = assembler.push(d0);
+
+  QVERIFY(!result.has_value());
+
+  DataStreamFrame a2;
+  a2.module = ModuleId{0};
+  a2.frameIndex = 2;
+  a2.timestamp = Timestamp{4'000};
+  a2.wallTime = WallClockTime{13'000};
+  a2.values = {50, 51};
+
+  result = assembler.push(a2);
+
+  QVERIFY(result.has_value());
+
+  QCOMPARE(
+    result->number,
+    FrameNumber{1});
+
+  QCOMPARE(
+    result->timestamp,
+    Timestamp{4'000});
+
+  QCOMPARE(result->raw().value(0), 50.0);
+  QCOMPARE(result->raw().value(1), 51.0);
+
+  // Последние значения остальных модулей
+  QCOMPARE(result->raw().value(2), 30.0);
+  QCOMPARE(result->raw().value(3), 31.0);
+  QCOMPARE(result->raw().value(4), 32.0);
+  QCOMPARE(result->raw().value(5), 40.0);
+  QCOMPARE(result->raw().value(6), 41.0);
+
+  DataStreamFrame c1;
+  c1.module = ModuleId{2};
+  c1.frameIndex = 3;
+  c1.timestamp = Timestamp{5'000};
+  c1.wallTime = WallClockTime{14'000};
+  c1.values = {80, 81, 81};
+
+  result = assembler.push(c1);
+
+  QVERIFY(!result.has_value());
+
+
+  DataStreamFrame b1;
+  b1.module = ModuleId{1};
+  b1.frameIndex = 1;
+  b1.timestamp = Timestamp{6'000};
+  b1.wallTime = WallClockTime{15'000};
+  b1.values = {60, 61, 62};
+
+  result = assembler.push(b1);
+
+  QVERIFY(result.has_value());
+
+  QCOMPARE(
+    result->number,
+    FrameNumber{2});
+
+  QCOMPARE(
+    result->timestamp,
+    Timestamp{6'000});
+
+  QCOMPARE(
+    result->wallTime,
+    WallClockTime{15'000});
+
+  // Последний корректный module 0: a2
+  QCOMPARE(result->raw().value(0), 50.0);
+  QCOMPARE(result->raw().value(1), 51.0);
+
+  // Новый module 1: b1
+  QCOMPARE(result->raw().value(2), 60.0);
+  QCOMPARE(result->raw().value(3), 61.0);
+  QCOMPARE(result->raw().value(4), 62.0);
+
+  // module 2 должен остаться от c0.
+  // Ошибочный c1 сюда попасть не должен.
+  QCOMPARE(result->raw().value(5), 40.0);
+  QCOMPARE(result->raw().value(6), 41.0);
+
+}
+
+void tst_dataarchive::test_FrameAssembler_allow_incomplete()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Some_Modules();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  FrameAssembler assembler(
+    cfg,
+    layout,
+    FrameStartPolicy::AllowIncomplete);
+
+  DataStreamFrame a0;
+  a0.module = ModuleId{0};
+  a0.values = {10, 11};
+  a0.timestamp = Timestamp{1000};
+  a0.wallTime = WallClockTime{10000};
+
+  auto result = assembler.push(a0);
+
+  QVERIFY(result.has_value());
+
+  QCOMPARE(result->raw().value(0), 10.0);
+  QCOMPARE(result->raw().value(1), 11.0);
+
+  // module 1 ещё не получен
+  QVERIFY(std::isnan(result->raw().value(2)));
+  QVERIFY(std::isnan(result->raw().value(3)));
+  QVERIFY(std::isnan(result->raw().value(4)));
+
+  // module 2 ещё не получен
+  QVERIFY(std::isnan(result->raw().value(5)));
+  QVERIFY(std::isnan(result->raw().value(6)));
 }

@@ -74,4 +74,7 @@ private slots:
   void test_DataStreamReader_block_before_anchor();
   void test_DataStreamReader_bad_block();
 
+  void test_FrameAssembler_wait_for_all_modules();
+  void test_FrameAssembler_allow_incomplete();
+
 };

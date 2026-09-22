@@ -8,7 +8,9 @@ namespace qds
 
 void SignalMemory::initialize(uint32_t count) noexcept
 {
-  m_values.assign(count, 0.0);
+  m_values.assign(
+    count,
+    InvalidSignalValue);
 }
 
 double SignalMemory::value(uint32_t index) const

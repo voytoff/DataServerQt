@@ -20,4 +20,6 @@ private slots:
   void test_datasource_layout_rebuild();
   void test_bufferManager_cancelWrite();
 
+  void test_signalMemoryLayout_rawOffset_rawCount();
+
 };

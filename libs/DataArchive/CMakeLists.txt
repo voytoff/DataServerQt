@@ -26,6 +26,8 @@ add_library(DataArchive SHARED
     datablockqueue.h datablockqueue.cpp
     datastreamframe.h
     datastreamreader.h datastreamreader.cpp
+    frameassembler.h frameassembler.cpp
+    framestartpolicy.h
 )
 
 target_include_directories(DataArchive

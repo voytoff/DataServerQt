@@ -241,3 +241,43 @@ void tst_signalstorage::test_bufferManager_cancelWrite()
 
   buffers.cancelWrite();
 }
+
+void tst_signalstorage::test_signalMemoryLayout_rawOffset_rawCount()
+{
+  SystemConfiguration cfg =
+    createTestConfig_Some_Modules();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  QCOMPARE(
+    layout.rawOffset(ModuleId{0}),
+    std::optional<uint32_t>{0});
+
+  QCOMPARE(
+    layout.rawCount(ModuleId{0}),
+    std::optional<uint32_t>{2});
+
+
+  QCOMPARE(
+    layout.rawOffset(ModuleId{1}),
+    std::optional<uint32_t>{2});
+
+  QCOMPARE(
+    layout.rawCount(ModuleId{1}),
+    std::optional<uint32_t>{3});
+
+  QCOMPARE(
+    layout.rawOffset(ModuleId{2}),
+    std::optional<uint32_t>{5});
+
+  QCOMPARE(
+    layout.rawCount(ModuleId{2}),
+    std::optional<uint32_t>{2});
+
+  QVERIFY(
+    !layout.rawOffset(ModuleId{999}).has_value());
+
+  QVERIFY(
+    !layout.rawCount(ModuleId{999}).has_value());
+}

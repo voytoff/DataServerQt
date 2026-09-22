@@ -13,6 +13,7 @@ void SignalMemoryLayout::build(
   const SystemConfiguration& configuration)
 {
   m_locations.clear();
+  m_rawCounts.clear();
 
   m_rawSignalCount = 0;
   m_calculatedSignalCount = 0;
@@ -32,6 +33,8 @@ void SignalMemoryLayout::build(
         rawOffset);
 
     assert(inserted);
+
+    uint32_t rawCount = 0;
 
     for (const TagId& tag :
          configuration.moduleTags(module.id))
@@ -62,7 +65,15 @@ void SignalMemoryLayout::build(
       assert(inserted);
 
       ++rawOffset;
+      ++rawCount;
     }
+
+    auto [countIt, countInserted] =
+      m_rawCounts.emplace(
+        module.id,
+        rawCount);
+
+    assert(countInserted);
   }
 
   assert(rawOffset == m_rawSignalCount);
@@ -105,7 +116,8 @@ void SignalMemoryLayout::build(
 
   assert(rawOffset == m_rawSignalCount);
 
-#ifndef NDEBUG
+//#ifndef NDEBUG
+#ifdef XYZ
 
   std::printf("\nRAW\n");
   std::printf("%-8s %-8s %s\n", "Index", "Id", "Name");
@@ -169,6 +181,19 @@ const SignalLocation &SignalMemoryLayout::location(SignalId id) const
   auto it = m_locations.find(id);
 
   assert(it != m_locations.end());
+
+  return it->second;
+}
+
+std::optional<uint32_t>
+SignalMemoryLayout::rawCount(
+  ModuleId module) const
+{
+  const auto it =
+    m_rawCounts.find(module);
+
+  if (it == m_rawCounts.end())
+    return std::nullopt;
 
   return it->second;
 }

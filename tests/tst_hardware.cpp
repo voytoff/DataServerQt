@@ -389,7 +389,7 @@ void tst_hardware::test_lCardDataSource_fake_push_archive()
 {
   using namespace qds;
 
-  constexpr std::size_t ChannelCount = 4;
+  constexpr std::size_t ChannelCount = 3;
 
   auto module = std::make_unique<SmartBlockLCardModule>(3, 3, 1);
 
