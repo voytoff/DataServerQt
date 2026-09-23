@@ -79,4 +79,5 @@ private slots:
   void test_DataStreamProcessor_wait_for_all();
 
   void test_DataStreamProcessor_livetime();
+  void test_DataStreamProcessor_block_with_multiple_frames();
 };

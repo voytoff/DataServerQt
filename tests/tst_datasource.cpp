@@ -518,10 +518,10 @@ void tst_datasource::test_datasource_fail_datasource()
 
   QCOMPARE(array[0], 1);
   QCOMPARE(array[1], 2);
-  QCOMPARE(array[2], 0);
-  QCOMPARE(array[3], 0);
-  QCOMPARE(array[4], 0);
-  QCOMPARE(array[5], 0);
+  QVERIFY(std::isnan(array[2]));
+  QVERIFY(std::isnan(array[3]));
+  QVERIFY(std::isnan(array[4]));
+  QVERIFY(std::isnan(array[5]));
 }
 
 void tst_datasource::test_datasource_absent_datasource()

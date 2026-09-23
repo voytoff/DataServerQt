@@ -3195,7 +3195,7 @@ void tst_dataarchive::test_DataStreamProcessor_livetime()
   FrameAssembler assembler(
     cfg,
     layout,
-    FrameStartPolicy::WaitForAllModules);
+    FrameStartPolicy::AllowIncomplete);
 
   BufferManager buffers;
   buffers.initialize(layout);
@@ -3223,67 +3223,83 @@ void tst_dataarchive::test_DataStreamProcessor_livetime()
     archive,
     logger);
 
+  for (uint32_t m = 0; m < 3; ++m)
+  {
+    DataStreamAnchor anchor;
+
+    anchor.module = ModuleId{m};
+    anchor.firstFrameIndex = 0;
+    anchor.startTimestamp = Timestamp{0};
+    anchor.startWallTime = WallClockTime{0};
+    anchor.frameRate = 1000.0;
+
+    QVERIFY(processor.process(anchor));
+  }
+
   std::vector<std::size_t> channelCounts = {2, 3, 2};
-  for (uint32_t index = 0; index < 10; ++index)
+
+  for (uint32_t n = 0; n < 10; ++n)
   {
     for (uint32_t m = 0; m < 3; ++m)
     {
-      DataStreamAnchor anchor;
-      anchor.module = ModuleId{m};
-      anchor.firstFrameIndex = index;
-      anchor.startTimestamp = Timestamp{index * 1000 + m * 100};
-      anchor.startWallTime = WallClockTime{index * 10'000 + m * 1000};
-      anchor.frameRate = 1000.0;
-
-      QVERIFY(processor.process(anchor));
-
       DataBlock block;
+
       block.module = ModuleId{m};
-      block.firstFrameIndex = index;
+      block.firstFrameIndex = n;
       block.frameRate = 1000.0;
       block.channelCount = channelCounts[m];
       block.frameCount = 1;
-      block.values.resize(channelCounts[m]);
-      for (std::size_t i = 0; i < channelCounts[m]; ++i)
+
+      block.values.resize(
+        channelCounts[m]);
+
+      for (std::size_t i = 0;
+           i < channelCounts[m];
+           ++i)
       {
         block.values[i] =
-          static_cast<double>(index * 10 + m * 2);
+          static_cast<double>(
+            n * 10 + m * 2);
       }
 
-      QVERIFY(processor.process(block));
+      QVERIFY(
+        processor.process(block));
     }
+
+    const auto k =
+      static_cast<std::size_t>((n + 1) * 3);
 
     QCOMPARE(
       archive.frames.size(),
-      std::size_t{index * 3 + 1});
+      std::size_t{k});
 
     QVERIFY(buffers.ready());
 
     const Frame& archived =
-      archive.frames[index];
+      archive.frames[k-1];
 
     QCOMPARE(
       archived.number,
-      FrameNumber{index});
+      FrameNumber{k - 1});
 
     QCOMPARE(
       archived.timestamp,
-      Timestamp{index * 1000 + 2 * 100});
+      Timestamp{n * 1'000});
 
     QCOMPARE(
       archived.wallTime,
-      WallClockTime{index * 10'000 + 2 * 1000});
-/*
-    QCOMPARE(archived.raw().value(0), index * 10.0 + 0 * 2);
-    QCOMPARE(archived.raw().value(1), index * 10.0 + 1 * 2);
+      WallClockTime{n * 1'000});
 
-    QCOMPARE(archived.raw().value(2), index * 10.0 + 0 * 2);
-    QCOMPARE(archived.raw().value(3), index * 10.0 + 1 * 2);
-    QCOMPARE(archived.raw().value(4), index * 10.0 + 2 * 2);
+    QCOMPARE(archived.raw().value(0), n * 10.0);
+    QCOMPARE(archived.raw().value(1), n * 10.0);
 
-    QCOMPARE(archived.raw().value(5), index * 10.0 + 0 * 2);
-    QCOMPARE(archived.raw().value(6), index * 10.0 + 1 * 2);
-*/
+    QCOMPARE(archived.raw().value(2), n * 10.0 + 2);
+    QCOMPARE(archived.raw().value(3), n * 10.0 + 2);
+    QCOMPARE(archived.raw().value(4), n * 10.0 + 2);
+
+    QCOMPARE(archived.raw().value(5), n * 10.0 + 4);
+    QCOMPARE(archived.raw().value(6), n * 10.0 + 4);
+
 
     const Frame& latest =
       buffers.readFrame();
@@ -3303,5 +3319,143 @@ void tst_dataarchive::test_DataStreamProcessor_livetime()
     QVERIFY(
       latest.raw().equals(
         archived.raw().values()));
+  }
+}
+
+void tst_dataarchive::
+  test_DataStreamProcessor_block_with_multiple_frames()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Some_Modules();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  DataStreamReader reader;
+
+  FrameAssembler assembler(
+    cfg,
+    layout,
+    FrameStartPolicy::AllowIncomplete);
+
+  BufferManager buffers;
+  buffers.initialize(layout);
+
+  FormulaAstRepository formulas;
+  CalculationPlan plan;
+  CalibrationRepository calibrations;
+
+  SignalProcessor signalProcessor(
+    layout,
+    formulas,
+    plan,
+    calibrations);
+
+  TestArchiveFrameWriter archive;
+  TestLogger logger;
+
+  DataStreamProcessor processor(
+    reader,
+    assembler,
+    signalProcessor,
+    buffers,
+    archive,
+    logger);
+
+  DataStreamAnchor anchor;
+  anchor.module = ModuleId{0};
+  anchor.firstFrameIndex = 100;
+  anchor.startTimestamp = Timestamp{1'000'000};
+  anchor.startWallTime = WallClockTime{10'000'000};
+  anchor.frameRate = 1000.0;
+
+  QVERIFY(
+    processor.process(anchor));
+
+  DataBlock block;
+  block.module = ModuleId{0};
+  block.firstFrameIndex = 100;
+  block.frameRate = 1000.0;
+  block.channelCount = 2;
+  block.frameCount = 4;
+
+  block.values =
+    {
+      10, 11,   // frame 100
+      20, 21,   // frame 101
+      30, 31,   // frame 102
+      40, 41    // frame 103
+    };
+
+  QVERIFY(
+    processor.process(block));
+
+  QCOMPARE(
+    archive.frames.size(),
+    std::size_t{4});
+
+  for (std::size_t i = 0; i < 4; ++i)
+  {
+    const Frame& frame =
+      archive.frames[i];
+
+    QCOMPARE(
+      frame.number,
+      FrameNumber{i});
+
+    QCOMPARE(
+      frame.timestamp,
+      Timestamp{
+        1'000'000 +
+        static_cast<uint64_t>(i) * 1000
+      });
+
+    QCOMPARE(
+      frame.wallTime,
+      WallClockTime{
+        10'000'000 +
+        static_cast<int64_t>(i) * 1000
+      });
+
+    QCOMPARE(
+      frame.raw().value(0),
+      static_cast<double>((i + 1) * 10));
+
+    QCOMPARE(
+      frame.raw().value(1),
+      static_cast<double>((i + 1) * 10 + 1));
+
+    // Остальные модули ещё ничего не прислали.
+    for (uint32_t j = 2; j < 7; ++j)
+      QVERIFY(std::isnan(
+        frame.raw().value(j)));
+
+
+    QVERIFY(buffers.ready());
+
+    const Frame& latest =
+      buffers.readFrame();
+
+    QCOMPARE(
+      latest.number,
+      FrameNumber{3});
+
+    QCOMPARE(
+      latest.timestamp,
+      Timestamp{1'003'000});
+
+    QCOMPARE(
+      latest.wallTime,
+      WallClockTime{10'003'000});
+
+    QCOMPARE(
+      latest.raw().value(0),
+      40.0);
+
+    QCOMPARE(
+      latest.raw().value(1),
+      41.0);
   }
 }

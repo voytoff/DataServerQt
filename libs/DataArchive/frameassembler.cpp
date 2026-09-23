@@ -8,6 +8,7 @@ FrameAssembler::FrameAssembler(
   const SignalMemoryLayout& layout,
   FrameStartPolicy startPolicy)
   : m_layout(layout)
+  , m_startPolicy(startPolicy)
 {
   m_frame.initialize(layout);
 

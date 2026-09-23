@@ -30,20 +30,20 @@ void tst_hardware::test_fakeLCardModule_base()
   QCOMPARE(module.readCalls, 0);
   QCOMPARE(frameCount, std::size_t{0});
 
-  QCOMPARE(values[0], 0.0);
-  QCOMPARE(values[1], 0.0);
-  QCOMPARE(values[2], 0.0);
-  QCOMPARE(values[4], 0.0);
+  QVERIFY(std::isnan(values[0]));
+  QVERIFY(std::isnan(values[1]));
+  QVERIFY(std::isnan(values[2]));
+  QVERIFY(std::isnan(values[3]));
 
-  QCOMPARE(values[4], 0.0);
-  QCOMPARE(values[5], 0.0);
-  QCOMPARE(values[6], 0.0);
-  QCOMPARE(values[7], 0.0);
+  QVERIFY(std::isnan(values[4]));
+  QVERIFY(std::isnan(values[5]));
+  QVERIFY(std::isnan(values[6]));
+  QVERIFY(std::isnan(values[7]));
 
-  QCOMPARE(values[8], 0.0);
-  QCOMPARE(values[9], 0.0);
-  QCOMPARE(values[10], 0.0);
-  QCOMPARE(values[11], 0.0);
+  QVERIFY(std::isnan(values[8]));
+  QVERIFY(std::isnan(values[9]));
+  QVERIFY(std::isnan(values[10]));
+  QVERIFY(std::isnan(values[11]));
 
   QVERIFY(module.start());
   QVERIFY(!module.start());
