@@ -28,6 +28,7 @@ add_library(DataArchive SHARED
     datastreamreader.h datastreamreader.cpp
     frameassembler.h frameassembler.cpp
     framestartpolicy.h
+    datastreamprocessor.h datastreamprocessor.cpp
 )
 
 target_include_directories(DataArchive
@@ -41,5 +42,7 @@ target_link_libraries(DataArchive
       Configuration
       SignalStorage
       DataSource
+      SignalProcessor
+      Logger
       Qt6::Core
 )

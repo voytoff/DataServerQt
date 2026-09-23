@@ -40,6 +40,7 @@ add_executable(unit_tests
     tst_logger.h tst_logger.cpp
     tst_ltr11module.h tst_ltr11module.cpp
     fakedatastreameventsink.h
+    qds/testarchiveframewriter.h
 )
 
 target_link_libraries(unit_tests

@@ -35,6 +35,10 @@ public:
   [[nodiscard]]
   bool isRunning() const noexcept;
 
+  [[nodiscard]]
+  bool processFrame(
+    const Frame& source) noexcept;
+
 private:
 
   DataSourceManager* m_dataSources = nullptr;

@@ -5,7 +5,9 @@
 #include "archivefile.h"
 #include "archiveformat.h"
 #include "archivewriter.h"
+#include "buffermanager.h"
 #include "datablockqueue.h"
+#include "datastreamprocessor.h"
 #include "datastreamreader.h"
 #include "datastreamtime.h"
 #include "fakeclock.h"
@@ -15,7 +17,10 @@
 #include "frameassembler.h"
 #include "lcarddatasource.h"
 #include "moduletype.h"
+#include "qds/testarchiveframewriter.h"
+#include "signalprocessor.h"
 #include "smartblocklcardmodule.h"
+#include "testlogger.h"
 #include "testsrv.h"
 #include <QtTest/qtestcase.h>
 #include <QJsonParseError>
@@ -2960,4 +2965,343 @@ void tst_dataarchive::test_FrameAssembler_allow_incomplete()
   // module 2 ещё не получен
   QVERIFY(std::isnan(result->raw().value(5)));
   QVERIFY(std::isnan(result->raw().value(6)));
+
+  DataStreamFrame b0;
+  b0.module = ModuleId{1};
+  b0.values = {20, 21, 22};
+  b0.timestamp = Timestamp{2000};
+  b0.wallTime = WallClockTime{11000};
+
+  result = assembler.push(b0);
+
+  QVERIFY(result.has_value());
+
+  QCOMPARE(result->number, FrameNumber{1});
+  QCOMPARE(result->timestamp, Timestamp{2000});
+
+  // module 0 — последнее известное
+  QCOMPARE(result->raw().value(0), 10.0);
+  QCOMPARE(result->raw().value(1), 11.0);
+
+  // module 1 — новые данные
+  QCOMPARE(result->raw().value(2), 20.0);
+  QCOMPARE(result->raw().value(3), 21.0);
+  QCOMPARE(result->raw().value(4), 22.0);
+
+  // module 2 всё ещё отсутствует
+  QVERIFY(std::isnan(result->raw().value(5)));
+  QVERIFY(std::isnan(result->raw().value(6)));
+
+  DataStreamFrame c0;
+  c0.module = ModuleId{2};
+  c0.values = {30, 31};
+  c0.timestamp = Timestamp{3000};
+  c0.wallTime = WallClockTime{12000};
+
+  result = assembler.push(c0);
+
+  QVERIFY(result.has_value());
+
+  QCOMPARE(result->number, FrameNumber{2});
+
+  QCOMPARE(result->raw().value(0), 10.0);
+  QCOMPARE(result->raw().value(1), 11.0);
+
+  QCOMPARE(result->raw().value(2), 20.0);
+  QCOMPARE(result->raw().value(3), 21.0);
+  QCOMPARE(result->raw().value(4), 22.0);
+
+  QCOMPARE(result->raw().value(5), 30.0);
+  QCOMPARE(result->raw().value(6), 31.0);
+}
+
+void tst_dataarchive::test_DataStreamProcessor_wait_for_all()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Some_Modules();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  DataStreamReader reader;
+
+  FrameAssembler assembler(
+    cfg,
+    layout,
+    FrameStartPolicy::WaitForAllModules);
+
+  BufferManager buffers;
+  buffers.initialize(layout);
+
+  FormulaAstRepository formulas;
+  CalculationPlan plan;
+  CalibrationRepository calibrations;
+
+  SignalProcessor signalProcessor(
+    layout,
+    formulas,
+    plan,
+    calibrations);
+
+  TestArchiveFrameWriter archive;
+
+  // твой существующий TestLogger/FakeLogger
+  TestLogger logger;
+
+  DataStreamProcessor processor(
+    reader,
+    assembler,
+    signalProcessor,
+    buffers,
+    archive,
+    logger);
+
+
+  DataStreamAnchor anchor0;
+  anchor0.module = ModuleId{0};
+  anchor0.firstFrameIndex = 0;
+  anchor0.startTimestamp = Timestamp{1000};
+  anchor0.startWallTime = WallClockTime{10000};
+  anchor0.frameRate = 1000.0;
+
+  QVERIFY(processor.process(anchor0));
+
+  QCOMPARE(archive.frames.size(), std::size_t{0});
+  QVERIFY(!buffers.ready());
+
+  DataBlock block0;
+  block0.module = ModuleId{0};
+  block0.firstFrameIndex = 0;
+  block0.frameRate = 1000.0;
+  block0.channelCount = 2;
+  block0.frameCount = 1;
+  block0.values = {10, 11};
+
+  QVERIFY(processor.process(block0));
+
+  QCOMPARE(archive.frames.size(), std::size_t{0});
+  QVERIFY(!buffers.ready());
+
+
+  DataStreamAnchor anchor1;
+  anchor1.module = ModuleId{1};
+  anchor1.firstFrameIndex = 0;
+  anchor1.startTimestamp = Timestamp{2000};
+  anchor1.startWallTime = WallClockTime{11000};
+  anchor1.frameRate = 1000.0;
+
+  QVERIFY(processor.process(anchor1));
+
+  DataBlock block1;
+  block1.module = ModuleId{1};
+  block1.firstFrameIndex = 0;
+  block1.frameRate = 1000.0;
+  block1.channelCount = 3;
+  block1.frameCount = 1;
+  block1.values = {20, 21, 22};
+
+  QVERIFY(processor.process(block1));
+
+  QCOMPARE(archive.frames.size(), std::size_t{0});
+  QVERIFY(!buffers.ready());
+
+
+  DataStreamAnchor anchor2;
+  anchor2.module = ModuleId{2};
+  anchor2.firstFrameIndex = 0;
+  anchor2.startTimestamp = Timestamp{3000};
+  anchor2.startWallTime = WallClockTime{12000};
+  anchor2.frameRate = 1000.0;
+
+  QVERIFY(processor.process(anchor2));
+
+  DataBlock block2;
+  block2.module = ModuleId{2};
+  block2.firstFrameIndex = 0;
+  block2.frameRate = 1000.0;
+  block2.channelCount = 2;
+  block2.frameCount = 1;
+  block2.values = {30, 31};
+
+  QVERIFY(processor.process(block2));
+
+
+  QCOMPARE(
+    archive.frames.size(),
+    std::size_t{1});
+
+  QVERIFY(buffers.ready());
+
+  const Frame& archived =
+    archive.frames[0];
+
+  QCOMPARE(
+    archived.number,
+    FrameNumber{0});
+
+  QCOMPARE(
+    archived.timestamp,
+    Timestamp{3000});
+
+  QCOMPARE(
+    archived.wallTime,
+    WallClockTime{12000});
+
+  QCOMPARE(archived.raw().value(0), 10.0);
+  QCOMPARE(archived.raw().value(1), 11.0);
+
+  QCOMPARE(archived.raw().value(2), 20.0);
+  QCOMPARE(archived.raw().value(3), 21.0);
+  QCOMPARE(archived.raw().value(4), 22.0);
+
+  QCOMPARE(archived.raw().value(5), 30.0);
+  QCOMPARE(archived.raw().value(6), 31.0);
+
+
+  const Frame& latest =
+    buffers.readFrame();
+
+  QCOMPARE(
+    latest.number,
+    archived.number);
+
+  QCOMPARE(
+    latest.timestamp,
+    archived.timestamp);
+
+  QCOMPARE(
+    latest.wallTime,
+    archived.wallTime);
+
+  QVERIFY(
+    latest.raw().equals(
+      archived.raw().values()));
+}
+
+void tst_dataarchive::test_DataStreamProcessor_livetime()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Some_Modules();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  DataStreamReader reader;
+
+  FrameAssembler assembler(
+    cfg,
+    layout,
+    FrameStartPolicy::WaitForAllModules);
+
+  BufferManager buffers;
+  buffers.initialize(layout);
+
+  FormulaAstRepository formulas;
+  CalculationPlan plan;
+  CalibrationRepository calibrations;
+
+  SignalProcessor signalProcessor(
+    layout,
+    formulas,
+    plan,
+    calibrations);
+
+  TestArchiveFrameWriter archive;
+
+  // твой существующий TestLogger/FakeLogger
+  TestLogger logger;
+
+  DataStreamProcessor processor(
+    reader,
+    assembler,
+    signalProcessor,
+    buffers,
+    archive,
+    logger);
+
+  std::vector<std::size_t> channelCounts = {2, 3, 2};
+  for (uint32_t index = 0; index < 10; ++index)
+  {
+    for (uint32_t m = 0; m < 3; ++m)
+    {
+      DataStreamAnchor anchor;
+      anchor.module = ModuleId{m};
+      anchor.firstFrameIndex = index;
+      anchor.startTimestamp = Timestamp{index * 1000 + m * 100};
+      anchor.startWallTime = WallClockTime{index * 10'000 + m * 1000};
+      anchor.frameRate = 1000.0;
+
+      QVERIFY(processor.process(anchor));
+
+      DataBlock block;
+      block.module = ModuleId{m};
+      block.firstFrameIndex = index;
+      block.frameRate = 1000.0;
+      block.channelCount = channelCounts[m];
+      block.frameCount = 1;
+      block.values.resize(channelCounts[m]);
+      for (std::size_t i = 0; i < channelCounts[m]; ++i)
+      {
+        block.values[i] =
+          static_cast<double>(index * 10 + m * 2);
+      }
+
+      QVERIFY(processor.process(block));
+    }
+
+    QCOMPARE(
+      archive.frames.size(),
+      std::size_t{index * 3 + 1});
+
+    QVERIFY(buffers.ready());
+
+    const Frame& archived =
+      archive.frames[index];
+
+    QCOMPARE(
+      archived.number,
+      FrameNumber{index});
+
+    QCOMPARE(
+      archived.timestamp,
+      Timestamp{index * 1000 + 2 * 100});
+
+    QCOMPARE(
+      archived.wallTime,
+      WallClockTime{index * 10'000 + 2 * 1000});
+/*
+    QCOMPARE(archived.raw().value(0), index * 10.0 + 0 * 2);
+    QCOMPARE(archived.raw().value(1), index * 10.0 + 1 * 2);
+
+    QCOMPARE(archived.raw().value(2), index * 10.0 + 0 * 2);
+    QCOMPARE(archived.raw().value(3), index * 10.0 + 1 * 2);
+    QCOMPARE(archived.raw().value(4), index * 10.0 + 2 * 2);
+
+    QCOMPARE(archived.raw().value(5), index * 10.0 + 0 * 2);
+    QCOMPARE(archived.raw().value(6), index * 10.0 + 1 * 2);
+*/
+
+    const Frame& latest =
+      buffers.readFrame();
+
+    QCOMPARE(
+      latest.number,
+      archived.number);
+
+    QCOMPARE(
+      latest.timestamp,
+      archived.timestamp);
+
+    QCOMPARE(
+      latest.wallTime,
+      archived.wallTime);
+
+    QVERIFY(
+      latest.raw().equals(
+        archived.raw().values()));
+  }
 }

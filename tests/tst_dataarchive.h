@@ -76,5 +76,7 @@ private slots:
 
   void test_FrameAssembler_wait_for_all_modules();
   void test_FrameAssembler_allow_incomplete();
+  void test_DataStreamProcessor_wait_for_all();
 
+  void test_DataStreamProcessor_livetime();
 };

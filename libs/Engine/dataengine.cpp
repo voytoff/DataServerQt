@@ -106,4 +106,36 @@ bool DataEngine::isRunning() const noexcept
   return m_running;
 }
 
+bool DataEngine::processFrame(
+  const Frame& source) noexcept
+{
+  Frame& frame =
+    m_buffers->beginWrite();
+
+  frame = source;
+
+  if (!m_signalProcessor->process(
+        frame.raw(),
+        frame.calculated()))
+  {
+    m_buffers->cancelWrite();
+    return false;
+  }
+
+  m_buffers->publish();
+
+  const Frame& published =
+    m_buffers->readFrame();
+
+  m_publisher->publish(published);
+
+  if (!m_archive->write(published))
+  {
+    m_logger->error(
+      "Archive write failed");
+  }
+
+  return true;
+}
+
 }
