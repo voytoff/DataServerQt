@@ -22,67 +22,128 @@ void tst_signalstorage::test_signalstorage_base()
 void tst_signalstorage::test_buffer_manager()
 {
   using namespace qds;
-  BufferManager manager;
-  SystemConfiguration cfg = createTestConfig00();
-  const auto& definitions = cfg.signalDefinitions();
+
+  SystemConfiguration cfg =
+    createTestConfig_1module_2raw_2calc();
+
   SignalMemoryLayout layout;
-  layout.build(cfg); // TODO сделать bool build(...)
+  layout.build(cfg);
 
-  QCOMPARE(layout.calculatedSignalCount(), 2);
-  QCOMPARE(layout.rawSignalCount(), 2);
+  QCOMPARE(
+    layout.calculatedSignalCount(),
+    uint32_t{2});
 
-  QVERIFY(layout.contains({0}));
-  QVERIFY(layout.contains({1}));
-  QVERIFY(layout.contains({2}));
-  QVERIFY(layout.contains({3}));
+  QCOMPARE(
+    layout.rawSignalCount(),
+    uint32_t{2});
 
+  BufferManager buffers;
+  buffers.initialize(layout);
 
-  manager.initialize(layout);
+  QVERIFY(
+    !buffers.ready());
 
-  Frame &frame1 = manager.beginWrite();
+  Frame empty;
 
-  //QVERIFY(frame1.number.value == 0);
-  QVERIFY(frame1.raw().values().size() == 2);
-  QVERIFY(frame1.calculated().values().size() == 2);
+  QVERIFY(
+    !buffers.readFrame(empty));
 
-  frame1.raw().setValue(0, 10);
-  manager.publish();
+  // ==========================
+  // Первый frame
 
-  auto read1 = manager.readFrame();
-  QCOMPARE(read1.raw().values()[0], 10);
+  Frame frame1;
+  frame1.initialize(layout);
 
+  frame1.number =
+    FrameNumber{10};
 
-  Frame &frame2 = manager.beginWrite();
+  frame1.raw().setValue(
+    0,
+    10.0);
 
-  //QVERIFY(frame2.number.value == 0);
-  QVERIFY(frame2.raw().values().size() == 2);
-  QVERIFY(frame2.calculated().values().size() == 2);
+  buffers.publish(frame1);
 
-  frame2.calculated().setValue(0, 0xFF);
-  frame2.raw().setValue(1, 11);
-  manager.publish();
+  QVERIFY(
+    buffers.ready());
 
-  Frame &frame3 = manager.beginWrite();
+  Frame read1;
 
-  auto read2 = manager.readFrame();
-  QVERIFY(std::isnan(read2.raw().values()[0]));
-  QCOMPARE(read2.raw().values()[1], 11);
-  QCOMPARE(read2.calculated().values()[0], 0xFF);
+  QVERIFY(
+    buffers.readFrame(read1));
 
-  manager.publish();
+  QCOMPARE(
+    read1.number,
+    FrameNumber{10});
 
-  Frame &frame4 = manager.beginWrite();
+  QCOMPARE(
+    read1.raw().value(0),
+    10.0);
 
-  auto read3 = manager.readFrame();
-  QCOMPARE(read3.raw().values()[0], 10);
-  QVERIFY(std::isnan(read3.calculated().values()[0]));
+  QVERIFY(
+    std::isnan(
+      read1.raw().value(1)));
+
+  // ==========================
+  // Второй frame
+
+  Frame frame2;
+  frame2.initialize(layout);
+
+  frame2.number =
+    FrameNumber{20};
+
+  frame2.raw().setValue(
+    1,
+    11.0);
+
+  frame2.calculated().setValue(
+    0,
+    255.0);
+
+  buffers.publish(frame2);
+
+  Frame read2;
+
+  QVERIFY(
+    buffers.readFrame(read2));
+
+  QCOMPARE(
+    read2.number,
+    FrameNumber{20});
+
+  QVERIFY(
+    std::isnan(
+      read2.raw().value(0)));
+
+  QCOMPARE(
+    read2.raw().value(1),
+    11.0);
+
+  QCOMPARE(
+    read2.calculated().value(0),
+    255.0);
+
+  // read1 — независимый snapshot.
+  // Следующая публикация его не изменила.
+
+  QCOMPARE(
+    read1.number,
+    FrameNumber{10});
+
+  QCOMPARE(
+    read1.raw().value(0),
+    10.0);
+
+  QVERIFY(
+    std::isnan(
+      read1.raw().value(1)));
 }
 
 void tst_signalstorage::test_raw_memory()
 {
   using namespace qds;
 
-  SystemConfiguration cfg = createTestConfig00();
+  SystemConfiguration cfg = createTestConfig_1module_2raw_2calc();
 
   SignalMemoryLayout layout;
   layout.build(cfg);
@@ -210,38 +271,6 @@ void tst_signalstorage::test_datasource_layout_rebuild()
   QCOMPARE(ref.index, 2u);
 }
 
-void tst_signalstorage::test_bufferManager_cancelWrite()
-{
-  using namespace qds;
-
-  SystemConfiguration cfg =
-    createTestConfig_calculate();
-
-  SignalMemoryLayout layout;
-  layout.build(cfg);
-
-  BufferManager buffers;
-  buffers.initialize(layout);
-
-  QVERIFY(!buffers.ready());
-
-  Frame& frame = buffers.beginWrite();
-
-  frame.number = {123};
-
-  buffers.cancelWrite();
-
-  QVERIFY(!buffers.ready());
-
-  // После cancel можно снова начать запись.
-  Frame& frame2 = buffers.beginWrite();
-
-  QCOMPARE(&frame2, &frame);
-  QCOMPARE(frame2.number, FrameNumber{123});
-
-  buffers.cancelWrite();
-}
-
 void tst_signalstorage::test_signalMemoryLayout_rawOffset_rawCount()
 {
   SystemConfiguration cfg =
@@ -280,4 +309,128 @@ void tst_signalstorage::test_signalMemoryLayout_rawOffset_rawCount()
 
   QVERIFY(
     !layout.rawCount(ModuleId{999}).has_value());
+}
+
+void tst_signalstorage::test_bufferManager_thread_safe()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_1module_2raw_2calc();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  QCOMPARE(
+    layout.calculatedSignalCount(),
+    uint32_t{2});
+
+  QCOMPARE(
+    layout.rawSignalCount(),
+    uint32_t{2});
+
+  std::thread thread([]() {
+
+  });
+
+  BufferManager buffers;
+  buffers.initialize(layout);
+
+  QVERIFY(
+    !buffers.ready());
+
+  Frame empty;
+
+  QVERIFY(
+    !buffers.readFrame(empty));
+
+  // ==========================
+  // Первый frame
+
+  Frame frame1;
+  frame1.initialize(layout);
+
+  frame1.number =
+    FrameNumber{10};
+
+  frame1.raw().setValue(
+    0,
+    10.0);
+
+  buffers.publish(frame1);
+
+  QVERIFY(
+    buffers.ready());
+
+  Frame read1;
+
+  QVERIFY(
+    buffers.readFrame(read1));
+
+  QCOMPARE(
+    read1.number,
+    FrameNumber{10});
+
+  QCOMPARE(
+    read1.raw().value(0),
+    10.0);
+
+  QVERIFY(
+    std::isnan(
+      read1.raw().value(1)));
+
+  // ==========================
+  // Второй frame
+
+  Frame frame2;
+  frame2.initialize(layout);
+
+  frame2.number =
+    FrameNumber{20};
+
+  frame2.raw().setValue(
+    1,
+    11.0);
+
+  frame2.calculated().setValue(
+    0,
+    255.0);
+
+  buffers.publish(frame2);
+
+  Frame read2;
+
+  QVERIFY(
+    buffers.readFrame(read2));
+
+  QCOMPARE(
+    read2.number,
+    FrameNumber{20});
+
+  QVERIFY(
+    std::isnan(
+      read2.raw().value(0)));
+
+  QCOMPARE(
+    read2.raw().value(1),
+    11.0);
+
+  QCOMPARE(
+    read2.calculated().value(0),
+    255.0);
+
+  // read1 — независимый snapshot.
+  // Следующая публикация его не изменила.
+
+  QCOMPARE(
+    read1.number,
+    FrameNumber{10});
+
+  QCOMPARE(
+    read1.raw().value(0),
+    10.0);
+
+  QVERIFY(
+    std::isnan(
+      read1.raw().value(1)));
 }

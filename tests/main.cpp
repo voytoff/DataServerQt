@@ -29,6 +29,10 @@ int main(int argc, char *argv[])
   int rc = 0;
 
   {
+    tst_signalstorage tc;
+    rc |= QTest::qExec(&tc, argc, argv);
+  }
+  {
     tst_dataarchive tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
@@ -102,10 +106,6 @@ int main(int argc, char *argv[])
   }
   {
     tst_udpserver tc;
-    rc |= QTest::qExec(&tc, argc, argv);
-  }
-  {
-    tst_signalstorage tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
 

@@ -124,7 +124,7 @@ void DataServer::cleanup()
   m_dispatcher.reset();
   m_publisher.reset();
 
-  m_runtime = {};
+  ///\\\m_runtime = {};
   m_subscriptions.clear();
 }
 

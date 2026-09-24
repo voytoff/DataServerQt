@@ -179,7 +179,7 @@ static SystemConfiguration createTestConfig(const std::vector<std::vector<TagId>
   return cfg;
 }
 
-static SystemConfiguration createTestConfig00() {
+static SystemConfiguration createTestConfig_1module_2raw_2calc() {
   using namespace qds;
   SystemConfiguration cfg;
 

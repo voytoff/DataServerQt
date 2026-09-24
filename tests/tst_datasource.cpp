@@ -435,7 +435,9 @@ void tst_datasource::test_datasource_manager()
   BufferManager buffers;
   buffers.initialize(layout);
 
-  auto &memory = buffers.beginWrite();
+  Frame memory;
+  memory.initialize(layout);
+
   auto &raw = memory.raw();
 
   DataSourceFactory factory;
@@ -483,7 +485,8 @@ void tst_datasource::test_datasource_fail_datasource()
   BufferManager buffers;
   buffers.initialize(layout);
 
-  auto &memory = buffers.beginWrite();
+  Frame memory;
+  memory.initialize(layout);
   auto &raw = memory.raw();
 
   DataSourceFactory factory;
@@ -535,7 +538,8 @@ void tst_datasource::test_datasource_absent_datasource()
   BufferManager buffers;
   buffers.initialize(layout);
 
-  auto &memory = buffers.beginWrite();
+  Frame memory;
+  memory.initialize(layout);
 
   DataSourceFactory factory;
   // Нужен FakeDataSource, его нет
@@ -606,7 +610,8 @@ void tst_datasource::test_datasource_repeat_initialize()
   BufferManager buffers;
   buffers.initialize(layout);
 
-  auto &memory = buffers.beginWrite();
+  Frame memory;
+  memory.initialize(layout);
   auto &raw = memory.raw();
 
   DataSourceFactory factory;
@@ -679,8 +684,9 @@ void tst_datasource::test_datasource_acquire_repeat()
   BufferManager buffers;
   buffers.initialize(layout);
 
-  auto& raw =
-    buffers.beginWrite().raw();
+  Frame memory;
+  memory.initialize(layout);
+  auto& raw = memory.raw();
 
   DataSourceFactory factory;
 
@@ -771,8 +777,9 @@ void tst_datasource::test_dataSourceManager_successInit()
 
   DataSourceManager manager;
 
-  auto& raw =
-    buffers.beginWrite().raw();
+  Frame memory;
+  memory.initialize(layout);
+  auto& raw = memory.raw();
 
   QVERIFY(manager.initialize(
     cfg,

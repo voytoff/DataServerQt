@@ -333,7 +333,8 @@ void tst_database::test_database_pipeline()
 
   QVERIFY(runtime.engine->process());
 
-  const auto &frame0 = runtime.buffers.readFrame();
+  Frame frame0;
+  QVERIFY(runtime.buffers.readFrame(frame0));
 
   QCOMPARE(frame0.raw().valueRef(0), 0.0);
   QCOMPARE(frame0.raw().valueRef(1), 0.0);
@@ -344,7 +345,8 @@ void tst_database::test_database_pipeline()
 
   QVERIFY(runtime.engine->process());
 
-  const auto &frame1 = runtime.buffers.readFrame();
+  Frame frame1;
+  QVERIFY(runtime.buffers.readFrame(frame1));
 
   QCOMPARE(frame1.raw().valueRef(0), 1.0);
   QCOMPARE(frame1.raw().valueRef(1), 10.0);
@@ -355,7 +357,8 @@ void tst_database::test_database_pipeline()
 
   QVERIFY(runtime.engine->process());
 
-  const auto &frame2 = runtime.buffers.readFrame();
+  Frame frame2;
+  QVERIFY(runtime.buffers.readFrame(frame2));
 
   QCOMPARE(frame2.raw().valueRef(0), 2.0);
   QCOMPARE(frame2.raw().valueRef(1), 20.0);

@@ -168,7 +168,8 @@ void tst_engine::test_dataEngine_simple_runtime()
     QVERIFY(engine.process());
     QCOMPARE(archive.count, i+1);
 
-    const auto &frame = buffers.readFrame();
+    Frame frame;
+    QVERIFY(buffers.readFrame(frame));
 
     const auto expectedFrame = static_cast<uint64_t>(i + 1);
 
