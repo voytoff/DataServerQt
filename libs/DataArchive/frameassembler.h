@@ -8,7 +8,6 @@
 
 #include <optional>
 #include <unordered_set>
-#include <vector>
 
 namespace qds
 {
@@ -16,6 +15,7 @@ namespace qds
 class FrameAssembler
 {
 public:
+
   FrameAssembler(
     const SystemConfiguration& configuration,
     const SignalMemoryLayout& layout,
@@ -26,8 +26,10 @@ public:
     const DataStreamFrame& frame);
 
 private:
+
   const SignalMemoryLayout& m_layout;
-  std::vector<ModuleId> m_modules;
+
+  std::unordered_set<ModuleId> m_expected;
   std::unordered_set<ModuleId> m_received;
 
   Frame m_frame;

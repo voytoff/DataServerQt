@@ -1,6 +1,7 @@
 #include "smartblocklcardmodule.h"
 #include <cassert>
-#include  <thread>
+#include <thread>
+#include <chrono>
 
 namespace qds
 {
@@ -17,13 +18,13 @@ SmartBlockLCardModule::SmartBlockLCardModule(
 
 bool SmartBlockLCardModule::start() noexcept
 {
-  m_running = true;
+  m_running.store(true);
   return true;
 }
 
 void SmartBlockLCardModule::stop() noexcept
 {
-  m_running = false;
+  m_running.store(false);
 }
 
 std::size_t SmartBlockLCardModule::blockFrameCapacity() const noexcept
@@ -36,13 +37,27 @@ double SmartBlockLCardModule::frameRate() const noexcept
   return 1000;
 }
 
+uint32_t SmartBlockLCardModule::remainingBlockCount() const noexcept
+{
+  return m_blockCount.load();
+}
+
 std::size_t SmartBlockLCardModule::readBlock(
   std::span<double> values) noexcept
 {
-  if (!m_running)
+  if (!m_running.load())
     return 0;
 
-  if (m_blockCount == 0)
+  const std::size_t valueCount =
+    m_frameCount * m_channelCount;
+
+  assert(
+    values.size() >= valueCount);
+
+  if (values.size() < valueCount)
+    return 0;
+
+  if (m_blockCount.load() == 0)
   {
     std::this_thread::sleep_for(
       std::chrono::milliseconds(1));
@@ -50,18 +65,15 @@ std::size_t SmartBlockLCardModule::readBlock(
     return 0;
   }
 
-  const std::size_t valueCount =
-    m_frameCount * m_channelCount;
+  m_blockCount.fetch_sub(1);
 
-  assert(values.size() >= valueCount);
-
-  if (values.size() < valueCount)
-    return 0;
-
-  --m_blockCount;
-
-  for (std::size_t i = 0; i < valueCount; ++i)
-    values[i] = static_cast<double>(i);
+  for (std::size_t i = 0;
+       i < valueCount;
+       ++i)
+  {
+    values[i] =
+      static_cast<double>(i);
+  }
 
   return m_frameCount;
 }
@@ -69,7 +81,7 @@ std::size_t SmartBlockLCardModule::readBlock(
 void SmartBlockLCardModule::setCount(
   const uint32_t blockCount)
 {
-  m_blockCount = blockCount;
+  m_blockCount.store(blockCount);
 }
 
 }

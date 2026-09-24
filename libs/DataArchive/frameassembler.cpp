@@ -12,13 +12,10 @@ FrameAssembler::FrameAssembler(
 {
   m_frame.initialize(layout);
 
-  m_modules.reserve(
-    configuration.modules().size());
-
   for (const auto& module :
        configuration.modules())
   {
-    m_modules.push_back(module.id);
+    m_expected.insert(module.id);
   }
 }
 
@@ -26,6 +23,9 @@ std::optional<Frame>
 FrameAssembler::push(
   const DataStreamFrame& frame)
 {
+  if (!m_expected.contains(frame.module))
+    return std::nullopt;
+
   const auto offset =
     m_layout.rawOffset(frame.module);
 
@@ -45,8 +45,10 @@ FrameAssembler::push(
   m_received.insert(frame.module);
 
   const bool ready =
-    m_startPolicy == FrameStartPolicy::AllowIncomplete ||
-    m_received.size() == m_modules.size();
+    m_startPolicy ==
+      FrameStartPolicy::AllowIncomplete ||
+    m_received.size() ==
+      m_expected.size();
 
   if (!ready)
     return std::nullopt;

@@ -3,6 +3,8 @@
 #include "frame.h"
 #include "signalmemorylayout.h"
 
+#include <mutex>
+
 namespace qds
 {
 
@@ -10,27 +12,25 @@ class BufferManager
 {
 public:
 
-  void initialize(const SignalMemoryLayout& layout);
+  void initialize(
+    const SignalMemoryLayout& layout);
 
-  Frame& beginWrite();
+  void publish(
+    const Frame& frame);
 
-  void publish();
-
-  const Frame& readFrame() const;
+  [[nodiscard]]
+  bool readFrame(
+    Frame& frame) const;
 
   [[nodiscard]]
   bool ready() const noexcept;
 
-  void cancelWrite() noexcept;
-
 private:
-  Frame m_frames[2];
 
-  uint32_t m_writeIndex = 0;
-  uint32_t m_readIndex = 1;
+  mutable std::mutex m_mutex;
 
+  Frame m_frame;
   bool m_ready = false;
-  bool m_building = false;
 };
 
 }

@@ -43,7 +43,7 @@ bool DataEngine::process() noexcept
 {
   if (!m_initialized || !m_running)
     return false;
-
+/*
   Frame& frame =
     m_buffers->beginWrite();
 
@@ -84,7 +84,7 @@ bool DataEngine::process() noexcept
   {
     m_logger->error("Archive write failed");
   }
-
+*/
   return true;
 }
 
@@ -109,6 +109,7 @@ bool DataEngine::isRunning() const noexcept
 bool DataEngine::processFrame(
   const Frame& source) noexcept
 {
+  /*
   Frame& frame =
     m_buffers->beginWrite();
 
@@ -134,7 +135,7 @@ bool DataEngine::processFrame(
     m_logger->error(
       "Archive write failed");
   }
-
+*/
   return true;
 }
 

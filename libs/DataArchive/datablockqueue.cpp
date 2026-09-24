@@ -93,6 +93,14 @@ bool DataBlockQueue::waitPop(
   return true;
 }
 
+void DataBlockQueue::start() noexcept
+{
+  std::lock_guard lock(m_mutex);
+
+  m_deque.clear();
+  m_stopped = false;
+}
+
 void DataBlockQueue::stop() noexcept
 {
   {

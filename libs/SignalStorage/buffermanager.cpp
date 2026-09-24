@@ -1,49 +1,42 @@
 #include "buffermanager.h"
-#include <cassert>
 
 namespace qds
 {
 
-void BufferManager::initialize(const SignalMemoryLayout &layout)
+void BufferManager::initialize(
+  const SignalMemoryLayout& layout)
 {
-  for (Frame &frame : m_frames)
-    frame.initialize(layout);
+  std::lock_guard lock(m_mutex);
+
+  m_frame.initialize(layout);
+  m_ready = false;
 }
 
-Frame& BufferManager::beginWrite()
+void BufferManager::publish(
+  const Frame& frame)
 {
-  assert(!m_building);
+  std::lock_guard lock(m_mutex);
 
-  m_building = true;
-  return m_frames[m_writeIndex];
-}
-
-void BufferManager::publish()
-{
-  assert(m_building);
-
-  m_building = false;
-  std::swap(m_writeIndex, m_readIndex);
+  m_frame = frame;
   m_ready = true;
 }
 
-const Frame& BufferManager::readFrame() const
+bool BufferManager::readFrame(
+  Frame& frame) const
 {
-  assert(m_ready);
+  std::lock_guard lock(m_mutex);
 
-  return m_frames[m_readIndex];
+  if (!m_ready)
+    return false;
+
+  frame = m_frame;
+  return true;
 }
 
 bool BufferManager::ready() const noexcept
 {
+  std::lock_guard lock(m_mutex);
   return m_ready;
-}
-
-void BufferManager::cancelWrite() noexcept
-{
-  assert(m_building);
-
-  m_building = false;
 }
 
 }

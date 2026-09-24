@@ -29,8 +29,7 @@ public:
   bool pop(DataStreamEvent& event);
   bool waitPop(DataStreamEvent& event);
 
-  //bool popEvent(DataStreamEvent& event);
-  //bool waitPopEvent(DataStreamEvent& event);
+  void start() noexcept;
 
   void stop() noexcept;
 

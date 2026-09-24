@@ -1,12 +1,13 @@
 #pragma once
 
 #include "ilcardmodule.h"
+#include <atomic>
 #include <cstdint>
 
 namespace qds
 {
 
-class SmartBlockLCardModule final : public qds::ILCardModule
+class SmartBlockLCardModule final : public ILCardModule
 {
 public:
   SmartBlockLCardModule(
@@ -23,6 +24,9 @@ public:
 
   double frameRate() const noexcept override;
 
+  [[nodiscard]]
+  uint32_t remainingBlockCount() const noexcept;
+
   std::size_t readBlock(
     std::span<double> values) noexcept override;
 
@@ -31,8 +35,8 @@ public:
 private:
   std::size_t m_frameCount;
   std::size_t m_channelCount;
-  uint32_t m_blockCount = 1;
-  bool m_running = false;
+  std::atomic_uint32_t m_blockCount{0};
+  std::atomic_bool m_running{false};
 };
 
 }

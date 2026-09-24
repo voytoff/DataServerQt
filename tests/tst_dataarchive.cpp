@@ -10,6 +10,7 @@
 #include "datastreamprocessor.h"
 #include "datastreamreader.h"
 #include "datastreamtime.h"
+#include "datastreamworker.h"
 #include "fakeclock.h"
 #include "framestartpolicy.h"
 #include "fakedatastreameventsink.h"
@@ -3160,8 +3161,8 @@ void tst_dataarchive::test_DataStreamProcessor_wait_for_all()
   QCOMPARE(archived.raw().value(6), 31.0);
 
 
-  const Frame& latest =
-    buffers.readFrame();
+  Frame latest;
+  QVERIFY(buffers.readFrame(latest));
 
   QCOMPARE(
     latest.number,
@@ -3276,7 +3277,7 @@ void tst_dataarchive::test_DataStreamProcessor_livetime()
     QVERIFY(buffers.ready());
 
     const Frame& archived =
-      archive.frames[k-1];
+      archive.frames[k - 1];
 
     QCOMPARE(
       archived.number,
@@ -3301,8 +3302,8 @@ void tst_dataarchive::test_DataStreamProcessor_livetime()
     QCOMPARE(archived.raw().value(6), n * 10.0 + 4);
 
 
-    const Frame& latest =
-      buffers.readFrame();
+    Frame latest;
+    QVERIFY(buffers.readFrame(latest));
 
     QCOMPARE(
       latest.number,
@@ -3435,8 +3436,8 @@ void tst_dataarchive::
 
     QVERIFY(buffers.ready());
 
-    const Frame& latest =
-      buffers.readFrame();
+    Frame latest;
+    QVERIFY(buffers.readFrame(latest));
 
     QCOMPARE(
       latest.number,
@@ -3459,3 +3460,501 @@ void tst_dataarchive::
       41.0);
   }
 }
+
+void tst_dataarchive::test_DataStreamWorker_base()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Some_Modules();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  DataStreamReader reader;
+
+  FrameAssembler assembler(
+    cfg,
+    layout,
+    FrameStartPolicy::AllowIncomplete);
+
+  BufferManager buffers;
+  buffers.initialize(layout);
+
+  FormulaAstRepository formulas;
+  CalculationPlan plan;
+  CalibrationRepository calibrations;
+
+  SignalProcessor signalProcessor(
+    layout,
+    formulas,
+    plan,
+    calibrations);
+
+  TestArchiveFrameWriter archive;
+  TestLogger logger;
+  DataBlockQueue queue;
+
+  DataStreamProcessor processor(
+    reader,
+    assembler,
+    signalProcessor,
+    buffers,
+    archive,
+    logger);
+
+  DataStreamWorker worker(
+    queue,
+    processor,
+    logger);
+
+  queue.start();
+  QVERIFY(worker.start());
+
+  for (uint32_t m = 0; m < 3; ++m)
+  {
+    DataStreamAnchor anchor;
+
+    anchor.module = ModuleId{m};
+    anchor.firstFrameIndex = 0;
+    anchor.startTimestamp = Timestamp{0};
+    anchor.startWallTime = WallClockTime{0};
+    anchor.frameRate = 1000.0;
+
+    queue.startStream(anchor);
+  }
+
+  for (uint32_t n = 0; n < 10; ++n)
+  {
+    for (uint32_t m = 0; m < 3; ++m)
+    {
+      const auto channelCount =
+        cfg.moduleChannelCount(
+          ModuleId{m});
+
+      std::vector<double> values(
+        channelCount);
+
+      for (std::size_t i = 0;
+           i < channelCount;
+           ++i)
+      {
+        values[i] =
+          static_cast<double>(
+            n * 10 + m * 2);
+      }
+
+      queue.push(
+        ModuleId{m},
+        n,
+        values,
+        channelCount,
+        1,
+        1000.0);
+    }
+  }
+
+  queue.stop();
+  worker.join();
+
+
+  QVERIFY(
+    !worker.isRunning());
+
+  QCOMPARE(
+    queue.size(),
+    std::size_t{0});
+
+  QCOMPARE(
+    archive.frames.size(),
+    std::size_t{30});
+
+  const Frame& last =
+    archive.frames.back();
+
+  QCOMPARE(
+    last.number,
+    FrameNumber{29});
+
+  QCOMPARE(
+    last.timestamp,
+    Timestamp{9'000});
+
+  QCOMPARE(
+    last.wallTime,
+    WallClockTime{9'000});
+
+  QCOMPARE(last.raw().value(0), 90.0);
+  QCOMPARE(last.raw().value(1), 90.0);
+
+  QCOMPARE(last.raw().value(2), 92.0);
+  QCOMPARE(last.raw().value(3), 92.0);
+  QCOMPARE(last.raw().value(4), 92.0);
+
+  QCOMPARE(last.raw().value(5), 94.0);
+  QCOMPARE(last.raw().value(6), 94.0);
+}
+
+void tst_dataarchive::test_LCardDataSource_to_archive()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Some_Modules();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  DataStreamReader reader;
+
+  FrameAssembler assembler(
+    cfg,
+    layout,
+    FrameStartPolicy::AllowIncomplete);
+
+  BufferManager buffers;
+  buffers.initialize(layout);
+
+  FormulaAstRepository formulas;
+  CalculationPlan plan;
+  CalibrationRepository calibrations;
+
+  SignalProcessor signalProcessor(
+    layout,
+    formulas,
+    plan,
+    calibrations);
+
+  TestArchiveFrameWriter archive;
+  TestLogger logger;
+
+  DataBlockQueue queue;
+
+  DataStreamProcessor processor(
+    reader,
+    assembler,
+    signalProcessor,
+    buffers,
+    archive,
+    logger);
+
+  DataStreamWorker worker(
+    queue,
+    processor,
+    logger);
+
+  FakeClock clock;
+
+  clock.setTimestamp(
+    1'000'000);
+
+  clock.setWallClockTime(
+    10'000'000);
+
+  constexpr std::size_t frameCount = 4;
+  constexpr std::size_t channelCount = 2;
+  constexpr uint32_t blockCount = 3;
+
+  auto module =
+    std::make_unique<SmartBlockLCardModule>(
+      frameCount,
+      channelCount,
+      blockCount);
+
+  auto* modulePtr =
+    module.get();
+
+  LCardDataSource source(
+    ModuleId{0},
+    2,
+    std::move(module),
+    clock,
+    &queue,
+    &queue);
+
+  queue.start();
+
+  QVERIFY(
+    worker.start());
+
+  QVERIFY(
+    source.start());
+
+  QTRY_COMPARE_WITH_TIMEOUT(
+    modulePtr->remainingBlockCount(),
+    uint32_t{0},
+    1000);
+
+  // Producer больше не должен работать.
+  source.stop();
+
+  // Закрываем очередь только после producer.
+  queue.stop();
+
+  // Consumer дочитывает всё накопленное.
+  worker.join();
+
+  QCOMPARE(
+    queue.size(),
+    std::size_t{0});
+
+  QCOMPARE(
+    archive.frames.size(),
+    std::size_t{12});
+
+  const Frame& first =
+    archive.frames.front();
+
+  QCOMPARE(
+    first.number,
+    FrameNumber{0});
+
+  QCOMPARE(
+    first.timestamp,
+    Timestamp{1'000'000});
+
+  QCOMPARE(
+    first.wallTime,
+    WallClockTime{10'000'000});
+
+  QCOMPARE(
+    first.raw().value(0),
+    0.0);
+
+  QCOMPARE(
+    first.raw().value(1),
+    1.0);
+
+  // ==========================
+  const Frame& last =
+    archive.frames.back();
+
+  QCOMPARE(
+    last.number,
+    FrameNumber{11});
+
+  QCOMPARE(
+    last.timestamp,
+    Timestamp{1'011'000});
+
+  QCOMPARE(
+    last.wallTime,
+    WallClockTime{10'011'000});
+
+  QCOMPARE(
+    last.raw().value(0),
+    6.0);
+
+  QCOMPARE(
+    last.raw().value(1),
+    7.0);
+}
+
+void tst_dataarchive::test_LCardDataSource_some_modules_to_archive()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Some_Modules();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  DataStreamReader reader;
+
+  FrameAssembler assembler(
+    cfg,
+    layout,
+    FrameStartPolicy::WaitForAllModules);
+
+  BufferManager buffers;
+  buffers.initialize(layout);
+
+  FormulaAstRepository formulas;
+  CalculationPlan plan;
+  CalibrationRepository calibrations;
+
+  SignalProcessor signalProcessor(
+    layout,
+    formulas,
+    plan,
+    calibrations);
+
+  TestArchiveFrameWriter archive;
+  TestLogger logger;
+
+  DataBlockQueue queue;
+
+  DataStreamProcessor processor(
+    reader,
+    assembler,
+    signalProcessor,
+    buffers,
+    archive,
+    logger);
+
+  DataStreamWorker worker(
+    queue,
+    processor,
+    logger);
+
+  FakeClock clock;
+
+  clock.setTimestamp(
+    1'000);
+
+  clock.setWallClockTime(
+    10'000);
+
+  constexpr std::size_t frameCount0 = 2;
+  constexpr uint32_t blockCount0 = 3;
+
+  auto module0 =
+    std::make_unique<SmartBlockLCardModule>(
+      frameCount0,
+      cfg.moduleChannelCount(ModuleId{0}),
+      blockCount0);
+
+  auto* modulePtr0 =
+    module0.get();
+
+  LCardDataSource source0(
+    ModuleId{0},
+    cfg.moduleChannelCount(ModuleId{0}),
+    std::move(module0),
+    clock,
+    &queue,
+    &queue);
+
+  constexpr std::size_t frameCount1 = 2;
+  constexpr uint32_t blockCount1 = 2;
+
+  auto module1 =
+    std::make_unique<SmartBlockLCardModule>(
+      frameCount1,
+      cfg.moduleChannelCount(ModuleId{1}),
+      blockCount1);
+
+  auto* modulePtr1 =
+    module1.get();
+
+  LCardDataSource source1(
+    ModuleId{1},
+    cfg.moduleChannelCount(ModuleId{1}),
+    std::move(module1),
+    clock,
+    &queue,
+    &queue);
+
+  constexpr std::size_t frameCount2 = 2;
+  constexpr uint32_t blockCount2 = 3;
+
+  auto module2 =
+    std::make_unique<SmartBlockLCardModule>(
+      frameCount2,
+      cfg.moduleChannelCount(ModuleId{2}),
+      blockCount2);
+
+  auto* modulePtr2 =
+    module2.get();
+
+  LCardDataSource source2(
+    ModuleId{2},
+    cfg.moduleChannelCount(ModuleId{2}),
+    std::move(module2),
+    clock,
+    &queue,
+    &queue);
+
+
+  queue.start();
+
+  QVERIFY(
+    worker.start());
+
+  QVERIFY(
+    source0.start());
+  QVERIFY(
+    source1.start());
+  QVERIFY(
+    source2.start());
+
+  QTRY_COMPARE_WITH_TIMEOUT(
+    modulePtr0->remainingBlockCount(),
+    uint32_t{0},
+    1000);
+  QTRY_COMPARE_WITH_TIMEOUT(
+    modulePtr1->remainingBlockCount(),
+    uint32_t{0},
+    1000);
+  QTRY_COMPARE_WITH_TIMEOUT(
+    modulePtr2->remainingBlockCount(),
+    uint32_t{0},
+    1000);
+
+  // Producer-ы больше не должны работать.
+  source0.stop();
+  source1.stop();
+  source2.stop();
+
+  // Закрываем очередь только после producer-ов.
+  queue.stop();
+
+  // Consumer дочитывает всё накопленное.
+  worker.join();
+
+
+  QCOMPARE(
+    queue.size(),
+    std::size_t{0});
+
+  QVERIFY(
+    !archive.frames.empty());
+
+  for (std::size_t i = 0;
+       i < archive.frames.size();
+       ++i)
+  {
+    const Frame& frame =
+      archive.frames[i];
+
+    QCOMPARE(
+      frame.number,
+      FrameNumber{
+        static_cast<uint64_t>(i)
+      });
+
+    for (uint32_t n = 0;
+         n < frame.raw().size();
+         ++n)
+    {
+      QVERIFY(
+        !std::isnan(
+          frame.raw().value(n)));
+    }
+  }
+
+  for (const Frame& frame :
+       archive.frames)
+  {
+    QVERIFY(
+      frame.timestamp.value >= 1'000);
+
+    QVERIFY(
+      frame.timestamp.value <= 6'000);
+
+    QVERIFY(
+      frame.wallTime.unixMicroseconds >=
+      10'000);
+
+    QVERIFY(
+      frame.wallTime.unixMicroseconds <=
+      15'000);
+  }
+
+  QVERIFY(
+    archive.frames.size() <=
+    std::size_t{16});
+
+}
+

@@ -1,5 +1,4 @@
 #include "tst_udpserver.h"
-#include "isender.h"
 #include "subscriptionmanager.h"
 #include "systemconfiguration.h"
 #include "testsrv.h"

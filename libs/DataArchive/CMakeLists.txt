@@ -29,6 +29,7 @@ add_library(DataArchive SHARED
     frameassembler.h frameassembler.cpp
     framestartpolicy.h
     datastreamprocessor.h datastreamprocessor.cpp
+    datastreamworker.h datastreamworker.cpp
 )
 
 target_include_directories(DataArchive

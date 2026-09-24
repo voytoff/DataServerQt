@@ -80,4 +80,8 @@ private slots:
 
   void test_DataStreamProcessor_livetime();
   void test_DataStreamProcessor_block_with_multiple_frames();
+
+  void test_DataStreamWorker_base();
+  void test_LCardDataSource_to_archive();
+  void test_LCardDataSource_some_modules_to_archive();
 };

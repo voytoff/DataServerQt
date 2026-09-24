@@ -48,12 +48,7 @@ bool DataStreamProcessor::process(
       return false;
     }
 
-    Frame& latest =
-      m_buffers.beginWrite();
-
-    latest = frame;
-
-    m_buffers.publish();
+    m_buffers.publish(frame);
 
     if (!m_archive.write(frame))
       m_logger.error("Archive write failed");

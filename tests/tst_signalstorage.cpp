@@ -65,7 +65,7 @@ void tst_signalstorage::test_buffer_manager()
   Frame &frame3 = manager.beginWrite();
 
   auto read2 = manager.readFrame();
-  QCOMPARE(read2.raw().values()[0], 0);
+  QVERIFY(std::isnan(read2.raw().values()[0]));
   QCOMPARE(read2.raw().values()[1], 11);
   QCOMPARE(read2.calculated().values()[0], 0xFF);
 
@@ -75,7 +75,7 @@ void tst_signalstorage::test_buffer_manager()
 
   auto read3 = manager.readFrame();
   QCOMPARE(read3.raw().values()[0], 10);
-  QCOMPARE(read3.calculated().values()[0], 0);
+  QVERIFY(std::isnan(read3.calculated().values()[0]));
 }
 
 void tst_signalstorage::test_raw_memory()
