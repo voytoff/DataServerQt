@@ -13,7 +13,7 @@
 #include "datastreamworker.h"
 #include "fakeclock.h"
 #include "framestartpolicy.h"
-#include "fakedatastreameventsink.h"
+#include "qds/fakedatastreameventsink.h"
 #include "fakelcardmodule.h"
 #include "frameassembler.h"
 #include "lcarddatasource.h"

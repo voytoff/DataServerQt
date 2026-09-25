@@ -4,6 +4,7 @@
 #include "idatablocksink.h"
 #include "idatasource.h"
 #include "idatastreameventsink.h"
+#include "idatastreamsource.h"
 #include "ilcardmodule.h"
 
 #include <atomic>
@@ -16,7 +17,9 @@
 namespace qds
 {
 
-class LCardDataSource final : public IDataSource
+class LCardDataSource final
+  : public IDataSource,
+    public IDataStreamSource
 {
 public:
   LCardDataSource(

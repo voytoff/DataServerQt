@@ -34,6 +34,9 @@ add_library(DataSource SHARED
   fakedatablocksink.h fakedatablocksink.cpp
   datastreamevent.h
   datastreamtime.h datastreamtime.cpp
+  idatastreamsource.h
+  datastreamsourcefactory.h datastreamsourcefactory.cpp
+  datastreamsourcemanager.h datastreamsourcemanager.cpp
 )
 
 target_include_directories(DataSource

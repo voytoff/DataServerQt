@@ -5,7 +5,7 @@
 #include "archivereader.h"
 #include "configurationrepository.h"
 #include "datasourcefactory.h"
-#include "db.h"
+#include "qds/db.h"
 #include "logger.h"
 #include "testlogger.h"
 #include "failingarchivewriter.h"
@@ -18,12 +18,12 @@
 #include "runtimesystem.h"
 #include "systembuilder.h"
 #include "systemconfiguration.h"
-#include "testarchivewriter.h"
+#include "qds/testarchivewriter.h"
 #include "testdatasource.h"
-#include "testpublisher.h"
+#include "qds/testpublisher.h"
 #include "testsrv.h"
 #include "dataserver.h"
-#include "udp.h"
+#include "qds/udp.h"
 #include <qtestsupport_core.h>
 
 tst_dataserver::tst_dataserver() { }
@@ -159,22 +159,21 @@ void tst_dataserver::test_systemBuilder_process()
     runtime));
 
   QVERIFY(runtime.engine->initialize(
-    runtime.dataSources,
-    *runtime.signalProcessor,
+    //runtime.dataSources,
+    //*runtime.signalProcessor,
     runtime.buffers,
-    archive,
-    publisher,
-    clock,
-    logger));
+    //archive,
+    publisher));
+    //logger));
 
   QVERIFY(runtime.engine->process());
 
   QCOMPARE(
-    archive.count,
+    archive.size(),
     1);
 
   QCOMPARE(
-    publisher.count,
+    publisher.size(),
     1);
 }
 
@@ -326,13 +325,8 @@ void tst_dataserver::test_systemBuilder_cycle()
     runtime));
 
   QVERIFY(runtime.engine->initialize(
-    runtime.dataSources,
-    *runtime.signalProcessor,
     runtime.buffers,
-    archive,
-    publisher,
-    clock,
-    logger));
+    publisher));
 
   for (int n = 0; n < 1000; ++n)
   {
@@ -341,44 +335,44 @@ void tst_dataserver::test_systemBuilder_cycle()
     auto count = n + 1;
     double a = n;
     double b = n * 10;
-    QCOMPARE(archive.count, count);
-    QCOMPARE(publisher.count, count);
+    QCOMPARE(archive.size(), count);
+    QCOMPARE(publisher.size(), count);
 
     const auto& archived = archive.last();
     const auto& published = publisher.last();
 
-    QCOMPARE(archived.number, FrameNumber{static_cast<uint64_t>(count)});
+    QCOMPARE(archived->number, FrameNumber{static_cast<uint64_t>(count)});
 
-    QCOMPARE(archived.timestamp, Timestamp{static_cast<uint64_t>(count * 2)});
+    QCOMPARE(archived->timestamp, Timestamp{static_cast<uint64_t>(count * 2)});
 
-    QCOMPARE(archived.wallTime, WallClockTime{static_cast<int64_t>(count * 5)});
+    QCOMPARE(archived->wallTime, WallClockTime{static_cast<int64_t>(count * 5)});
 
-    QCOMPARE(archived.raw().valueRef(0), a);
-    QCOMPARE(archived.raw().valueRef(1), b);
+    QCOMPARE(archived->raw().valueRef(0), a);
+    QCOMPARE(archived->raw().valueRef(1), b);
 
-    QCOMPARE(archived.calculated().valueRef(0), a);
-    QCOMPARE(archived.calculated().valueRef(1), b);
-    QCOMPARE(archived.calculated().valueRef(2), a + b);
-
-    QCOMPARE(
-      published.raw().valueRef(0),
-      archived.raw().valueRef(0));
+    QCOMPARE(archived->calculated().valueRef(0), a);
+    QCOMPARE(archived->calculated().valueRef(1), b);
+    QCOMPARE(archived->calculated().valueRef(2), a + b);
 
     QCOMPARE(
-      published.raw().valueRef(1),
-      archived.raw().valueRef(1));
+      published->raw().valueRef(0),
+      archived->raw().valueRef(0));
 
     QCOMPARE(
-      published.calculated().valueRef(0),
-      archived.calculated().valueRef(0));
+      published->raw().valueRef(1),
+      archived->raw().valueRef(1));
 
     QCOMPARE(
-      published.calculated().valueRef(1),
-      archived.calculated().valueRef(1));
+      published->calculated().valueRef(0),
+      archived->calculated().valueRef(0));
 
     QCOMPARE(
-      published.calculated().valueRef(2),
-      archived.calculated().valueRef(2));
+      published->calculated().valueRef(1),
+      archived->calculated().valueRef(1));
+
+    QCOMPARE(
+      published->calculated().valueRef(2),
+      archived->calculated().valueRef(2));
   }
 }
 
@@ -2354,23 +2348,18 @@ void tst_dataserver::test_dataServer_build_after_failBuild()
     runtime));
 
   QVERIFY(runtime.engine->initialize(
-    runtime.dataSources,
-    *runtime.signalProcessor,
     runtime.buffers,
-    archive,
-    publisher,
-    clock,
-    logger));
+    publisher));
 
   QVERIFY(
     runtime.engine->process());
 
   QCOMPARE(
-    archive.count,
+    archive.size(),
     1);
 
   QCOMPARE(
-    publisher.count,
+    publisher.size(),
     1);
 }
 
@@ -2409,13 +2398,8 @@ void tst_dataserver::test_dataEngine_process_dataSourceFailure()
     runtime));
 
   QVERIFY(runtime.engine->initialize(
-    runtime.dataSources,
-    *runtime.signalProcessor,
     runtime.buffers,
-    archive,
-    publisher,
-    clock,
-    logger));
+    publisher));
 
   QVERIFY(!runtime.engine->process());
   QVERIFY(runtime.engine->isRunning());
@@ -2494,17 +2478,12 @@ void tst_dataserver::test_dataEngine_process_archiveFailure()
 
 
   QVERIFY(runtime.engine->initialize(
-    runtime.dataSources,
-    *runtime.signalProcessor,
     runtime.buffers,
-    archive,
-    publisher,
-    clock,
-    logger));
+    publisher));
 
   QVERIFY(runtime.engine->process());
   QVERIFY(runtime.engine->isRunning());
-  QCOMPARE(publisher.count, 1);
+  QCOMPARE(publisher.size(), 1);
 
   runtime.engine->stop();
   QVERIFY(!runtime.engine->isRunning());
@@ -2545,13 +2524,8 @@ void tst_dataserver::test_dataEngine_process_success()
     runtime));
 
   QVERIFY(runtime.engine->initialize(
-    runtime.dataSources,
-    *runtime.signalProcessor,
     runtime.buffers,
-    archive,
-    publisher,
-    clock,
-    logger));
+    publisher));
 
   QVERIFY(!runtime.buffers.ready());
 
@@ -2560,8 +2534,8 @@ void tst_dataserver::test_dataEngine_process_success()
   QVERIFY(runtime.engine->isRunning());
   QVERIFY(runtime.buffers.ready());
 
-  QCOMPARE(archive.count, 1);
-  QCOMPARE(publisher.count, 1);
+  QCOMPARE(archive.size(), 1);
+  QCOMPARE(publisher.size(), 1);
 }
 
 void tst_dataserver::test_dataServer_stop_on_dataSourceFailure()
@@ -2601,7 +2575,7 @@ void tst_dataserver::test_dataServer_stop_on_dataSourceFailure()
     !ds.isRunning(),
     2000);
 
-  QCOMPARE(archive.count, 0);
+  QCOMPARE(archive.size(), 0);
   QCOMPARE(sender.sendCount, 0);
 }
 
@@ -2668,13 +2642,8 @@ void tst_dataserver::test_systemBuilder_failedThenSuccess()
   Logger logger(getCurrentFolder(), clock);
 
   QVERIFY(runtime.engine->initialize(
-    runtime.dataSources,
-    *runtime.signalProcessor,
     runtime.buffers,
-    archive,
-    publisher,
-    clock,
-    logger));
+    publisher));
 
   QVERIFY(runtime.engine->process());
 }

@@ -2,8 +2,8 @@
 #include "systemconfiguration.h"
 #include "dataserver.h"
 #include "testdatasource.h"
-#include "testpublisher.h"
 #include "testarchivewriter.h"
+#include "testpublisher.h"
 #include "udpsender.h"
 #include "logger.h"
 

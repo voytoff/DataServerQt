@@ -47,3 +47,9 @@ target_link_libraries(dataserver
       Qt${QT_VERSION_MAJOR}::Core
       Qt${QT_VERSION_MAJOR}::Network
 )
+
+target_include_directories(dataserver
+    PRIVATE
+        "../../tests/qds"
+)
+

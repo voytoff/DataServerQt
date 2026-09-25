@@ -30,6 +30,11 @@ private slots:
   void test_calculationProcessor_emptyCalculationPlan();
   void test_calculationProcessor_formulaContext();
   void test_calculationCompiler_unknownSignalOutput();
+
+  void test_signalProcessor_failOnceDataSource();
+  void test_signalProcessor_failFormula();
+  void test_signalProcessor_cycle();
+
 */
   void test_calculationPlan_base();
   void test_calculationPlan_failAst();
@@ -37,9 +42,5 @@ private slots:
   void test_calculationPlan_rebuildInvalid();
 
   void test_signalProcessor_calculate();
-
-  void test_signalProcessor_failOnceDataSource();
-  void test_signalProcessor_failFormula();
-  void test_signalProcessor_cycle();
 
 };

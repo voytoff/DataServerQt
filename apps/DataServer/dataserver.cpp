@@ -70,13 +70,13 @@ bool DataServer::start()
       *m_dispatcher);
 
   if (!m_runtime.engine->initialize(
-        m_runtime.dataSources,
-        *m_runtime.signalProcessor,
+        //m_runtime.dataSources,
+        //*m_runtime.signalProcessor,
         m_runtime.buffers,
-        m_archive,
-        *m_publisher,
-        m_clock,
-        m_logger))
+        //m_archive,
+        *m_publisher))
+        //m_clock,
+        //m_logger
   {
     cleanup();
     return false;

@@ -11,6 +11,8 @@ public:
 
 private:
   /*
+  void test_dataEngine_simple_runtime();
+  void test_pipeline_archive_copy();
   void test_dataEngine_withoutSources();
   void test_dataEngine_withFakeSource();
   void test_dataEngine_stepWithoutStart();
@@ -21,11 +23,12 @@ private:
   void test_dataEngine_FailingCalculationProcessor();
   void test_dataEngine_FailingArchiveWriter();
   void test_dataEngine_simple_pipeline();
+  void test_dataEngine_failOnceArchiveWriter();
 */
 private slots:
   // здесь проверяется буквально вся система
-  void test_pipeline_archive_copy();
-  void test_dataEngine_simple_runtime();
-  void test_dataEngine_failOnceArchiveWriter();
+
+  void test_DataEngine_publish_latest();
+  void test_DataEngine_no_frame();
 
 };

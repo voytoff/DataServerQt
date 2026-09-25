@@ -2,9 +2,12 @@
 #include "buffermanager.h"
 #include "datasourcefactory.h"
 #include "datasourcemanager.h"
+#include "datastreamsourcefactory.h"
+#include "datastreamsourcemanager.h"
 #include "failingdatasource.h"
 #include "fakedatasource.h"
 #include "hardwaremodulefactory.h"
+#include "qds/testdatastreamsource.h"
 #include "testdatasource.h"
 #include "testsrv.h"
 #include <qtestcase.h>
@@ -886,4 +889,216 @@ void tst_datasource::test_datasource_start_stop()
   QVERIFY(!manager.acquire(raw));
   QCOMPARE(raw.value(0), 2);
   QCOMPARE(raw.value(1), 20);
+}
+
+void tst_datasource::test_dataStreamSourceFactory()
+{
+  using namespace qds;
+
+  DataStreamSourceFactory factory;
+
+  QVERIFY(
+    factory.registerType(
+      ModuleType::Test,
+      [](const ModuleRuntimeConfiguration&)
+      {
+        return std::make_unique<TestDataStreamSource>();
+      }));
+
+  ModuleRuntimeConfiguration cfg{.module = {.type = ModuleType::Test}};
+
+  auto source =
+    factory.create(cfg);
+
+  QVERIFY(source);
+
+  QVERIFY(source->start());
+  source->stop();
+}
+
+void tst_datasource::test_dataStreamSourceManager()
+{
+  using namespace qds;
+
+  auto cfg = createTestConfig_Some_Modules();
+
+  DataStreamSourceFactory factory;
+
+  QVERIFY(
+    factory.registerType(
+      ModuleType::Fake,
+      [](const ModuleRuntimeConfiguration&)
+      {
+        return std::make_unique<TestDataStreamSource>();
+      }));
+
+  DataStreamSourceManager manager;
+
+  QVERIFY(manager.initialize(cfg, factory));
+
+  QCOMPARE(
+    manager.size(),
+    cfg.modules().size());
+
+  QVERIFY(!manager.isRunning());
+
+  QVERIFY(manager.start());
+  QVERIFY(manager.isRunning());
+
+  manager.stop();
+
+  QVERIFY(!manager.isRunning());
+}
+
+void tst_datasource::test_dataStreamSourceManager_startRollback()
+{
+  using namespace qds;
+
+  auto cfg =
+    createTestConfig_Some_Modules(
+      ModuleType::Fake,
+      ModuleType::Test);
+
+  DataStreamSourceFactory factory;
+
+  TestDataStreamSource* sourceOk = nullptr;
+  TestDataStreamSource* sourceFail = nullptr;
+
+  QVERIFY(
+    factory.registerType(
+      ModuleType::Fake,
+      [&sourceOk](const ModuleRuntimeConfiguration&)
+      {
+        auto source =
+          std::make_unique<TestDataStreamSource>();
+
+        sourceOk = source.get();
+
+        return source;
+      }));
+
+  QVERIFY(
+    factory.registerType(
+      ModuleType::Test,
+      [&sourceFail](const ModuleRuntimeConfiguration&)
+      {
+        auto source =
+          std::make_unique<TestDataStreamSource>(0);
+
+        sourceFail = source.get();
+
+        return source;
+      }));
+
+  DataStreamSourceManager manager;
+
+  QVERIFY(manager.initialize(cfg, factory));
+
+  QVERIFY(sourceOk);
+  QVERIFY(sourceFail);
+
+  QVERIFY(!manager.start());
+
+  QVERIFY(!manager.isRunning());
+
+  //QCOMPARE(sourceOk->startCounts, 1);
+  //QCOMPARE(sourceOk->stopCounts, 1);
+
+  QCOMPARE(sourceFail->startCounts, 1);
+  QCOMPARE(sourceFail->stopCounts, 0);
+}
+
+void tst_datasource::test_dataStreamSourceManager_reinitialize()
+{
+  using namespace qds;
+
+  auto cfg = createTestConfig_Some_Modules();
+
+  DataStreamSourceFactory factory;
+  std::unique_ptr<TestDataStreamSource> ptr;
+
+  QVERIFY(
+    factory.registerType(
+      ModuleType::Fake,
+      [](const ModuleRuntimeConfiguration&)
+      {
+        return std::make_unique<TestDataStreamSource>();
+      }));
+
+  DataStreamSourceManager manager;
+
+  QVERIFY(manager.initialize(cfg, factory));
+
+  QCOMPARE(
+    manager.size(),
+    cfg.modules().size());
+
+  QVERIFY(manager.start());
+  QVERIFY(manager.isRunning());
+
+  manager.stop();
+  QVERIFY(!manager.isRunning());
+
+  cfg = createTestConfig_calculate(ModuleType::Fake); // 1 модуль
+
+  QVERIFY(manager.initialize(cfg, factory));
+
+  QCOMPARE(
+    manager.size(),
+    cfg.modules().size());
+
+  QVERIFY(manager.start());
+  QVERIFY(manager.isRunning());
+
+  manager.stop();
+  QVERIFY(!manager.isRunning());
+}
+
+void tst_datasource::test_dataStreamSourceManager_initializeRollback()
+{
+  using namespace qds;
+
+  auto cfg =
+    createTestConfig_Some_Modules(
+      ModuleType::Fake,
+      ModuleType::Test);
+
+  DataStreamSourceFactory factory;
+
+  QVERIFY(
+    factory.registerType(
+      ModuleType::Fake,
+      [](const ModuleRuntimeConfiguration&)
+      {
+        return std::make_unique<TestDataStreamSource>();
+      }));
+
+  QVERIFY(
+    factory.registerType(
+      ModuleType::Test,
+      [](const ModuleRuntimeConfiguration&)
+      {
+        return std::make_unique<TestDataStreamSource>();
+      }));
+
+  DataStreamSourceManager manager;
+
+  QVERIFY(manager.initialize(cfg, factory));
+
+  QCOMPARE(
+    manager.size(),
+    cfg.modules().size());
+
+  const auto size = manager.size();
+
+  cfg =
+    createTestConfig_Some_Modules(
+      ModuleType::Fake,
+      ModuleType::Unknown);
+
+  QVERIFY(!manager.initialize(cfg, factory));
+
+  QCOMPARE(
+    manager.size(),
+    size);
 }

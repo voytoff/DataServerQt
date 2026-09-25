@@ -39,4 +39,10 @@ private slots:
 
   void test_datasource_start_stop();
 
+  void test_dataStreamSourceFactory();
+  void test_dataStreamSourceManager();
+  void test_dataStreamSourceManager_startRollback();
+  void test_dataStreamSourceManager_reinitialize();
+  void test_dataStreamSourceManager_initializeRollback();
+
 };

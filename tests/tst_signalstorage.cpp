@@ -329,108 +329,164 @@ void tst_signalstorage::test_bufferManager_thread_safe()
     layout.rawSignalCount(),
     uint32_t{2});
 
-  std::thread thread([]() {
+  BufferManager buffers;
+  buffers.initialize(layout);
 
-  });
+  Frame frame;
+  Frame read;
+
+  for (uint32_t n = 0; n < 10; ++n)
+  {
+    frame.initialize(layout);
+
+    frame.number =
+      FrameNumber{n};
+
+    frame.raw().setValue(
+      0,
+      n * 10.0);
+
+    buffers.publish(frame);
+
+    QVERIFY(
+      buffers.ready());
+
+    bool result = false;
+
+    std::thread thread([&]() {
+      result = buffers.readFrame(read);
+    });
+
+    thread.join();
+
+    QVERIFY(result);
+
+    QCOMPARE(
+      read.number,
+      FrameNumber{n});
+
+    QCOMPARE(
+      read.raw().value(0),
+      n * 10.0);
+
+    QVERIFY(
+      std::isnan(
+        read.raw().value(1)));
+  }
+}
+
+void tst_signalstorage::test_bufferManager_thread_safe2()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_1module_2raw_2calc();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
 
   BufferManager buffers;
   buffers.initialize(layout);
 
+  constexpr uint64_t frameCount =
+    10'000;
+
+  std::atomic_bool writerFinished{false};
+  std::atomic_bool failed{false};
+
+  std::thread writer(
+    [&]()
+    {
+      for (uint64_t n = 1;
+           n <= frameCount;
+           ++n)
+      {
+        Frame frame;
+        frame.initialize(layout);
+
+        frame.number =
+          FrameNumber{n};
+
+        frame.raw().setValue(
+          0,
+          static_cast<double>(n));
+
+        frame.raw().setValue(
+          1,
+          static_cast<double>(n * 10));
+
+        frame.calculated().setValue(
+          0,
+          static_cast<double>(n * 100));
+
+        buffers.publish(frame);
+      }
+
+      writerFinished.store(true);
+    });
+
+  std::thread reader(
+    [&]()
+    {
+      Frame frame;
+
+      while (!writerFinished.load())
+      {
+        if (!buffers.readFrame(frame))
+          continue;
+
+        const uint64_t n =
+          frame.number.value;
+
+        if (frame.raw().value(0) !=
+            static_cast<double>(n))
+        {
+          failed.store(true);
+          return;
+        }
+
+        if (frame.raw().value(1) !=
+            static_cast<double>(n * 10))
+        {
+          failed.store(true);
+          return;
+        }
+
+        if (frame.calculated().value(0) !=
+            static_cast<double>(n * 100))
+        {
+          failed.store(true);
+          return;
+        }
+      }
+    });
+
+  writer.join();
+  reader.join();
+
   QVERIFY(
-    !buffers.ready());
+    !failed.load());
 
-  Frame empty;
-
-  QVERIFY(
-    !buffers.readFrame(empty));
-
-  // ==========================
-  // Первый frame
-
-  Frame frame1;
-  frame1.initialize(layout);
-
-  frame1.number =
-    FrameNumber{10};
-
-  frame1.raw().setValue(
-    0,
-    10.0);
-
-  buffers.publish(frame1);
+  Frame last;
 
   QVERIFY(
-    buffers.ready());
-
-  Frame read1;
-
-  QVERIFY(
-    buffers.readFrame(read1));
+    buffers.readFrame(last));
 
   QCOMPARE(
-    read1.number,
-    FrameNumber{10});
+    last.number,
+    FrameNumber{frameCount});
 
   QCOMPARE(
-    read1.raw().value(0),
-    10.0);
-
-  QVERIFY(
-    std::isnan(
-      read1.raw().value(1)));
-
-  // ==========================
-  // Второй frame
-
-  Frame frame2;
-  frame2.initialize(layout);
-
-  frame2.number =
-    FrameNumber{20};
-
-  frame2.raw().setValue(
-    1,
-    11.0);
-
-  frame2.calculated().setValue(
-    0,
-    255.0);
-
-  buffers.publish(frame2);
-
-  Frame read2;
-
-  QVERIFY(
-    buffers.readFrame(read2));
+    last.raw().value(0),
+    static_cast<double>(frameCount));
 
   QCOMPARE(
-    read2.number,
-    FrameNumber{20});
-
-  QVERIFY(
-    std::isnan(
-      read2.raw().value(0)));
+    last.raw().value(1),
+    static_cast<double>(
+      frameCount * 10));
 
   QCOMPARE(
-    read2.raw().value(1),
-    11.0);
-
-  QCOMPARE(
-    read2.calculated().value(0),
-    255.0);
-
-  // read1 — независимый snapshot.
-  // Следующая публикация его не изменила.
-
-  QCOMPARE(
-    read1.number,
-    FrameNumber{10});
-
-  QCOMPARE(
-    read1.raw().value(0),
-    10.0);
-
-  QVERIFY(
-    std::isnan(
-      read1.raw().value(1)));
+    last.calculated().value(0),
+    static_cast<double>(
+      frameCount * 100));
 }

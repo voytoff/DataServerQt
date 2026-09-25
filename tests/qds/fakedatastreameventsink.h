@@ -4,7 +4,7 @@
 namespace qds
 {
 
-class FakeDataStreamEventSink : public IDataStreamEventSink
+class FakeDataStreamEventSink final : public IDataStreamEventSink
 {
   void startStream(
     const DataStreamAnchor& anchor) override {

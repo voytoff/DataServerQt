@@ -11,7 +11,6 @@ add_library(Publisher SHARED
   publisher.cpp publisher.h
   iframepublisher.h
   nullframepublisher.h nullframepublisher.cpp
-  testpublisher.h testpublisher.cpp
 )
 
 target_include_directories(Publisher

@@ -22,5 +22,6 @@ private slots:
   void test_signalMemoryLayout_rawOffset_rawCount();
 
   void test_bufferManager_thread_safe();
+  void test_bufferManager_thread_safe2();
 
 };

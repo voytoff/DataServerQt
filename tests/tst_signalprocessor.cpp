@@ -14,9 +14,9 @@
 #include "parser/identifierresolver.h"
 #include "signalprocessor.h"
 #include "systemconfiguration.h"
-#include "testarchivewriter.h"
+#include "qds/testarchivewriter.h"
 #include "testdatasource.h"
-#include "testpublisher.h"
+#include "qds/testpublisher.h"
 #include "testsrv.h"
 #include "testlogger.h"
 
@@ -254,7 +254,7 @@ void tst_signalprocessor::test_signalProcessor_calculate()
   QCOMPARE(calculated.valueRef(2), 55.0);
 }
 
-
+/*
 void tst_signalprocessor::test_signalProcessor_failOnceDataSource()
 {
   using namespace qds;
@@ -333,55 +333,55 @@ void tst_signalprocessor::test_signalProcessor_failOnceDataSource()
 
   QVERIFY(!engine.process());
 
-  QCOMPARE(archive.count, 0);
-  QCOMPARE(publisher.count, 0);
+  QCOMPARE(archive.size(), 0);
+  QCOMPARE(publisher.size(), 0);
 
   QVERIFY(!buffers.ready());
 
   QVERIFY(engine.process());
 
-  QCOMPARE(archive.count, 1);
-  QCOMPARE(publisher.count, 1);
+  QCOMPARE(archive.size(), 1);
+  QCOMPARE(publisher.size(), 1);
 
   QVERIFY(buffers.ready());
 
   const auto& published = publisher.last();
   const auto& archived = archive.last();
 
-  QCOMPARE(archived.raw().valueRef(0), 42.0);
-  QCOMPARE(archived.raw().valueRef(1), 42.0);
+  QCOMPARE(archived->raw().valueRef(0), 42.0);
+  QCOMPARE(archived->raw().valueRef(1), 42.0);
 
   QCOMPARE(
-    archived.calculated().valueRef(0),
+    archived->calculated().valueRef(0),
     47.0);
 
   QCOMPARE(
-    archived.calculated().valueRef(1),
+    archived->calculated().valueRef(1),
     84.0);
 
   QCOMPARE(
-    archived.calculated().valueRef(2),
+    archived->calculated().valueRef(2),
     131.0);
 
   QCOMPARE(
-    published.raw().valueRef(0),
-    archived.raw().valueRef(0));
+    published->raw().valueRef(0),
+    archived->raw().valueRef(0));
 
   QCOMPARE(
-    published.raw().valueRef(1),
-    archived.raw().valueRef(1));
+    published->raw().valueRef(1),
+    archived->raw().valueRef(1));
 
   QCOMPARE(
-    published.calculated().valueRef(0),
-    archived.calculated().valueRef(0));
+    published->calculated().valueRef(0),
+    archived->calculated().valueRef(0));
 
   QCOMPARE(
-    published.calculated().valueRef(1),
-    archived.calculated().valueRef(1));
+    published->calculated().valueRef(1),
+    archived->calculated().valueRef(1));
 
   QCOMPARE(
-    published.calculated().valueRef(2),
-    archived.calculated().valueRef(2));
+    published->calculated().valueRef(2),
+    archived->calculated().valueRef(2));
 }
 
 void tst_signalprocessor::test_signalProcessor_failFormula()
@@ -458,8 +458,8 @@ void tst_signalprocessor::test_signalProcessor_failFormula()
 
   QVERIFY(!engine.process());
 
-  QCOMPARE(archive.count, 0);
-  QCOMPARE(publisher.count, 0);
+  QCOMPARE(archive.size(), 0);
+  QCOMPARE(publisher.size(), 0);
 
   QVERIFY(!buffers.ready());
 }
@@ -493,17 +493,17 @@ void tst_signalprocessor::test_signalProcessor_cycle()
   QCOMPARE(manager.size(), 1);
 
   FormulaAstRepository formulas;
-  /*
-  FormulaParser parserA("Raw0 + 5");
-  QVERIFY(formulas.add(FormulaId{17}, std::move(parserA.parse())));
 
-  FormulaParser parserB("Raw1 * Raw1");
-  QVERIFY(formulas.add(FormulaId{4}, std::move(parserB.parse())));
+  //FormulaParser parserA("Raw0 + 5");
+  //QVERIFY(formulas.add(FormulaId{17}, std::move(parserA.parse())));
 
-  FormulaParser parserC("sqrt(B)");
+  //FormulaParser parserB("Raw1 * Raw1");
+  //QVERIFY(formulas.add(FormulaId{4}, std::move(parserB.parse())));
+
+  //FormulaParser parserC("sqrt(B)");
   //FormulaParser parserC("A + B");
-  QVERIFY(formulas.add(FormulaId{23}, std::move(parserC.parse())));
-  */
+  //QVERIFY(formulas.add(FormulaId{23}, std::move(parserC.parse())));
+
   FormulaBuilder formulaBuilder;
 
    QVERIFY(formulaBuilder.build(
@@ -551,47 +551,47 @@ void tst_signalprocessor::test_signalProcessor_cycle()
     auto count = n + 1;
     double a = n;
     double b = n * 10;
-    QCOMPARE(archive.count, count);
-    QCOMPARE(publisher.count, count);
+    QCOMPARE(archive.size(), count);
+    QCOMPARE(publisher.size(), count);
 
     const auto& archived = archive.last();
     const auto& published = publisher.last();
 
-    QCOMPARE(archived.number, FrameNumber{static_cast<uint64_t>(count)});
+    QCOMPARE(archived->number, FrameNumber{static_cast<uint64_t>(count)});
 
-    QCOMPARE(archived.timestamp, Timestamp{static_cast<uint64_t>(count * 2)});
+    QCOMPARE(archived->timestamp, Timestamp{static_cast<uint64_t>(count * 2)});
 
-    QCOMPARE(archived.wallTime, WallClockTime{static_cast<int64_t>(count * 5)});
+    QCOMPARE(archived->wallTime, WallClockTime{static_cast<int64_t>(count * 5)});
 
-    QCOMPARE(archived.raw().valueRef(0), a);
-    QCOMPARE(archived.raw().valueRef(1), b);
+    QCOMPARE(archived->raw().valueRef(0), a);
+    QCOMPARE(archived->raw().valueRef(1), b);
 
-    QCOMPARE(archived.calculated().valueRef(0), a);
-    QCOMPARE(archived.calculated().valueRef(1), b);
-    QCOMPARE(archived.calculated().valueRef(2), a + b);
-
-    QCOMPARE(
-      published.raw().valueRef(0),
-      archived.raw().valueRef(0));
+    QCOMPARE(archived->calculated().valueRef(0), a);
+    QCOMPARE(archived->calculated().valueRef(1), b);
+    QCOMPARE(archived->calculated().valueRef(2), a + b);
 
     QCOMPARE(
-      published.raw().valueRef(1),
-      archived.raw().valueRef(1));
+      published->raw().valueRef(0),
+      archived->raw().valueRef(0));
 
     QCOMPARE(
-      published.calculated().valueRef(0),
-      archived.calculated().valueRef(0));
+      published->raw().valueRef(1),
+      archived->raw().valueRef(1));
 
     QCOMPARE(
-      published.calculated().valueRef(1),
-      archived.calculated().valueRef(1));
+      published->calculated().valueRef(0),
+      archived->calculated().valueRef(0));
 
     QCOMPARE(
-      published.calculated().valueRef(2),
-      archived.calculated().valueRef(2));
+      published->calculated().valueRef(1),
+      archived->calculated().valueRef(1));
+
+    QCOMPARE(
+      published->calculated().valueRef(2),
+      archived->calculated().valueRef(2));
   }
 }
-/*
+
 void tst_signalprocessor::test_calculation_plan()
 {
   using namespace qds;

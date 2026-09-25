@@ -5,7 +5,7 @@
 #include "archivereader.h"
 #include "configurationrepository.h"
 #include "datasourcefactory.h"
-#include "db.h"
+#include "qds/db.h"
 #include "archiveformat.h"
 #include "fakeschedulerclock.h"
 #include "nullarchivewriter.h"
@@ -13,9 +13,9 @@
 #include "runtimesystem.h"
 #include "systembuilder.h"
 #include "systemconfiguration.h"
-#include "testarchivewriter.h"
+#include "qds/testarchivewriter.h"
 #include "testdatasource.h"
-#include "testpublisher.h"
+#include "qds/testpublisher.h"
 #include "testpublishersender.h"
 #include "testsrv.h"
 #include "testlogger.h"
@@ -320,13 +320,8 @@ void tst_database::test_database_pipeline()
     runtime));
 
   QVERIFY(runtime.engine->initialize(
-    runtime.dataSources,
-    *runtime.signalProcessor,
     runtime.buffers,
-    archive,
-    publisher,
-    clock,
-    logger));
+    publisher));
 
   QCOMPARE(runtime.calibrations.sizeSignals(), 1);
   QCOMPARE(runtime.calibrations.sizeSignalTypes(), 1);
@@ -432,13 +427,8 @@ void tst_database::test_database_archive()
   TestLogger logger;
 
   QVERIFY(runtime.engine->initialize(
-    runtime.dataSources,
-    *runtime.signalProcessor,
     runtime.buffers,
-    archive,
-    publisher,
-    clock,
-    logger));
+    publisher));
 
   QCOMPARE(runtime.calibrations.sizeSignals(), 1);
   QCOMPARE(runtime.calibrations.sizeSignalTypes(), 1);
@@ -800,13 +790,8 @@ void tst_database::test_publisher()
   QCOMPARE(id, SubscriptionId{1});
 
   QVERIFY(runtime.engine->initialize(
-    runtime.dataSources,
-    *runtime.signalProcessor,
     runtime.buffers,
-    archive,
-    publisher,
-    clock,
-    logger));
+    publisher));
 
   for (int i = 0; i < 1000; ++i)
   {
@@ -935,13 +920,8 @@ void tst_database::test_publisher_raw_calculated()
   QCOMPARE(id2, SubscriptionId{2});
 
   QVERIFY(runtime.engine->initialize(
-    runtime.dataSources,
-    *runtime.signalProcessor,
     runtime.buffers,
-    archive,
-    publisher,
-    clock,
-    logger));
+    publisher));
 
   for (int i = 0; i < 1000; ++i)
   {

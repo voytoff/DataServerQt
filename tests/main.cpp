@@ -29,11 +29,19 @@ int main(int argc, char *argv[])
   int rc = 0;
 
   {
-    tst_signalstorage tc;
+    tst_datasource tc;
+    rc |= QTest::qExec(&tc, argc, argv);
+  }
+  {
+    tst_engine tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
   {
     tst_dataarchive tc;
+    rc |= QTest::qExec(&tc, argc, argv);
+  }
+  {
+    tst_signalstorage tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
   {
@@ -49,15 +57,7 @@ int main(int argc, char *argv[])
     rc |= QTest::qExec(&tc, argc, argv);
   }
   {
-    tst_datasource tc;
-    rc |= QTest::qExec(&tc, argc, argv);
-  }
-  {
     tst_dataserver tc;
-    rc |= QTest::qExec(&tc, argc, argv);
-  }
-  {
-    tst_engine tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
   {
