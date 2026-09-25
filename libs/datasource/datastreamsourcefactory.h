@@ -1,5 +1,8 @@
 #pragma once
 
+#include "iclock.h"
+#include "idatablocksink.h"
+#include "idatastreameventsink.h"
 #include "idatastreamsource.h"
 #include "moduleruntimeconfiguration.h"
 #include <functional>
@@ -14,16 +17,23 @@ class DataStreamSourceFactory
 public:
 
   using Creator =
-    std::function<
-      std::unique_ptr<IDataStreamSource>(
-        const ModuleRuntimeConfiguration&)>;
+    std::function<std::unique_ptr<IDataStreamSource>(
+      const ModuleRuntimeConfiguration&,
+      IClock&,
+      IDataBlockSink&,
+      IDataStreamEventSink&)>;
 
   bool registerType(
     ModuleType type,
     Creator creator);
 
   std::unique_ptr<IDataStreamSource> create(
-    const ModuleRuntimeConfiguration& configuration) const;
+    const ModuleRuntimeConfiguration& configuration,
+    IClock& clock,
+    IDataBlockSink& blockSink,
+    IDataStreamEventSink& eventSink
+
+    ) const;
 
 private:
 

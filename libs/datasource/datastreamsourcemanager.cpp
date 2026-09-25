@@ -5,7 +5,9 @@ namespace qds
 
 bool DataStreamSourceManager::initialize(
   const SystemConfiguration &configuration,
-  const DataStreamSourceFactory &factory)
+  const DataStreamSourceFactory &factory,
+  IClock &clock, IDataBlockSink &blockSink,
+  IDataStreamEventSink &eventSink)
 {
   if (m_running)
     return false;
@@ -24,7 +26,11 @@ bool DataStreamSourceManager::initialize(
       return false;
 
     auto source =
-      factory.create(cfg.value());
+      factory.create(
+        cfg.value(),
+        clock,
+        blockSink,
+        eventSink);
 
     if (!source)
       return false;

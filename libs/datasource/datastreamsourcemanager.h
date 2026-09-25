@@ -1,6 +1,7 @@
 #pragma once
 
 #include "datastreamsourcefactory.h"
+#include "iclock.h"
 #include "systemconfiguration.h"
 
 #include <memory>
@@ -16,7 +17,10 @@ public:
   [[nodiscard]]
   bool initialize(
     const SystemConfiguration& configuration,
-    const DataStreamSourceFactory& factory);
+    const DataStreamSourceFactory& factory,
+    IClock& clock,
+    IDataBlockSink& blockSink,
+    IDataStreamEventSink& eventSink);
 
   [[nodiscard]]
   bool start() noexcept;

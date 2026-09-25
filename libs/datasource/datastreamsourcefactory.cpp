@@ -18,7 +18,10 @@ bool DataStreamSourceFactory::registerType(ModuleType type, Creator creator)
 }
 
 std::unique_ptr<IDataStreamSource> DataStreamSourceFactory::create(
-  const ModuleRuntimeConfiguration &configuration) const
+  const ModuleRuntimeConfiguration &configuration,
+  IClock &clock,
+  IDataBlockSink &blockSink,
+  IDataStreamEventSink &eventSink) const
 {
   const auto type = configuration.module.type;
 
@@ -30,7 +33,7 @@ std::unique_ptr<IDataStreamSource> DataStreamSourceFactory::create(
   if (it == m_creators.end())
     return nullptr;
 
-  return it->second(configuration);
+  return it->second(configuration, clock, blockSink, eventSink);
 }
 
 }

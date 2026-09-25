@@ -1,11 +1,13 @@
 #include "tst_datasource.h"
 #include "buffermanager.h"
+#include "datablockqueue.h"
 #include "datasourcefactory.h"
 #include "datasourcemanager.h"
 #include "datastreamsourcefactory.h"
 #include "datastreamsourcemanager.h"
 #include "failingdatasource.h"
 #include "fakedatasource.h"
+#include "fakeschedulerclock.h"
 #include "hardwaremodulefactory.h"
 #include "qds/testdatastreamsource.h"
 #include "testdatasource.h"
@@ -900,15 +902,21 @@ void tst_datasource::test_dataStreamSourceFactory()
   QVERIFY(
     factory.registerType(
       ModuleType::Test,
-      [](const ModuleRuntimeConfiguration&)
+      [](const ModuleRuntimeConfiguration&,
+         IClock&,
+         IDataBlockSink&,
+         IDataStreamEventSink&)
       {
         return std::make_unique<TestDataStreamSource>();
       }));
 
   ModuleRuntimeConfiguration cfg{.module = {.type = ModuleType::Test}};
 
+  FakeSchedulerClock clock;
+  DataBlockQueue queue;
+
   auto source =
-    factory.create(cfg);
+    factory.create(cfg, clock, queue, queue);
 
   QVERIFY(source);
 
@@ -927,14 +935,19 @@ void tst_datasource::test_dataStreamSourceManager()
   QVERIFY(
     factory.registerType(
       ModuleType::Fake,
-      [](const ModuleRuntimeConfiguration&)
+      [](const ModuleRuntimeConfiguration&,
+         IClock&,
+         IDataBlockSink&,
+         IDataStreamEventSink&)
       {
         return std::make_unique<TestDataStreamSource>();
       }));
 
   DataStreamSourceManager manager;
+  FakeSchedulerClock clock;
+  DataBlockQueue queue;
 
-  QVERIFY(manager.initialize(cfg, factory));
+  QVERIFY(manager.initialize(cfg, factory, clock, queue, queue));
 
   QCOMPARE(
     manager.size(),
@@ -967,7 +980,10 @@ void tst_datasource::test_dataStreamSourceManager_startRollback()
   QVERIFY(
     factory.registerType(
       ModuleType::Fake,
-      [&sourceOk](const ModuleRuntimeConfiguration&)
+      [&sourceOk](const ModuleRuntimeConfiguration&,
+                  IClock&,
+                  IDataBlockSink&,
+                  IDataStreamEventSink&)
       {
         auto source =
           std::make_unique<TestDataStreamSource>();
@@ -980,7 +996,10 @@ void tst_datasource::test_dataStreamSourceManager_startRollback()
   QVERIFY(
     factory.registerType(
       ModuleType::Test,
-      [&sourceFail](const ModuleRuntimeConfiguration&)
+      [&sourceFail](const ModuleRuntimeConfiguration&,
+                    IClock&,
+                    IDataBlockSink&,
+                    IDataStreamEventSink&)
       {
         auto source =
           std::make_unique<TestDataStreamSource>(0);
@@ -991,8 +1010,10 @@ void tst_datasource::test_dataStreamSourceManager_startRollback()
       }));
 
   DataStreamSourceManager manager;
+  FakeSchedulerClock clock;
+  DataBlockQueue queue;
 
-  QVERIFY(manager.initialize(cfg, factory));
+  QVERIFY(manager.initialize(cfg, factory, clock, queue, queue));
 
   QVERIFY(sourceOk);
   QVERIFY(sourceFail);
@@ -1020,14 +1041,19 @@ void tst_datasource::test_dataStreamSourceManager_reinitialize()
   QVERIFY(
     factory.registerType(
       ModuleType::Fake,
-      [](const ModuleRuntimeConfiguration&)
+      [](const ModuleRuntimeConfiguration&,
+         IClock&,
+         IDataBlockSink&,
+         IDataStreamEventSink&)
       {
         return std::make_unique<TestDataStreamSource>();
       }));
 
   DataStreamSourceManager manager;
+  FakeSchedulerClock clock;
+  DataBlockQueue queue;
 
-  QVERIFY(manager.initialize(cfg, factory));
+  QVERIFY(manager.initialize(cfg, factory, clock, queue, queue));
 
   QCOMPARE(
     manager.size(),
@@ -1041,7 +1067,7 @@ void tst_datasource::test_dataStreamSourceManager_reinitialize()
 
   cfg = createTestConfig_calculate(ModuleType::Fake); // 1 модуль
 
-  QVERIFY(manager.initialize(cfg, factory));
+  QVERIFY(manager.initialize(cfg, factory, clock, queue, queue));
 
   QCOMPARE(
     manager.size(),
@@ -1068,7 +1094,10 @@ void tst_datasource::test_dataStreamSourceManager_initializeRollback()
   QVERIFY(
     factory.registerType(
       ModuleType::Fake,
-      [](const ModuleRuntimeConfiguration&)
+      [](const ModuleRuntimeConfiguration&,
+         IClock&,
+         IDataBlockSink&,
+         IDataStreamEventSink&)
       {
         return std::make_unique<TestDataStreamSource>();
       }));
@@ -1076,14 +1105,19 @@ void tst_datasource::test_dataStreamSourceManager_initializeRollback()
   QVERIFY(
     factory.registerType(
       ModuleType::Test,
-      [](const ModuleRuntimeConfiguration&)
+      [](const ModuleRuntimeConfiguration&,
+         IClock&,
+         IDataBlockSink&,
+         IDataStreamEventSink&)
       {
         return std::make_unique<TestDataStreamSource>();
       }));
 
   DataStreamSourceManager manager;
+  FakeSchedulerClock clock;
+  DataBlockQueue queue;
 
-  QVERIFY(manager.initialize(cfg, factory));
+  QVERIFY(manager.initialize(cfg, factory, clock, queue, queue));
 
   QCOMPARE(
     manager.size(),
@@ -1096,7 +1130,7 @@ void tst_datasource::test_dataStreamSourceManager_initializeRollback()
       ModuleType::Fake,
       ModuleType::Unknown);
 
-  QVERIFY(!manager.initialize(cfg, factory));
+  QVERIFY(!manager.initialize(cfg, factory, clock, queue, queue));
 
   QCOMPARE(
     manager.size(),
