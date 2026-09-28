@@ -11,6 +11,7 @@
 #include "datastreamreader.h"
 #include "datastreamtime.h"
 #include "datastreamworker.h"
+#include "failingarchivewriter.h"
 #include "fakeclock.h"
 #include "framestartpolicy.h"
 #include "qds/fakedatastreameventsink.h"
@@ -3016,6 +3017,181 @@ void tst_dataarchive::test_FrameAssembler_allow_incomplete()
   QCOMPARE(result->raw().value(6), 31.0);
 }
 
+void tst_dataarchive::test_DataStreamProcessor_archiveFailure()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Some_Modules();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  DataStreamReader reader;
+
+  FrameAssembler assembler(
+    cfg,
+    layout,
+    FrameStartPolicy::WaitForAllModules);
+
+  BufferManager buffers;
+  buffers.initialize(layout);
+
+  FormulaAstRepository formulas;
+  CalculationPlan plan;
+  CalibrationRepository calibrations;
+
+  SignalProcessor signalProcessor(
+    layout,
+    formulas,
+    plan,
+    calibrations);
+
+  FailingArchiveWriter archive;
+  TestLogger logger;
+
+  DataStreamProcessor processor(
+    reader,
+    assembler,
+    signalProcessor,
+    buffers,
+    archive,
+    logger);
+
+  // ------------------------------------------------------------
+  // Module 0
+  // ------------------------------------------------------------
+
+  DataStreamAnchor anchor0;
+  anchor0.module = ModuleId{0};
+  anchor0.firstFrameIndex = 0;
+  anchor0.startTimestamp = Timestamp{1000};
+  anchor0.startWallTime = WallClockTime{10000};
+  anchor0.frameRate = 1000.0;
+
+  QVERIFY(
+    processor.process(anchor0));
+
+  DataBlock block0;
+  block0.module = ModuleId{0};
+  block0.firstFrameIndex = 0;
+  block0.frameRate = 1000.0;
+  block0.channelCount = 2;
+  block0.frameCount = 1;
+  block0.values = {10, 11};
+
+  QVERIFY(
+    processor.process(block0));
+
+  QVERIFY(
+    !buffers.ready());
+
+  // ------------------------------------------------------------
+  // Module 1
+  // ------------------------------------------------------------
+
+  DataStreamAnchor anchor1;
+  anchor1.module = ModuleId{1};
+  anchor1.firstFrameIndex = 0;
+  anchor1.startTimestamp = Timestamp{2000};
+  anchor1.startWallTime = WallClockTime{11000};
+  anchor1.frameRate = 1000.0;
+
+  QVERIFY(
+    processor.process(anchor1));
+
+  DataBlock block1;
+  block1.module = ModuleId{1};
+  block1.firstFrameIndex = 0;
+  block1.frameRate = 1000.0;
+  block1.channelCount = 3;
+  block1.frameCount = 1;
+  block1.values = {20, 21, 22};
+
+  QVERIFY(
+    processor.process(block1));
+
+  QVERIFY(
+    !buffers.ready());
+
+  // ------------------------------------------------------------
+  // Module 2
+  // ------------------------------------------------------------
+
+  DataStreamAnchor anchor2;
+  anchor2.module = ModuleId{2};
+  anchor2.firstFrameIndex = 0;
+  anchor2.startTimestamp = Timestamp{3000};
+  anchor2.startWallTime = WallClockTime{12000};
+  anchor2.frameRate = 1000.0;
+
+  QVERIFY(
+    processor.process(anchor2));
+
+  DataBlock block2;
+  block2.module = ModuleId{2};
+  block2.firstFrameIndex = 0;
+  block2.frameRate = 1000.0;
+  block2.channelCount = 2;
+  block2.frameCount = 1;
+  block2.values = {30, 31};
+
+  // Архивирование завершится ошибкой,
+  // но обработка потока должна продолжиться.
+  QVERIFY(
+    processor.process(block2));
+
+  // Frame всё равно должен быть опубликован
+  // в BufferManager.
+  QVERIFY(
+    buffers.ready());
+
+  Frame latest;
+
+  QVERIFY(
+    buffers.readFrame(latest));
+
+  QCOMPARE(
+    latest.number,
+    FrameNumber{0});
+
+  QCOMPARE(
+    latest.timestamp,
+    Timestamp{3000});
+
+  QCOMPARE(
+    latest.wallTime,
+    WallClockTime{12000});
+
+  QCOMPARE(
+    latest.raw().value(0),
+    10.0);
+
+  QCOMPARE(
+    latest.raw().value(1),
+    11.0);
+
+  QCOMPARE(
+    latest.raw().value(2),
+    20.0);
+
+  QCOMPARE(
+    latest.raw().value(3),
+    21.0);
+
+  QCOMPARE(
+    latest.raw().value(4),
+    22.0);
+
+  QCOMPARE(
+    latest.raw().value(5),
+    30.0);
+
+  QCOMPARE(
+    latest.raw().value(6),
+    31.0);
+}
+
 void tst_dataarchive::test_DataStreamProcessor_wait_for_all()
 {
   using namespace qds;
@@ -3956,5 +4132,87 @@ void tst_dataarchive::test_LCardDataSource_some_modules_to_archive()
     archive.frames.size() <=
     std::size_t{16});
 
+}
+
+void tst_dataarchive::test_DataStreamWorker_restart()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_Some_Modules();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  DataStreamReader reader;
+
+  FrameAssembler assembler(
+    cfg,
+    layout,
+    FrameStartPolicy::WaitForAllModules);
+
+  BufferManager buffers;
+  buffers.initialize(layout);
+
+  FormulaAstRepository formulas;
+  CalculationPlan plan;
+  CalibrationRepository calibrations;
+
+  SignalProcessor signalProcessor(
+    layout,
+    formulas,
+    plan,
+    calibrations);
+
+  TestArchiveFrameWriter archive;
+  TestLogger logger;
+
+  DataBlockQueue queue;
+
+  DataStreamProcessor processor(
+    reader,
+    assembler,
+    signalProcessor,
+    buffers,
+    archive,
+    logger);
+
+  DataStreamWorker worker(
+    queue,
+    processor,
+    logger);
+
+  queue.start();
+  QVERIFY(worker.start());
+  QVERIFY(
+    worker.isRunning());
+
+
+  queue.stop();
+  worker.join();
+
+
+  QVERIFY(
+    !worker.isRunning());
+
+  QCOMPARE(
+    queue.size(),
+    std::size_t{0});
+
+
+  queue.start();
+  QVERIFY(worker.start());
+  QVERIFY(
+    worker.isRunning());
+
+  queue.stop();
+  worker.join();
+
+  QVERIFY(
+    !worker.isRunning());
+
+  QCOMPARE(
+    queue.size(),
+    std::size_t{0});
 }
 

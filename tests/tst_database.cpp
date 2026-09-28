@@ -4,23 +4,22 @@
 #include "archivemanager.h"
 #include "archivereader.h"
 #include "configurationrepository.h"
-#include "datasourcefactory.h"
 #include "qds/db.h"
 #include "archiveformat.h"
 #include "fakeschedulerclock.h"
 #include "nullarchivewriter.h"
 #include "protocol/publishheader.h"
+#include "qds/testarchiveframewriter.h"
+#include "qds/testdatastreamsource.h"
 #include "runtimesystem.h"
 #include "systembuilder.h"
 #include "systemconfiguration.h"
-#include "qds/testarchivewriter.h"
-#include "testdatasource.h"
-#include "qds/testpublisher.h"
 #include "testpublishersender.h"
 #include "testsrv.h"
 #include "testlogger.h"
 #include <QSqlTableModel>
 #include <qtestcase.h>
+#include <cmath>
 
 tst_database::tst_database() { }
 tst_database::~tst_database() = default;
@@ -279,172 +278,442 @@ WHERE id=:id;
 void tst_database::test_database_pipeline()
 {
   using namespace qds;
+
   auto db = get_db();
+
   QVERIFY(db.isOpen());
   QVERIFY(db.isValid());
 
   ConfigurationRepository repo(db);
 
   SystemConfiguration cfg;
-  QVERIFY(repo.load(ConfigurationId{1}, cfg));
+
+  QVERIFY(
+    repo.load(
+      ConfigurationId{1},
+      cfg));
+
+  QCOMPARE(
+    cfg.modules().size(),
+    std::size_t{1});
+
+  const auto module =
+    cfg.modules().front().id;
+
+  QCOMPARE(
+    cfg.moduleTags(module).size(),
+    std::size_t{2});
 
   CalibrationRepository cr;
-  QVERIFY(repo.loadCalibrations(cfg, cr));
 
-  QCOMPARE(cr.sizeSignals(), 1);
-  QCOMPARE(cr.sizeSignalTypes(), 1);
+  QVERIFY(
+    repo.loadCalibrations(
+      cfg,
+      cr));
 
-  DataSourceFactory factory;
+  QCOMPARE(
+    cr.sizeSignals(),
+    std::size_t{1});
 
-  QVERIFY(factory.registerType(
-    ModuleType::LTR11,
-    [](const ModuleRuntimeConfiguration& cfg)
-    {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
-    }));
+  QCOMPARE(
+    cr.sizeSignalTypes(),
+    std::size_t{1});
 
-  TestArchiveWriter archive;
-  TestPublisher publisher;
+  DataStreamSourceFactory factory;
+
+  QVERIFY(
+    factory.registerType(
+      ModuleType::LTR11,
+      [](const ModuleRuntimeConfiguration&,
+         IClock&,
+         IDataBlockSink&,
+         IDataStreamEventSink&)
+      {
+        return std::make_unique<
+          TestDataStreamSource>();
+      }));
+
+  TestArchiveFrameWriter archive;
   FakeSchedulerClock clock;
-
-  RuntimeSystem runtime;
-
-  SystemBuilder builder;
   TestLogger logger;
 
-  QVERIFY(builder.build(
-    cfg,
-    factory,
-    cr,
-    runtime));
+  SystemBuilder builder;
 
-  QVERIFY(runtime.engine->initialize(
-    runtime.buffers,
-    publisher));
+  auto runtime =
+    builder.build(
+      cfg,
+      factory,
+      cr,
+      clock,
+      archive,
+      logger);
 
-  QCOMPARE(runtime.calibrations.sizeSignals(), 1);
-  QCOMPARE(runtime.calibrations.sizeSignalTypes(), 1);
+  QVERIFY(runtime);
 
-  QVERIFY(runtime.engine->process());
+  QCOMPARE(
+    runtime->calibrations.sizeSignals(),
+    std::size_t{1});
+
+  QCOMPARE(
+    runtime->calibrations.sizeSignalTypes(),
+    std::size_t{1});
+
+  // ------------------------------------------------------------
+  // Stream anchor
+  // ------------------------------------------------------------
+
+  DataStreamAnchor anchor;
+  anchor.module = module;
+  anchor.firstFrameIndex = 0;
+  anchor.startTimestamp = Timestamp{1000};
+  anchor.startWallTime = WallClockTime{10000};
+  anchor.frameRate = 100.0;
+
+  QVERIFY(
+    runtime->streamProcessor->process(
+      anchor));
+
+  // ------------------------------------------------------------
+  // Frame 0: {0, 0}
+  // ------------------------------------------------------------
+
+  DataBlock block0;
+  block0.module = module;
+  block0.firstFrameIndex = 0;
+  block0.frameRate = 100.0;
+  block0.channelCount = 2;
+  block0.frameCount = 1;
+  block0.values = {
+    0.0,
+    0.0
+  };
+
+  QVERIFY(
+    runtime->streamProcessor->process(
+      block0));
 
   Frame frame0;
-  QVERIFY(runtime.buffers.readFrame(frame0));
 
-  QCOMPARE(frame0.raw().valueRef(0), 0.0);
-  QCOMPARE(frame0.raw().valueRef(1), 0.0);
+  QVERIFY(
+    runtime->buffers.readFrame(
+      frame0));
 
-  QCOMPARE(frame0.calculated().valueRef(0), 0.0);
-  QCOMPARE(frame0.calculated().valueRef(1), -20.0);
-  QCOMPARE(frame0.calculated().valueRef(2), 0.0 + -20.0);
+  QCOMPARE(
+    frame0.raw().valueRef(0),
+    0.0);
 
-  QVERIFY(runtime.engine->process());
+  QCOMPARE(
+    frame0.raw().valueRef(1),
+    0.0);
+
+  QCOMPARE(
+    frame0.calculated().valueRef(0),
+    0.0);
+
+  QCOMPARE(
+    frame0.calculated().valueRef(1),
+    -20.0);
+
+  QCOMPARE(
+    frame0.calculated().valueRef(2),
+    0.0 + -20.0);
+
+  // ------------------------------------------------------------
+  // Frame 1: {1, 10}
+  // ------------------------------------------------------------
+
+  DataBlock block1;
+  block1.module = module;
+  block1.firstFrameIndex = 1;
+  block1.frameRate = 100.0;
+  block1.channelCount = 2;
+  block1.frameCount = 1;
+  block1.values = {
+    1.0,
+    10.0
+  };
+
+  QVERIFY(
+    runtime->streamProcessor->process(
+      block1));
 
   Frame frame1;
-  QVERIFY(runtime.buffers.readFrame(frame1));
 
-  QCOMPARE(frame1.raw().valueRef(0), 1.0);
-  QCOMPARE(frame1.raw().valueRef(1), 10.0);
+  QVERIFY(
+    runtime->buffers.readFrame(
+      frame1));
 
-  QCOMPARE(frame1.calculated().valueRef(0), 0.1);
-  QCOMPARE(frame1.calculated().valueRef(1), -10.0);
-  QCOMPARE(frame1.calculated().valueRef(2), 0.1 + -10.0);
+  QCOMPARE(
+    frame1.raw().valueRef(0),
+    1.0);
 
-  QVERIFY(runtime.engine->process());
+  QCOMPARE(
+    frame1.raw().valueRef(1),
+    10.0);
+
+  QCOMPARE(
+    frame1.calculated().valueRef(0),
+    0.1);
+
+  QCOMPARE(
+    frame1.calculated().valueRef(1),
+    -10.0);
+
+  QCOMPARE(
+    frame1.calculated().valueRef(2),
+    0.1 + -10.0);
+
+  // ------------------------------------------------------------
+  // Frame 2: {2, 20}
+  // ------------------------------------------------------------
+
+  DataBlock block2;
+  block2.module = module;
+  block2.firstFrameIndex = 2;
+  block2.frameRate = 100.0;
+  block2.channelCount = 2;
+  block2.frameCount = 1;
+  block2.values = {
+    2.0,
+    20.0
+  };
+
+  QVERIFY(
+    runtime->streamProcessor->process(
+      block2));
 
   Frame frame2;
-  QVERIFY(runtime.buffers.readFrame(frame2));
 
-  QCOMPARE(frame2.raw().valueRef(0), 2.0);
-  QCOMPARE(frame2.raw().valueRef(1), 20.0);
+  QVERIFY(
+    runtime->buffers.readFrame(
+      frame2));
 
-  QCOMPARE(frame2.calculated().valueRef(0), 0.2);
-  QCOMPARE(frame2.calculated().valueRef(1), 0.0);
-  QCOMPARE(frame2.calculated().valueRef(2), 0.2 + 0.0);
+  QCOMPARE(
+    frame2.raw().valueRef(0),
+    2.0);
+
+  QCOMPARE(
+    frame2.raw().valueRef(1),
+    20.0);
+
+  QCOMPARE(
+    frame2.calculated().valueRef(0),
+    0.2);
+
+  QCOMPARE(
+    frame2.calculated().valueRef(1),
+    0.0);
+
+  QCOMPARE(
+    frame2.calculated().valueRef(2),
+    0.2 + 0.0);
 }
 
 void tst_database::test_database_archive()
 {
   using namespace qds;
+
   auto db = get_db();
+
   QVERIFY(db.isOpen());
   QVERIFY(db.isValid());
 
   ConfigurationRepository repo(db);
 
   SystemConfiguration cfg;
-  QVERIFY(repo.load(ConfigurationId{1}, cfg));
+
+  QVERIFY(
+    repo.load(
+      ConfigurationId{1},
+      cfg));
+
+  QCOMPARE(
+    cfg.modules().size(),
+    std::size_t{1});
+
+  const auto module =
+    cfg.modules().front().id;
+
+  QCOMPARE(
+    cfg.moduleTags(module).size(),
+    std::size_t{2});
 
   CalibrationRepository cr;
-  QVERIFY(repo.loadCalibrations(cfg, cr));
 
-  QCOMPARE(cr.sizeSignals(), 1);
-  QCOMPARE(cr.sizeSignalTypes(), 1);
+  QVERIFY(
+    repo.loadCalibrations(
+      cfg,
+      cr));
 
-  DataSourceFactory factory;
+  QCOMPARE(
+    cr.sizeSignals(),
+    std::size_t{1});
 
-  QVERIFY(factory.registerType(
-    ModuleType::LTR11,
-    [](const ModuleRuntimeConfiguration& cfg)
-    {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
-    }));
+  QCOMPARE(
+    cr.sizeSignalTypes(),
+    std::size_t{1});
 
+  // ------------------------------------------------------------
+  // Archive description
+  // ------------------------------------------------------------
 
-  RuntimeSystem runtime;
+  ArchiveDescriptionBuilder descriptionBuilder;
 
-  SystemBuilder builder;
-
-  QVERIFY(builder.build(
-    cfg,
-    factory,
-    cr,
-    runtime));
-
-  ArchiveDescriptionBuilder builder1;
   ArchiveDescription description;
-  QVERIFY(builder1.build(cfg, description));
 
-  ArchiveDescriptionWriter writer;
+  QVERIFY(
+    descriptionBuilder.build(
+      cfg,
+      description));
+
+  ArchiveDescriptionWriter descriptionWriter;
 
   const auto path =
     getFilePath(
       "description.json");
 
   QVERIFY(
-    writer.write(
+    descriptionWriter.write(
       path,
       description));
 
-  auto directory = getCurrentFolder();
+  // ------------------------------------------------------------
+  // Layout for ArchiveManager
+  // ------------------------------------------------------------
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  auto directory =
+    getCurrentFolder();
 
   ArchiveManager archive;
-  QVERIFY(archive.initialize(directory, description, runtime.layout));
 
-  TestPublisher publisher;
-  FakeSchedulerClock clock(2, 3);
+  QVERIFY(
+    archive.initialize(
+      directory,
+      description,
+      layout));
+
+  // ------------------------------------------------------------
+  // Runtime
+  // ------------------------------------------------------------
+
+  DataStreamSourceFactory factory;
+
+  QVERIFY(
+    factory.registerType(
+      ModuleType::LTR11,
+      [](const ModuleRuntimeConfiguration&,
+         IClock&,
+         IDataBlockSink&,
+         IDataStreamEventSink&)
+      {
+        return std::make_unique<
+          TestDataStreamSource>();
+      }));
+
+  FakeSchedulerClock clock;
   TestLogger logger;
 
-  QVERIFY(runtime.engine->initialize(
-    runtime.buffers,
-    publisher));
+  SystemBuilder builder;
 
-  QCOMPARE(runtime.calibrations.sizeSignals(), 1);
-  QCOMPARE(runtime.calibrations.sizeSignalTypes(), 1);
+  auto runtime =
+    builder.build(
+      cfg,
+      factory,
+      cr,
+      clock,
+      archive,
+      logger);
 
-  for (int i = 0; i < BaseFrameFrequency; ++i)
-    QVERIFY(runtime.engine->process());
+  QVERIFY(runtime);
+
+  QCOMPARE(
+    runtime->calibrations.sizeSignals(),
+    std::size_t{1});
+
+  QCOMPARE(
+    runtime->calibrations.sizeSignalTypes(),
+    std::size_t{1});
+
+  // ------------------------------------------------------------
+  // Stream
+  // ------------------------------------------------------------
+
+  DataStreamAnchor anchor;
+  anchor.module = module;
+  anchor.firstFrameIndex = 0;
+  anchor.startTimestamp = Timestamp{2};
+  anchor.startWallTime = WallClockTime{3};
+  anchor.frameRate =
+    static_cast<double>(
+      BaseFrameFrequency);
+
+  QVERIFY(
+    runtime->streamProcessor->process(
+      anchor));
+
+  for (
+    int i = 0;
+    i < BaseFrameFrequency;
+    ++i)
+  {
+    DataBlock block;
+
+    block.module =
+      module;
+
+    block.firstFrameIndex =
+      static_cast<uint64_t>(i);
+
+    block.frameRate =
+      static_cast<double>(
+        BaseFrameFrequency);
+
+    block.channelCount = 2;
+    block.frameCount = 1;
+
+    block.values = {
+      static_cast<double>(i),
+      static_cast<double>(i) * 10.0
+    };
+
+    QVERIFY(
+      runtime->streamProcessor->process(
+        block));
+  }
 
   archive.close();
 
+  // ------------------------------------------------------------
+  // Signal definitions
+  // ------------------------------------------------------------
 
-  const auto *sdraw0 = findSignalDefinition(cfg.signalDefinitions(), "Raw0");
-  const auto *sdraw1 = findSignalDefinition(cfg.signalDefinitions(), "Raw1");
+  const auto* sdraw0 =
+    findSignalDefinition(
+      cfg.signalDefinitions(),
+      "Raw0");
 
-  const auto *sda = findSignalDefinition(cfg.signalDefinitions(), "A");
-  const auto *sdb = findSignalDefinition(cfg.signalDefinitions(), "B");
-  const auto *sdc = findSignalDefinition(cfg.signalDefinitions(), "C");
+  const auto* sdraw1 =
+    findSignalDefinition(
+      cfg.signalDefinitions(),
+      "Raw1");
+
+  const auto* sda =
+    findSignalDefinition(
+      cfg.signalDefinitions(),
+      "A");
+
+  const auto* sdb =
+    findSignalDefinition(
+      cfg.signalDefinitions(),
+      "B");
+
+  const auto* sdc =
+    findSignalDefinition(
+      cfg.signalDefinitions(),
+      "C");
 
   QVERIFY(sdraw0);
   QVERIFY(sdraw1);
@@ -452,93 +721,217 @@ void tst_database::test_database_archive()
   QVERIFY(sdb);
   QVERIFY(sdc);
 
+  // ------------------------------------------------------------
+  // Verify archive
+  // ------------------------------------------------------------
+
   ArchiveFile file;
 
-  for (const auto &desc : description.files)
+  for (const auto& desc : description.files)
   {
-    auto fileName = getCurrentFolder() / desc.name;
-    QVERIFY(file.open(fileName, OpenMode::Read));
+    auto fileName =
+      getCurrentFolder() /
+      desc.name;
 
-    QVERIFY(file.header().isValid());
+    QVERIFY(
+      file.open(
+        fileName,
+        OpenMode::Read));
 
-    const auto p = BaseFrameFrequency / desc.frequency;
+    QVERIFY(
+      file.header().isValid());
 
-    QCOMPARE(file.header().channelCount, desc.signalIds.size());
-    QCOMPARE(file.header().recordCount, desc.frequency);
-    QCOMPARE(file.header().firstTimestamp, 2 * p);
-    QCOMPARE(file.header().lastTimestamp, 2 * BaseFrameFrequency);
-    QCOMPARE(file.header().sampleFrequency, desc.frequency);
+
+
+    const auto p =
+      BaseFrameFrequency /
+      desc.frequency;
+
+    QCOMPARE(
+      file.header().channelCount,
+      desc.signalIds.size());
+
+    QCOMPARE(
+      file.header().recordCount,
+      desc.frequency);
+
+    QCOMPARE(
+      file.header().firstTimestamp,
+      uint64_t{2});
+
+    const auto lastFrameIndex =
+      static_cast<uint64_t>(
+        (desc.frequency - 1) * p);
+
+    const auto lastDelta =
+      static_cast<uint64_t>(
+        std::llround(
+          static_cast<double>(
+            lastFrameIndex) *
+          1'000'000.0 /
+          static_cast<double>(
+            BaseFrameFrequency)));
+
+    QCOMPARE(
+      file.header().lastTimestamp,
+      2 + lastDelta);
+
+    QCOMPARE(
+      file.header().sampleFrequency,
+      desc.frequency);
+
     QCOMPARE(
       file.header().recordSize,
       sizeof(SampleRecordHeader) +
-        desc.signalIds.size() * sizeof(float));
+        desc.signalIds.size() *
+          sizeof(float));
 
-    const auto channelCount = file.header().channelCount;
 
-    for (int n = 1; n <= desc.frequency; n++)
+
+    const auto channelCount =
+      file.header().channelCount;
+
+    for (
+      int n = 0;
+      n < desc.frequency;
+      ++n)
     {
       SampleRecordHeader rh;
-      QVERIFY(file.readObject(rh));
 
-      QCOMPARE(rh.frameNumber, n * p);
-      QCOMPARE(rh.timestamp, 2 * p * n);
-      QCOMPARE(rh.wallTime, 3 * p * n);
+      QVERIFY(
+        file.readObject(rh));
 
-      std::vector<float> values(channelCount, 0.0f);
-      QVERIFY(file.readArray(values.data(), channelCount));
+      const auto frameIndex =
+        static_cast<uint64_t>(
+          n * p);
+
+      QCOMPARE(
+        rh.frameNumber,
+        frameIndex);
+
+      const auto delta =
+        static_cast<uint64_t>(
+          std::llround(
+            static_cast<double>(
+              frameIndex) *
+            1'000'000.0 /
+            static_cast<double>(
+              BaseFrameFrequency)));
+
+      QCOMPARE(
+        rh.timestamp,
+        2 + delta);
+
+      QCOMPARE(
+        rh.wallTime,
+        3 + static_cast<int64_t>(
+          delta));
+
+      std::vector<float> values(
+        channelCount,
+        0.0f);
+
+      QVERIFY(
+        file.readArray(
+          values.data(),
+          channelCount));
 
       const double raw0 =
-        static_cast<double>(rh.frameNumber - 1);
+        static_cast<double>(
+          frameIndex);
 
       const double raw1 =
-        static_cast<double>(rh.frameNumber - 1) * 10.0;
+        static_cast<double>(
+          frameIndex) *
+        10.0;
 
-      for (const auto &signal : desc.signalIds)
+      for (const auto& signal : desc.signalIds)
       {
-        auto index = signal.index;
+        const auto index =
+          signal.index;
 
-        if (signal.kind == SignalKind::Raw) {
-
+        if (signal.kind == SignalKind::Raw)
+        {
           if (signal.id == sdraw0->id)
-            QCOMPARE(values[index], static_cast<float>(raw0));
-
+          {
+            QCOMPARE(
+              values[index],
+              static_cast<float>(
+                raw0));
+          }
           else if (signal.id == sdraw1->id)
-            QCOMPARE(values[index], static_cast<float>(raw1));
-
+          {
+            QCOMPARE(
+              values[index],
+              static_cast<float>(
+                raw1));
+          }
           else
-            QFAIL("Unexpected signal in archive");
-
-        } else if (signal.kind == SignalKind::Calculated) {
-
+          {
+            QFAIL(
+              "Unexpected signal in archive");
+          }
+        }
+        else if (
+          signal.kind ==
+          SignalKind::Calculated)
+        {
           double a;
-          QVERIFY(runtime.calibrations.calibrateBySignal(sda->id, raw0, a));
+
+          QVERIFY(
+            runtime->calibrations
+              .calibrateBySignal(
+                sda->id,
+                raw0,
+                a));
 
           double b;
-          QVERIFY(runtime.calibrations.calibrateBySignalType(sdb->signalType, raw1, b));
 
-          double c = a + b;
+          QVERIFY(
+            runtime->calibrations
+              .calibrateBySignalType(
+                sdb->signalType,
+                raw1,
+                b));
+
+          const double c =
+            a + b;
 
           if (signal.id == sda->id)
-            QCOMPARE(values[index], static_cast<float>(a));
-
+          {
+            QCOMPARE(
+              values[index],
+              static_cast<float>(a));
+          }
           else if (signal.id == sdb->id)
-            QCOMPARE(values[index], static_cast<float>(b));
-
+          {
+            QCOMPARE(
+              values[index],
+              static_cast<float>(b));
+          }
           else if (signal.id == sdc->id)
-            QCOMPARE(values[index], static_cast<float>(c));
-
+          {
+            QCOMPARE(
+              values[index],
+              static_cast<float>(c));
+          }
           else
-            QFAIL("Unexpected signal in archive");
-
+          {
+            QFAIL(
+              "Unexpected signal in archive");
+          }
         }
       }
     }
 
-    QVERIFY(file.position() == file.fileSize());
+    QVERIFY(
+      file.position() ==
+      file.fileSize());
 
     file.close();
 
-    QVERIFY(!file.isOpen());
+    QVERIFY(
+      !file.isOpen());
   }
 }
 
@@ -736,75 +1129,133 @@ void tst_database::test_archiveReader_readFrame()
 void tst_database::test_publisher()
 {
   using namespace qds;
+
   auto db = get_db();
+
   QVERIFY(db.isOpen());
   QVERIFY(db.isValid());
 
   ConfigurationRepository repo(db);
 
   SystemConfiguration cfg;
-  QVERIFY(repo.load(ConfigurationId{1}, cfg));
 
-  CalibrationRepository cr;
-  QVERIFY(repo.loadCalibrations(cfg, cr));
+  QVERIFY(
+    repo.load(
+      ConfigurationId{1},
+      cfg));
 
-  DataSourceFactory factory;
+  SignalMemoryLayout layout;
+  layout.build(cfg);
 
-  QVERIFY(factory.registerType(
-    ModuleType::LTR11,
-    [](const ModuleRuntimeConfiguration& cfg)
-    {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
-    }));
-
-  RuntimeSystem runtime;
-
-  SystemBuilder builder;
-
-  QVERIFY(builder.build(
-    cfg,
-    factory,
-    cr,
-    runtime));
-
-  NullArchiveWriter archive;
+  BufferManager buffers;
+  buffers.initialize(layout);
 
   SubscriptionManager subscriptions;
   TestPublisherSender sender;
-  Publisher publisher(runtime.layout, subscriptions, sender, 1000);
-  FakeSchedulerClock clock(2, 3);
-  TestLogger logger;
 
-  const auto &definitions = cfg.signalDefinitions();
-  QCOMPARE(definitions.size(), 5);
+  Publisher publisher(
+    layout,
+    subscriptions,
+    sender,
+    1000);
 
-  qds::Subscription sub;
-  sub.endpoint.address = "127.0.0.1";
-  sub.endpoint.port = cfg.udpPort();
-  sub.rate = PublishRate::Hz10;
-  sub.signalIds = { findSignalDefinition(definitions, "Raw0")->id, findSignalDefinition(definitions, "Raw1")->id };
+  const auto& definitions =
+    cfg.signalDefinitions();
 
-  auto id = subscriptions.add(sub);
+  QCOMPARE(
+    definitions.size(),
+    std::size_t{5});
 
-  QCOMPARE(id, SubscriptionId{1});
+  const auto* raw0 =
+    findSignalDefinition(
+      definitions,
+      "Raw0");
 
-  QVERIFY(runtime.engine->initialize(
-    runtime.buffers,
-    publisher));
+  const auto* raw1 =
+    findSignalDefinition(
+      definitions,
+      "Raw1");
 
-  for (int i = 0; i < 1000; ++i)
+  QVERIFY(raw0);
+  QVERIFY(raw1);
+
+  Subscription sub;
+
+  sub.endpoint.address =
+    "127.0.0.1";
+
+  sub.endpoint.port =
+    cfg.udpPort();
+
+  sub.rate =
+    PublishRate::Hz10;
+
+  sub.signalIds = {
+    raw0->id,
+    raw1->id
+  };
+
+  const auto id =
+    subscriptions.add(sub);
+
+  QCOMPARE(
+    id,
+    SubscriptionId{1});
+
+  DataEngine engine;
+
+  QVERIFY(
+    engine.initialize(
+      buffers,
+      publisher));
+
+  QVERIFY(
+    engine.start());
+
+  // ------------------------------------------------------------
+  // 1000 Hz input stream for one second
+  // ------------------------------------------------------------
+
+  for (uint64_t i = 0; i < 1000; ++i)
   {
-    QVERIFY(runtime.engine->process());
+    Frame frame;
+
+    frame.initialize(layout);
+
+    frame.number =
+      FrameNumber{i};
+
+    frame.timestamp =
+      Timestamp{i * 2 + 2};
+
+    frame.wallTime =
+      WallClockTime{static_cast<int64_t>(i * 3 + 3)};
+
+    frame.raw().valueRef(0) =
+      static_cast<double>(i);
+
+    frame.raw().valueRef(1) =
+      static_cast<double>(i) * 10.0;
+
+    buffers.publish(frame);
+
+    QVERIFY(
+      engine.process());
   }
 
-  QCOMPARE(sender.sendCount, 10);
+  QCOMPARE(
+    sender.sendCount,
+    10);
+
+  // ------------------------------------------------------------
+  // Verify packets
+  // ------------------------------------------------------------
 
   PacketReader reader;
 
   uint32_t sequence = 0;
 
-  for (const auto &packet : sender.m_packets)
+  for (const auto& packet : sender.m_packets)
   {
     reader.clear();
 
@@ -812,7 +1263,8 @@ void tst_database::test_publisher()
       packet.data(),
       packet.size());
 
-    QVERIFY(reader.nextPacket());
+    QVERIFY(
+      reader.nextPacket());
 
     QCOMPARE(
       reader.packetType(),
@@ -820,7 +1272,8 @@ void tst_database::test_publisher()
 
     PublishHeader ldh;
 
-    QVERIFY(reader.read(ldh));
+    QVERIFY(
+      reader.read(ldh));
 
     QCOMPARE(
       ldh.subscriptionId,
@@ -847,98 +1300,267 @@ void tst_database::test_publisher()
 
     QCOMPARE(
       reader.remaining(),
-      std::size_t(0));
+      std::size_t{0});
 
-    QCOMPARE(samples[0].value, sequence * 100);
-    QCOMPARE(samples[1].value, sequence * 10 * 100);
+    QCOMPARE(
+      samples[0].value,
+      sequence * 100);
+
+    QCOMPARE(
+      samples[1].value,
+      sequence * 100 * 10);
 
     ++sequence;
   }
 
-  runtime.engine->stop();
-  QVERIFY(!runtime.engine->isRunning());
+  engine.stop();
+
+  QVERIFY(
+    !engine.isRunning());
 }
 
 void tst_database::test_publisher_raw_calculated()
 {
   using namespace qds;
+
   auto db = get_db();
+
   QVERIFY(db.isOpen());
   QVERIFY(db.isValid());
 
   ConfigurationRepository repo(db);
 
   SystemConfiguration cfg;
-  QVERIFY(repo.load(ConfigurationId{1}, cfg));
+
+  QVERIFY(
+    repo.load(
+      ConfigurationId{1},
+      cfg));
+
+  QCOMPARE(
+    cfg.modules().size(),
+    std::size_t{1});
+
+  const auto module =
+    cfg.modules().front().id;
+
+  QCOMPARE(
+    cfg.moduleTags(module).size(),
+    std::size_t{2});
 
   CalibrationRepository cr;
-  QVERIFY(repo.loadCalibrations(cfg, cr));
 
-  DataSourceFactory factory;
+  QVERIFY(
+    repo.loadCalibrations(
+      cfg,
+      cr));
 
-  QVERIFY(factory.registerType(
-    ModuleType::LTR11,
-    [](const ModuleRuntimeConfiguration& cfg)
-    {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
-    }));
+  DataStreamSourceFactory factory;
 
-  RuntimeSystem runtime;
-
-  SystemBuilder builder;
-
-  QVERIFY(builder.build(
-    cfg,
-    factory,
-    cr,
-    runtime));
+  QVERIFY(
+    factory.registerType(
+      ModuleType::LTR11,
+      [](const ModuleRuntimeConfiguration&,
+         IClock&,
+         IDataBlockSink&,
+         IDataStreamEventSink&)
+      {
+        return std::make_unique<
+          TestDataStreamSource>();
+      }));
 
   NullArchiveWriter archive;
-
-  SubscriptionManager subscriptions;
-  TestPublisherSender sender;
-  Publisher publisher(runtime.layout, subscriptions, sender, 1000);
   FakeSchedulerClock clock(2, 3);
   TestLogger logger;
 
-  const auto &definitions = cfg.signalDefinitions();
-  QCOMPARE(definitions.size(), 5);
+  SystemBuilder builder;
 
-  qds::Subscription sub;
-  sub.endpoint.address = "127.0.0.1";
-  sub.endpoint.port = cfg.udpPort();
-  sub.rate = PublishRate::Hz10;
-  sub.signalIds = { findSignalDefinition(definitions, "Raw0")->id, findSignalDefinition(definitions, "C")->id };
-  auto id1 = subscriptions.add(sub);
+  auto runtime =
+    builder.build(
+      cfg,
+      factory,
+      cr,
+      clock,
+      archive,
+      logger);
 
-  sub.rate =  PublishRate::Hz100;
-  sub.signalIds = { findSignalDefinition(definitions, "Raw1")->id, findSignalDefinition(definitions, "A")->id };
-  auto id2 = subscriptions.add(sub);
+  QVERIFY(runtime);
 
-  QCOMPARE(id1, SubscriptionId{1});
-  QCOMPARE(id2, SubscriptionId{2});
+  SubscriptionManager subscriptions;
+  TestPublisherSender sender;
 
-  QVERIFY(runtime.engine->initialize(
-    runtime.buffers,
-    publisher));
+  Publisher publisher(
+    runtime->layout,
+    subscriptions,
+    sender,
+    1000);
 
-  for (int i = 0; i < 1000; ++i)
+  const auto& definitions =
+    cfg.signalDefinitions();
+
+  QCOMPARE(
+    definitions.size(),
+    std::size_t{5});
+
+  const auto* raw0 =
+    findSignalDefinition(
+      definitions,
+      "Raw0");
+
+  const auto* raw1 =
+    findSignalDefinition(
+      definitions,
+      "Raw1");
+
+  const auto* a =
+    findSignalDefinition(
+      definitions,
+      "A");
+
+  const auto* c =
+    findSignalDefinition(
+      definitions,
+      "C");
+
+  QVERIFY(raw0);
+  QVERIFY(raw1);
+  QVERIFY(a);
+  QVERIFY(c);
+
+  // ------------------------------------------------------------
+  // Subscription #1: Raw0 + C, 10 Hz
+  // ------------------------------------------------------------
+
+  Subscription sub;
+
+  sub.endpoint.address =
+    "127.0.0.1";
+
+  sub.endpoint.port =
+    cfg.udpPort();
+
+  sub.rate =
+    PublishRate::Hz10;
+
+  sub.signalIds = {
+    raw0->id,
+    c->id
+  };
+
+  const auto id1 =
+    subscriptions.add(sub);
+
+  // ------------------------------------------------------------
+  // Subscription #2: Raw1 + A, 100 Hz
+  // ------------------------------------------------------------
+
+  sub.rate =
+    PublishRate::Hz100;
+
+  sub.signalIds = {
+    raw1->id,
+    a->id
+  };
+
+  const auto id2 =
+    subscriptions.add(sub);
+
+  QCOMPARE(
+    id1,
+    SubscriptionId{1});
+
+  QCOMPARE(
+    id2,
+    SubscriptionId{2});
+
+  // ------------------------------------------------------------
+  // DataEngine
+  // ------------------------------------------------------------
+
+  QVERIFY(
+    runtime->engine->initialize(
+      runtime->buffers,
+      publisher));
+
+  QVERIFY(
+    runtime->engine->start());
+
+  // ------------------------------------------------------------
+  // Stream anchor
+  // ------------------------------------------------------------
+
+  DataStreamAnchor anchor;
+
+  anchor.module =
+    module;
+
+  anchor.firstFrameIndex = 0;
+
+  anchor.startTimestamp =
+    Timestamp{2};
+
+  anchor.startWallTime =
+    WallClockTime{3};
+
+  anchor.frameRate = 1000.0;
+
+  QVERIFY(
+    runtime->streamProcessor->process(
+      anchor));
+
+  // ------------------------------------------------------------
+  // 1000 input frames
+  //
+  // old TestDataSource:
+  //   Raw0 = i
+  //   Raw1 = i * 10
+  // ------------------------------------------------------------
+
+  for (uint64_t i = 0; i < 1000; ++i)
   {
-    QVERIFY(runtime.engine->process());
+    DataBlock block;
+
+    block.module =
+      module;
+
+    block.firstFrameIndex = i;
+    block.frameRate = 1000.0;
+    block.channelCount = 2;
+    block.frameCount = 1;
+
+    block.values = {
+      static_cast<double>(i),
+      static_cast<double>(i) * 10.0
+    };
+
+    QVERIFY(
+      runtime->streamProcessor->process(
+        block));
+
+    QVERIFY(
+      runtime->engine->process());
   }
 
-  QCOMPARE(sender.sendCount, 10 + 100);
+  QCOMPARE(
+    sender.sendCount,
+    10 + 100);
+
+  QCOMPARE(
+    sender.m_packets.size(),
+    std::size_t{110});
+
+  // ------------------------------------------------------------
+  // Verify packets
+  // ------------------------------------------------------------
 
   PacketReader reader;
 
   std::array<Sample, 2> samples{};
 
-  uint32_t period;
   uint32_t sequence1 = 0;
   uint32_t sequence2 = 0;
 
-  for (const auto &packet : sender.m_packets)
+  for (const auto& packet : sender.m_packets)
   {
     reader.clear();
 
@@ -946,7 +1568,8 @@ void tst_database::test_publisher_raw_calculated()
       packet.data(),
       packet.size());
 
-    QVERIFY(reader.nextPacket());
+    QVERIFY(
+      reader.nextPacket());
 
     QCOMPARE(
       reader.packetType(),
@@ -954,7 +1577,8 @@ void tst_database::test_publisher_raw_calculated()
 
     PublishHeader ldh;
 
-    QVERIFY(reader.read(ldh));
+    QVERIFY(
+      reader.read(ldh));
 
     QCOMPARE(
       ldh.valueCount,
@@ -965,58 +1589,93 @@ void tst_database::test_publisher_raw_calculated()
         samples.data(),
         samples.size()));
 
-    const auto &sequence = ldh.sequence;
-    QVERIFY(sequence > 0);
+    QVERIFY(
+      ldh.sequence > 0);
 
-    auto index = sequence - 1;
+    const auto index =
+      ldh.sequence - 1;
 
-    const auto &subid = ldh.subscriptionId;
-
-    if (subid == SubscriptionId{1})
+    if (
+      ldh.subscriptionId ==
+      SubscriptionId{1})
     {
-      period = 100;
+      constexpr uint32_t period = 100;
 
-      double a = (period * index) * 0.1;
-      double b = -20.0 + index * 1000;
-      double c = a + b;
+      const double raw0Value =
+        static_cast<double>(
+          period * index);
+
+      const double aValue =
+        raw0Value * 0.1;
+
+      const double bValue =
+        -20.0 +
+        static_cast<double>(
+          index * 1000);
+
+      const double cValue =
+        aValue + bValue;
 
       QCOMPARE(
         ldh.sequence,
         ++sequence1);
 
-      QCOMPARE(samples[0].value, index * period);
-      QCOMPARE(samples[1].value, c);
-    }
-    else if (subid == SubscriptionId{2})
-    {
-      period = 10;
+      QCOMPARE(
+        samples[0].value,
+        raw0Value);
 
-      double a = (period * index) * 0.1;
+      QCOMPARE(
+        samples[1].value,
+        cValue);
+    }
+    else if (
+      ldh.subscriptionId ==
+      SubscriptionId{2})
+    {
+      constexpr uint32_t period = 10;
+
+      const double raw1Value =
+        static_cast<double>(
+          index * period * 10);
+
+      const double aValue =
+        static_cast<double>(
+          period * index) *
+        0.1;
 
       QCOMPARE(
         ldh.sequence,
         ++sequence2);
 
-      QCOMPARE(samples[0].value, index * 10 * period);
-      QCOMPARE(samples[1].value, a);
+      QCOMPARE(
+        samples[0].value,
+        raw1Value);
+
+      QCOMPARE(
+        samples[1].value,
+        aValue);
     }
     else
-      QFAIL("Ошибка подписки");
-
-    QCOMPARE(
-      ldh.timestamp,
-      index * period * 2 + 2);
+    {
+      QFAIL(
+        "Unexpected subscription");
+    }
 
     QCOMPARE(
       reader.remaining(),
-      std::size_t(0));
-
+      std::size_t{0});
   }
 
-  runtime.engine->stop();
+  QCOMPARE(
+    sequence1,
+    10u);
 
-  QCOMPARE(sequence1, 10u);
-  QCOMPARE(sequence2, 100u);
+  QCOMPARE(
+    sequence2,
+    100u);
 
-  QVERIFY(!runtime.engine->isRunning());
+  runtime->engine->stop();
+
+  QVERIFY(
+    !runtime->engine->isRunning());
 }

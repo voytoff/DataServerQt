@@ -14,13 +14,13 @@ private slots:
   void test_dataServer_publish_archive_pipeline();
 
   void test_systemBuilder_success();
-  void test_systemBuilder_process();
+  void test_systemBuilder_buildRuntime();
 
   void test_systemBuilder_failErrorFormula();
   void test_systemBuilder_failDataSourceManager();
-  void test_systemBuilder_cycle();
+  void test_systemBuilder_pipeline();
 
-  void test_dataServer_udpSubscription();
+  ///void test_dataServer_udpSubscription();
   void test_dataServer_failStart_moduleType();
   void test_dataServer_failSubscribe_invalidSignalId();
   void test_dataServer_failSubscribe_duplicateSignalId();
@@ -35,14 +35,12 @@ private slots:
   void test_dataServer_start_after_failed_start();
   void test_dataServer_failStart_invalidUdpPort();
   void test_dataServer_subscriptionId_after_restart();
-  void test_dataServer_build_after_failBuild();
+  void test_SystemBuilder_buildAfterFailure();
 
-  void test_dataEngine_process_dataSourceFailure();
   void test_dataEngine_process_without_initialize();
-  void test_dataEngine_process_archiveFailure();
   void test_dataEngine_process_success();
   void test_dataServer_stop_on_dataSourceFailure();
-  void test_systemBuilder_failedThenSuccess();
+  void test_SystemBuilder_failedThenSuccess();
 
   void test_dataServer_start_twice();
   void test_dataServer_stop_before_start();

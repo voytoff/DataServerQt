@@ -7,10 +7,25 @@ bool DataEngine::initialize(
   BufferManager& buffers,
   IFramePublisher& publisher) noexcept
 {
+  if (m_running)
+    return false;
+
   m_buffers = &buffers;
   m_publisher = &publisher;
 
   m_initialized = true;
+
+  return true;
+}
+
+bool DataEngine::start() noexcept
+{
+  if (!m_initialized)
+    return false;
+
+  if (m_running)
+    return true;
+
   m_running = true;
 
   return true;
@@ -36,11 +51,7 @@ bool DataEngine::process() noexcept
 
 void DataEngine::stop() noexcept
 {
-  if (!m_initialized)
-    return;
-
   m_running = false;
-  m_initialized = false;
 }
 
 bool DataEngine::isRunning() const noexcept

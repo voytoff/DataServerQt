@@ -42,9 +42,13 @@ void tst_engine::test_DataEngine_publish_latest()
   DataEngine engine;
   TestPublisher publisher;
 
-  QVERIFY(engine.initialize(
-    buffers,
-    publisher));
+  QVERIFY(
+    engine.initialize(
+      buffers,
+      publisher));
+
+  QVERIFY(
+    engine.start());
 
   QVERIFY(
     engine.process());
@@ -71,6 +75,11 @@ void tst_engine::test_DataEngine_publish_latest()
   QCOMPARE(
     published->raw().value(0),
     42.0);
+
+  engine.stop();
+
+  QVERIFY(
+    !engine.isRunning());
 }
 
 void tst_engine::test_DataEngine_no_frame()
@@ -96,12 +105,53 @@ void tst_engine::test_DataEngine_no_frame()
       publisher));
 
   QVERIFY(
+    engine.start());
+
+  QVERIFY(
     engine.process());
 
   QCOMPARE(
     publisher.size(),
     std::size_t{0});
+
+  engine.stop();
+
+  QVERIFY(
+    !engine.isRunning());
 }
+
+void tst_engine::test_DataEngine_restart()
+{
+  using namespace qds;
+  SystemConfiguration cfg = createTestConfig_calculate();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  BufferManager buffers;
+  buffers.initialize(layout);
+
+  TestPublisher publisher;
+
+  DataEngine engine{};
+
+  QVERIFY(engine.initialize(buffers, publisher));
+
+  QVERIFY(engine.start());
+  QVERIFY(engine.isRunning());
+
+  engine.stop();
+  QVERIFY(!engine.isRunning());
+
+  QVERIFY(engine.start());
+  QVERIFY(engine.isRunning());
+
+  QVERIFY(engine.process());
+
+  engine.stop();
+  QVERIFY(!engine.isRunning());
+}
+
 
 /*
  void tst_engine::test_pipeline_archive_copy()
@@ -682,28 +732,6 @@ void tst_engine::test_dataEngine_callSomeStops()
   QVERIFY(!engine.isRunning());
 }
 
-void tst_engine::test_dataEngine_restart()
-{
-  using namespace qds;
-  SystemConfiguration cfg;
-  TestSrv srv(cfg);
-  DataSourceManager manager;
-  DataEngine engine(manager, srv.scheduler);
-
-  QVERIFY(engine.start());
-  QVERIFY(engine.isRunning());
-
-  engine.stop();
-  QVERIFY(!engine.isRunning());
-
-  QVERIFY(engine.start());
-  QVERIFY(engine.isRunning());
-
-  QVERIFY(engine.step());
-
-  engine.stop();
-  QVERIFY(!engine.isRunning());
-}
 
 void tst_engine::test_dataEngine_storagePipeline()
 {

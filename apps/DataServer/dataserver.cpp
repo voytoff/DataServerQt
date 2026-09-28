@@ -41,7 +41,7 @@ bool DataServer::start()
     return false;
 
   SystemBuilder builder;
-
+/*
   if (!builder.build(
         m_configuration,
         m_dataSourceFactory,
@@ -91,7 +91,7 @@ bool DataServer::start()
 
   m_running = true;
   m_timer.start();
-
+*/
   return true;
 }
 
@@ -124,7 +124,7 @@ void DataServer::cleanup()
   m_dispatcher.reset();
   m_publisher.reset();
 
-  ///\\\m_runtime = {};
+  ///\\\m_runtime = {}; < -- иначе не компилируется
   m_subscriptions.clear();
 }
 

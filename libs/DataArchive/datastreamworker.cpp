@@ -24,6 +24,9 @@ bool DataStreamWorker::start() noexcept
   if (m_running.exchange(true))
     return true;
 
+  if (m_thread.joinable())
+    m_thread.join();
+
   try
   {
     m_thread =

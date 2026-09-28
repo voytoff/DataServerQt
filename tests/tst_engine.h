@@ -31,4 +31,6 @@ private slots:
   void test_DataEngine_publish_latest();
   void test_DataEngine_no_frame();
 
+  void test_DataEngine_restart();
+
 };

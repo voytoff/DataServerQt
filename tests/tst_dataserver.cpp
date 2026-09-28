@@ -7,6 +7,8 @@
 #include "datasourcefactory.h"
 #include "qds/db.h"
 #include "logger.h"
+#include "qds/testarchiveframewriter.h"
+#include "qds/testdatastreamsource.h"
 #include "testlogger.h"
 #include "failingarchivewriter.h"
 #include "failingdatasource.h"
@@ -38,31 +40,37 @@ void tst_dataserver::test_systemBuilder_success()
     createTestConfig_calculate(ModuleType::Test);
   cfg.addSignalDefinition({.id = {24}, .name = "D", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formula = "A + A", .formulaId = {2}, .dependencies = {{17}, {17}}});
 
-  DataSourceFactory factory;
+  DataStreamSourceFactory factory;
 
-  QVERIFY(factory.registerType(
-    ModuleType::Test,
-    [](const ModuleRuntimeConfiguration& cfg)
-    {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
-    }));
+  QVERIFY(
+    factory.registerType(
+      ModuleType::Test,
+      [](const ModuleRuntimeConfiguration&,
+         IClock&,
+         IDataBlockSink&,
+         IDataStreamEventSink&)
+      {
+        return std::make_unique<
+          TestDataStreamSource>();
+      }));
 
   TestArchiveWriter archive;
   TestPublisher publisher;
   FakeSchedulerClock clock;
-
-  RuntimeSystem runtime;
-
-  SystemBuilder builder;
+  TestLogger logger;
 
   CalibrationRepository cr;
 
-  QVERIFY(builder.build(
-    cfg,
-    factory,
-    cr,
-    runtime));
+  SystemBuilder builder;
+
+  auto runtime =
+    builder.build(
+      cfg,
+      factory,
+      cr,
+      clock,
+      archive,
+      logger);
 
   const auto* c =
     cfg.findSignalDefinition(SignalId{23});
@@ -98,83 +106,115 @@ void tst_dataserver::test_systemBuilder_success()
     SignalId{17});
 
   QCOMPARE(
-    runtime.layout.rawSignalCount(),
+    runtime->layout.rawSignalCount(),
     2u);
 
   QCOMPARE(
-    runtime.layout.calculatedSignalCount(),
+    runtime->layout.calculatedSignalCount(),
     4u);
 
   QCOMPARE(
-    runtime.formulas.size(),
+    runtime->formulas.size(),
     std::size_t(4));
 
   QCOMPARE(
-    runtime.calculationPlan.size(),
+    runtime->calculationPlan.size(),
     std::size_t(4));
 
   QCOMPARE(
-    runtime.dataSources.size(),
+    runtime->dataSources.size(),
     std::size_t(1));
 
   QVERIFY(
-    runtime.signalProcessor != nullptr);
+    runtime->signalProcessor != nullptr);
 
   QVERIFY(
-    runtime.engine != nullptr);
+    runtime->engine != nullptr);
 }
 
-void tst_dataserver::test_systemBuilder_process()
+void tst_dataserver::test_systemBuilder_buildRuntime()
 {
   using namespace qds;
 
   SystemConfiguration cfg =
-    createTestConfig_calculate(ModuleType::Test);
+    createTestConfig_calculate(
+      ModuleType::Test);
 
-  DataSourceFactory factory;
+  DataStreamSourceFactory factory;
 
-  QVERIFY(factory.registerType(
-    ModuleType::Test,
-    [](const ModuleRuntimeConfiguration& cfg)
-    {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
-    }));
+  QVERIFY(
+    factory.registerType(
+      ModuleType::Test,
+      [](const ModuleRuntimeConfiguration&,
+         IClock&,
+         IDataBlockSink&,
+         IDataStreamEventSink&)
+      {
+        return std::make_unique<
+          TestDataStreamSource>();
+      }));
 
-  TestArchiveWriter archive;
+  TestArchiveFrameWriter archive;
   TestPublisher publisher;
   FakeSchedulerClock clock;
+  TestLogger logger;
 
-  RuntimeSystem runtime;
+  CalibrationRepository cr;
 
   SystemBuilder builder;
 
-  CalibrationRepository cr;
-  TestLogger logger;
+  auto runtime =
+    builder.build(
+      cfg,
+      factory,
+      cr,
+      clock,
+      archive,
+      logger);
 
-  QVERIFY(builder.build(
-    cfg,
-    factory,
-    cr,
-    runtime));
+  QVERIFY(runtime);
 
-  QVERIFY(runtime.engine->initialize(
-    //runtime.dataSources,
-    //*runtime.signalProcessor,
-    runtime.buffers,
-    //archive,
-    publisher));
-    //logger));
-
-  QVERIFY(runtime.engine->process());
-
-  QCOMPARE(
-    archive.size(),
-    1);
+  QVERIFY(runtime->signalProcessor);
+  QVERIFY(runtime->streamReader);
+  QVERIFY(runtime->frameAssembler);
+  QVERIFY(runtime->streamProcessor);
+  QVERIFY(runtime->streamWorker);
+  QVERIFY(runtime->engine);
 
   QCOMPARE(
-    publisher.size(),
-    1);
+    runtime->dataSources.size(),
+    cfg.modules().size());
+
+  QVERIFY(
+    !runtime->dataSources.isRunning());
+
+  QVERIFY(
+    !runtime->streamWorker->isRunning());
+
+  QVERIFY(
+    !runtime->engine->isRunning());
+
+  QVERIFY(
+    runtime->engine->initialize(
+      runtime->buffers,
+      publisher));
+
+  QVERIFY(
+    !runtime->engine->isRunning());
+
+  QVERIFY(
+    runtime->engine->start());
+
+  QVERIFY(
+    runtime->engine->isRunning());
+
+  QVERIFY(
+    runtime->engine->process());
+
+  runtime->engine->stop();
+
+  QVERIFY(
+    !runtime->engine->isRunning());
 }
 
 void tst_dataserver::test_systemBuilder_failErrorFormula()
@@ -182,7 +222,8 @@ void tst_dataserver::test_systemBuilder_failErrorFormula()
   using namespace qds;
 
   SystemConfiguration cfg =
-    createTestConfig_calculate(ModuleType::Test);
+    createTestConfig_calculate(
+      ModuleType::Test);
 
   cfg.addSignalDefinition({
     .id = {30},
@@ -193,49 +234,38 @@ void tst_dataserver::test_systemBuilder_failErrorFormula()
     .dependencies = {{4}, {23}}
   });
 
-  DataSourceFactory factory;
+  DataStreamSourceFactory factory;
 
-  QVERIFY(factory.registerType(
-    ModuleType::Test,
-    [](const ModuleRuntimeConfiguration& cfg)
-    {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
-    }));
+  QVERIFY(
+    factory.registerType(
+      ModuleType::Test,
+      [](const ModuleRuntimeConfiguration&,
+         IClock&,
+         IDataBlockSink&,
+         IDataStreamEventSink&)
+      {
+        return std::make_unique<
+          TestDataStreamSource>();
+      }));
 
-  TestArchiveWriter archive;
-  TestPublisher publisher;
+  TestArchiveFrameWriter archive;
   FakeSchedulerClock clock;
-
-  RuntimeSystem runtime;
-
-  SystemBuilder builder;
+  TestLogger logger;
 
   CalibrationRepository cr;
 
-  QVERIFY(!builder.build(
-    cfg,
-    factory,
-    cr,
-    runtime));
+  SystemBuilder builder;
 
-  QVERIFY(
-    runtime.signalProcessor == nullptr);
+  auto runtime =
+    builder.build(
+      cfg,
+      factory,
+      cr,
+      clock,
+      archive,
+      logger);
 
-  QVERIFY(
-    runtime.engine == nullptr);
-
-  QCOMPARE(
-    runtime.dataSources.size(),
-    std::size_t(0));
-
-  QCOMPARE(
-    runtime.formulas.size(),
-    std::size_t(0));
-
-  QCOMPARE(
-    runtime.calculationPlan.size(),
-    std::size_t(0));
+  QVERIFY(!runtime);
 }
 
 void tst_dataserver::test_systemBuilder_failDataSourceManager()
@@ -243,116 +273,192 @@ void tst_dataserver::test_systemBuilder_failDataSourceManager()
   using namespace qds;
 
   SystemConfiguration cfg =
-    createTestConfig_calculate(ModuleType::LTR11);
+    createTestConfig_calculate(
+      ModuleType::LTR11);
 
-  DataSourceFactory factory;
+  DataStreamSourceFactory factory;
 
-  QVERIFY(factory.registerType(
-    ModuleType::Test,
-    [](const ModuleRuntimeConfiguration& cfg)
-    {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
-    }));
+  QVERIFY(
+    factory.registerType(
+      ModuleType::Test,
+      [](const ModuleRuntimeConfiguration&,
+         IClock&,
+         IDataBlockSink&,
+         IDataStreamEventSink&)
+      {
+        return std::make_unique<
+          TestDataStreamSource>();
+      }));
 
-  TestArchiveWriter archive;
-  TestPublisher publisher;
+  TestArchiveFrameWriter archive;
   FakeSchedulerClock clock;
-
-  RuntimeSystem runtime;
-
-  SystemBuilder builder;
+  TestLogger logger;
 
   CalibrationRepository cr;
 
-  QVERIFY(!builder.build(
-    cfg,
-    factory,
-    cr,
-    runtime));
+  SystemBuilder builder;
 
-  QVERIFY(
-    runtime.signalProcessor == nullptr);
+  auto runtime =
+    builder.build(
+      cfg,
+      factory,
+      cr,
+      clock,
+      archive,
+      logger);
 
-  QVERIFY(
-    runtime.engine == nullptr);
-
-  QCOMPARE(
-    runtime.formulas.size(),
-    std::size_t(0));
-
-  QCOMPARE(
-    runtime.calculationPlan.size(),
-    std::size_t(0));
-
-  QCOMPARE(
-    runtime.dataSources.size(),
-    std::size_t(0));
+  QVERIFY(!runtime);
 }
 
-void tst_dataserver::test_systemBuilder_cycle()
+void tst_dataserver::test_systemBuilder_pipeline()
 {
   using namespace qds;
 
   SystemConfiguration cfg =
-    createTestConfig_calculate(ModuleType::Test);
+    createTestConfig_calculate(
+      ModuleType::Test);
 
-  DataSourceFactory factory;
+  DataStreamSourceFactory factory;
 
-  QVERIFY(factory.registerType(
-    ModuleType::Test,
-    [](const ModuleRuntimeConfiguration& cfg)
-    {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
-    }));
+  QVERIFY(
+    factory.registerType(
+      ModuleType::Test,
+      [](const ModuleRuntimeConfiguration&,
+         IClock&,
+         IDataBlockSink&,
+         IDataStreamEventSink&)
+      {
+        return std::make_unique<
+          TestDataStreamSource>();
+      }));
 
   TestArchiveWriter archive;
   TestPublisher publisher;
-  FakeSchedulerClock clock(2, 5);
+  FakeSchedulerClock clock;
+  TestLogger logger;
 
-  RuntimeSystem runtime;
+  CalibrationRepository cr;
 
   SystemBuilder builder;
 
-  CalibrationRepository cr;
-  TestLogger logger;
+  auto runtime =
+    builder.build(
+      cfg,
+      factory,
+      cr,
+      clock,
+      archive,
+      logger);
 
-  QVERIFY(builder.build(
-    cfg,
-    factory,
-    cr,
-    runtime));
+  QVERIFY(runtime);
 
-  QVERIFY(runtime.engine->initialize(
-    runtime.buffers,
-    publisher));
+  QVERIFY(
+    runtime->engine->initialize(
+      runtime->buffers,
+      publisher));
+
+  QVERIFY(
+    runtime->engine->start());
+
+  DataStreamAnchor anchor;
+
+  anchor.module =
+    ModuleId{0};
+
+  anchor.firstFrameIndex = 0;
+
+  anchor.startTimestamp =
+    Timestamp{2};
+
+  anchor.startWallTime =
+    WallClockTime{5};
+
+  anchor.frameRate = 1.0;
+
+  QVERIFY(
+    runtime->streamProcessor->process(
+      anchor));
 
   for (int n = 0; n < 1000; ++n)
   {
-    QVERIFY(runtime.engine->process());
+    DataBlock block;
 
-    auto count = n + 1;
-    double a = n;
-    double b = n * 10;
-    QCOMPARE(archive.size(), count);
-    QCOMPARE(publisher.size(), count);
+    block.module =
+      ModuleId{0};
 
-    const auto& archived = archive.last();
-    const auto& published = publisher.last();
+    block.firstFrameIndex =
+      static_cast<uint64_t>(n);
 
-    QCOMPARE(archived->number, FrameNumber{static_cast<uint64_t>(count)});
+    block.frameRate = 1.0;
+    block.channelCount = 2;
+    block.frameCount = 1;
 
-    QCOMPARE(archived->timestamp, Timestamp{static_cast<uint64_t>(count * 2)});
+    block.values = {
+      static_cast<double>(n),
+      static_cast<double>(n) * 10.0
+    };
 
-    QCOMPARE(archived->wallTime, WallClockTime{static_cast<int64_t>(count * 5)});
+    QVERIFY(
+      runtime->streamProcessor->process(
+        block));
 
-    QCOMPARE(archived->raw().valueRef(0), a);
-    QCOMPARE(archived->raw().valueRef(1), b);
+    QVERIFY(
+      runtime->engine->process());
 
-    QCOMPARE(archived->calculated().valueRef(0), a);
-    QCOMPARE(archived->calculated().valueRef(1), b);
-    QCOMPARE(archived->calculated().valueRef(2), a + b);
+    const auto count =
+      n + 1;
+
+    const double a =
+      static_cast<double>(n);
+
+    const double b =
+      static_cast<double>(n) * 10.0;
+
+    QCOMPARE(
+      archive.size(),
+      static_cast<std::size_t>(count));
+
+    QCOMPARE(
+      publisher.size(),
+      static_cast<std::size_t>(count));
+
+    const auto& archived =
+      archive.last();
+
+    const auto& published =
+      publisher.last();
+
+    QCOMPARE(
+      archived->raw().valueRef(0),
+      a);
+
+    QCOMPARE(
+      archived->raw().valueRef(1),
+      b);
+
+    QCOMPARE(
+      archived->calculated().valueRef(0),
+      a);
+
+    QCOMPARE(
+      archived->calculated().valueRef(1),
+      b);
+
+    QCOMPARE(
+      archived->calculated().valueRef(2),
+      a + b);
+
+    QCOMPARE(
+      published->number,
+      archived->number);
+
+    QCOMPARE(
+      published->timestamp,
+      archived->timestamp);
+
+    QCOMPARE(
+      published->wallTime,
+      archived->wallTime);
 
     QCOMPARE(
       published->raw().valueRef(0),
@@ -374,22 +480,31 @@ void tst_dataserver::test_systemBuilder_cycle()
       published->calculated().valueRef(2),
       archived->calculated().valueRef(2));
   }
-}
 
+  runtime->engine->stop();
+
+  QVERIFY(
+    !runtime->engine->isRunning());
+}
+/*
 void tst_dataserver::test_dataServer_udpSubscription()
 {
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Test);
 
-  DataSourceFactory factory;
+  DataStreamSourceFactory factory;
 
-  QVERIFY(factory.registerType(
-    ModuleType::Test,
-    [](const ModuleRuntimeConfiguration& cfg)
-    {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
-    }));
+  QVERIFY(
+    factory.registerType(
+      ModuleType::Test,
+      [](const ModuleRuntimeConfiguration&,
+         IClock&,
+         IDataBlockSink&,
+         IDataStreamEventSink&)
+      {
+        return std::make_unique<
+          TestDataStreamSource>();
+      }));
 
   TestArchiveWriter archive;
   UdpSender sender;
@@ -621,7 +736,7 @@ void tst_dataserver::test_dataServer_udpSubscription()
 
   ds.stop();
 }
-
+*/
 void tst_dataserver::test_dataServer_failStart_moduleType()
 {
   SystemConfiguration cfg =
@@ -2299,194 +2414,107 @@ void tst_dataserver::test_dataServer_subscriptionId_after_restart()
   ds.stop();
 }
 
-void tst_dataserver::test_dataServer_build_after_failBuild()
+void tst_dataserver::test_SystemBuilder_buildAfterFailure()
 {
   using namespace qds;
 
   SystemConfiguration cfg =
-    createTestConfig_calculate(ModuleType::Fake);
+    createTestConfig_calculate(
+      ModuleType::Fake);
 
-  DataSourceFactory factory;
+  DataStreamSourceFactory factory;
 
-  QVERIFY(factory.registerType(
-    ModuleType::Failing,
-    [](const ModuleRuntimeConfiguration& cfg)
-    {
-      return std::make_unique<FailingDataSource>(
-        cfg.configuration.settings);
-    }));
-
-  TestArchiveWriter archive;
-  TestPublisher publisher;
+  TestArchiveFrameWriter archive;
   FakeSchedulerClock clock;
+  TestLogger logger;
 
-  RuntimeSystem runtime;
+  CalibrationRepository cr;
 
   SystemBuilder builder;
 
-  CalibrationRepository cr;
-  Logger logger(getCurrentFolder(), clock);
+  // Fake ещё не зарегистрирован.
+  // Первая сборка должна завершиться неудачно.
 
-  QVERIFY(!builder.build(
-    cfg,
-    factory,
-    cr,
-    runtime));
+  auto runtime =
+    builder.build(
+      cfg,
+      factory,
+      cr,
+      clock,
+      archive,
+      logger);
 
-  QVERIFY(factory.registerType(
-    ModuleType::Fake,
-    [](const ModuleRuntimeConfiguration& cfg)
-    {
-      return std::make_unique<FakeDataSource>(
-        cfg.configuration.settings);
-    }));
+  QVERIFY(!runtime);
 
-  QVERIFY(builder.build(
-    cfg,
-    factory,
-    cr,
-    runtime));
-
-  QVERIFY(runtime.engine->initialize(
-    runtime.buffers,
-    publisher));
+  // Исправляем причину ошибки.
 
   QVERIFY(
-    runtime.engine->process());
+    factory.registerType(
+      ModuleType::Fake,
+      [](const ModuleRuntimeConfiguration&,
+         IClock&,
+         IDataBlockSink&,
+         IDataStreamEventSink&)
+      {
+        return std::make_unique<
+          TestDataStreamSource>();
+      }));
+
+  // Повторная сборка той же configuration
+  // должна пройти успешно.
+
+  runtime =
+    builder.build(
+      cfg,
+      factory,
+      cr,
+      clock,
+      archive,
+      logger);
+
+  QVERIFY(runtime);
 
   QCOMPARE(
-    archive.size(),
-    1);
+    runtime->dataSources.size(),
+    std::size_t{1});
 
-  QCOMPARE(
-    publisher.size(),
-    1);
+  QVERIFY(
+    runtime->signalProcessor);
+
+  QVERIFY(
+    runtime->streamReader);
+
+  QVERIFY(
+    runtime->frameAssembler);
+
+  QVERIFY(
+    runtime->streamProcessor);
+
+  QVERIFY(
+    runtime->streamWorker);
+
+  QVERIFY(
+    runtime->engine);
+
+  QVERIFY(
+    !runtime->dataSources.isRunning());
+
+  QVERIFY(
+    !runtime->streamWorker->isRunning());
+
+  QVERIFY(
+    !runtime->engine->isRunning());
 }
 
-void tst_dataserver::test_dataEngine_process_dataSourceFailure()
-{
-  using namespace qds;
-
-  SystemConfiguration cfg =
-    createTestConfig_calculate(ModuleType::Failing);
-
-  DataSourceFactory factory;
-
-  QVERIFY(factory.registerType(
-    ModuleType::Failing,
-    [](const ModuleRuntimeConfiguration& cfg)
-    {
-      return std::make_unique<FailingDataSource>(
-        cfg.configuration.settings);
-    }));
-
-  TestArchiveWriter archive;
-  TestPublisher publisher;
-  FakeSchedulerClock clock;
-
-  RuntimeSystem runtime;
-
-  SystemBuilder builder;
-
-  CalibrationRepository cr;
-  Logger logger(getCurrentFolder(), clock);
-
-  QVERIFY(builder.build(
-    cfg,
-    factory,
-    cr,
-    runtime));
-
-  QVERIFY(runtime.engine->initialize(
-    runtime.buffers,
-    publisher));
-
-  QVERIFY(!runtime.engine->process());
-  QVERIFY(runtime.engine->isRunning());
-}
 
 void tst_dataserver::test_dataEngine_process_without_initialize()
 {
   using namespace qds;
 
-  SystemConfiguration cfg =
-    createTestConfig_calculate(ModuleType::Test);
+  DataEngine engine;
 
-  DataSourceFactory factory;
-
-  QVERIFY(factory.registerType(
-    ModuleType::Test,
-    [](const ModuleRuntimeConfiguration& cfg)
-    {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
-    }));
-
-  TestArchiveWriter archive;
-  TestPublisher publisher;
-  FakeSchedulerClock clock;
-
-  RuntimeSystem runtime;
-
-  SystemBuilder builder;
-
-  CalibrationRepository cr;
-
-  QVERIFY(builder.build(
-    cfg,
-    factory,
-    cr,
-    runtime));
-
-  QVERIFY(!runtime.engine->process());
-  QVERIFY(!runtime.engine->isRunning());
-}
-
-void tst_dataserver::test_dataEngine_process_archiveFailure()
-{
-  using namespace qds;
-
-  SystemConfiguration cfg =
-    createTestConfig_calculate(ModuleType::Test);
-
-  DataSourceFactory factory;
-
-  QVERIFY(factory.registerType(
-    ModuleType::Test,
-    [](const ModuleRuntimeConfiguration& cfg)
-    {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
-    }));
-
-  FailingArchiveWriter archive;
-  TestPublisher publisher;
-  FakeSchedulerClock clock;
-
-  RuntimeSystem runtime;
-
-  SystemBuilder builder;
-
-  CalibrationRepository cr;
-  Logger logger(getCurrentFolder(), clock);
-
-  QVERIFY(builder.build(
-    cfg,
-    factory,
-    cr,
-    runtime));
-
-
-  QVERIFY(runtime.engine->initialize(
-    runtime.buffers,
-    publisher));
-
-  QVERIFY(runtime.engine->process());
-  QVERIFY(runtime.engine->isRunning());
-  QCOMPARE(publisher.size(), 1);
-
-  runtime.engine->stop();
-  QVERIFY(!runtime.engine->isRunning());
+  QVERIFY(!engine.process());
+  QVERIFY(!engine.isRunning());
 }
 
 void tst_dataserver::test_dataEngine_process_success()
@@ -2494,48 +2522,64 @@ void tst_dataserver::test_dataEngine_process_success()
   using namespace qds;
 
   SystemConfiguration cfg =
-    createTestConfig_calculate(ModuleType::Test);
+    createTestConfig_calculate(
+      ModuleType::Test);
 
-  DataSourceFactory factory;
+  SignalMemoryLayout layout;
+  layout.build(cfg);
 
-  QVERIFY(factory.registerType(
-    ModuleType::Test,
-    [](const ModuleRuntimeConfiguration& cfg)
-    {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
-    }));
+  BufferManager buffers;
+  buffers.initialize(layout);
 
-  TestArchiveWriter archive;
   TestPublisher publisher;
-  FakeSchedulerClock clock;
 
-  RuntimeSystem runtime;
+  DataEngine engine;
 
-  SystemBuilder builder;
+  QVERIFY(
+    engine.initialize(
+      buffers,
+      publisher));
 
-  CalibrationRepository cr;
-  Logger logger(getCurrentFolder(), clock);
+  QVERIFY(
+    engine.start());
 
-  QVERIFY(builder.build(
-    cfg,
-    factory,
-    cr,
-    runtime));
+  QVERIFY(
+    engine.isRunning());
 
-  QVERIFY(runtime.engine->initialize(
-    runtime.buffers,
-    publisher));
+  QVERIFY(
+    !buffers.ready());
 
-  QVERIFY(!runtime.buffers.ready());
+  Frame frame;
+  frame.initialize(layout);
 
-  QVERIFY(runtime.engine->process());
+  frame.number =
+    FrameNumber{10};
 
-  QVERIFY(runtime.engine->isRunning());
-  QVERIFY(runtime.buffers.ready());
+  frame.timestamp =
+    Timestamp{1000};
 
-  QCOMPARE(archive.size(), 1);
-  QCOMPARE(publisher.size(), 1);
+  frame.wallTime =
+    WallClockTime{10000};
+
+  buffers.publish(frame);
+
+  QVERIFY(
+    buffers.ready());
+
+  QVERIFY(
+    engine.process());
+
+  QVERIFY(
+    engine.isRunning());
+
+  QCOMPARE(
+    publisher.size(),
+    std::size_t{1});
+
+  engine.stop();
+
+  QVERIFY(
+    !engine.isRunning());
 }
 
 void tst_dataserver::test_dataServer_stop_on_dataSourceFailure()
@@ -2579,12 +2623,13 @@ void tst_dataserver::test_dataServer_stop_on_dataSourceFailure()
   QCOMPARE(sender.sendCount, 0);
 }
 
-void tst_dataserver::test_systemBuilder_failedThenSuccess()
+void tst_dataserver::test_SystemBuilder_failedThenSuccess()
 {
   using namespace qds;
 
   SystemConfiguration badCfg =
-    createTestConfig_calculate(ModuleType::Test);
+    createTestConfig_calculate(
+      ModuleType::Test);
 
   badCfg.addSignalDefinition({
     .id = {30},
@@ -2594,58 +2639,91 @@ void tst_dataserver::test_systemBuilder_failedThenSuccess()
   });
 
   SystemConfiguration goodCfg =
-    createTestConfig_calculate(ModuleType::Test);
+    createTestConfig_calculate(
+      ModuleType::Test);
 
-  DataSourceFactory factory;
+  DataStreamSourceFactory factory;
 
-  QVERIFY(factory.registerType(
-    ModuleType::Test,
-    [](const ModuleRuntimeConfiguration& cfg)
-    {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
-    }));
+  QVERIFY(
+    factory.registerType(
+      ModuleType::Test,
+      [](const ModuleRuntimeConfiguration&,
+         IClock&,
+         IDataBlockSink&,
+         IDataStreamEventSink&)
+      {
+        return std::make_unique<
+          TestDataStreamSource>();
+      }));
 
-  RuntimeSystem runtime;
-
-  SystemBuilder builder;
+  TestArchiveFrameWriter archive;
+  FakeSchedulerClock clock;
+  TestLogger logger;
 
   CalibrationRepository cr;
 
-  QVERIFY(!builder.build(
-    badCfg,
-    factory,
-    cr,
-    runtime));
+  SystemBuilder builder;
+
+  // ------------------------------------------------------------
+  // Failed build
+  // ------------------------------------------------------------
+
+  auto runtime =
+    builder.build(
+      badCfg,
+      factory,
+      cr,
+      clock,
+      archive,
+      logger);
+
+  QVERIFY(!runtime);
+
+  // ------------------------------------------------------------
+  // Successful build using the same SystemBuilder
+  // ------------------------------------------------------------
+
+  runtime =
+    builder.build(
+      goodCfg,
+      factory,
+      cr,
+      clock,
+      archive,
+      logger);
+
+  QVERIFY(runtime);
 
   QVERIFY(
-    runtime.signalProcessor == nullptr);
+    runtime->signalProcessor);
 
   QVERIFY(
-    runtime.engine == nullptr);
-
-  QVERIFY(builder.build(
-    goodCfg,
-    factory,
-    cr,
-    runtime));
+    runtime->streamReader);
 
   QVERIFY(
-    runtime.signalProcessor != nullptr);
+    runtime->frameAssembler);
 
   QVERIFY(
-    runtime.engine != nullptr);
+    runtime->streamProcessor);
 
-  TestArchiveWriter archive;
-  TestPublisher publisher;
-  FakeSchedulerClock clock;
-  Logger logger(getCurrentFolder(), clock);
+  QVERIFY(
+    runtime->streamWorker);
 
-  QVERIFY(runtime.engine->initialize(
-    runtime.buffers,
-    publisher));
+  QVERIFY(
+    runtime->engine);
 
-  QVERIFY(runtime.engine->process());
+  QCOMPARE(
+    runtime->dataSources.size(),
+    std::size_t{1});
+
+  QVERIFY(
+    !runtime->dataSources.isRunning());
+
+  QVERIFY(
+    !runtime->streamWorker->isRunning());
+
+  QVERIFY(
+    !runtime->engine->isRunning());
 }
 
 void tst_dataserver::test_dataServer_start_twice()

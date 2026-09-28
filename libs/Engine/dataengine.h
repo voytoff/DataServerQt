@@ -16,6 +16,9 @@ public:
     IFramePublisher& publisher) noexcept;
 
   [[nodiscard]]
+  bool start() noexcept;
+
+  [[nodiscard]]
   bool process() noexcept;
 
   void stop() noexcept;

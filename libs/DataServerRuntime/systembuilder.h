@@ -1,7 +1,14 @@
 #pragma once
 
-#include "datasourcefactory.h"
+#include "calibrationrepository.h"
+#include "datastreamsourcefactory.h"
+#include "iarchivewriter.h"
+#include "iclock.h"
+#include "ilogger.h"
 #include "runtimesystem.h"
+#include "systemconfiguration.h"
+
+#include <memory>
 
 namespace qds
 {
@@ -10,11 +17,14 @@ class SystemBuilder
 {
 public:
 
-  bool build(
+  [[nodiscard]]
+  std::unique_ptr<RuntimeSystem> build(
     SystemConfiguration& configuration,
-    const DataSourceFactory& dataSourceFactory,
+    const DataStreamSourceFactory& dataSourceFactory,
     const CalibrationRepository& calibrations,
-    RuntimeSystem& runtime);
+    IClock& clock,
+    IArchiveWriter& archive,
+    ILogger& logger);
 };
 
 }

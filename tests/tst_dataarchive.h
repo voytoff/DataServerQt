@@ -76,6 +76,7 @@ private slots:
 
   void test_FrameAssembler_wait_for_all_modules();
   void test_FrameAssembler_allow_incomplete();
+  void test_DataStreamProcessor_archiveFailure();
   void test_DataStreamProcessor_wait_for_all();
 
   void test_DataStreamProcessor_livetime();
@@ -84,4 +85,6 @@ private slots:
   void test_DataStreamWorker_base();
   void test_LCardDataSource_to_archive();
   void test_LCardDataSource_some_modules_to_archive();
+  void test_DataStreamWorker_restart();
+
 };

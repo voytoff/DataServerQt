@@ -5,74 +5,94 @@
 
 namespace qds
 {
-bool SystemBuilder::build(
+
+std::unique_ptr<RuntimeSystem>
+SystemBuilder::build(
   SystemConfiguration& configuration,
-  const DataSourceFactory& dataSourceFactory,
+  const DataStreamSourceFactory& dataSourceFactory,
   const CalibrationRepository& calibrations,
-  RuntimeSystem& runtime)
+  IClock& clock,
+  IArchiveWriter& archive,
+  ILogger& logger)
 {
-  runtime.signalProcessor.reset();
-  runtime.engine.reset();
+  auto runtime =
+    std::make_unique<RuntimeSystem>();
 
-  runtime.formulas.clear();
-  runtime.calibrations.clear();
-  runtime.calculationPlan.clear();
-
-  runtime.layout.build(configuration);
+  runtime->layout.build(
+    configuration);
 
   FormulaBuilder formulaBuilder;
 
   if (!formulaBuilder.build(
         configuration,
-        runtime.layout,
-        runtime.formulas))
+        runtime->layout,
+        runtime->formulas))
   {
-    runtime.formulas.clear();
-    return false;
+    return nullptr;
   }
 
-  runtime.calibrations = calibrations;
+  runtime->calibrations =
+    calibrations;
 
   CalculationCompiler compiler(
     configuration,
-    runtime.layout,
-    runtime.formulas);
+    runtime->layout,
+    runtime->formulas);
 
   if (!compiler.build(
-        runtime.calculationPlan))
+        runtime->calculationPlan))
   {
-    runtime.formulas.clear();
-    runtime.calibrations.clear();
-    runtime.calculationPlan.clear();
-    return false;
+    return nullptr;
   }
 
-  runtime.signalProcessor =
+  runtime->signalProcessor =
     std::make_unique<SignalProcessor>(
-      runtime.layout,
-      runtime.formulas,
-      runtime.calculationPlan,
-      runtime.calibrations);
+      runtime->layout,
+      runtime->formulas,
+      runtime->calculationPlan,
+      runtime->calibrations);
 
-  if (!runtime.dataSources.initialize(
+  runtime->buffers.initialize(
+    runtime->layout);
+
+  runtime->streamReader =
+    std::make_unique<DataStreamReader>();
+
+  runtime->frameAssembler =
+    std::make_unique<FrameAssembler>(
+      configuration,
+      runtime->layout,
+      FrameStartPolicy::WaitForAllModules);
+
+  runtime->streamProcessor =
+    std::make_unique<DataStreamProcessor>(
+      *runtime->streamReader,
+      *runtime->frameAssembler,
+      *runtime->signalProcessor,
+      runtime->buffers,
+      archive,
+      logger);
+
+  runtime->streamWorker =
+    std::make_unique<DataStreamWorker>(
+      runtime->queue,
+      *runtime->streamProcessor,
+      logger);
+
+  if (!runtime->dataSources.initialize(
         configuration,
-        runtime.layout,
-        dataSourceFactory))
+        dataSourceFactory,
+        clock,
+        runtime->queue,
+        runtime->queue))
   {
-    runtime.signalProcessor.reset();
-    runtime.formulas.clear();
-    runtime.calibrations.clear();
-    runtime.calculationPlan.clear();
-    return false;
+    return nullptr;
   }
 
-  runtime.buffers.initialize(
-    runtime.layout);
-
-  runtime.engine =
+  runtime->engine =
     std::make_unique<DataEngine>();
 
-  return true;
+  return runtime;
 }
 
 }
