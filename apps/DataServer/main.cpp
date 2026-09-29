@@ -1,8 +1,8 @@
 #include "fakeschedulerclock.h"
 #include "systemconfiguration.h"
 #include "dataserver.h"
-#include "testdatasource.h"
 #include "testarchivewriter.h"
+#include "testdatastreamsource.h"
 #include "testpublisher.h"
 #include "udpsender.h"
 #include "logger.h"
@@ -38,14 +38,16 @@ int main(int argc, char *argv[]) {
   qds::SystemConfiguration cfg = createTestConfig_calculate(qds::ModuleType::Test);
   qds::CalibrationRepository repository;
 
-  qds::DataSourceFactory factory;
+  qds::DataStreamSourceFactory factory;
 
   if (!factory.registerType(
         qds::ModuleType::Test,
-        [](const qds::ModuleRuntimeConfiguration& config)
+        [](const qds::ModuleRuntimeConfiguration&,
+           qds::IClock&,
+           qds::IDataBlockSink&,
+           qds::IDataStreamEventSink&)
         {
-          return std::make_unique<qds::TestDataSource>(
-            config.configuration.settings);
+          return std::make_unique<qds::TestDataStreamSource>();
         }))
     return -1;
   /*

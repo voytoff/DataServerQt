@@ -15,7 +15,6 @@ add_library(DataProtocol SHARED
   protocol/errorpackets.h
   protocol/publishheader.h
   endpoint.cpp
-  testpublishersender.h testpublishersender.cpp
 )
 target_include_directories(DataProtocol
   PUBLIC

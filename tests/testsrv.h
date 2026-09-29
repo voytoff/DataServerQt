@@ -17,7 +17,7 @@
 #include "subscriptionmanager.h"
 #include "systemconfiguration.h"
 #include "taginfo.h"
-#include "testpublishersender.h"
+#include "qds/testpublishersender.h"
 #include "udpsender.h"
 #include "udpserver.h"
 

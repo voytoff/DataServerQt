@@ -422,7 +422,9 @@ void tst_signalstorage::test_bufferManager_thread_safe2()
         buffers.publish(frame);
       }
 
-      writerFinished.store(true);
+      writerFinished.store(
+        true,
+        std::memory_order_release);
     });
 
   std::thread reader(
@@ -430,13 +432,26 @@ void tst_signalstorage::test_bufferManager_thread_safe2()
     {
       Frame frame;
 
-      while (!writerFinished.load())
+      uint64_t lastFrameNumber = 0;
+
+      while (
+        !writerFinished.load(
+          std::memory_order_acquire) ||
+        buffers.ready())
       {
         if (!buffers.readFrame(frame))
           continue;
 
         const uint64_t n =
           frame.number.value;
+
+        if (n <= lastFrameNumber)
+        {
+          failed.store(true);
+          return;
+        }
+
+        lastFrameNumber = n;
 
         if (frame.raw().value(0) !=
             static_cast<double>(n))
@@ -459,6 +474,9 @@ void tst_signalstorage::test_bufferManager_thread_safe2()
           return;
         }
       }
+
+      if (lastFrameNumber != frameCount)
+        failed.store(true);
     });
 
   writer.join();
@@ -467,26 +485,11 @@ void tst_signalstorage::test_bufferManager_thread_safe2()
   QVERIFY(
     !failed.load());
 
-  Frame last;
+  QVERIFY(
+    !buffers.ready());
+
+  Frame frame;
 
   QVERIFY(
-    buffers.readFrame(last));
-
-  QCOMPARE(
-    last.number,
-    FrameNumber{frameCount});
-
-  QCOMPARE(
-    last.raw().value(0),
-    static_cast<double>(frameCount));
-
-  QCOMPARE(
-    last.raw().value(1),
-    static_cast<double>(
-      frameCount * 10));
-
-  QCOMPARE(
-    last.calculated().value(0),
-    static_cast<double>(
-      frameCount * 100));
+    !buffers.readFrame(frame));
 }

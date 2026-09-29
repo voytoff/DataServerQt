@@ -44,6 +44,10 @@ add_executable(unit_tests
     qds/testpublisher.h
     qds/testarchivewriter.h
     qds/testdatastreamsource.h
+    qds/testpublishersender.h
+    qds/nullarchivewriter.h
+    qds/teststreamingdatasource.h qds/teststreamingdatasource.cpp
+
 )
 
 target_link_libraries(unit_tests

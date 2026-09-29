@@ -4,17 +4,16 @@
 #include "archivemanager.h"
 #include "archivereader.h"
 #include "configurationrepository.h"
+#include "protocol/publishheader.h"
 #include "qds/db.h"
 #include "archiveformat.h"
 #include "fakeschedulerclock.h"
-#include "nullarchivewriter.h"
-#include "protocol/publishheader.h"
+#include "qds/nullarchivewriter.h"
 #include "qds/testarchiveframewriter.h"
 #include "qds/testdatastreamsource.h"
-#include "runtimesystem.h"
 #include "systembuilder.h"
 #include "systemconfiguration.h"
-#include "testpublishersender.h"
+#include "qds/testpublishersender.h"
 #include "testsrv.h"
 #include "testlogger.h"
 #include <QSqlTableModel>
@@ -1020,22 +1019,61 @@ void tst_database::test_archiveReader_read()
 
   ArchiveSample sample;
 
-  for (int i = 1; i <= files[index].frequency; ++i)
+  for (
+    int i = 0;
+    i < files[index].frequency;
+    ++i)
   {
-    QVERIFY(reader.read(index, sample));
+    QVERIFY(
+      reader.read(
+        index,
+        sample));
 
-    QCOMPARE(sample.frameNumber, FrameNumber{static_cast<uint64_t>(i * 100)});
-    QCOMPARE(sample.timestamp, Timestamp{static_cast<uint64_t>(i * 100 * 2)});
-    QCOMPARE(sample.wallTime, WallClockTime{static_cast<int64_t>(i * 100 * 3)});
+    const auto frameIndex =
+      static_cast<uint64_t>(
+        i * 100);
 
-    QCOMPARE(sample.values.size(), 2);
+    QCOMPARE(
+      sample.frameNumber,
+      FrameNumber{frameIndex});
+
+    QCOMPARE(
+      sample.timestamp,
+      Timestamp{
+                2 + frameIndex * 1000});
+
+    QCOMPARE(
+      sample.wallTime,
+      WallClockTime{
+                    3 +
+                    static_cast<int64_t>(
+                      frameIndex * 1000)});
+
+    QCOMPARE(
+      sample.values.size(),
+      std::size_t{2});
+
     QCOMPARE(
       sample.values.size(),
       files[index].signalIds.size());
 
-    double a = (100 * i - 1) * 0.1;
-    double b = 970 + (i - 1) * 1000;
-    double c = a + b;
+    const double raw0 =
+      static_cast<double>(
+        frameIndex);
+
+    const double raw1 =
+      static_cast<double>(
+        frameIndex) *
+      10.0;
+
+    const double a =
+      raw0 * 0.1;
+
+    const double b =
+      raw1 - 20.0;
+
+    const double c =
+      a + b;
 
     QCOMPARE(
       sample.values[0],
@@ -1056,56 +1094,140 @@ void tst_database::test_archiveReader_read()
 
 void tst_database::test_archiveReader_readFrame()
 {
+  using namespace qds;
+
   ArchiveReader reader;
 
-  QVERIFY(reader.open(getCurrentFolder()));
+  QVERIFY(
+    reader.open(
+      getCurrentFolder()));
 
-  QVERIFY(reader.isOpen());
+  QVERIFY(
+    reader.isOpen());
 
-  const ArchiveDescription &description = reader.description();
-  QCOMPARE(description.version, ArchiveDescriptionVersion);
+  const ArchiveDescription& description =
+    reader.description();
 
-  QCOMPARE(description.files.size(), 4);
+  QCOMPARE(
+    description.version,
+    ArchiveDescriptionVersion);
 
-  const auto &files = description.files;
+  QCOMPARE(
+    description.files.size(),
+    std::size_t{4});
 
-  auto it = std::find_if(
-    files.begin(),
-    files.end(),
-    [](const ArchiveFileDescription &desc)
-    {
-      return desc.frequency == 10 &&
-             desc.signalIds[0].kind == SignalKind::Calculated;
-    });
+  const auto& files =
+    description.files;
 
-  QVERIFY(it != files.end());
+  auto it =
+    std::find_if(
+      files.begin(),
+      files.end(),
+      [](const ArchiveFileDescription& desc)
+      {
+        return
+          desc.frequency == 10 &&
+          desc.signalIds[0].kind ==
+            SignalKind::Calculated;
+      });
+
+  QVERIFY(
+    it != files.end());
 
   QCOMPARE(
     it->name,
     "calculated_10Hz.dat");
 
-  int index = std::distance(files.begin(), it);
+  const auto index =
+    std::distance(
+      files.begin(),
+      it);
 
-  QVERIFY(index >= 0 && index < files.size());
+  QVERIFY(
+    index >= 0 &&
+    index <
+      static_cast<decltype(index)>(
+        files.size()));
+
+  const auto frequency =
+    files[index].frequency;
+
+  const auto p =
+    BaseFrameFrequency /
+    frequency;
 
   ArchiveSample sample;
 
-  for (uint64_t i = files[index].frequency; i > 0; --i)
+  // Проверяем в обратном порядке,
+  // как и в исходном тесте.
+  for (
+    uint64_t i = frequency;
+    i > 0;
+    --i)
   {
-    QVERIFY(reader.readFrame(index, FrameNumber{i * 100}, sample));
+    const auto frameIndex =
+      (i - 1) * p;
 
-    QCOMPARE(sample.frameNumber, FrameNumber{static_cast<uint64_t>(i * 100)});
-    QCOMPARE(sample.timestamp, Timestamp{static_cast<uint64_t>(i * 100 * 2)});
-    QCOMPARE(sample.wallTime, WallClockTime{static_cast<int64_t>(i * 100 * 3)});
+    const FrameNumber frameNumber{
+                                  static_cast<uint64_t>(
+                                    frameIndex)};
 
-    QCOMPARE(sample.values.size(), 2);
+    QVERIFY(
+      reader.readFrame(
+        index,
+        frameNumber,
+        sample));
+
+    QCOMPARE(
+      sample.frameNumber,
+      frameNumber);
+
+    const auto delta =
+      static_cast<uint64_t>(
+        std::llround(
+          static_cast<double>(
+            frameIndex) *
+          1'000'000.0 /
+          static_cast<double>(
+            BaseFrameFrequency)));
+
+    QCOMPARE(
+      sample.timestamp,
+      Timestamp{
+                2 + delta});
+
+    QCOMPARE(
+      sample.wallTime,
+      WallClockTime{
+                    3 +
+                    static_cast<int64_t>(
+                      delta)});
+
+    QCOMPARE(
+      sample.values.size(),
+      std::size_t{2});
+
     QCOMPARE(
       sample.values.size(),
       files[index].signalIds.size());
 
-    double a = (100 * i - 1) * 0.1;
-    double b = 970 + (i - 1) * 1000;
-    double c = a + b;
+    const double raw0 =
+      static_cast<double>(
+        frameIndex);
+
+    const double raw1 =
+      static_cast<double>(
+        frameIndex) *
+      10.0;
+
+    const double a =
+      raw0 * 0.1;
+
+    const double b =
+      raw1 - 20.0;
+
+    const double c =
+      a + b;
 
     QCOMPARE(
       sample.values[0],
@@ -1116,14 +1238,47 @@ void tst_database::test_archiveReader_readFrame()
       static_cast<float>(c));
   }
 
-  QVERIFY(!reader.readFrame(index, FrameNumber{0}, sample));    // недопустимый frame
-  QVERIFY(!reader.readFrame(index, FrameNumber{999}, sample));  // не попадает в сетку 10 Hz
-  QVERIFY(!reader.readFrame(index, FrameNumber{1100}, sample)); // за EOF
+  // FrameNumber{0} теперь валиден.
+  QVERIFY(
+    reader.readFrame(
+      index,
+      FrameNumber{0},
+      sample));
+
+  QCOMPARE(
+    sample.frameNumber,
+    FrameNumber{0});
+
+  // Не попадает в сетку 10 Hz.
+  QVERIFY(
+    !reader.readFrame(
+      index,
+      FrameNumber{99},
+      sample));
+
+  QVERIFY(
+    !reader.readFrame(
+      index,
+      FrameNumber{999},
+      sample));
+
+  // За последним архивным кадром.
+  QVERIFY(
+    !reader.readFrame(
+      index,
+      FrameNumber{
+                  static_cast<uint64_t>(
+                    BaseFrameFrequency)},
+      sample));
 
   reader.close();
 
-  QVERIFY(!reader.isOpen());
-  QVERIFY(reader.fileHeader(0) == nullptr);
+  QVERIFY(
+    !reader.isOpen());
+
+  QVERIFY(
+    reader.fileHeader(0) ==
+    nullptr);
 }
 
 void tst_database::test_publisher()

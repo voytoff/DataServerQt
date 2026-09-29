@@ -16,7 +16,6 @@ add_library(DataArchive SHARED
     archivereader.h archivereader.cpp
     archivemanager.h archivemanager.cpp
     iarchivewriter.h
-    nullarchivewriter.h nullarchivewriter.cpp
     failingarchivewriter.h
     failoncearchivewriter.h failoncearchivewriter.cpp
     archivedescription.h

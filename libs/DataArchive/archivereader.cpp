@@ -258,7 +258,9 @@ bool ArchiveReader::readFrame(
   FrameNumber frameNumber,
   ArchiveSample& sample)
 {
-  assert(fileIndex < m_files.size());
+  assert(
+    fileIndex <
+    m_files.size());
 
   if (!m_open)
     return false;
@@ -272,25 +274,43 @@ bool ArchiveReader::readFrame(
   const auto& header =
     file.header();
 
+  if (header.sampleFrequency == 0)
+    return false;
+
   const uint64_t periodFrames =
     BaseFrameFrequency /
     header.sampleFrequency;
 
-  if (frameNumber.value == 0 ||
-      frameNumber.value % periodFrames != 0)
+  if (periodFrames == 0)
+    return false;
+
+  if (
+    frameNumber.value %
+      periodFrames != 0)
   {
     return false;
   }
 
   const uint64_t recordIndex =
-    frameNumber.value / periodFrames - 1;
+    frameNumber.value /
+    periodFrames;
+
+  if (
+    recordIndex >=
+    header.recordCount)
+  {
+    return false;
+  }
 
   const uint64_t position =
     header.headerSize +
-    recordIndex * header.recordSize;
+    recordIndex *
+      header.recordSize;
 
-  if (position + header.recordSize >
-      file.fileSize())
+  if (
+    position +
+      header.recordSize >
+    file.fileSize())
   {
     return false;
   }
@@ -298,10 +318,16 @@ bool ArchiveReader::readFrame(
   if (!file.seek(position))
     return false;
 
-  if (!read(fileIndex, sample))
+  if (!read(
+        fileIndex,
+        sample))
+  {
     return false;
+  }
 
-  return sample.frameNumber == frameNumber;
+  return
+    sample.frameNumber ==
+    frameNumber;
 }
 
 bool ArchiveReader::ensureOpen(std::size_t fileIndex)

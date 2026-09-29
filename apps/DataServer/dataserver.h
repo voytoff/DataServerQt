@@ -28,7 +28,7 @@ public:
   explicit DataServer(
     SystemConfiguration configuration,
     const CalibrationRepository &repository,
-    const DataSourceFactory& dataSourceFactory,
+    const DataStreamSourceFactory& dataSourceFactory,
     IArchiveWriter& archive,
     ISchedulerClock& clock,
     ISender& sender,
@@ -52,14 +52,14 @@ private:
   SystemConfiguration m_configuration;
   const CalibrationRepository& m_repository;
 
-  const DataSourceFactory& m_dataSourceFactory;
+  const DataStreamSourceFactory& m_dataSourceFactory;
 
   IArchiveWriter& m_archive;
   ISchedulerClock& m_clock;
   ISender& m_sender;
   ILogger& m_logger;
 
-  RuntimeSystem m_runtime;
+  std::unique_ptr<RuntimeSystem> m_runtime;
 
   SubscriptionManager m_subscriptions;
 

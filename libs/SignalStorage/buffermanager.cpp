@@ -22,7 +22,7 @@ void BufferManager::publish(
 }
 
 bool BufferManager::readFrame(
-  Frame& frame) const
+  Frame& frame)
 {
   std::lock_guard lock(m_mutex);
 
@@ -30,6 +30,8 @@ bool BufferManager::readFrame(
     return false;
 
   frame = m_frame;
+  m_ready = false;
+
   return true;
 }
 

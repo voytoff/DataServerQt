@@ -31,7 +31,11 @@ private:
 
   bool shouldPublish(
     FrameNumber frame,
-    PublishRate rate) const;
+    const Subscription &subscription) const;
+
+  void updateSchedule(
+    FrameNumber frame,
+    Subscription& subscription) const;
 
 private:
 

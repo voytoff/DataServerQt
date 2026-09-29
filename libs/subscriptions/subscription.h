@@ -12,14 +12,15 @@ namespace qds
 struct Subscription
 {
   SubscriptionId id;
-
   Endpoint endpoint;
+  PublishRate rate;
 
   std::vector<SignalId> signalIds;
 
-  PublishRate rate = PublishRate::Hz10;
-
   uint32_t sequence = 0;
+
+  FrameNumber nextPublishFrame;
+  bool publishStarted = false;
 };
 
 }

@@ -1,14 +1,10 @@
 #include "tst_publisher.h"
-#include "livestorage.h"
-#include "moduleinfo.h"
 #include "packetreader.h"
-#include "packetwriter.h"
 #include "protocol/publishheader.h"
 #include "publisher.h"
 #include "subscription.h"
 #include "systemconfiguration.h"
-#include "taginfo.h"
-#include "testpublishersender.h"
+#include "qds/testpublishersender.h"
 #include "testsrv.h"
 #include <qtestcase.h>
 
@@ -175,12 +171,12 @@ void tst_publisher::test_publish_reuseWriter()
       .address = "127.0.0.1",
       .port = 5000
     },
+    .rate = PublishRate::Hz10,
     .signalIds = {
       SignalId{0},
       SignalId{1},
       SignalId{23}
     },
-    .rate = PublishRate::Hz10,
   };
 
   QVERIFY(subscriptions.add(sub));
@@ -188,7 +184,7 @@ void tst_publisher::test_publish_reuseWriter()
   Frame frame;
   frame.initialize(layout);
 
-  frame.number = FrameNumber{1};
+  frame.number = FrameNumber{0};
   frame.timestamp = Timestamp{100};
   frame.wallTime = WallClockTime{200};
 
@@ -229,6 +225,25 @@ void tst_publisher::test_publish_reuseWriter()
   QVERIFY(reader.remaining() == 0);
 
 
+  frame.number =
+    FrameNumber{100};
+
+  frame.timestamp =
+    Timestamp{100'100};
+
+  frame.raw().setValue(0, 11.0);
+  frame.raw().setValue(1, 21.0);
+
+  frame.calculated().setValue(0, 31.0);
+  frame.calculated().setValue(1, 41.0);
+  frame.calculated().setValue(2, 51.0);
+
+  publisher.publish(frame);
+
+  QCOMPARE(
+    sender.sendCount,
+    2);
+
   publisher.publish(frame);
 
   QCOMPARE(sender.sendCount, 2);
@@ -239,11 +254,13 @@ void tst_publisher::test_publish_reuseWriter()
     sender.m_packets[1].data(),
     sender.m_packets[1].size());
 
-  QVERIFY(reader2.nextPacket());
+  QVERIFY(
+    reader2.nextPacket());
 
   PublishHeader hdr2;
 
-  QVERIFY(reader2.read(hdr2));
+  QVERIFY(
+    reader2.read(hdr2));
 
   QCOMPARE(
     hdr2.subscriptionId,
@@ -252,6 +269,37 @@ void tst_publisher::test_publish_reuseWriter()
   QCOMPARE(
     hdr2.sequence,
     2u);
+
+  QCOMPARE(
+    hdr2.timestamp,
+    100'100u);
+
+  QCOMPARE(
+    hdr2.valueCount,
+    3u);
+
+  std::array<double, 3> values2;
+
+  QVERIFY(
+    reader2.readArray(
+      values2.data(),
+      values2.size()));
+
+  QCOMPARE(
+    values2[0],
+    11.0);
+
+  QCOMPARE(
+    values2[1],
+    21.0);
+
+  QCOMPARE(
+    values2[2],
+    51.0);
+
+  QCOMPARE(
+    reader2.remaining(),
+    std::size_t{0});
 }
 
 void tst_publisher::test_publish_failSignal()
@@ -268,16 +316,16 @@ void tst_publisher::test_publish_failSignal()
   // подписка на 3 сигнала (2 raw, 1 calc)
   Subscription sub
     {
-     .endpoint = {
-       .address = "127.0.0.1",
-       .port = 5000
-     },
-     .signalIds = {
-       SignalId{0},
-       SignalId{1},
-       SignalId{23}
-     },
+    .endpoint = {
+      .address = "127.0.0.1",
+      .port = 5000
+    },
      .rate = PublishRate::Hz10,
+    .signalIds = {
+      SignalId{0},
+      SignalId{1},
+      SignalId{23}
+    },
      };
 
   QVERIFY(subscriptions.add(sub));
@@ -285,7 +333,7 @@ void tst_publisher::test_publish_failSignal()
   Frame frame;
   frame.initialize(layout);
 
-  frame.number = FrameNumber{1};
+  frame.number = FrameNumber{0};
   frame.timestamp = Timestamp{100};
   frame.wallTime = WallClockTime{200};
 
@@ -330,6 +378,24 @@ void tst_publisher::test_publish_failSignal()
   auto s = subscriptions.find(SubscriptionId{1});
   s->signalIds[2].value = 24;
 
+  s->signalIds[2] = SignalId{24};
+
+  frame.number =
+    FrameNumber{100};
+
+  frame.timestamp =
+    Timestamp{100'100};
+
+  publisher.publish(frame);
+
+  QCOMPARE(
+    sender.sendCount,
+    1);
+
+  QCOMPARE(
+    sender.m_packets.size(),
+    std::size_t{1});
+
   publisher.publish(frame);
 
   QCOMPARE(sender.sendCount, 1);
@@ -343,11 +409,32 @@ void tst_publisher::test_publish_failSignal()
     s->sequence,
     1u);
 
+  QVERIFY(
+    s->publishStarted);
+
+  QCOMPARE(
+    s->nextPublishFrame,
+    FrameNumber{100});
+
   s->signalIds[2] = SignalId{23};
 
   publisher.publish(frame);
 
   QCOMPARE(sender.sendCount, 2u);
+
+  s = subscriptions.find(
+    SubscriptionId{1});
+
+  QVERIFY(
+    s != nullptr);
+
+  QCOMPARE(
+    s->sequence,
+    2u);
+
+  QCOMPARE(
+    s->nextPublishFrame,
+    FrameNumber{200});
 
   PacketReader reader2;
 
@@ -355,13 +442,21 @@ void tst_publisher::test_publish_failSignal()
     sender.m_packets[1].data(),
     sender.m_packets[1].size());
 
-  QVERIFY(reader2.nextPacket());
+  QVERIFY(
+    reader2.nextPacket());
 
   PublishHeader hdr2;
 
-  QVERIFY(reader2.read(hdr2));
+  QVERIFY(
+    reader2.read(hdr2));
 
-  QCOMPARE(hdr2.sequence, 2u);
+  QCOMPARE(
+    hdr2.sequence,
+    2u);
+
+  QCOMPARE(
+    hdr2.timestamp,
+    100'100u);
 }
 
 void tst_publisher::test_publish_publishRate()
@@ -377,40 +472,40 @@ void tst_publisher::test_publish_publishRate()
 
   Subscription sub0
     {
-     .endpoint = {
-       .address = "127.0.0.1",
-       .port = 35000
-     },
-     .signalIds = {
-       SignalId{17}
-     },
+    .endpoint = {
+      .address = "127.0.0.1",
+      .port = 35000
+    },
      .rate = PublishRate::Hz100,
+    .signalIds = {
+      SignalId{17}
+    },
      };
   QVERIFY(subscriptions.add(sub0));
 
   Subscription sub1
     {
-     .endpoint = {
-       .address = "127.0.0.1",
-       .port = 3500
-     },
-     .signalIds = {
-       SignalId{4}
-     },
+    .endpoint = {
+      .address = "127.0.0.1",
+      .port = 3500
+    },
      .rate = PublishRate::Hz10,
+    .signalIds = {
+      SignalId{4}
+    },
      };
   QVERIFY(subscriptions.add(sub1));
 
   Subscription sub2
     {
-     .endpoint = {
-       .address = "127.0.0.1",
-       .port = 35000
-     },
-     .signalIds = {
-       SignalId{23}
-     },
+    .endpoint = {
+      .address = "127.0.0.1",
+      .port = 35000
+    },
      .rate = PublishRate::Hz1,
+    .signalIds = {
+      SignalId{23}
+    },
      };
   QVERIFY(subscriptions.add(sub2));
 

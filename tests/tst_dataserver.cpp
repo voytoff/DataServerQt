@@ -9,6 +9,7 @@
 #include "logger.h"
 #include "qds/testarchiveframewriter.h"
 #include "qds/testdatastreamsource.h"
+#include "qds/teststreamingdatasource.h"
 #include "testlogger.h"
 #include "failingarchivewriter.h"
 #include "failingdatasource.h"
@@ -742,14 +743,16 @@ void tst_dataserver::test_dataServer_failStart_moduleType()
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::LTR11);
 
-  DataSourceFactory factory;
+  DataStreamSourceFactory factory;
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleRuntimeConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration&,
+       IClock&,
+       IDataBlockSink&,
+       IDataStreamEventSink&)
     {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
+      return std::make_unique<TestDataStreamSource>();
     }));
 
   TestArchiveWriter archive;
@@ -782,14 +785,16 @@ void tst_dataserver::test_dataServer_failSubscribe_invalidSignalId()
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Test);
 
-  DataSourceFactory factory;
+  DataStreamSourceFactory factory;
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleRuntimeConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration&,
+       IClock&,
+       IDataBlockSink&,
+       IDataStreamEventSink&)
     {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
+      return std::make_unique<TestDataStreamSource>();
     }));
 
   TestArchiveWriter archive;
@@ -900,14 +905,16 @@ void tst_dataserver::test_dataServer_failSubscribe_duplicateSignalId()
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Test);
 
-  DataSourceFactory factory;
+  DataStreamSourceFactory factory;
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleRuntimeConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration&,
+       IClock&,
+       IDataBlockSink&,
+       IDataStreamEventSink&)
     {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
+      return std::make_unique<TestDataStreamSource>();
     }));
 
   TestArchiveWriter archive;
@@ -1015,17 +1022,20 @@ void tst_dataserver::test_dataServer_failSubscribe_duplicateSignalId()
 
 void tst_dataserver::test_dataServer_failSubscribe_invalidRate()
 {
+  using namespace qds;
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Test);
 
-  DataSourceFactory factory;
+  DataStreamSourceFactory factory;
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleRuntimeConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration&,
+       IClock&,
+       IDataBlockSink&,
+       IDataStreamEventSink&)
     {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
+      return std::make_unique<TestDataStreamSource>();
     }));
 
   TestArchiveWriter archive;
@@ -1136,14 +1146,16 @@ void tst_dataserver::test_dataServer_failSubscribe_emptyList()
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Test);
 
-  DataSourceFactory factory;
+  DataStreamSourceFactory factory;
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleRuntimeConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration&,
+       IClock&,
+       IDataBlockSink&,
+       IDataStreamEventSink&)
     {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
+      return std::make_unique<TestDataStreamSource>();
     }));
 
   TestArchiveWriter archive;
@@ -1244,14 +1256,16 @@ void tst_dataserver::test_dataServer_failSubscribe_tooManySignals()
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Test);
 
-  DataSourceFactory factory;
+  DataStreamSourceFactory factory;
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleRuntimeConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration&,
+       IClock&,
+       IDataBlockSink&,
+       IDataStreamEventSink&)
     {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
+      return std::make_unique<TestDataStreamSource>();
     }));
 
   TestArchiveWriter archive;
@@ -1352,14 +1366,19 @@ void tst_dataserver::test_dataServer_unsubscribe_ok()
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Test);
 
-  DataSourceFactory factory;
+  DataStreamSourceFactory factory;
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleRuntimeConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& configuration,
+       IClock&,
+       IDataBlockSink& blockSink,
+       IDataStreamEventSink& eventSink)
     {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
+      return std::make_unique<TestStreamingDataSource>(
+        configuration,
+        blockSink,
+        eventSink);
     }));
 
   TestArchiveWriter archive;
@@ -1569,14 +1588,16 @@ void tst_dataserver::test_dataServer_unsubscribe_invalidId()
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Test);
 
-  DataSourceFactory factory;
+  DataStreamSourceFactory factory;
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleRuntimeConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration&,
+       IClock&,
+       IDataBlockSink&,
+       IDataStreamEventSink&)
     {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
+      return std::make_unique<TestDataStreamSource>();
     }));
 
   TestArchiveWriter archive;
@@ -1785,14 +1806,16 @@ void tst_dataserver::test_dataServer_start_stop()
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Test);
 
-  DataSourceFactory factory;
+  DataStreamSourceFactory factory;
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleRuntimeConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration&,
+       IClock&,
+       IDataBlockSink&,
+       IDataStreamEventSink&)
     {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
+      return std::make_unique<TestDataStreamSource>();
     }));
 
   TestArchiveWriter archive;
@@ -1958,14 +1981,16 @@ void tst_dataserver::test_dataServer_start_after_failed_start()
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Fake);
 
-  DataSourceFactory factory;
+  DataStreamSourceFactory factory;
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleRuntimeConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration&,
+       IClock&,
+       IDataBlockSink&,
+       IDataStreamEventSink&)
     {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
+      return std::make_unique<TestDataStreamSource>();
     }));
 
   FailOnceArchiveWriter archive;
@@ -1989,10 +2014,12 @@ void tst_dataserver::test_dataServer_start_after_failed_start()
 
   QVERIFY(factory.registerType(
     ModuleType::Fake,
-    [](const ModuleRuntimeConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration&,
+       IClock&,
+       IDataBlockSink&,
+       IDataStreamEventSink&)
     {
-      return std::make_unique<FakeDataSource>(
-        cfg.configuration.settings);
+      return std::make_unique<TestDataStreamSource>();
     }));
 
   QVERIFY(ds.start());
@@ -2020,14 +2047,16 @@ void tst_dataserver::test_dataServer_failStart_invalidUdpPort()
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Test);
 
-  DataSourceFactory factory;
+  DataStreamSourceFactory factory;
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleRuntimeConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration&,
+       IClock&,
+       IDataBlockSink&,
+       IDataStreamEventSink&)
     {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
+      return std::make_unique<TestDataStreamSource>();
     }));
 
   TestArchiveWriter archive;
@@ -2222,14 +2251,16 @@ void tst_dataserver::test_dataServer_subscriptionId_after_restart()
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Test);
 
-  DataSourceFactory factory;
+  DataStreamSourceFactory factory;
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleRuntimeConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration&,
+       IClock&,
+       IDataBlockSink&,
+       IDataStreamEventSink&)
     {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
+      return std::make_unique<TestDataStreamSource>();
     }));
 
   TestArchiveWriter archive;
@@ -2587,14 +2618,16 @@ void tst_dataserver::test_dataServer_stop_on_dataSourceFailure()
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Failing);
 
-  DataSourceFactory factory;
+  DataStreamSourceFactory factory;
 
   QVERIFY(factory.registerType(
-    ModuleType::Failing,
-    [](const ModuleRuntimeConfiguration& cfg)
+    ModuleType::Test,
+    [](const ModuleRuntimeConfiguration&,
+       IClock&,
+       IDataBlockSink&,
+       IDataStreamEventSink&)
     {
-      return std::make_unique<FailingDataSource>(
-        cfg.configuration.settings);
+      return std::make_unique<TestDataStreamSource>(0);
     }));
 
   TestArchiveWriter archive;
@@ -2613,7 +2646,7 @@ void tst_dataserver::test_dataServer_stop_on_dataSourceFailure()
     sender,
     logger);
 
-  QVERIFY(ds.start());
+  QVERIFY(!ds.start());
 
   QTRY_VERIFY_WITH_TIMEOUT(
     !ds.isRunning(),
@@ -2731,14 +2764,16 @@ void tst_dataserver::test_dataServer_start_twice()
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Test);
 
-  DataSourceFactory factory;
+  DataStreamSourceFactory factory;
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleRuntimeConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration&,
+       IClock&,
+       IDataBlockSink&,
+       IDataStreamEventSink&)
     {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
+      return std::make_unique<TestDataStreamSource>();
     }));
 
   TestArchiveWriter archive;
@@ -2773,14 +2808,16 @@ void tst_dataserver::test_dataServer_stop_before_start()
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Test);
 
-  DataSourceFactory factory;
+  DataStreamSourceFactory factory;
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleRuntimeConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration&,
+       IClock&,
+       IDataBlockSink&,
+       IDataStreamEventSink&)
     {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
+      return std::make_unique<TestDataStreamSource>(0);
     }));
 
   TestArchiveWriter archive;
@@ -2818,14 +2855,16 @@ void tst_dataserver::test_dataServer_udp_pipeline()
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Test);
 
-  DataSourceFactory factory;
+  DataStreamSourceFactory factory;
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleRuntimeConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration&,
+       IClock&,
+       IDataBlockSink&,
+       IDataStreamEventSink&)
     {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
+      return std::make_unique<TestDataStreamSource>(0);
     }));
 
   TestArchiveWriter archive;
@@ -3075,15 +3114,20 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
 
   CalibrationRepository calibrations;
   QVERIFY(repository.loadCalibrations(cfg, calibrations));
-
-  DataSourceFactory factory;
+  
+  DataStreamSourceFactory factory;
 
   QVERIFY(factory.registerType(
     ModuleType::LTR11,
-    [](const ModuleRuntimeConfiguration& cfg)
+    [](const ModuleRuntimeConfiguration& configuration,
+       IClock&,
+       IDataBlockSink& blockSink,
+       IDataStreamEventSink& eventSink)
     {
-      return std::make_unique<TestDataSource>(
-        cfg.configuration.settings);
+      return std::make_unique<TestStreamingDataSource>(
+        configuration,
+        blockSink,
+        eventSink);
     }));
 
   ArchiveDescriptionBuilder builder;
@@ -3263,6 +3307,13 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
   uint32_t sequence1 = 0;
   uint32_t sequence2 = 0;
 
+  uint64_t previousTimestamp1{};
+  bool hasTimestamp1 = false;
+
+  uint64_t previousTimestamp2{};
+  bool hasTimestamp2 = false;
+
+
   while(client.waitForReadyRead(100) && client.hasPendingDatagrams())
   {
     data.resize(client.pendingDatagramSize());
@@ -3283,15 +3334,27 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
 
     QVERIFY(reader.read(header));
 
-    if (header.subscriptionId == SubscriptionId{1})
+    if (
+      header.subscriptionId ==
+      SubscriptionId{1})
     {
       QCOMPARE(
         header.sequence,
         ++sequence1);
 
-      const auto index = sequence1;
+      const uint64_t frameIndex =
+        (header.timestamp - 1'000'000) / 1000;
 
-      QCOMPARE(header.timestamp, index * 100 * 2 + 2);
+      if (hasTimestamp1)
+      {
+        QVERIFY(
+          header.timestamp >
+          previousTimestamp1);
+      }
+
+      previousTimestamp1 =
+        header.timestamp;
+      hasTimestamp1 = true;
 
       QCOMPARE(
         header.valueCount,
@@ -3302,22 +3365,47 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
           samples1.data(),
           samples1.size()));
 
-      double a = (100 * index) * 0.1;
-      double b = -20.0 + index * 1000;
-      double c = a + b;
+      const double raw0 =
+        static_cast<double>(
+          frameIndex * 10);
 
-      QCOMPARE(samples1[0], Sample{b});
-      QCOMPARE(samples1[1], Sample{c});
+      const double raw1 =
+        static_cast<double>(
+          frameIndex * 10 + 1);
+
+      const double a = raw0 * 0.1;
+      const double b = raw1 - 20.0;
+      const double c = a + b;
+
+      QCOMPARE(
+        samples1[0],
+        Sample{b});
+
+      QCOMPARE(
+        samples1[1],
+        Sample{c});
     }
-    else if (header.subscriptionId == SubscriptionId{2})
+    else if (
+      header.subscriptionId ==
+      SubscriptionId{2})
     {
       QCOMPARE(
         header.sequence,
         ++sequence2);
 
-      const auto index = sequence2;
+      const uint64_t frameIndex =
+        (header.timestamp - 1'000'000) / 1000;
 
-      QCOMPARE(header.timestamp, index * 10 * 2 + 2);
+      if (hasTimestamp2)
+      {
+        QVERIFY(
+          header.timestamp >
+          previousTimestamp2);
+      }
+
+      previousTimestamp2 =
+        header.timestamp;
+      hasTimestamp2 = true;
 
       QCOMPARE(
         header.valueCount,
@@ -3328,9 +3416,16 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
           samples2.data(),
           samples2.size()));
 
-      double a = index * 10 * 0.1;
+      const double raw0 =
+        static_cast<double>(
+          frameIndex * 10);
 
-      QCOMPARE(samples2[0], Sample{a});
+      const double a =
+        raw0 * 0.1;
+
+      QCOMPARE(
+        samples2[0],
+        Sample{a});
     }
     else
       QFAIL("Неверная подписка");
@@ -3365,16 +3460,35 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
   QCOMPARE(fileHeader->sampleFrequency, 1000);
   QCOMPARE(fileHeader->channelCount, 1u);
 
-  for (uint64_t i = 1; i <= fileHeader->recordCount; ++i)
+  for (uint64_t i = 0; i < fileHeader->recordCount; ++i)
   {
     QVERIFY(archiveReader.read(fileIndex, sample));
-    QCOMPARE(sample.frameNumber, FrameNumber{i});
-    QCOMPARE(sample.timestamp, Timestamp{i * 2});
-    QCOMPARE(sample.wallTime, WallClockTime{static_cast<int64_t>(i * 3)});
+    const uint64_t frameIndex = i;
 
-    double raw0 = static_cast<double>(i - 1);
+    QCOMPARE(
+      sample.frameNumber,
+      FrameNumber{frameIndex});
 
-    QCOMPARE(sample.values[0], static_cast<float>(raw0));
+    QCOMPARE(
+      sample.timestamp,
+      Timestamp{
+                1'000'000 +
+                frameIndex * 1000});
+
+    QCOMPARE(
+      sample.wallTime,
+      WallClockTime{
+                    2'000'000 +
+                    static_cast<int64_t>(
+                      frameIndex * 1000)});
+
+    const double raw0 =
+      static_cast<double>(
+        frameIndex * 10);
+
+    QCOMPARE(
+      sample.values[0],
+      static_cast<float>(raw0));
   }
 
   // Raw1
@@ -3386,16 +3500,36 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
   QCOMPARE(fileHeader->sampleFrequency, 100);
   QCOMPARE(fileHeader->channelCount, 1u);
 
-  for (uint64_t i = 1; i <= fileHeader->recordCount; ++i)
+  for (uint64_t i = 0; i < fileHeader->recordCount; ++i)
   {
     QVERIFY(archiveReader.read(fileIndex, sample));
-    QCOMPARE(sample.frameNumber, FrameNumber{i * 10});
-    QCOMPARE(sample.timestamp, Timestamp{i * 2 * 10});
-    QCOMPARE(sample.wallTime, WallClockTime{static_cast<int64_t>(i * 3 * 10)});
 
-    double raw1 = static_cast<double>((i * 10 * 10) - 10);
+    const uint64_t frameIndex = i * 10;
 
-    QCOMPARE(sample.values[0], static_cast<float>(raw1));
+    QCOMPARE(
+      sample.frameNumber,
+      FrameNumber{frameIndex});
+
+    QCOMPARE(
+      sample.timestamp,
+      Timestamp{
+                1'000'000 +
+                frameIndex * 1000});
+
+    QCOMPARE(
+      sample.wallTime,
+      WallClockTime{
+                    2'000'000 +
+                    static_cast<int64_t>(
+                      frameIndex * 1000)});
+
+    const double raw1 =
+      static_cast<double>(
+        frameIndex * 10 + 1);
+
+    QCOMPARE(
+      sample.values[0],
+      static_cast<float>(raw1));
   }
 
   // A
@@ -3407,16 +3541,21 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
   QCOMPARE(fileHeader->sampleFrequency, 100);
   QCOMPARE(fileHeader->channelCount, 1u);
 
-  for (uint64_t i = 1; i <= fileHeader->recordCount; ++i)
+  for (uint64_t i = 0; i < fileHeader->recordCount; ++i)
   {
     QVERIFY(archiveReader.read(fileIndex, sample));
-    QCOMPARE(sample.frameNumber, FrameNumber{i * 10});
-    QCOMPARE(sample.timestamp, Timestamp{i * 2 * 10});
-    QCOMPARE(sample.wallTime, WallClockTime{static_cast<int64_t>(i * 3 * 10)});
+    const uint64_t frameIndex = i * 10;
 
-    double a = static_cast<double>((i * 10 - 1) * 0.1);
+    const double raw0 =
+      static_cast<double>(
+        frameIndex * 10);
 
-    QCOMPARE(sample.values[0], static_cast<float>(a));
+    const double a =
+      raw0 * 0.1;
+
+    QCOMPARE(
+      sample.values[0],
+      static_cast<float>(a));
   }
 
   // B C
@@ -3428,19 +3567,30 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
   QCOMPARE(fileHeader->sampleFrequency, 10);
   QCOMPARE(fileHeader->channelCount, 2u);
 
-  for (uint64_t i = 1; i <= fileHeader->recordCount; ++i)
+  for (uint64_t i = 0; i < fileHeader->recordCount; ++i)
   {
     QVERIFY(archiveReader.read(fileIndex, sample));
-    QCOMPARE(sample.frameNumber, FrameNumber{i * 100});
-    QCOMPARE(sample.timestamp, Timestamp{i * 2 * 100});
-    QCOMPARE(sample.wallTime, WallClockTime{static_cast<int64_t>(i * 3 * 100)});
+    const uint64_t frameIndex = i * 100;
 
-    double a = static_cast<double>((i * 100 - 1) * 0.1);
-    double b = static_cast<double>(970 + (i - 1) * 1000);
-    double c = a + b;
+    const double raw0 =
+      static_cast<double>(
+        frameIndex * 10);
 
-    QCOMPARE(sample.values[0], static_cast<float>(b));
-    QCOMPARE(sample.values[1], static_cast<float>(c));
+    const double raw1 =
+      static_cast<double>(
+        frameIndex * 10 + 1);
+
+    const double a = raw0 * 0.1;
+    const double b = raw1 - 20.0;
+    const double c = a + b;
+
+    QCOMPARE(
+      sample.values[0],
+      static_cast<float>(b));
+
+    QCOMPARE(
+      sample.values[1],
+      static_cast<float>(c));
   }
 
   archiveReader.close();

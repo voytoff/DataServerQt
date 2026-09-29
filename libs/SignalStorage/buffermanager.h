@@ -20,7 +20,7 @@ public:
 
   [[nodiscard]]
   bool readFrame(
-    Frame& frame) const;
+    Frame& frame);
 
   [[nodiscard]]
   bool ready() const noexcept;

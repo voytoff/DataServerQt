@@ -16,14 +16,15 @@ Publisher::Publisher(
 {
 }
 
-void Publisher::publish(const Frame& frame)
+void Publisher::publish(
+  const Frame& frame)
 {
   for (Subscription& subscription :
        m_subscriptions.subscriptions())
   {
     if (!shouldPublish(
           frame.number,
-          subscription.rate))
+          subscription))
     {
       continue;
     }
@@ -92,26 +93,67 @@ bool Publisher::publishSubscription(
   subscription.sequence =
     header.sequence;
 
+  updateSchedule(
+    frame.number,
+    subscription);
+
   return true;
 }
 
 bool Publisher::shouldPublish(
   FrameNumber frame,
-  PublishRate rate) const
+  const Subscription& subscription) const
 {
   const uint32_t frequency =
-    static_cast<uint32_t>(rate);
+    static_cast<uint32_t>(
+      subscription.rate);
 
-  if (frequency == 0 ||
-      frequency > m_frameRate)
+  if (
+    frequency == 0 ||
+    frequency > m_frameRate ||
+    m_frameRate % frequency != 0)
   {
     return false;
   }
 
-  const uint64_t period =
-    m_frameRate / frequency;
+  if (!subscription.publishStarted)
+    return true;
 
-  return ((frame.value - 1) % period) == 0;
+  return
+    frame.value >=
+    subscription.nextPublishFrame.value;
+}
+
+void Publisher::updateSchedule(
+  FrameNumber frame,
+  Subscription& subscription) const
+{
+  assert(static_cast<uint16_t>(subscription.rate) > 0);
+
+  const uint64_t period =
+    m_frameRate /
+    static_cast<uint32_t>(
+      subscription.rate);
+
+  if (!subscription.publishStarted)
+  {
+    subscription.publishStarted = true;
+
+    subscription.nextPublishFrame =
+      FrameNumber{
+                  frame.value + period};
+
+    return;
+  }
+
+  do
+  {
+    subscription.nextPublishFrame.value +=
+      period;
+  }
+  while (
+    subscription.nextPublishFrame.value <=
+    frame.value);
 }
 
 }

@@ -3598,43 +3598,58 @@ void tst_dataarchive::
 
     QCOMPARE(
       frame.raw().value(0),
-      static_cast<double>((i + 1) * 10));
+      static_cast<double>(
+        (i + 1) * 10));
 
     QCOMPARE(
       frame.raw().value(1),
-      static_cast<double>((i + 1) * 10 + 1));
+      static_cast<double>(
+        (i + 1) * 10 + 1));
 
     // Остальные модули ещё ничего не прислали.
     for (uint32_t j = 2; j < 7; ++j)
-      QVERIFY(std::isnan(
-        frame.raw().value(j)));
-
-
-    QVERIFY(buffers.ready());
-
-    Frame latest;
-    QVERIFY(buffers.readFrame(latest));
-
-    QCOMPARE(
-      latest.number,
-      FrameNumber{3});
-
-    QCOMPARE(
-      latest.timestamp,
-      Timestamp{1'003'000});
-
-    QCOMPARE(
-      latest.wallTime,
-      WallClockTime{10'003'000});
-
-    QCOMPARE(
-      latest.raw().value(0),
-      40.0);
-
-    QCOMPARE(
-      latest.raw().value(1),
-      41.0);
+    {
+      QVERIFY(
+        std::isnan(
+          frame.raw().value(j)));
+    }
   }
+
+  QVERIFY(
+    buffers.ready());
+
+  Frame latest;
+
+  QVERIFY(
+    buffers.readFrame(latest));
+
+  QCOMPARE(
+    latest.number,
+    FrameNumber{3});
+
+  QCOMPARE(
+    latest.timestamp,
+    Timestamp{1'003'000});
+
+  QCOMPARE(
+    latest.wallTime,
+    WallClockTime{10'003'000});
+
+  QCOMPARE(
+    latest.raw().value(0),
+    40.0);
+
+  QCOMPARE(
+    latest.raw().value(1),
+    41.0);
+
+  QVERIFY(
+    !buffers.ready());
+
+  Frame empty;
+
+  QVERIFY(
+    !buffers.readFrame(empty));
 }
 
 void tst_dataarchive::test_DataStreamWorker_base()

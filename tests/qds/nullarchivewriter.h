@@ -9,7 +9,10 @@ class NullArchiveWriter : public IArchiveWriter
 {
 public:
   bool write(
-    const Frame&) override;
+    const Frame&) override
+  {
+    return true;
+  }
 };
 
 }

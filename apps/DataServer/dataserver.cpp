@@ -8,7 +8,7 @@ namespace qds
 DataServer::DataServer(
   SystemConfiguration configuration,
   const CalibrationRepository& repository,
-  const DataSourceFactory& dataSourceFactory,
+  const DataStreamSourceFactory& dataSourceFactory,
   IArchiveWriter& archive,
   ISchedulerClock& clock,
   ISender& sender,
@@ -41,12 +41,17 @@ bool DataServer::start()
     return false;
 
   SystemBuilder builder;
-/*
-  if (!builder.build(
-        m_configuration,
-        m_dataSourceFactory,
-        m_repository,
-        m_runtime))
+
+  m_runtime =
+    builder.build(
+      m_configuration,
+      m_dataSourceFactory,
+      m_repository,
+      m_clock,
+      m_archive,
+      m_logger);
+
+  if (!m_runtime)
   {
     cleanup();
     return false;
@@ -54,7 +59,7 @@ bool DataServer::start()
 
   m_publisher =
     std::make_unique<Publisher>(
-      m_runtime.layout,
+      m_runtime->layout,
       m_subscriptions,
       m_sender,
       1000);
@@ -69,14 +74,29 @@ bool DataServer::start()
     std::make_unique<UdpServer>(
       *m_dispatcher);
 
-  if (!m_runtime.engine->initialize(
-        //m_runtime.dataSources,
-        //*m_runtime.signalProcessor,
-        m_runtime.buffers,
-        //m_archive,
+  if (!m_runtime->engine->initialize(
+        m_runtime->buffers,
         *m_publisher))
-        //m_clock,
-        //m_logger
+  {
+    cleanup();
+    return false;
+  }
+
+  m_runtime->queue.start();
+
+  if (!m_runtime->streamWorker->start())
+  {
+    cleanup();
+    return false;
+  }
+
+  if (!m_runtime->dataSources.start())
+  {
+    cleanup();
+    return false;
+  }
+
+  if (!m_runtime->engine->start())
   {
     cleanup();
     return false;
@@ -91,7 +111,7 @@ bool DataServer::start()
 
   m_running = true;
   m_timer.start();
-*/
+
   return true;
 }
 
@@ -101,8 +121,6 @@ void DataServer::stop()
     return;
 
   cleanup();
-
-  m_running = false;
 }
 
 bool DataServer::isRunning() const noexcept
@@ -117,26 +135,39 @@ void DataServer::cleanup()
   if (m_udpServer)
     m_udpServer->stop();
 
-  if (m_runtime.engine)
-    m_runtime.engine->stop();
+  if (m_runtime)
+  {
+    m_runtime->dataSources.stop();
+
+    m_runtime->queue.stop();
+
+    if (m_runtime->streamWorker)
+      m_runtime->streamWorker->join();
+
+    if (m_runtime->engine)
+      m_runtime->engine->stop();
+  }
 
   m_udpServer.reset();
   m_dispatcher.reset();
   m_publisher.reset();
 
-  ///\\\m_runtime = {}; < -- иначе не компилируется
+  m_runtime.reset();
+
   m_subscriptions.clear();
+
+  m_running = false;
 }
 
 void DataServer::onTimer()
 {
-  if (!m_runtime.engine)
+  if (!m_runtime || !m_runtime->engine)
   {
     stop();
     return;
   }
 
-  if (!m_runtime.engine->process())
+  if (!m_runtime->engine->process())
   {
     stop();
     return;
