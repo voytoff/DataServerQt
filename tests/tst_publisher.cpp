@@ -376,8 +376,6 @@ void tst_publisher::test_publish_failSignal()
   QVERIFY(reader.remaining() == 0);
 
   auto s = subscriptions.find(SubscriptionId{1});
-  s->signalIds[2].value = 24;
-
   s->signalIds[2] = SignalId{24};
 
   frame.number =
