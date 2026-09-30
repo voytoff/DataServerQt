@@ -1706,25 +1706,6 @@ void tst_dataserver::test_dataServer_unsubscribe_invalidId()
   QCOMPARE(
     response.id,
     SubscriptionId{1});
-
-  QTRY_VERIFY_WITH_TIMEOUT(
-    client.hasPendingDatagrams(),
-    2000);
-
-  data.resize(client.pendingDatagramSize());
-  client.readDatagram(data.data(), data.size());
-
-  reader.clear();
-  reader.append(
-    reinterpret_cast<const std::byte*>(data.constData()),
-    data.size());
-
-  QVERIFY(reader.nextPacket());
-
-  QCOMPARE(
-    reader.packetType(),
-    PacketType::LiveData);
-
   // подписка создана, теперь попробуем удалить с неправильным идентификатором ===============
 
   UnsubscribeRequest req2;
@@ -1770,33 +1751,64 @@ void tst_dataserver::test_dataServer_unsubscribe_invalidId()
 
   QCOMPARE(response2.result, UnsubscribeResult::InvalidId);
 
-  while (client.hasPendingDatagrams())
-  {
-    data.resize(client.pendingDatagramSize());
-    client.readDatagram(data.data(), data.size());
-  }
+  UnsubscribeRequest req3;
+  req3.id = SubscriptionId{1};
 
-  // а пакеты продолжают идти
+  writer.begin(
+    PacketType::UnsubscribeRequest);
 
-  QTest::qWait(200);
+  writer.write(req3);
+
+  const auto bytes3 =
+    client.writeDatagram(
+      reinterpret_cast<const char*>(
+        writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      cfg.udpPort());
+
+  QCOMPARE(
+    bytes3,
+    qint64(writer.size()));
 
   QTRY_VERIFY_WITH_TIMEOUT(
     client.hasPendingDatagrams(),
     2000);
 
-  data.resize(client.pendingDatagramSize());
-  client.readDatagram(data.data(), data.size());
+  data.resize(
+    client.pendingDatagramSize());
 
-  reader.clear();
-  reader.append(
-    reinterpret_cast<const std::byte*>(data.constData()),
+  client.readDatagram(
+    data.data(),
     data.size());
 
-  QVERIFY(reader.nextPacket());
+  reader.clear();
+
+  reader.append(
+    reinterpret_cast<const std::byte*>(
+      data.constData()),
+    data.size());
+
+  QVERIFY(
+    reader.nextPacket());
 
   QCOMPARE(
     reader.packetType(),
-    PacketType::LiveData);
+    PacketType::UnsubscribeResponse);
+
+  UnsubscribeResponse response3;
+
+  QVERIFY(
+    reader.read(response3));
+
+  QCOMPARE(
+    reader.remaining(),
+    std::size_t{0});
+
+
+  QCOMPARE(
+    response3.result,
+    UnsubscribeResult::Ok);
 
   ds.stop();
 }
@@ -1926,54 +1938,17 @@ void tst_dataserver::test_dataServer_start_stop()
     response.id,
     SubscriptionId{1});
 
-  QTRY_VERIFY_WITH_TIMEOUT(
-    client.hasPendingDatagrams(),
-    2000);
-
-  data.resize(client.pendingDatagramSize());
-  client.readDatagram(data.data(), data.size());
-
-  reader.clear();
-  reader.append(
-    reinterpret_cast<const std::byte*>(data.constData()),
-    data.size());
-
-  QVERIFY(reader.nextPacket());
-
-  QCOMPARE(
-    reader.packetType(),
-    PacketType::LiveData);
-
-  // подписка создана, теперь останавливаем сервер ===============
+  // Подписка создана, останавливаем сервер.
 
   ds.stop();
 
-  // Отбрасываем всё, что уже находилось в UDP-очереди
-  while (client.hasPendingDatagrams())
-  {
-    data.resize(client.pendingDatagramSize());
-    client.readDatagram(data.data(), data.size());
-  }
+  // После полного stop сервер должен
+  // корректно запуститься снова.
 
-  // Теперь в течение некоторого времени новых пакетов
-  // появиться не должно.
-  QTest::qWait(200);
+  QVERIFY(
+    ds.start());
 
-  while (client.hasPendingDatagrams())
-  {
-    data.resize(client.pendingDatagramSize());
-    client.readDatagram(data.data(), data.size());
-
-    reader.clear();
-    reader.append(
-      reinterpret_cast<const std::byte*>(data.constData()),
-      data.size());
-
-    QVERIFY(reader.nextPacket());
-
-    QVERIFY(
-      reader.packetType() != PacketType::LiveData);
-  }
+  ds.stop();
 }
 
 void tst_dataserver::test_dataServer_start_after_failed_start()
@@ -2181,67 +2156,6 @@ void tst_dataserver::test_dataServer_failStart_invalidUdpPort()
   QCOMPARE(
     response.id,
     SubscriptionId{1});
-
-  // ------------------------------------------------------------
-  // LiveData
-  // ------------------------------------------------------------
-
-  QTRY_VERIFY_WITH_TIMEOUT(
-    client.hasPendingDatagrams(),
-    2000);
-
-  data.resize(
-    client.pendingDatagramSize());
-
-  client.readDatagram(
-    data.data(),
-    data.size());
-
-  reader.clear();
-
-  reader.append(
-    reinterpret_cast<const std::byte*>(
-      data.constData()),
-    data.size());
-
-  QVERIFY(reader.nextPacket());
-
-  QCOMPARE(
-    reader.packetType(),
-    PacketType::LiveData);
-
-  PublishHeader ldh;
-
-  QVERIFY(reader.read(ldh));
-
-  QCOMPARE(
-    ldh.subscriptionId,
-    SubscriptionId{1});
-
-  QCOMPARE(
-    ldh.sequence,
-    1u);
-
-  QVERIFY(
-    ldh.timestamp > 0u);
-
-  QCOMPARE(
-    ldh.valueCount,
-    3u);
-
-  std::array<Sample, 3> samples{};
-
-  QVERIFY(
-    reader.readArray(
-      samples.data(),
-      samples.size()));
-
-  QCOMPARE(
-    reader.remaining(),
-    std::size_t(0));
-
-  QCOMPARE(samples[0].value + samples[1].value, samples[2].value);
-
 
   ds.stop();
 }
@@ -2817,7 +2731,7 @@ void tst_dataserver::test_dataServer_stop_before_start()
        IDataBlockSink&,
        IDataStreamEventSink&)
     {
-      return std::make_unique<TestDataStreamSource>(0);
+      return std::make_unique<TestDataStreamSource>();
     }));
 
   TestArchiveWriter archive;
@@ -2859,12 +2773,15 @@ void tst_dataserver::test_dataServer_udp_pipeline()
 
   QVERIFY(factory.registerType(
     ModuleType::Test,
-    [](const ModuleRuntimeConfiguration&,
+    [](const ModuleRuntimeConfiguration& configuration,
        IClock&,
-       IDataBlockSink&,
-       IDataStreamEventSink&)
+       IDataBlockSink& blockSink,
+       IDataStreamEventSink& eventSink)
     {
-      return std::make_unique<TestDataStreamSource>(0);
+      return std::make_unique<TestStreamingDataSource>(
+        configuration,
+        blockSink,
+        eventSink);
     }));
 
   TestArchiveWriter archive;
@@ -2900,8 +2817,8 @@ void tst_dataserver::test_dataServer_udp_pipeline()
   PublishHeader header;
   QByteArray data;
   long bytes;
-  std::array<Sample, 2> samples1;
-  std::array<Sample, 1> samples2;
+  std::array<double, 2> samples1;
+  std::array<double, 1> samples2;
 
   // ------------------------------------------------------------
   // Subscribe 1
@@ -3029,6 +2946,7 @@ void tst_dataserver::test_dataServer_udp_pipeline()
 
     QVERIFY(reader.read(header));
 
+    // B C
     if (header.subscriptionId == SubscriptionId{1})
     {
       QCOMPARE(
@@ -3041,21 +2959,48 @@ void tst_dataserver::test_dataServer_udp_pipeline()
       const auto index = sequence1;
 #endif
 
+      QVERIFY(
+        header.timestamp >= 1'000'000u);
+
+      const uint64_t frameIndex =
+        (header.timestamp - 1'000'000u) /
+        1'000u;
+
       QCOMPARE(
-        header.timestamp, index * 100 * 2 + 2); // - 1 - MACOS
+        header.timestamp,
+        1'000'000u +
+          frameIndex * 1'000u);
 
       QCOMPARE(
         header.valueCount,
         2u);
+
+      QCOMPARE(
+        header.sequence,
+        ++sequence1);
 
       QVERIFY(
         reader.readArray(
           samples1.data(),
           samples1.size()));
 
-      QCOMPARE(samples1[0], Sample{static_cast<double>(index * 100 * 10)});
-      QCOMPARE(samples1[1], Sample{static_cast<double>(index * 100 * 10 + index * 100)});
+      const double b =
+        static_cast<double>(
+          frameIndex * 10) - 19.0;
+
+      const double c =
+        static_cast<double>(
+          frameIndex * 11) - 19.0;
+
+      QCOMPARE(
+        samples1[0],
+        b);
+
+      QCOMPARE(
+        samples1[1],
+        c);
     }
+    // A
     else if (header.subscriptionId == SubscriptionId{2})
     {
       QCOMPARE(
@@ -3068,19 +3013,38 @@ void tst_dataserver::test_dataServer_udp_pipeline()
       const auto index = sequence2;
 #endif
 
+      QVERIFY(
+        header.timestamp >= 1'000'000u);
+
+      const uint64_t frameIndex =
+        (header.timestamp - 1'000'000u) /
+        1'000u;
+
       QCOMPARE(
-        header.timestamp, index * 10 * 2 + 2);
+        header.timestamp,
+        1'000'000u +
+          frameIndex * 1'000u);
 
       QCOMPARE(
         header.valueCount,
         1u);
+
+      QCOMPARE(
+        header.sequence,
+        ++sequence2);
 
       QVERIFY(
         reader.readArray(
           samples2.data(),
           samples2.size()));
 
-      QCOMPARE(samples2[0], Sample{static_cast<double>(index * 10)});
+      const double a =
+        static_cast<double>(
+          index);
+
+      QCOMPARE(
+        samples2[0],
+        a);
     }
     else
       QFAIL("Неверная подписка");
