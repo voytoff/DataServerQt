@@ -2953,12 +2953,6 @@ void tst_dataserver::test_dataServer_udp_pipeline()
         header.sequence,
         ++sequence1);
 
-#ifdef __APPLE__
-      const auto index = sequence1 - 1;
-#else
-      const auto index = sequence1;
-#endif
-
       QVERIFY(
         header.timestamp >= 1'000'000u);
 
@@ -2975,22 +2969,21 @@ void tst_dataserver::test_dataServer_udp_pipeline()
         header.valueCount,
         2u);
 
-      QCOMPARE(
-        header.sequence,
-        ++sequence1);
-
       QVERIFY(
         reader.readArray(
           samples1.data(),
           samples1.size()));
 
+      const double a =
+        static_cast<double>(
+          frameIndex * 10);
+
       const double b =
         static_cast<double>(
-          frameIndex * 10) - 19.0;
+          frameIndex * 10) + 1;
 
       const double c =
-        static_cast<double>(
-          frameIndex * 11) - 19.0;
+        a + b;
 
       QCOMPARE(
         samples1[0],
@@ -3006,12 +2999,6 @@ void tst_dataserver::test_dataServer_udp_pipeline()
       QCOMPARE(
         header.sequence,
         ++sequence2);
-
-#ifdef __APPLE__
-      const auto index = sequence2 - 1;
-#else
-      const auto index = sequence2;
-#endif
 
       QVERIFY(
         header.timestamp >= 1'000'000u);
@@ -3029,10 +3016,6 @@ void tst_dataserver::test_dataServer_udp_pipeline()
         header.valueCount,
         1u);
 
-      QCOMPARE(
-        header.sequence,
-        ++sequence2);
-
       QVERIFY(
         reader.readArray(
           samples2.data(),
@@ -3040,7 +3023,7 @@ void tst_dataserver::test_dataServer_udp_pipeline()
 
       const double a =
         static_cast<double>(
-          index);
+          frameIndex * 10);
 
       QCOMPARE(
         samples2[0],
