@@ -86,20 +86,18 @@ bool LCardDataSource::start() noexcept
   return true;
 }
 
-
 void LCardDataSource::stop() noexcept
 {
-  if (!m_running)
-    return;
-
-  m_running = false;
+  m_running.store(
+    false,
+    std::memory_order_release);
 
   if (m_thread.joinable())
     m_thread.join();
 
-  m_module->stop();
+  if (m_module)
+    m_module->stop();
 }
-
 
 bool LCardDataSource::acquire(
   std::span<double> values)

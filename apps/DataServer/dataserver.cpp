@@ -5,6 +5,14 @@
 namespace qds
 {
 
+namespace
+{
+
+constexpr uint32_t BaseFrameFrequency = 1000;
+constexpr int EngineTimerIntervalMs = 1;
+
+}
+
 DataServer::DataServer(
   SystemConfiguration configuration,
   const CalibrationRepository& repository,
@@ -29,7 +37,7 @@ DataServer::DataServer(
     this,
     &DataServer::onTimer);
 
-  m_timer.setInterval(1);
+  m_timer.setInterval(EngineTimerIntervalMs);
 }
 
 bool DataServer::start()
@@ -62,7 +70,7 @@ bool DataServer::start()
       m_runtime->layout,
       m_subscriptions,
       m_sender,
-      1000);
+      BaseFrameFrequency);
 
   m_dispatcher =
     std::make_unique<PacketDispatcher>(
@@ -117,9 +125,6 @@ bool DataServer::start()
 
 void DataServer::stop()
 {
-  if (!m_running)
-    return;
-
   cleanup();
 }
 

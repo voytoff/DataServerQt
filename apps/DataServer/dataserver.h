@@ -9,7 +9,6 @@
 #include "subscriptionmanager.h"
 #include "systemconfiguration.h"
 
-#include "datasourcefactory.h"
 #include "iarchivewriter.h"
 #include "ischedulerclock.h"
 #include "isender.h"
@@ -41,13 +40,9 @@ public:
   [[nodiscard]]
   bool isRunning() const noexcept;
 
-private slots:
-
-  void cleanup();
-
-  void onTimer();
-
 private:
+  void onTimer();
+  void cleanup();
 
   SystemConfiguration m_configuration;
   const CalibrationRepository& m_repository;
