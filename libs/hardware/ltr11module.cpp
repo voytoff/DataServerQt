@@ -28,7 +28,7 @@ public:
 
   std::size_t blockFrameCapacity() const noexcept;
   double frameRate() const noexcept;
-  std::size_t readBlock(std::span<double> values) noexcept;
+  LCardReadResult readBlock(std::span<double> values) noexcept;
 
 private:
   bool configureConnection() noexcept;
@@ -75,7 +75,7 @@ std::size_t Ltr11Module::blockFrameCapacity() const noexcept
   return m_impl->blockFrameCapacity();
 }
 
-std::size_t Ltr11Module::readBlock(std::span<double> values) noexcept
+LCardReadResult Ltr11Module::readBlock(std::span<double> values) noexcept
 {
   return m_impl->readBlock(values);
 }
@@ -240,63 +240,74 @@ double Ltr11Module::frameRate() const noexcept
   return m_impl->frameRate();
 }
 
-std::size_t Ltr11Module::Impl::readBlock(
+LCardReadResult Ltr11Module::Impl::readBlock(
   std::span<double> values) noexcept
 {
   if (!m_started)
-    return 0;
+    return {};
 
   if (m_channelCount == 0)
-    return 0;
+    return {};
 
   const std::size_t requiredSize =
     m_channelCount * RecvBlockFrameCount;
 
   if (values.size() < requiredSize)
-    return 0;
+    return {};
 
-  const int received = LTR11_Recv(
-    &m_hltr11,
-    m_recvBuffer.data(),
-    nullptr,
-    static_cast<DWORD>(m_recvBuffer.size()),
-    RecvTimeoutMs);
+  const int received =
+    LTR11_Recv(
+      &m_hltr11,
+      m_recvBuffer.data(),
+      nullptr,
+      static_cast<DWORD>(
+        m_recvBuffer.size()),
+      RecvTimeoutMs);
 
   if (received <= 0)
-    return 0;
+    return {};
 
   int processedCount = received;
 
-  const int err = LTR11_ProcessData(
-    &m_hltr11,
-    m_recvBuffer.data(),
-    m_data.data(),
-    &processedCount,
-    TRUE,
-    TRUE);
+  const int err =
+    LTR11_ProcessData(
+      &m_hltr11,
+      m_recvBuffer.data(),
+      m_data.data(),
+      &processedCount,
+      TRUE,
+      TRUE);
 
   if (err != 0)
-    return 0;
+    return {};
 
   if (processedCount <= 0)
-    return 0;
+    return {};
+
+  const std::size_t processedValueCount =
+    static_cast<std::size_t>(
+      processedCount);
+
+  if (
+    processedValueCount %
+      m_channelCount != 0)
+  {
+    return {};
+  }
 
   const std::size_t frameCount =
-    static_cast<std::size_t>(processedCount) /
+    processedValueCount /
     m_channelCount;
-
-  if (frameCount == 0)
-    return 0;
-
-  const std::size_t valueCount =
-    frameCount * m_channelCount;
 
   std::copy_n(
     m_data.data(),
-    valueCount,
+    processedValueCount,
     values.data());
 
-  return frameCount;
+  return {
+    .status = LCardReadStatus::Data,
+    .frameCount = frameCount
+  };
 }
 
 bool Ltr11Module::Impl::configureConnection() noexcept

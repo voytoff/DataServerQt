@@ -3,6 +3,7 @@
 #include "ilcardmodule.h"
 #include <atomic>
 #include <cstdint>
+#include <optional>
 
 namespace qds
 {
@@ -13,7 +14,8 @@ public:
   SmartBlockLCardModule(
     const std::size_t frameCount,
     const std::size_t channelCount,
-    const uint32_t blockCount = 1
+    const uint32_t blockCount = 1,
+    const std::optional<uint32_t> successCount = std::nullopt
     );
 
   bool start() noexcept override;
@@ -27,14 +29,18 @@ public:
   [[nodiscard]]
   uint32_t remainingBlockCount() const noexcept;
 
-  std::size_t readBlock(
+  LCardReadResult readBlock(
     std::span<double> values) noexcept override;
 
   void setCount(const uint32_t blockCount);
 
+public:
+  uint32_t stopCalls = 0;
+
 private:
   std::size_t m_frameCount;
   std::size_t m_channelCount;
+  std::optional<uint32_t> m_successCount = std::nullopt;
   std::atomic_uint32_t m_blockCount{0};
   std::atomic_bool m_running{false};
 };

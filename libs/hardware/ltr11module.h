@@ -27,7 +27,7 @@ public:
   double frameRate() const noexcept override;
 
   [[nodiscard]]
-  std::size_t readBlock(
+  LCardReadResult readBlock(
     std::span<double> values) noexcept override;
 
 private:

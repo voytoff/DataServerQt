@@ -20,6 +20,7 @@ add_library(Hardware SHARED
 
     smartblocklcardmodule.cpp
     smartblocklcardmodule.h
+    lcardreadresult.h
 )
 
 if(WIN32)

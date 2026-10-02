@@ -12,6 +12,12 @@
 #include <QJsonObject>
 #include <QHostAddress>
 
+#include <iostream>
+#include <ranges>
+#include <vector>
+#include <cstdint>
+#include <array>
+
 tst_hardware::tst_hardware() { }
 tst_hardware::~tst_hardware() = default;
 
@@ -25,10 +31,10 @@ void tst_hardware::test_fakeLCardModule_base()
   raw.initialize(4 * 3);
   const auto &values = raw.values();
 
-  std::size_t frameCount = module.readBlock(raw.values());
+  LCardReadResult result = module.readBlock(raw.values());
 
   QCOMPARE(module.readCalls, 0);
-  QCOMPARE(frameCount, std::size_t{0});
+  QCOMPARE(result.frameCount, std::size_t{0});
 
   QVERIFY(std::isnan(values[0]));
   QVERIFY(std::isnan(values[1]));
@@ -48,10 +54,10 @@ void tst_hardware::test_fakeLCardModule_base()
   QVERIFY(module.start());
   QVERIFY(!module.start());
 
-  frameCount = module.readBlock(raw.values());
+  result = module.readBlock(raw.values());
 
   QCOMPARE(module.readCalls, 1);
-  QCOMPARE(frameCount, std::size_t{3});
+  QCOMPARE(result.frameCount, std::size_t{3});
 
   QCOMPARE(values[0], 0.0);
   QCOMPARE(values[1], 1.0);
@@ -68,10 +74,10 @@ void tst_hardware::test_fakeLCardModule_base()
   QCOMPARE(values[10], 10.0);
   QCOMPARE(values[11], 11.0);
 
-  frameCount = module.readBlock(raw.values());
+  result = module.readBlock(raw.values());
 
   QCOMPARE(module.readCalls, 2);
-  QCOMPARE(frameCount, std::size_t{3});
+  QCOMPARE(result.frameCount, std::size_t{3});
 
   QCOMPARE(values[0], 12.0);
   QCOMPARE(values[1], 13.0);
@@ -91,10 +97,10 @@ void tst_hardware::test_fakeLCardModule_base()
   module.stop();
   QCOMPARE(module.stopCalls, 1);
 
-  frameCount = module.readBlock(raw.values());
+  result = module.readBlock(raw.values());
 
   QCOMPARE(module.readCalls, 2);
-  QCOMPARE(frameCount, std::size_t{0});
+  QCOMPARE(result.frameCount, std::size_t{0});
 
   QCOMPARE(values[0], 12.0);
   QCOMPARE(values[1], 13.0);
@@ -139,11 +145,13 @@ void tst_hardware::test_lCardDataSource()
 
   // Запускаем DataSource.
   QVERIFY(source.start());
+  QVERIFY(source.isRunning());
 
   QCOMPARE(fake->startCalls, 1u);
 
   // Повторный start() ничего не запускает.
   QVERIFY(source.start());
+  QVERIFY(source.isRunning());
 
   QCOMPARE(fake->startCalls, 1u);
 
@@ -178,6 +186,7 @@ void tst_hardware::test_lCardDataSource()
 
   // Повторный stop() не должен повторно останавливать модуль.
   source.stop();
+  QVERIFY(!source.isRunning());
 
   QCOMPARE(fake->stopCalls, 1u);
 
@@ -210,6 +219,8 @@ void tst_hardware::test_lCardDataSource_data_integrity()
 
   QVERIFY(source.start());
   QCOMPARE(fake->startCalls, 1u);
+  QVERIFY(source.isRunning());
+
 
   for (int i = 0; i < 100; ++i)
   {
@@ -225,6 +236,7 @@ void tst_hardware::test_lCardDataSource_data_integrity()
   }
 
   source.stop();
+  QVERIFY(!source.isRunning());
 
   QCOMPARE(fake->stopCalls, 1u);
 }
@@ -370,6 +382,7 @@ void tst_hardware::test_acquire_returns_last_frame()
     clock);
 
   QVERIFY(source.start());
+  QVERIFY(source.isRunning());
 
   QTest::qWait(10);
 
@@ -378,6 +391,7 @@ void tst_hardware::test_acquire_returns_last_frame()
   QVERIFY(source.acquire(values));
 
   source.stop();
+  QVERIFY(!source.isRunning());
 
   QCOMPARE(values[0], 8.0);
   QCOMPARE(values[1], 9.0);
@@ -407,6 +421,7 @@ void tst_hardware::test_lCardDataSource_fake_push_archive()
   raw.initialize(ChannelCount);
 
   QVERIFY(source.start());
+  QVERIFY(source.isRunning());
 
   QTest::qWait(10);
   QVERIFY(source.acquire(raw.values()));
@@ -430,4 +445,80 @@ void tst_hardware::test_lCardDataSource_fake_push_archive()
   QCOMPARE(raw.values()[0], 6.0);
   QCOMPARE(raw.values()[1], 7.0);
   QCOMPARE(raw.values()[2], 8.0);
+}
+
+void tst_hardware::test_LCardDataSource_runtime_failure()
+{
+  using namespace qds;
+
+  constexpr std::size_t ChannelCount = 3;
+
+  auto module = std::make_unique<SmartBlockLCardModule>(
+    3, 3,
+    10, // блоков достаточно
+    3   // ровно 3 успешных Data, затем Error
+    );
+  auto* smart = module.get();
+
+  FakeDataBlockSink dataSink;
+  FakeClock clock;
+
+  LCardDataSource source(
+    ModuleId{0},
+    ChannelCount,
+    std::move(module),
+    clock,
+    &dataSink);
+
+  RawMemory raw;
+  raw.initialize(ChannelCount);
+
+  QVERIFY(source.start());
+  QVERIFY(source.isRunning());
+
+  QVERIFY(source.start());
+  QVERIFY(source.isRunning());
+
+  QTRY_COMPARE_WITH_TIMEOUT(
+    dataSink.m_firstFrameIndex,
+    uint64_t{6},
+    1000);
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    !source.isRunning(),
+    1000);
+
+  QCOMPARE(dataSink.m_module, ModuleId{0});
+  QCOMPARE(
+    dataSink.m_channelCount,
+    std::size_t{3});
+  QCOMPARE(
+    dataSink.m_frameCount,
+    std::size_t{3});
+  QCOMPARE(
+    dataSink.m_values.size(),
+    std::size_t{9});
+  QCOMPARE(
+    dataSink.m_firstFrameIndex,
+    uint64_t{6});
+
+  QCOMPARE(dataSink.m_values[0], 0.0);
+  QCOMPARE(dataSink.m_values[1], 1.0);
+  QCOMPARE(dataSink.m_values[2], 2.0);
+  QCOMPARE(dataSink.m_values[3], 3.0);
+  QCOMPARE(dataSink.m_values[4], 4.0);
+  QCOMPARE(dataSink.m_values[5], 5.0);
+  QCOMPARE(dataSink.m_values[6], 6.0);
+  QCOMPARE(dataSink.m_values[7], 7.0);
+  QCOMPARE(dataSink.m_values[8], 8.0);
+
+  source.stop();
+  QVERIFY(!source.isRunning());
+
+  QCOMPARE(smart->stopCalls, 1u);
+
+  source.stop();
+  QCOMPARE(smart->stopCalls, 1u);
+
+  QVERIFY(!source.isRunning());
 }

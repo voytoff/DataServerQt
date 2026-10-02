@@ -9,10 +9,12 @@ namespace qds
 SmartBlockLCardModule::SmartBlockLCardModule(
   const std::size_t frameCount,
   const std::size_t channelCount,
-  const uint32_t blockCount)
+  const uint32_t blockCount,
+  const std::optional<uint32_t> successCount)
   : m_frameCount(frameCount)
   , m_channelCount(channelCount)
   , m_blockCount(blockCount)
+  , m_successCount(successCount)
 {
 }
 
@@ -24,6 +26,7 @@ bool SmartBlockLCardModule::start() noexcept
 
 void SmartBlockLCardModule::stop() noexcept
 {
+  ++stopCalls;
   m_running.store(false);
 }
 
@@ -42,27 +45,41 @@ uint32_t SmartBlockLCardModule::remainingBlockCount() const noexcept
   return m_blockCount.load();
 }
 
-std::size_t SmartBlockLCardModule::readBlock(
+LCardReadResult SmartBlockLCardModule::readBlock(
   std::span<double> values) noexcept
 {
   if (!m_running.load())
-    return 0;
+    return {};
+
+  if (
+    m_successCount.has_value() &&
+    m_successCount.value() == 0)
+  {
+    return {
+      .status = LCardReadStatus::Error,
+      .frameCount = 0
+    };
+  }
 
   const std::size_t valueCount =
-    m_frameCount * m_channelCount;
+    m_frameCount *
+    m_channelCount;
 
   assert(
     values.size() >= valueCount);
 
   if (values.size() < valueCount)
-    return 0;
+    return {};
 
   if (m_blockCount.load() == 0)
   {
     std::this_thread::sleep_for(
       std::chrono::milliseconds(1));
 
-    return 0;
+    return {
+      .status = LCardReadStatus::NoData,
+      .frameCount = 0
+    };
   }
 
   m_blockCount.fetch_sub(1);
@@ -75,7 +92,13 @@ std::size_t SmartBlockLCardModule::readBlock(
       static_cast<double>(i);
   }
 
-  return m_frameCount;
+  if (m_successCount.has_value())
+    --m_successCount.value();
+
+  return {
+    .status = LCardReadStatus::Data,
+    .frameCount = m_frameCount
+  };
 }
 
 void SmartBlockLCardModule::setCount(

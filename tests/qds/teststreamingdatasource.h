@@ -29,6 +29,9 @@ public:
 
   void stop() noexcept override;
 
+  [[nodiscard]]
+  bool isRunning() const noexcept override;
+
 private:
   void run() noexcept;
 

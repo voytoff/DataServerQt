@@ -41,24 +41,27 @@ double FakeLCardModule::frameRate() const noexcept
   return m_frameRate;
 }
 
-std::size_t FakeLCardModule::readBlock(
+LCardReadResult FakeLCardModule::readBlock(
   std::span<double> values) noexcept
 {
   if (!m_running)
-    return 0;
+    return {};
 
   const std::size_t valueCount =
     m_channelCount * m_blockFrameCount;
 
   if (values.size() < valueCount)
-    return 0;
+    return {};
 
   ++readCalls;
 
   for (std::size_t n = 0; n < valueCount; ++n)
     values[n] = m_counter++;
 
-  return m_blockFrameCount;
+  return {
+    .status = LCardReadStatus::Data,
+    .frameCount = m_blockFrameCount
+  };
 }
 
 }

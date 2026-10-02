@@ -8,9 +8,73 @@
 #include "ltr11configurationbuilder.h"
 #include "ltr11module.h"
 #include "signalmemory.h"
+#include "testsrv.h"
 
 tst_ltr11module::tst_ltr11module() { }
 tst_ltr11module::~tst_ltr11module() = default;
+
+void tst_ltr11module::test_LCardDataSource_update_frequency()
+{
+  using namespace qds;
+
+  ModuleRuntimeConfiguration cfg =
+    createModuleRuntimeConfiguration();
+
+  Ltr11Configuration config;
+
+  Ltr11ConfigurationBuilder builder;
+  QVERIFY(builder.build(cfg, config));
+
+  auto module =
+    std::make_unique<Ltr11Module>(config);
+  FakeClock clock;
+
+
+  LCardDataSource source(
+    ModuleId{0},
+    config.channels.size(),
+    std::move(module),
+    clock);
+
+  QVERIFY(!source.isRunning());
+
+  QVERIFY(source.start());
+  QVERIFY(source.isRunning());
+
+  QTest::qWait(100);
+
+  const uint64_t generationBegin =
+    0;//source.m_generation.load();
+
+  QElapsedTimer timer;
+  timer.start();
+
+  QTest::qWait(2000);
+
+  const qint64 elapsedMs =
+    timer.elapsed();
+
+  const uint64_t generationEnd =
+    4000;//source.m_generation.load();
+
+  source.stop();
+  QVERIFY(!source.isRunning());
+
+  const uint64_t updates =
+    generationEnd - generationBegin;
+
+  const double frequency =
+    static_cast<double>(updates) *
+    1000.0 /
+    static_cast<double>(elapsedMs);
+
+  qDebug()
+    << "elapsed =" << elapsedMs << "ms"
+    << "updates =" << updates
+    << "frequency =" << frequency << "Hz";
+
+  source.stop();
+}
 
 void tst_ltr11module::test_Ltr11Module_base()
 {
@@ -43,7 +107,7 @@ void tst_ltr11module::test_Ltr11Module_base()
     readTimer.start();
     //const qint64 before = timer.elapsed();
 
-    const std::size_t ok =
+    const LCardReadResult ok =
       ltr11->readBlock(raw.values());
 
     //const qint64 after = timer.elapsed();
@@ -51,7 +115,7 @@ void tst_ltr11module::test_Ltr11Module_base()
       static_cast<double>(readTimer.nsecsElapsed()) /
       1'000'000.0;
 
-    if (!ok)
+    if (!ok.frameCount)
     {
       ++failedCount;
 
@@ -94,11 +158,14 @@ void tst_ltr11module::test_Ltr11Module_without_print()
 
   QVERIFY(builder.build(cfg, config));
 
-  RawMemory raw;
-  raw.initialize(config.channels.size());
 
   auto module = std::make_unique<Ltr11Module>(config);
   auto* ltr11 = module.get();
+
+  RawMemory raw;
+  raw.initialize(
+    config.channels.size() *
+    ltr11->blockFrameCapacity());
 
   QVERIFY(ltr11->start());
 
@@ -116,7 +183,7 @@ void tst_ltr11module::test_Ltr11Module_without_print()
     QElapsedTimer readTimer;
     readTimer.start();
 
-    const std::size_t ok =
+    const LCardReadResult ok =
       ltr11->readBlock(raw.values());
 
     const double durationMs =
@@ -128,7 +195,7 @@ void tst_ltr11module::test_Ltr11Module_without_print()
     maxReadMs =
       std::max(maxReadMs, durationMs);
 
-    if (ok)
+    if (ok.frameCount)
       ++successCount;
     else
       ++failedCount;
@@ -168,7 +235,10 @@ void tst_ltr11module::test_LCardDataSource_base()
     std::move(module),
     clock);
 
+  QVERIFY(!source.isRunning());
+
   QVERIFY(source.start());
+  QVERIFY(source.isRunning());
 
   QTest::qWait(100);
 
@@ -199,63 +269,5 @@ void tst_ltr11module::test_LCardDataSource_base()
   }
 
   source.stop();
-}
-
-void tst_ltr11module::test_LCardDataSource_update_frequency()
-{
-  using namespace qds;
-
-  ModuleRuntimeConfiguration cfg =
-    createModuleRuntimeConfiguration();
-
-  Ltr11Configuration config;
-
-  Ltr11ConfigurationBuilder builder;
-  QVERIFY(builder.build(cfg, config));
-
-  auto module =
-    std::make_unique<Ltr11Module>(config);
-  FakeClock clock;
-
-
-  LCardDataSource source(
-    ModuleId{0},
-    config.channels.size(),
-    std::move(module),
-    clock);
-
-  QVERIFY(source.start());
-
-  QTest::qWait(100);
-
-  const uint64_t generationBegin =
-    0;//source.m_generation.load();
-
-  QElapsedTimer timer;
-  timer.start();
-
-  QTest::qWait(2000);
-
-  const qint64 elapsedMs =
-    timer.elapsed();
-
-  const uint64_t generationEnd =
-    4000;//source.m_generation.load();
-
-  source.stop();
-
-  const uint64_t updates =
-    generationEnd - generationBegin;
-
-  const double frequency =
-    static_cast<double>(updates) *
-    1000.0 /
-    static_cast<double>(elapsedMs);
-
-  qDebug()
-    << "elapsed =" << elapsedMs << "ms"
-    << "updates =" << updates
-    << "frequency =" << frequency << "Hz";
-
-  source.stop();
+  QVERIFY(!source.isRunning());
 }

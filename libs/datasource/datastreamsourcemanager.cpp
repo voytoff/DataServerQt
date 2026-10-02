@@ -80,7 +80,16 @@ void DataStreamSourceManager::stop() noexcept
 
 bool DataStreamSourceManager::isRunning() const noexcept
 {
-  return m_running;
+  if (!m_running)
+    return false;
+
+  for (const auto& source : m_sources)
+  {
+    if (!source->isRunning())
+      return false;
+  }
+
+  return true;
 }
 
 std::size_t DataStreamSourceManager::size() const noexcept

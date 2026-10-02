@@ -6,10 +6,14 @@
 #include "datastreamsourcefactory.h"
 #include "datastreamsourcemanager.h"
 #include "failingdatasource.h"
+#include "fakeclock.h"
+#include "fakedatablocksink.h"
 #include "fakedatasource.h"
 #include "fakeschedulerclock.h"
 #include "hardwaremodulefactory.h"
+#include "lcarddatasource.h"
 #include "qds/testdatastreamsource.h"
+#include "smartblocklcardmodule.h"
 #include "testdatasource.h"
 #include "testsrv.h"
 #include <qtestcase.h>
@@ -980,10 +984,11 @@ void tst_datasource::test_dataStreamSourceManager_startRollback()
   QVERIFY(
     factory.registerType(
       ModuleType::Fake,
-      [&sourceOk](const ModuleRuntimeConfiguration&,
-                  IClock&,
-                  IDataBlockSink&,
-                  IDataStreamEventSink&)
+      [&sourceOk](
+        const ModuleRuntimeConfiguration&,
+        IClock&,
+        IDataBlockSink&,
+        IDataStreamEventSink&)
       {
         auto source =
           std::make_unique<TestDataStreamSource>();
@@ -996,10 +1001,11 @@ void tst_datasource::test_dataStreamSourceManager_startRollback()
   QVERIFY(
     factory.registerType(
       ModuleType::Test,
-      [&sourceFail](const ModuleRuntimeConfiguration&,
-                    IClock&,
-                    IDataBlockSink&,
-                    IDataStreamEventSink&)
+      [&sourceFail](
+        const ModuleRuntimeConfiguration&,
+        IClock&,
+        IDataBlockSink&,
+        IDataStreamEventSink&)
       {
         auto source =
           std::make_unique<TestDataStreamSource>(0);
@@ -1036,7 +1042,6 @@ void tst_datasource::test_dataStreamSourceManager_reinitialize()
   auto cfg = createTestConfig_Some_Modules();
 
   DataStreamSourceFactory factory;
-  std::unique_ptr<TestDataStreamSource> ptr;
 
   QVERIFY(
     factory.registerType(
@@ -1135,4 +1140,68 @@ void tst_datasource::test_dataStreamSourceManager_initializeRollback()
   QCOMPARE(
     manager.size(),
     size);
+}
+
+void tst_datasource::test_dataStreamSourceManager_failModule()
+{
+  using namespace qds;
+
+  auto cfg = createTestConfig_calculate(ModuleType::LTR11);
+
+  DataStreamSourceFactory factory;
+  auto module = std::make_unique<SmartBlockLCardModule>(
+    3, 3,
+    10, // блоков достаточно
+    3   // ровно 3 успешных Data, затем Error
+    );
+  SmartBlockLCardModule* smart;
+
+  FakeDataBlockSink dataSink;
+  //FakeClock clock;
+  FakeSchedulerClock clock;
+
+  QVERIFY(
+    factory.registerType(
+      ModuleType::LTR11,
+      [&](const ModuleRuntimeConfiguration&,
+         IClock& clock,
+         IDataBlockSink& blockSink,
+         IDataStreamEventSink& eventSink)
+      {
+        auto module = std::make_unique<SmartBlockLCardModule>(
+          3, 3,
+          10, // блоков достаточно
+          3   // ровно 3 успешных Data, затем Error
+          );
+        smart = module.get();
+        return std::make_unique<LCardDataSource>(
+          ModuleId{0},
+          3,
+          std::move(module),
+          clock,
+          &dataSink);
+      }));
+
+  DataStreamSourceManager manager;
+  DataBlockQueue queue;
+
+  QVERIFY(manager.initialize(
+    cfg,
+    factory,
+    clock,
+    queue,
+    queue));
+
+  QCOMPARE(
+    manager.size(),
+    cfg.modules().size());
+
+  QVERIFY(!manager.isRunning());
+
+  QVERIFY(manager.start());
+  QVERIFY(manager.isRunning());
+
+  manager.stop();
+
+  QVERIFY(!manager.isRunning());
 }

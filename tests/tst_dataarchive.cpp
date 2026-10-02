@@ -1540,7 +1540,7 @@ void tst_dataarchive::test_DataBlockQueue_deque()
   // Block 1
   //
   QCOMPARE(
-    module.readBlock(raw.values()),
+    module.readBlock(raw.values()).frameCount,
     std::size_t{3});
 
   queue.push(
@@ -1555,7 +1555,7 @@ void tst_dataarchive::test_DataBlockQueue_deque()
   // Block 2
   //
   QCOMPARE(
-    module.readBlock(raw.values()),
+    module.readBlock(raw.values()).frameCount,
     std::size_t{3});
 
   queue.push(
@@ -1647,7 +1647,7 @@ void tst_dataarchive::test_DataBlockQueue_waitPop()
     });
 
   QCOMPARE(
-    module.readBlock(raw.values()),
+    module.readBlock(raw.values()).frameCount,
     std::size_t{3});
 
   queue.push(
@@ -1786,9 +1786,12 @@ void tst_dataarchive::test_DataBlockQueue_firstFrameIndex()
 
 
   QVERIFY(source.start());
+  QVERIFY(source.isRunning());
 
   QTest::qWait(10);
+
   source.stop();
+  QVERIFY(!source.isRunning());
 
   QVERIFY(queue.waitPop(event));
 
@@ -1844,9 +1847,12 @@ void tst_dataarchive::test_DataBlockQueue_firstFrameIndex()
   auto lastBlock = block;
 
   QVERIFY(source.start());
+  QVERIFY(source.isRunning());
 
   QTest::qWait(10);
+
   source.stop();
+  QVERIFY(!source.isRunning());
 
   QVERIFY(queue.waitPop(event));
 
@@ -1858,8 +1864,6 @@ void tst_dataarchive::test_DataBlockQueue_firstFrameIndex()
   QCOMPARE(block.frameRate, 1000.0);
 
   QCOMPARE(block.values[0], static_cast<double>(block.firstFrameIndex * (9.0 / 3)));
-
-  source.stop();
 }
 
 void tst_dataarchive::test_DataBlockQueue_firstFrameIndex_two_blocks()
@@ -1884,10 +1888,12 @@ void tst_dataarchive::test_DataBlockQueue_firstFrameIndex_two_blocks()
   DataBlock block;
 
   QVERIFY(source.start());
+  QVERIFY(source.isRunning());
 
   QTest::qWait(1);
 
   source.stop();
+  QVERIFY(!source.isRunning());
 
   DataStreamEvent event1;
   const auto& block1 =
@@ -1932,9 +1938,12 @@ void tst_dataarchive::test_DataBlockQueue_firstFrameIndex_three_blocks()
 
 
   QVERIFY(source.start());
+  QVERIFY(source.isRunning());
+
   QTest::qWait(5);
 
   source.stop();
+  QVERIFY(!source.isRunning());
 
   DataStreamEvent event;
   const auto& block =
@@ -1967,9 +1976,12 @@ void tst_dataarchive::test_DataBlockQueue_firstFrameIndex_three_blocks()
   fake->setCount(3);
 
   QVERIFY(source.start());
+  QVERIFY(source.isRunning());
+
   QTest::qWait(5);
 
   source.stop();
+  QVERIFY(!source.isRunning());
 
   QVERIFY(queue.pop(event1));
   QVERIFY(queue.pop(event2));
@@ -2007,9 +2019,12 @@ void tst_dataarchive::test_DataStreamEventSink_base()
     &sink);
 
   QVERIFY(source.start());
+  QVERIFY(source.isRunning());
+
   QTest::qWait(5);
 
   source.stop();
+  QVERIFY(!source.isRunning());
 
   auto const &anchor = sink.m_anchor;
 
@@ -2022,9 +2037,12 @@ void tst_dataarchive::test_DataStreamEventSink_base()
   clock.advance(500000);
 
   QVERIFY(source.start());
+  QVERIFY(source.isRunning());
+
   QTest::qWait(5);
 
   source.stop();
+  QVERIFY(!source.isRunning());
 
   QCOMPARE(anchor.module, ModuleId{777});
   QCOMPARE(anchor.firstFrameIndex, uint64_t{9});
@@ -2215,8 +2233,11 @@ void tst_dataarchive::test_LCardDataSource_stream_events()
     &queue);
 
   QVERIFY(source.start());
+  QVERIFY(source.isRunning());
+
   QTest::qWait(5);
   source.stop();
+  QVERIFY(!source.isRunning());
 
   DataStreamEvent event;
 
@@ -2279,8 +2300,12 @@ void tst_dataarchive::test_LCardDataSource_stream_events()
   fake->setCount(3);
 
   QVERIFY(source.start());
+  QVERIFY(source.isRunning());
+
   QTest::qWait(5);
+
   source.stop();
+  QVERIFY(!source.isRunning());
 
   // Anchor #2
   QVERIFY(queue.pop(event));
@@ -3870,6 +3895,7 @@ void tst_dataarchive::test_LCardDataSource_to_archive()
 
   QVERIFY(
     source.start());
+  QVERIFY(source.isRunning());
 
   QTRY_COMPARE_WITH_TIMEOUT(
     modulePtr->remainingBlockCount(),
@@ -3878,6 +3904,7 @@ void tst_dataarchive::test_LCardDataSource_to_archive()
 
   // Producer больше не должен работать.
   source.stop();
+  QVERIFY(!source.isRunning());
 
   // Закрываем очередь только после producer.
   queue.stop();
@@ -4065,10 +4092,15 @@ void tst_dataarchive::test_LCardDataSource_some_modules_to_archive()
 
   QVERIFY(
     source0.start());
+  QVERIFY(source0.isRunning());
+
   QVERIFY(
     source1.start());
+  QVERIFY(source1.isRunning());
+
   QVERIFY(
     source2.start());
+  QVERIFY(source2.isRunning());
 
   QTRY_COMPARE_WITH_TIMEOUT(
     modulePtr0->remainingBlockCount(),
@@ -4085,8 +4117,13 @@ void tst_dataarchive::test_LCardDataSource_some_modules_to_archive()
 
   // Producer-ы больше не должны работать.
   source0.stop();
+  QVERIFY(!source0.isRunning());
+
   source1.stop();
+  QVERIFY(!source1.isRunning());
+
   source2.stop();
+  QVERIFY(!source2.isRunning());
 
   // Закрываем очередь только после producer-ов.
   queue.stop();

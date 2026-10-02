@@ -19,4 +19,6 @@ private slots:
   void test_acquire_returns_last_frame();
   void test_lCardDataSource_fake_push_archive();
 
+  void test_LCardDataSource_runtime_failure();
+
 };

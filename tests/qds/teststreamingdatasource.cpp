@@ -65,6 +65,12 @@ void TestStreamingDataSource::stop() noexcept
     m_thread.join();
 }
 
+bool TestStreamingDataSource::isRunning() const noexcept
+{
+  return m_running.load(
+    std::memory_order_acquire);
+}
+
 void TestStreamingDataSource::run() noexcept
 {
   DataStreamAnchor anchor;

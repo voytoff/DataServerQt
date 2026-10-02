@@ -36,6 +36,11 @@ public:
     running = false;
   }
 
+  bool isRunning() const noexcept override
+  {
+    return running;
+  }
+
   int32_t startCounts = 0;
   int32_t stopCounts = 0;
 

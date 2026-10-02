@@ -35,6 +35,9 @@ public:
   bool start() noexcept override;
   void stop() noexcept override;
 
+  [[nodiscard]]
+  bool isRunning() const noexcept override;
+
   bool acquire(std::span<double> values) override;
 
 private:
@@ -52,6 +55,7 @@ private:
 
   std::thread m_thread;
   std::atomic<bool> m_running{false};
+  bool m_moduleStarted = false;
 
   std::mutex m_valuesMutex;
 

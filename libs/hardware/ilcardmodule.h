@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lcardreadresult.h"
 #include <cstddef>
 #include <span>
 
@@ -21,7 +22,7 @@ public:
   virtual double frameRate() const noexcept = 0;
 
   [[nodiscard]]
-  virtual std::size_t readBlock(
+  virtual LCardReadResult readBlock(
     std::span<double> values) noexcept = 0;
 };
 

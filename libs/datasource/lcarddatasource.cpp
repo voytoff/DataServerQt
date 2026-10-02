@@ -53,6 +53,8 @@ bool LCardDataSource::start() noexcept
   if (!m_module->start())
     return false;
 
+  m_moduleStarted = true;
+
   if (m_eventSink)
   {
     DataStreamAnchor anchor;
@@ -80,6 +82,8 @@ bool LCardDataSource::start() noexcept
     m_running = false;
     m_module->stop();
 
+    m_moduleStarted = false;
+
     return false;
   }
 
@@ -95,8 +99,17 @@ void LCardDataSource::stop() noexcept
   if (m_thread.joinable())
     m_thread.join();
 
-  if (m_module)
+  if (m_module && m_moduleStarted)
+  {
     m_module->stop();
+    m_moduleStarted = false;
+  }
+}
+
+bool LCardDataSource::isRunning() const noexcept
+{
+  return m_running.load(
+    std::memory_order_acquire);
 }
 
 bool LCardDataSource::acquire(
@@ -119,26 +132,46 @@ bool LCardDataSource::acquire(
 
 void LCardDataSource::run() noexcept
 {
-  while (m_running)
+  while (m_running.load(
+    std::memory_order_acquire))
   {
-    const std::size_t frameCount =
+    const LCardReadResult result =
       m_module->readBlock(m_work);
 
-    if (frameCount == 0)
+    if (result.status ==
+        LCardReadStatus::Error)
+    {
+      break;
+    }
+
+    if (result.status ==
+        LCardReadStatus::NoData)
+    {
       continue;
+    }
 
-    assert(
-      frameCount <=
-      m_module->blockFrameCapacity());
+    if (result.frameCount == 0)
+      break;
 
-    assert(
-      frameCount * m_channelCount <=
-      m_work.size());
+    if (
+      result.frameCount >
+      m_module->blockFrameCapacity())
+    {
+      break;
+    }
+
+    const std::size_t valueCount =
+      result.frameCount *
+      m_channelCount;
+
+    if (valueCount > m_work.size())
+      break;
 
     const uint64_t firstFrameIndex =
       m_nextFrameIndex;
 
-    m_nextFrameIndex += frameCount;
+    m_nextFrameIndex +=
+      result.frameCount;
 
     if (m_blockSink)
     {
@@ -147,17 +180,19 @@ void LCardDataSource::run() noexcept
         firstFrameIndex,
         std::span(
           m_work.data(),
-          frameCount * m_channelCount),
+          valueCount),
         m_channelCount,
-        frameCount,
+        result.frameCount,
         m_module->frameRate());
     }
 
     const std::size_t offset =
-      (frameCount - 1) * m_channelCount;
+      (result.frameCount - 1) *
+      m_channelCount;
 
     {
-      std::lock_guard lock(m_valuesMutex);
+      std::lock_guard lock(
+        m_valuesMutex);
 
       std::copy_n(
         m_work.data() + offset,
@@ -165,6 +200,10 @@ void LCardDataSource::run() noexcept
         m_values.data());
     }
   }
+
+  m_running.store(
+    false,
+    std::memory_order_release);
 }
 
 }
