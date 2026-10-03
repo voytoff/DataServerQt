@@ -1149,37 +1149,40 @@ void tst_datasource::test_dataStreamSourceManager_failModule()
   auto cfg = createTestConfig_calculate(ModuleType::LTR11);
 
   DataStreamSourceFactory factory;
-  auto module = std::make_unique<SmartBlockLCardModule>(
-    3, 3,
-    10, // блоков достаточно
-    3   // ровно 3 успешных Data, затем Error
-    );
-  SmartBlockLCardModule* smart;
+  SmartBlockLCardModule* smart = nullptr;
+  LCardDataSource* source = nullptr;
 
   FakeDataBlockSink dataSink;
-  //FakeClock clock;
   FakeSchedulerClock clock;
 
   QVERIFY(
     factory.registerType(
       ModuleType::LTR11,
       [&](const ModuleRuntimeConfiguration&,
-         IClock& clock,
-         IDataBlockSink& blockSink,
-         IDataStreamEventSink& eventSink)
+          IClock& clock,
+          IDataBlockSink&,
+          IDataStreamEventSink&)
       {
-        auto module = std::make_unique<SmartBlockLCardModule>(
-          3, 3,
-          10, // блоков достаточно
-          3   // ровно 3 успешных Data, затем Error
-          );
+        auto module =
+          std::make_unique<SmartBlockLCardModule>(
+            3,
+            3,
+            10,
+            3);
+
         smart = module.get();
-        return std::make_unique<LCardDataSource>(
-          ModuleId{0},
-          3,
-          std::move(module),
-          clock,
-          &dataSink);
+
+        auto lcard =
+          std::make_unique<LCardDataSource>(
+            ModuleId{0},
+            3,
+            std::move(module),
+            clock,
+            &dataSink);
+
+        source = lcard.get();
+
+        return lcard;
       }));
 
   DataStreamSourceManager manager;
@@ -1201,7 +1204,45 @@ void tst_datasource::test_dataStreamSourceManager_failModule()
   QVERIFY(manager.start());
   QVERIFY(manager.isRunning());
 
+  QTRY_VERIFY_WITH_TIMEOUT(
+    !manager.isRunning(),
+    1000);
+
+  QVERIFY(!source->isRunning());
+
+  QCOMPARE(smart->stopCalls, 0u);
+
+  QCOMPARE(dataSink.m_module, ModuleId{0});
+  QCOMPARE(
+    dataSink.m_channelCount,
+    std::size_t{3});
+  QCOMPARE(
+    dataSink.m_frameCount,
+    std::size_t{3});
+  QCOMPARE(
+    dataSink.m_values.size(),
+    std::size_t{9});
+  QCOMPARE(
+    dataSink.m_firstFrameIndex,
+    uint64_t{6});
+
+  QCOMPARE(dataSink.m_values[0], 0.0);
+  QCOMPARE(dataSink.m_values[1], 1.0);
+  QCOMPARE(dataSink.m_values[2], 2.0);
+  QCOMPARE(dataSink.m_values[3], 3.0);
+  QCOMPARE(dataSink.m_values[4], 4.0);
+  QCOMPARE(dataSink.m_values[5], 5.0);
+  QCOMPARE(dataSink.m_values[6], 6.0);
+  QCOMPARE(dataSink.m_values[7], 7.0);
+  QCOMPARE(dataSink.m_values[8], 8.0);
+
   manager.stop();
+  QVERIFY(!manager.isRunning());
+
+  QCOMPARE(smart->stopCalls, 1u);
+
+  manager.stop();
+  QCOMPARE(smart->stopCalls, 1u);
 
   QVERIFY(!manager.isRunning());
 }

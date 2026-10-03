@@ -172,6 +172,15 @@ void DataServer::onTimer()
     return;
   }
 
+  if (!m_runtime->dataSources.isRunning())
+  {
+    m_logger.error(
+      "Data stream source stopped unexpectedly");
+
+    stop();
+    return;
+  }
+
   if (!m_runtime->engine->process())
   {
     stop();
