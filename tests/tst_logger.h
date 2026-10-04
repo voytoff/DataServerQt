@@ -1,7 +1,6 @@
 #pragma once
 
 #include <QObject>
-#include <filesystem>
 #include <charconv>
 
 class tst_logger : public QObject
@@ -18,26 +17,6 @@ private slots:
   void test_logger_multithread();
 
 };
-
-inline std::filesystem::path makeFileName(
-  const std::filesystem::path &directory,
-  const uint64_t& time)
-{
-  const std::time_t seconds =
-    time / 1'000'000;
-
-  std::tm tm_time{};
-
-#ifdef _WIN32
-  gmtime_s(&tm_time, &seconds);
-#else
-  gmtime_r(&seconds, &tm_time);
-#endif
-
-  char buffer[11];
-  std::strftime(buffer, sizeof(buffer), "%Y-%m-%d", &tm_time);
-  return directory / (std::string(buffer) + ".log");
-}
 
 // Функция для поиска и извлечения числа после определенного ключа
 inline std::optional<int> extract_value(std::string_view log, std::string_view key) {

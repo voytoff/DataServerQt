@@ -46,6 +46,43 @@ public:
   UdpServer server;
 };
 
+inline std::filesystem::path makeFileName(
+  const std::filesystem::path &directory,
+  const uint64_t& time)
+{
+  const std::time_t seconds =
+    time / 1'000'000;
+
+  std::tm tm_time{};
+
+#ifdef _WIN32
+  gmtime_s(&tm_time, &seconds);
+#else
+  gmtime_r(&seconds, &tm_time);
+#endif
+
+  char buffer[11];
+  std::strftime(buffer, sizeof(buffer), "%Y-%m-%d", &tm_time);
+  return directory / (std::string(buffer) + ".log");
+}
+
+inline std::string getLastLine(const std::string& filename) {
+  std::ifstream file(filename);
+  std::string currentLine;
+  std::string lastLine;
+
+  if (!file.is_open()) return "";
+
+  // Read through the entire file line by line
+  while (std::getline(file, currentLine)) {
+    if (!currentLine.empty()) {
+      lastLine = currentLine;
+    }
+  }
+
+  return lastLine;
+}
+
 static std::filesystem::path getCurrentFolder() {
   return std::filesystem::current_path();
 }

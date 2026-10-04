@@ -4,17 +4,16 @@
 #include "archivemanager.h"
 #include "archivereader.h"
 #include "configurationrepository.h"
-#include "datasourcefactory.h"
+#include "fakedatablocksink.h"
+#include "lcarddatasource.h"
 #include "qds/db.h"
 #include "logger.h"
 #include "qds/testarchiveframewriter.h"
 #include "qds/testdatastreamsource.h"
 #include "qds/teststreamingdatasource.h"
+#include "smartblocklcardmodule.h"
 #include "testlogger.h"
-#include "failingarchivewriter.h"
-#include "failingdatasource.h"
 #include "failoncearchivewriter.h"
-#include "fakedatasource.h"
 #include "fakeschedulerclock.h"
 #include "testlogger.h"
 #include "protocol/publishheader.h"
@@ -22,7 +21,6 @@
 #include "systembuilder.h"
 #include "systemconfiguration.h"
 #include "qds/testarchivewriter.h"
-#include "testdatasource.h"
 #include "qds/testpublisher.h"
 #include "testsrv.h"
 #include "dataserver.h"
@@ -32,6 +30,503 @@
 tst_dataserver::tst_dataserver() { }
 tst_dataserver::~tst_dataserver() = default;
 
+void tst_dataserver::test_dataServer_publish_archive_pipeline()
+{
+  using namespace qds;
+  auto db = get_db();
+  QVERIFY(db.isOpen());
+  QVERIFY(db.isValid());
+
+  ConfigurationRepository repository(db);
+
+  SystemConfiguration cfg;
+  QVERIFY(repository.load(ConfigurationId{1}, cfg));
+
+  CalibrationRepository calibrations;
+  QVERIFY(repository.loadCalibrations(cfg, calibrations));
+
+  DataStreamSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::LTR11,
+    [](const ModuleRuntimeConfiguration& configuration,
+       IClock&,
+       IDataBlockSink& blockSink,
+       IDataStreamEventSink& eventSink)
+    {
+      return std::make_unique<TestStreamingDataSource>(
+        configuration,
+        blockSink,
+        eventSink);
+    }));
+
+  ArchiveDescriptionBuilder builder;
+  ArchiveDescription description;
+  QVERIFY(builder.build(cfg, description));
+
+  ArchiveDescriptionWriter archiveWriter;
+
+  const auto path =
+    getFilePath(
+      "description.json");
+
+  QVERIFY(
+    archiveWriter.write(
+      path,
+      description));
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  auto directory = getCurrentFolder();
+
+  ArchiveManager archive;
+  QVERIFY(archive.initialize(directory, description, layout));
+
+  UdpSender sender;
+  FakeSchedulerClock clock(2, 3);
+  Logger logger(getCurrentFolder(), clock);
+
+  DataServer ds(
+    cfg,
+    calibrations,
+    factory,
+    archive,
+    clock,
+    sender,
+    logger);
+
+  QVERIFY(ds.start());
+
+  QUdpSocket client;
+
+  QVERIFY(
+    client.bind(
+      QHostAddress::LocalHost,
+      0));
+
+  PacketWriter writer;
+  PacketReader reader;
+  std::vector<SignalId> signalIds;
+  SubscribeListRequest request;
+  SubscribeResponse response;
+  PublishHeader header;
+  QByteArray data;
+  long bytes;
+  std::array<Sample, 2> samples1;
+  std::array<Sample, 1> samples2;
+
+  // ------------------------------------------------------------
+  // Subscribe 1
+  // ------------------------------------------------------------
+
+  writer.begin(
+    PacketType::SubscribeListRequest);
+
+  const auto &def = cfg.signalDefinitions();
+  signalIds.assign({findSignalDefinition(def, "B")->id, findSignalDefinition(def, "C")->id});
+
+  request.rate = PublishRate::Hz10;
+  request.signalCount = signalIds.size();
+
+  writer.write(request);
+
+  writer.writeArray(
+    signalIds.data(),
+    signalIds.size());
+
+  bytes =
+    client.writeDatagram(
+      reinterpret_cast<const char*>(
+        writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      cfg.udpPort());
+
+  QCOMPARE(
+    bytes,
+    qint64(writer.size()));
+
+
+  // ------------------------------------------------------------
+  // Subscribe 2
+  // ------------------------------------------------------------
+
+  writer.begin(
+    PacketType::SubscribeListRequest);
+
+  signalIds.assign({findSignalDefinition(def, "A")->id});
+
+  request.rate = PublishRate::Hz100;
+  request.signalCount = signalIds.size();
+
+  writer.write(request);
+
+  writer.writeArray(
+    signalIds.data(),
+    signalIds.size());
+
+  bytes =
+    client.writeDatagram(
+      reinterpret_cast<const char*>(
+        writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      cfg.udpPort());
+
+  QCOMPARE(
+    bytes,
+    qint64(writer.size()));
+
+  // ------------------------------------------------------------
+  // Проверим ответ сервера на регистрацию подписок
+  // ------------------------------------------------------------
+
+  bool has_sub1 = false, has_sub2 = false;
+
+  for (int subscribe = 1; subscribe <= 2; ++subscribe)
+  {
+    waitPacket(client, data, reader, PacketType::SubscribeResponse);
+
+    QCOMPARE(
+      reader.packetType(),
+      PacketType::SubscribeResponse);
+
+    QVERIFY(reader.read(response));
+
+    QCOMPARE(
+      reader.remaining(),
+      std::size_t(0));
+
+    QCOMPARE(
+      response.result,
+      SubscribeResult::Ok);
+
+    if (response.id == SubscriptionId{1})
+      has_sub1 = true;
+
+    else if (response.id == SubscriptionId{2})
+      has_sub2 = true;
+
+    else
+      QFAIL("Неверная подписка");
+  }
+
+  QVERIFY(has_sub1);
+  QVERIFY(has_sub2);
+
+
+  QTest::qWait(1500);
+
+
+  // ------------------------------------------------------------
+  // Stop
+  // ------------------------------------------------------------
+
+  ds.stop();
+  QVERIFY(!ds.isRunning());
+
+  QTest::qWait(100);
+
+  archive.close();
+
+  // ------------------------------------------------------------
+  // Проверим данные архивов и подписок
+  // ------------------------------------------------------------
+
+  uint32_t sequence1 = 0;
+  uint32_t sequence2 = 0;
+
+  uint64_t previousTimestamp1{};
+  bool hasTimestamp1 = false;
+
+  uint64_t previousTimestamp2{};
+  bool hasTimestamp2 = false;
+
+
+  while(client.waitForReadyRead(100) && client.hasPendingDatagrams())
+  {
+    data.resize(client.pendingDatagramSize());
+    client.readDatagram(data.data(), data.size());
+
+    reader.clear();
+
+    reader.append(
+      reinterpret_cast<const std::byte*>(
+        data.constData()),
+      data.size());
+
+    QVERIFY(reader.nextPacket());
+
+    QCOMPARE(
+      reader.packetType(),
+      PacketType::LiveData);
+
+    QVERIFY(reader.read(header));
+
+    if (
+      header.subscriptionId ==
+      SubscriptionId{1})
+    {
+      QCOMPARE(
+        header.sequence,
+        ++sequence1);
+
+      const uint64_t frameIndex =
+        (header.timestamp - 1'000'000) / 1000;
+
+      if (hasTimestamp1)
+      {
+        QVERIFY(
+          header.timestamp >
+          previousTimestamp1);
+      }
+
+      previousTimestamp1 =
+        header.timestamp;
+      hasTimestamp1 = true;
+
+      QCOMPARE(
+        header.valueCount,
+        2u);
+
+      QVERIFY(
+        reader.readArray(
+          samples1.data(),
+          samples1.size()));
+
+      const double raw0 =
+        static_cast<double>(
+          frameIndex * 10);
+
+      const double raw1 =
+        static_cast<double>(
+          frameIndex * 10 + 1);
+
+      const double a = raw0 * 0.1;
+      const double b = raw1 - 20.0;
+      const double c = a + b;
+
+      QCOMPARE(
+        samples1[0],
+        Sample{b});
+
+      QCOMPARE(
+        samples1[1],
+        Sample{c});
+    }
+    else if (
+      header.subscriptionId ==
+      SubscriptionId{2})
+    {
+      QCOMPARE(
+        header.sequence,
+        ++sequence2);
+
+      const uint64_t frameIndex =
+        (header.timestamp - 1'000'000) / 1000;
+
+      if (hasTimestamp2)
+      {
+        QVERIFY(
+          header.timestamp >
+          previousTimestamp2);
+      }
+
+      previousTimestamp2 =
+        header.timestamp;
+      hasTimestamp2 = true;
+
+      QCOMPARE(
+        header.valueCount,
+        1u);
+
+      QVERIFY(
+        reader.readArray(
+          samples2.data(),
+          samples2.size()));
+
+      const double raw0 =
+        static_cast<double>(
+          frameIndex * 10);
+
+      const double a =
+        raw0 * 0.1;
+
+      QCOMPARE(
+        samples2[0],
+        Sample{a});
+    }
+    else
+      QFAIL("Неверная подписка");
+
+    QCOMPARE(
+      reader.remaining(),
+      std::size_t(0));
+  }
+
+  QVERIFY(sequence1 > 0);
+  QVERIFY(sequence2 > 0);
+
+  ArchiveReader archiveReader;
+
+  QVERIFY(archiveReader.open(getCurrentFolder()));
+
+  QVERIFY(archiveReader.isOpen());
+
+  description = archiveReader.description();
+  QCOMPARE(description.version, ArchiveDescriptionVersion);
+
+  std::size_t fileIndex;
+  ArchiveSample sample;
+  const DataFileHeader *fileHeader;
+
+  // Raw0
+  fileIndex = findFile(description, SignalKind::Raw, 1000);
+  QVERIFY(fileIndex >= 0);
+  fileHeader = archiveReader.fileHeader(fileIndex);
+  QVERIFY(fileHeader);
+  QVERIFY(fileHeader->recordCount > 0);
+  QCOMPARE(fileHeader->sampleFrequency, 1000);
+  QCOMPARE(fileHeader->channelCount, 1u);
+
+  for (uint64_t i = 0; i < fileHeader->recordCount; ++i)
+  {
+    QVERIFY(archiveReader.read(fileIndex, sample));
+    const uint64_t frameIndex = i;
+
+    QCOMPARE(
+      sample.frameNumber,
+      FrameNumber{frameIndex});
+
+    QCOMPARE(
+      sample.timestamp,
+      Timestamp{
+                1'000'000 +
+                frameIndex * 1000});
+
+    QCOMPARE(
+      sample.wallTime,
+      WallClockTime{
+                    2'000'000 +
+                    static_cast<int64_t>(
+                      frameIndex * 1000)});
+
+    const double raw0 =
+      static_cast<double>(
+        frameIndex * 10);
+
+    QCOMPARE(
+      sample.values[0],
+      static_cast<float>(raw0));
+  }
+
+  // Raw1
+  fileIndex = findFile(description, SignalKind::Raw, 100);
+  QVERIFY(fileIndex >= 0);
+  fileHeader = archiveReader.fileHeader(fileIndex);
+  QVERIFY(fileHeader);
+  QVERIFY(fileHeader->recordCount > 0);
+  QCOMPARE(fileHeader->sampleFrequency, 100);
+  QCOMPARE(fileHeader->channelCount, 1u);
+
+  for (uint64_t i = 0; i < fileHeader->recordCount; ++i)
+  {
+    QVERIFY(archiveReader.read(fileIndex, sample));
+
+    const uint64_t frameIndex = i * 10;
+
+    QCOMPARE(
+      sample.frameNumber,
+      FrameNumber{frameIndex});
+
+    QCOMPARE(
+      sample.timestamp,
+      Timestamp{
+                1'000'000 +
+                frameIndex * 1000});
+
+    QCOMPARE(
+      sample.wallTime,
+      WallClockTime{
+                    2'000'000 +
+                    static_cast<int64_t>(
+                      frameIndex * 1000)});
+
+    const double raw1 =
+      static_cast<double>(
+        frameIndex * 10 + 1);
+
+    QCOMPARE(
+      sample.values[0],
+      static_cast<float>(raw1));
+  }
+
+  // A
+  fileIndex = findFile(description, SignalKind::Calculated, 100);
+  QVERIFY(fileIndex >= 0);
+  fileHeader = archiveReader.fileHeader(fileIndex);
+  QVERIFY(fileHeader);
+  QVERIFY(fileHeader->recordCount > 0);
+  QCOMPARE(fileHeader->sampleFrequency, 100);
+  QCOMPARE(fileHeader->channelCount, 1u);
+
+  for (uint64_t i = 0; i < fileHeader->recordCount; ++i)
+  {
+    QVERIFY(archiveReader.read(fileIndex, sample));
+    const uint64_t frameIndex = i * 10;
+
+    const double raw0 =
+      static_cast<double>(
+        frameIndex * 10);
+
+    const double a =
+      raw0 * 0.1;
+
+    QCOMPARE(
+      sample.values[0],
+      static_cast<float>(a));
+  }
+
+  // B C
+  fileIndex = findFile(description, SignalKind::Calculated, 10);
+  QVERIFY(fileIndex >= 0);
+  fileHeader = archiveReader.fileHeader(fileIndex);
+  QVERIFY(fileHeader);
+  QVERIFY(fileHeader->recordCount > 0);
+  QCOMPARE(fileHeader->sampleFrequency, 10);
+  QCOMPARE(fileHeader->channelCount, 2u);
+
+  for (uint64_t i = 0; i < fileHeader->recordCount; ++i)
+  {
+    QVERIFY(archiveReader.read(fileIndex, sample));
+    const uint64_t frameIndex = i * 100;
+
+    const double raw0 =
+      static_cast<double>(
+        frameIndex * 10);
+
+    const double raw1 =
+      static_cast<double>(
+        frameIndex * 10 + 1);
+
+    const double a = raw0 * 0.1;
+    const double b = raw1 - 20.0;
+    const double c = a + b;
+
+    QCOMPARE(
+      sample.values[0],
+      static_cast<float>(b));
+
+    QCOMPARE(
+      sample.values[1],
+      static_cast<float>(c));
+  }
+
+  archiveReader.close();
+  QVERIFY(!archiveReader.isOpen());
+  QVERIFY(archiveReader.fileHeader(0) == nullptr);
+}
 
 void tst_dataserver::test_systemBuilder_success()
 {
@@ -3047,500 +3542,105 @@ void tst_dataserver::test_dataServer_udp_pipeline()
   ds.stop();
 }
 
-void tst_dataserver::test_dataServer_publish_archive_pipeline()
+void tst_dataserver::test_dataServer_failModule()
 {
   using namespace qds;
-  auto db = get_db();
-  QVERIFY(db.isOpen());
-  QVERIFY(db.isValid());
 
-  ConfigurationRepository repository(db);
+  auto cfg = createTestConfig_calculate(ModuleType::LTR11);
 
-  SystemConfiguration cfg;
-  QVERIFY(repository.load(ConfigurationId{1}, cfg));
-
-  CalibrationRepository calibrations;
-  QVERIFY(repository.loadCalibrations(cfg, calibrations));
-  
   DataStreamSourceFactory factory;
+  FakeDataBlockSink dataSink;
+  FakeSchedulerClock clock;
 
-  QVERIFY(factory.registerType(
-    ModuleType::LTR11,
-    [](const ModuleRuntimeConfiguration& configuration,
-       IClock&,
-       IDataBlockSink& blockSink,
-       IDataStreamEventSink& eventSink)
-    {
-      return std::make_unique<TestStreamingDataSource>(
-        configuration,
-        blockSink,
-        eventSink);
-    }));
+  QVERIFY(
+    factory.registerType(
+      ModuleType::LTR11,
+      [&](const ModuleRuntimeConfiguration&,
+          IClock& clock,
+          IDataBlockSink&,
+          IDataStreamEventSink&)
+      {
+        auto module =
+          std::make_unique<SmartBlockLCardModule>(
+            3,
+            3,
+            10,
+            3);
+
+        return
+          std::make_unique<LCardDataSource>(
+            ModuleId{0},
+            3,
+            std::move(module),
+            clock,
+            &dataSink);
+      }));
 
   ArchiveDescriptionBuilder builder;
   ArchiveDescription description;
   QVERIFY(builder.build(cfg, description));
 
-  ArchiveDescriptionWriter archiveWriter;
-
-  const auto path =
-    getFilePath(
-      "description.json");
-
-  QVERIFY(
-    archiveWriter.write(
-      path,
-      description));
-
   SignalMemoryLayout layout;
   layout.build(cfg);
 
-  auto directory = getCurrentFolder();
-
   ArchiveManager archive;
-  QVERIFY(archive.initialize(directory, description, layout));
-
+  QVERIFY(archive.initialize(getCurrentFolder(), description, layout));
   UdpSender sender;
-  FakeSchedulerClock clock(2, 3);
+
+  CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
 
-  DataServer ds(
+  DataServer server(
     cfg,
-    calibrations,
+    cr,
     factory,
     archive,
     clock,
     sender,
     logger);
 
-  QVERIFY(ds.start());
+  QVERIFY(!server.isRunning());
 
-  QUdpSocket client;
+  QVERIFY(server.start());
 
-  QVERIFY(
-    client.bind(
-      QHostAddress::LocalHost,
-      0));
+  QVERIFY(server.isRunning());
 
-  PacketWriter writer;
-  PacketReader reader;
-  std::vector<SignalId> signalIds;
-  SubscribeListRequest request;
-  SubscribeResponse response;
-  PublishHeader header;
-  QByteArray data;
-  long bytes;
-  std::array<Sample, 2> samples1;
-  std::array<Sample, 1> samples2;
+  QTRY_VERIFY_WITH_TIMEOUT(
+    !server.isRunning(),
+    1000);
 
-  // ------------------------------------------------------------
-  // Subscribe 1
-  // ------------------------------------------------------------
+  server.stop();
 
-  writer.begin(
-    PacketType::SubscribeListRequest);
+  QVERIFY(!server.isRunning());
 
-  const auto &def = cfg.signalDefinitions();
-  signalIds.assign({findSignalDefinition(def, "B")->id, findSignalDefinition(def, "C")->id});
+  const auto wallClockTime = clock.wallClockTime();
+  const auto logFile = makeFileName(getCurrentFolder(), wallClockTime.unixMicroseconds);
 
-  request.rate = PublishRate::Hz10;
-  request.signalCount = signalIds.size();
+  std::string line = getLastLine(logFile.string());
+  QVERIFY(line.find("[ERROR]") != std::string::npos);
+  QVERIFY(line.find("Data stream source stopped unexpectedly") != std::string::npos);
 
-  writer.write(request);
-
-  writer.writeArray(
-    signalIds.data(),
-    signalIds.size());
-
-  bytes =
-    client.writeDatagram(
-      reinterpret_cast<const char*>(
-        writer.data()),
-      writer.size(),
-      QHostAddress::LocalHost,
-      cfg.udpPort());
-
+  QCOMPARE(dataSink.m_module, ModuleId{0});
   QCOMPARE(
-    bytes,
-    qint64(writer.size()));
-
-
-  // ------------------------------------------------------------
-  // Subscribe 2
-  // ------------------------------------------------------------
-
-  writer.begin(
-    PacketType::SubscribeListRequest);
-
-  signalIds.assign({findSignalDefinition(def, "A")->id});
-
-  request.rate = PublishRate::Hz100;
-  request.signalCount = signalIds.size();
-
-  writer.write(request);
-
-  writer.writeArray(
-    signalIds.data(),
-    signalIds.size());
-
-  bytes =
-    client.writeDatagram(
-      reinterpret_cast<const char*>(
-        writer.data()),
-      writer.size(),
-      QHostAddress::LocalHost,
-      cfg.udpPort());
-
+    dataSink.m_channelCount,
+    std::size_t{3});
   QCOMPARE(
-    bytes,
-    qint64(writer.size()));
-
-  // ------------------------------------------------------------
-  // Проверим ответ сервера на регистрацию подписок
-  // ------------------------------------------------------------
-
-  bool has_sub1 = false, has_sub2 = false;
-
-  for (int subscribe = 1; subscribe <= 2; ++subscribe)
-  {
-    waitPacket(client, data, reader, PacketType::SubscribeResponse);
-
-    QCOMPARE(
-      reader.packetType(),
-      PacketType::SubscribeResponse);
-
-    QVERIFY(reader.read(response));
-
-    QCOMPARE(
-      reader.remaining(),
-      std::size_t(0));
-
-    QCOMPARE(
-      response.result,
-      SubscribeResult::Ok);
-
-    if (response.id == SubscriptionId{1})
-      has_sub1 = true;
-
-    else if (response.id == SubscriptionId{2})
-      has_sub2 = true;
-
-    else
-      QFAIL("Неверная подписка");
-  }
-
-  QVERIFY(has_sub1);
-  QVERIFY(has_sub2);
-
-
-  QTest::qWait(1500);
-
-
-  // ------------------------------------------------------------
-  // Stop
-  // ------------------------------------------------------------
-
-  ds.stop();
-  QVERIFY(!ds.isRunning());
-
-  QTest::qWait(100);
-
-  archive.close();
-
-  // ------------------------------------------------------------
-  // Проверим данные архивов и подписок
-  // ------------------------------------------------------------
-
-  uint32_t sequence1 = 0;
-  uint32_t sequence2 = 0;
-
-  uint64_t previousTimestamp1{};
-  bool hasTimestamp1 = false;
-
-  uint64_t previousTimestamp2{};
-  bool hasTimestamp2 = false;
-
-
-  while(client.waitForReadyRead(100) && client.hasPendingDatagrams())
-  {
-    data.resize(client.pendingDatagramSize());
-    client.readDatagram(data.data(), data.size());
-
-    reader.clear();
-
-    reader.append(
-      reinterpret_cast<const std::byte*>(
-        data.constData()),
-      data.size());
-
-    QVERIFY(reader.nextPacket());
-
-    QCOMPARE(
-      reader.packetType(),
-      PacketType::LiveData);
-
-    QVERIFY(reader.read(header));
-
-    if (
-      header.subscriptionId ==
-      SubscriptionId{1})
-    {
-      QCOMPARE(
-        header.sequence,
-        ++sequence1);
-
-      const uint64_t frameIndex =
-        (header.timestamp - 1'000'000) / 1000;
-
-      if (hasTimestamp1)
-      {
-        QVERIFY(
-          header.timestamp >
-          previousTimestamp1);
-      }
-
-      previousTimestamp1 =
-        header.timestamp;
-      hasTimestamp1 = true;
-
-      QCOMPARE(
-        header.valueCount,
-        2u);
-
-      QVERIFY(
-        reader.readArray(
-          samples1.data(),
-          samples1.size()));
-
-      const double raw0 =
-        static_cast<double>(
-          frameIndex * 10);
-
-      const double raw1 =
-        static_cast<double>(
-          frameIndex * 10 + 1);
-
-      const double a = raw0 * 0.1;
-      const double b = raw1 - 20.0;
-      const double c = a + b;
-
-      QCOMPARE(
-        samples1[0],
-        Sample{b});
-
-      QCOMPARE(
-        samples1[1],
-        Sample{c});
-    }
-    else if (
-      header.subscriptionId ==
-      SubscriptionId{2})
-    {
-      QCOMPARE(
-        header.sequence,
-        ++sequence2);
-
-      const uint64_t frameIndex =
-        (header.timestamp - 1'000'000) / 1000;
-
-      if (hasTimestamp2)
-      {
-        QVERIFY(
-          header.timestamp >
-          previousTimestamp2);
-      }
-
-      previousTimestamp2 =
-        header.timestamp;
-      hasTimestamp2 = true;
-
-      QCOMPARE(
-        header.valueCount,
-        1u);
-
-      QVERIFY(
-        reader.readArray(
-          samples2.data(),
-          samples2.size()));
-
-      const double raw0 =
-        static_cast<double>(
-          frameIndex * 10);
-
-      const double a =
-        raw0 * 0.1;
-
-      QCOMPARE(
-        samples2[0],
-        Sample{a});
-    }
-    else
-      QFAIL("Неверная подписка");
-
-    QCOMPARE(
-      reader.remaining(),
-      std::size_t(0));
-  }
-
-  QVERIFY(sequence1 > 0);
-  QVERIFY(sequence2 > 0);
-
-  ArchiveReader archiveReader;
-
-  QVERIFY(archiveReader.open(getCurrentFolder()));
-
-  QVERIFY(archiveReader.isOpen());
-
-  description = archiveReader.description();
-  QCOMPARE(description.version, ArchiveDescriptionVersion);
-
-  std::size_t fileIndex;
-  ArchiveSample sample;
-  const DataFileHeader *fileHeader;
-
-  // Raw0
-  fileIndex = findFile(description, SignalKind::Raw, 1000);
-  QVERIFY(fileIndex >= 0);
-  fileHeader = archiveReader.fileHeader(fileIndex);
-  QVERIFY(fileHeader);
-  QVERIFY(fileHeader->recordCount > 0);
-  QCOMPARE(fileHeader->sampleFrequency, 1000);
-  QCOMPARE(fileHeader->channelCount, 1u);
-
-  for (uint64_t i = 0; i < fileHeader->recordCount; ++i)
-  {
-    QVERIFY(archiveReader.read(fileIndex, sample));
-    const uint64_t frameIndex = i;
-
-    QCOMPARE(
-      sample.frameNumber,
-      FrameNumber{frameIndex});
-
-    QCOMPARE(
-      sample.timestamp,
-      Timestamp{
-                1'000'000 +
-                frameIndex * 1000});
-
-    QCOMPARE(
-      sample.wallTime,
-      WallClockTime{
-                    2'000'000 +
-                    static_cast<int64_t>(
-                      frameIndex * 1000)});
-
-    const double raw0 =
-      static_cast<double>(
-        frameIndex * 10);
-
-    QCOMPARE(
-      sample.values[0],
-      static_cast<float>(raw0));
-  }
-
-  // Raw1
-  fileIndex = findFile(description, SignalKind::Raw, 100);
-  QVERIFY(fileIndex >= 0);
-  fileHeader = archiveReader.fileHeader(fileIndex);
-  QVERIFY(fileHeader);
-  QVERIFY(fileHeader->recordCount > 0);
-  QCOMPARE(fileHeader->sampleFrequency, 100);
-  QCOMPARE(fileHeader->channelCount, 1u);
-
-  for (uint64_t i = 0; i < fileHeader->recordCount; ++i)
-  {
-    QVERIFY(archiveReader.read(fileIndex, sample));
-
-    const uint64_t frameIndex = i * 10;
-
-    QCOMPARE(
-      sample.frameNumber,
-      FrameNumber{frameIndex});
-
-    QCOMPARE(
-      sample.timestamp,
-      Timestamp{
-                1'000'000 +
-                frameIndex * 1000});
-
-    QCOMPARE(
-      sample.wallTime,
-      WallClockTime{
-                    2'000'000 +
-                    static_cast<int64_t>(
-                      frameIndex * 1000)});
-
-    const double raw1 =
-      static_cast<double>(
-        frameIndex * 10 + 1);
-
-    QCOMPARE(
-      sample.values[0],
-      static_cast<float>(raw1));
-  }
-
-  // A
-  fileIndex = findFile(description, SignalKind::Calculated, 100);
-  QVERIFY(fileIndex >= 0);
-  fileHeader = archiveReader.fileHeader(fileIndex);
-  QVERIFY(fileHeader);
-  QVERIFY(fileHeader->recordCount > 0);
-  QCOMPARE(fileHeader->sampleFrequency, 100);
-  QCOMPARE(fileHeader->channelCount, 1u);
-
-  for (uint64_t i = 0; i < fileHeader->recordCount; ++i)
-  {
-    QVERIFY(archiveReader.read(fileIndex, sample));
-    const uint64_t frameIndex = i * 10;
-
-    const double raw0 =
-      static_cast<double>(
-        frameIndex * 10);
-
-    const double a =
-      raw0 * 0.1;
-
-    QCOMPARE(
-      sample.values[0],
-      static_cast<float>(a));
-  }
-
-  // B C
-  fileIndex = findFile(description, SignalKind::Calculated, 10);
-  QVERIFY(fileIndex >= 0);
-  fileHeader = archiveReader.fileHeader(fileIndex);
-  QVERIFY(fileHeader);
-  QVERIFY(fileHeader->recordCount > 0);
-  QCOMPARE(fileHeader->sampleFrequency, 10);
-  QCOMPARE(fileHeader->channelCount, 2u);
-
-  for (uint64_t i = 0; i < fileHeader->recordCount; ++i)
-  {
-    QVERIFY(archiveReader.read(fileIndex, sample));
-    const uint64_t frameIndex = i * 100;
-
-    const double raw0 =
-      static_cast<double>(
-        frameIndex * 10);
-
-    const double raw1 =
-      static_cast<double>(
-        frameIndex * 10 + 1);
-
-    const double a = raw0 * 0.1;
-    const double b = raw1 - 20.0;
-    const double c = a + b;
-
-    QCOMPARE(
-      sample.values[0],
-      static_cast<float>(b));
-
-    QCOMPARE(
-      sample.values[1],
-      static_cast<float>(c));
-  }
-
-  archiveReader.close();
-  QVERIFY(!archiveReader.isOpen());
-  QVERIFY(archiveReader.fileHeader(0) == nullptr);
+    dataSink.m_frameCount,
+    std::size_t{3});
+  QCOMPARE(
+    dataSink.m_values.size(),
+    std::size_t{9});
+  QCOMPARE(
+    dataSink.m_firstFrameIndex,
+    uint64_t{6});
+
+  QCOMPARE(dataSink.m_values[0], 0.0);
+  QCOMPARE(dataSink.m_values[1], 1.0);
+  QCOMPARE(dataSink.m_values[2], 2.0);
+  QCOMPARE(dataSink.m_values[3], 3.0);
+  QCOMPARE(dataSink.m_values[4], 4.0);
+  QCOMPARE(dataSink.m_values[5], 5.0);
+  QCOMPARE(dataSink.m_values[6], 6.0);
+  QCOMPARE(dataSink.m_values[7], 7.0);
+  QCOMPARE(dataSink.m_values[8], 8.0);
 }
