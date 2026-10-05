@@ -20,5 +20,6 @@ private slots:
   void test_lCardDataSource_fake_push_archive();
 
   void test_LCardDataSource_runtime_failure();
+  void test_LCardDataSource_restart_after_runtime_failure();
 
 };

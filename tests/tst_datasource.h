@@ -46,5 +46,6 @@ private slots:
   void test_dataStreamSourceManager_initializeRollback();
 
   void test_dataStreamSourceManager_failModule();
+  void test_dataStreamSourceManager_restart_after_runtime_failure();
 
 };

@@ -12,8 +12,6 @@
 #include <QJsonObject>
 #include <QHostAddress>
 
-#include <iostream>
-#include <ranges>
 #include <vector>
 #include <cstdint>
 #include <array>
@@ -521,4 +519,88 @@ void tst_hardware::test_LCardDataSource_runtime_failure()
   QCOMPARE(smart->stopCalls, 1u);
 
   QVERIFY(!source.isRunning());
+}
+
+void tst_hardware::test_LCardDataSource_restart_after_runtime_failure()
+{
+  using namespace qds;
+
+  constexpr std::size_t ChannelCount = 3;
+
+  auto module =
+    std::make_unique<SmartBlockLCardModule>(
+      3,
+      ChannelCount,
+      10,
+      3);
+
+  auto* smart = module.get();
+
+  FakeDataBlockSink dataSink;
+  FakeClock clock;
+
+  LCardDataSource source(
+    ModuleId{0},
+    ChannelCount,
+    std::move(module),
+    clock,
+    &dataSink);
+
+  QVERIFY(source.start());
+  QVERIFY(source.isRunning());
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    !source.isRunning(),
+    1000);
+
+  QCOMPARE(
+    dataSink.m_firstFrameIndex,
+    uint64_t{6});
+
+  QCOMPARE(smart->stopCalls, 0u);
+
+  // Второй запуск без предварительного stop().
+  smart->setBlockCount(10);
+  smart->setSuccessCount(3);
+
+  QVERIFY(source.start());
+  QVERIFY(source.isRunning());
+
+  // cleanup предыдущего lifecycle
+  // должен был выполнить сам start().
+  QCOMPARE(smart->stopCalls, 1u);
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    !source.isRunning(),
+    1000);
+
+  QCOMPARE(
+    dataSink.m_firstFrameIndex,
+    uint64_t{15});
+
+  QCOMPARE(smart->stopCalls, 1u);
+
+  // Третий запуск без предварительного stop().
+  smart->setBlockCount(5);
+  smart->setSuccessCount(3);
+
+  QVERIFY(source.start());
+  QVERIFY(source.isRunning());
+
+  QCOMPARE(smart->stopCalls, 2u);
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    !source.isRunning(),
+    1000);
+
+  QCOMPARE(
+    dataSink.m_firstFrameIndex,
+    uint64_t{24});
+
+  QCOMPARE(smart->stopCalls, 2u);
+
+  source.stop();
+
+  QVERIFY(!source.isRunning());
+  QCOMPARE(smart->stopCalls, 3u);
 }

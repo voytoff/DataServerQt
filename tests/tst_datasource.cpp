@@ -1032,7 +1032,7 @@ void tst_datasource::test_dataStreamSourceManager_startRollback()
   //QCOMPARE(sourceOk->stopCounts, 1);
 
   QCOMPARE(sourceFail->startCounts, 1);
-  QCOMPARE(sourceFail->stopCounts, 0);
+  QCOMPARE(sourceFail->stopCounts, 1);
 }
 
 void tst_datasource::test_dataStreamSourceManager_reinitialize()
@@ -1245,4 +1245,112 @@ void tst_datasource::test_dataStreamSourceManager_failModule()
   QCOMPARE(smart->stopCalls, 1u);
 
   QVERIFY(!manager.isRunning());
+}
+
+void tst_datasource::test_dataStreamSourceManager_restart_after_runtime_failure()
+{
+  using namespace qds;
+
+  auto cfg = createTestConfig_calculate(ModuleType::LTR11);
+
+  DataStreamSourceFactory factory;
+  SmartBlockLCardModule* smart = nullptr;
+
+  FakeDataBlockSink dataSink;
+  FakeSchedulerClock clock;
+
+  QVERIFY(
+    factory.registerType(
+      ModuleType::LTR11,
+      [&](const ModuleRuntimeConfiguration&,
+          IClock& clock,
+          IDataBlockSink&,
+          IDataStreamEventSink&)
+      {
+        auto module =
+          std::make_unique<SmartBlockLCardModule>(
+            3,
+            3,
+            10,
+            3);
+
+        smart = module.get();
+
+        return
+          std::make_unique<LCardDataSource>(
+            ModuleId{0},
+            3,
+            std::move(module),
+            clock,
+            &dataSink);
+      }));
+
+  DataStreamSourceManager manager;
+  DataBlockQueue queue;
+
+  QVERIFY(manager.initialize(
+    cfg,
+    factory,
+    clock,
+    queue,
+    queue));
+
+  QVERIFY(!manager.isRunning());
+
+  QVERIFY(manager.start());
+  QVERIFY(manager.isRunning());
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    !manager.isRunning(),
+    1000);
+
+  QCOMPARE(
+    dataSink.m_firstFrameIndex,
+    uint64_t{6});
+
+  QCOMPARE(smart->stopCalls, 0u);
+
+  smart->setBlockCount(10);
+  smart->setSuccessCount(3);
+
+  QVERIFY(manager.start());
+  QVERIFY(manager.isRunning());
+
+  // cleanup предыдущего lifecycle
+  // должен был выполнить сам start().
+  QCOMPARE(smart->stopCalls, 1u);
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    !manager.isRunning(),
+    1000);
+
+  QCOMPARE(
+    dataSink.m_firstFrameIndex,
+    uint64_t{15});
+
+  QCOMPARE(smart->stopCalls, 1u);
+
+  // Третий запуск без предварительного stop().
+  smart->setBlockCount(5);
+  smart->setSuccessCount(3);
+
+  QVERIFY(manager.start());
+  QVERIFY(manager.isRunning());
+
+  QCOMPARE(smart->stopCalls, 2u);
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    !manager.isRunning(),
+    1000);
+
+  QCOMPARE(
+    dataSink.m_firstFrameIndex,
+    uint64_t{24});
+
+  QCOMPARE(smart->stopCalls, 2u);
+
+  manager.stop();
+
+  QVERIFY(!manager.isRunning());
+  QCOMPARE(smart->stopCalls, 3u);
 }

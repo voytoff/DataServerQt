@@ -3644,3 +3644,92 @@ void tst_dataserver::test_dataServer_failModule()
   QCOMPARE(dataSink.m_values[7], 7.0);
   QCOMPARE(dataSink.m_values[8], 8.0);
 }
+
+void tst_dataserver::test_dataServer_restart_after_runtime_failure()
+{
+  using namespace qds;
+
+  auto cfg = createTestConfig_calculate(ModuleType::LTR11);
+
+  DataStreamSourceFactory factory;
+  FakeDataBlockSink dataSink;
+  FakeSchedulerClock clock;
+
+  QVERIFY(
+    factory.registerType(
+      ModuleType::LTR11,
+      [&](const ModuleRuntimeConfiguration&,
+          IClock& clock,
+          IDataBlockSink&,
+          IDataStreamEventSink&)
+      {
+        auto module =
+          std::make_unique<SmartBlockLCardModule>(
+            4,
+            3,
+            10,
+            3);
+
+        return std::make_unique<LCardDataSource>(
+          ModuleId{0},
+          3,
+          std::move(module),
+          clock,
+          &dataSink);
+      }));
+
+  ArchiveDescriptionBuilder builder;
+  ArchiveDescription description;
+  QVERIFY(builder.build(cfg, description));
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  ArchiveManager archive;
+  QVERIFY(archive.initialize(getCurrentFolder(), description, layout));
+  UdpSender sender;
+
+  CalibrationRepository cr;
+  Logger logger(getCurrentFolder(), clock);
+
+  DataServer server(
+    cfg,
+    cr,
+    factory,
+    archive,
+    clock,
+    sender,
+    logger);
+
+  QVERIFY(!server.isRunning());
+
+  QVERIFY(server.start());
+
+  QVERIFY(server.isRunning());
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    !server.isRunning(),
+    1000);
+
+  QCOMPARE(
+    dataSink.m_firstFrameIndex,
+    std::size_t{8});
+
+  QVERIFY(!server.isRunning());
+
+  // Новый RuntimeSystem после runtime failure.
+  QVERIFY(server.start());
+
+  QVERIFY(server.isRunning());
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    !server.isRunning(),
+    1000);
+
+  QCOMPARE(
+    dataSink.m_firstFrameIndex,
+    std::size_t{8});
+
+  server.stop();
+  QVERIFY(!server.isRunning());
+}

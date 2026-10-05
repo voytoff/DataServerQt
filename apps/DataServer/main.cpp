@@ -1,4 +1,7 @@
 #include "fakeschedulerclock.h"
+#include "lcarddatasource.h"
+#include "ltr11configurationbuilder.h"
+#include "ltr11module.h"
 #include "systemconfiguration.h"
 #include "dataserver.h"
 #include "testarchivewriter.h"
@@ -50,23 +53,42 @@ int main(int argc, char *argv[]) {
           return std::make_unique<qds::TestDataStreamSource>();
         }))
     return -1;
-  /*
+
   if (!factory.registerType(
-        qds::ModuleType::LTR11,
-        [](const qds::ModuleRuntimeConfiguration& config)
-        {
-          const auto hardwareConfig =
-            qds::Ltr11Configuration::build(config);
+    qds::ModuleType::LTR11,
+    [](const qds::ModuleRuntimeConfiguration& cfg,
+       qds::IClock& clock,
+       qds::IDataBlockSink& blockSink,
+       qds::IDataStreamEventSink& eventSink)
+    -> std::unique_ptr<qds::IDataStreamSource>
+    {
+      qds::Ltr11Configuration configuration;
+      qds::Ltr11ConfigurationBuilder builder;
 
-          if (!hardwareConfig)
-            return std::unique_ptr<qds::IDataSource>{};
+      if (!builder.build(
+            cfg,
+            configuration))
+      {
+        return nullptr;
+      }
 
-          auto module =
-            std::make_unique<qds::Ltr11Module>(*hardwareConfig);
+      auto module =
+        std::make_unique<qds::Ltr11Module>(
+          configuration);
 
-          return std::make_unique<qds::LCardDataSource>(
-            std::move(module));
-        }))*/
+      return
+        std::make_unique<qds::LCardDataSource>(
+          cfg.module.id,
+          static_cast<uint32_t>(
+            configuration.channels.size()),
+          std::move(module),
+          clock,
+          &blockSink,
+          &eventSink);
+        }))
+  {
+    return -1;
+  }
 
   qds::TestArchiveWriter archive;
   qds::TestPublisher publisher;

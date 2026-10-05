@@ -44,21 +44,17 @@ bool DataStreamSourceManager::initialize(
 
 bool DataStreamSourceManager::start() noexcept
 {
-  if (m_running)
+  if (isRunning())
     return true;
 
-  std::size_t started = 0;
-
-  for (; started < m_sources.size(); ++started)
+  for (auto& source : m_sources)
   {
-    if (!m_sources[started]->start())
+    if (!source->start())
     {
-      while (started > 0)
-      {
-        --started;
-        m_sources[started]->stop();
-      }
+      for (auto& source : m_sources)
+        source->stop();
 
+      m_running = false;
       return false;
     }
   }

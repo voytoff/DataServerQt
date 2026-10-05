@@ -1973,7 +1973,7 @@ void tst_dataarchive::test_DataBlockQueue_firstFrameIndex_three_blocks()
   QCOMPARE(block2.firstFrameIndex, block1.firstFrameIndex + block1.frameCount);
   QCOMPARE(block3.firstFrameIndex, block2.firstFrameIndex + block2.frameCount);
 
-  fake->setCount(3);
+  fake->setBlockCount(3);
 
   QVERIFY(source.start());
   QVERIFY(source.isRunning());
@@ -2297,7 +2297,7 @@ void tst_dataarchive::test_LCardDataSource_stream_events()
 
   // Новый acquisition segment.
   clock.advance(500000);
-  fake->setCount(3);
+  fake->setBlockCount(3);
 
   QVERIFY(source.start());
   QVERIFY(source.isRunning());

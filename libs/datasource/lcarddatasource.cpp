@@ -30,7 +30,6 @@ LCardDataSource::LCardDataSource(
   }
 }
 
-
 LCardDataSource::~LCardDataSource() noexcept
 {
   stop();
@@ -43,6 +42,15 @@ bool LCardDataSource::start() noexcept
 
   if (!m_module)
     return false;
+
+  if (m_thread.joinable())
+    m_thread.join();
+
+  if (m_moduleStarted)
+  {
+    m_module->stop();
+    m_moduleStarted = false;
+  }
 
   const Timestamp startTimestamp =
     m_clock.timestamp();

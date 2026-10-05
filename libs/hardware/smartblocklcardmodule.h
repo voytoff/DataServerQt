@@ -32,7 +32,8 @@ public:
   LCardReadResult readBlock(
     std::span<double> values) noexcept override;
 
-  void setCount(const uint32_t blockCount);
+  void setBlockCount(const uint32_t blockCount);
+  void setSuccessCount(const std::optional<uint32_t> successCount);
 
 public:
   uint32_t stopCalls = 0;
@@ -40,7 +41,7 @@ public:
 private:
   std::size_t m_frameCount;
   std::size_t m_channelCount;
-  std::optional<uint32_t> m_successCount = std::nullopt;
+  std::atomic<std::optional<uint32_t>> m_successCount;
   std::atomic_uint32_t m_blockCount{0};
   std::atomic_bool m_running{false};
 };

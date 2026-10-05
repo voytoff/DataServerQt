@@ -13,8 +13,8 @@ SmartBlockLCardModule::SmartBlockLCardModule(
   const std::optional<uint32_t> successCount)
   : m_frameCount(frameCount)
   , m_channelCount(channelCount)
-  , m_blockCount(blockCount)
   , m_successCount(successCount)
+  , m_blockCount(blockCount)
 {
 }
 
@@ -51,9 +51,10 @@ LCardReadResult SmartBlockLCardModule::readBlock(
   if (!m_running.load())
     return {};
 
+  auto successCount = m_successCount.load();
   if (
-    m_successCount.has_value() &&
-    m_successCount.value() == 0)
+    successCount.has_value() &&
+    successCount.value() == 0)
   {
     return {
       .status = LCardReadStatus::Error,
@@ -92,8 +93,9 @@ LCardReadResult SmartBlockLCardModule::readBlock(
       static_cast<double>(i);
   }
 
-  if (m_successCount.has_value())
-    --m_successCount.value();
+  successCount = m_successCount.load();
+  if (successCount.has_value())
+    m_successCount.store(--successCount.value());
 
   return {
     .status = LCardReadStatus::Data,
@@ -101,10 +103,16 @@ LCardReadResult SmartBlockLCardModule::readBlock(
   };
 }
 
-void SmartBlockLCardModule::setCount(
+void SmartBlockLCardModule::setBlockCount(
   const uint32_t blockCount)
 {
   m_blockCount.store(blockCount);
+}
+
+void SmartBlockLCardModule::setSuccessCount(
+  const std::optional<uint32_t> successCount)
+{
+  m_successCount.store(successCount);
 }
 
 }
