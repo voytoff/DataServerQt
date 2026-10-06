@@ -49,9 +49,21 @@ public:
   std::optional<TagId> addConfigTag(
     const ConfigurationId& configuration,
     const ModuleId &module,
-    const uint16_t channel,
+    const ChannelId& channel,
     const QJsonObject settings
     );
+
+  [[nodiscard]]
+  bool removeConfigTag(
+    const ConfigurationId& configuration,
+    const ModuleId &module,
+    const ChannelId &channel);
+
+  [[nodiscard]]
+  bool moduleConfigTags(
+    const ConfigurationId& configuration,
+    const ModuleId& module,
+    std::vector<ConfigurationTag>& tags);
 
   [[nodiscard]]
   bool addConfigModule(
@@ -64,7 +76,7 @@ public:
     const ModuleId &module);
 
   bool load(
-    ConfigurationId id,
+    const ConfigurationId &id,
     SystemConfiguration& configuration);
 
   bool loadCalibrations(

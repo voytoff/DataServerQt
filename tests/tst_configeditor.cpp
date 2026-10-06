@@ -1,12 +1,15 @@
 #include "tst_configeditor.h"
 #include "qds/db.h"
 #include <qtestcase.h>
+#include <QJsonDocument>
+#include <QByteArray>
+#include <QSqlQuery>
 #include "db/configurationrepository.h"
 
 tst_configeditor::tst_configeditor() { }
 tst_configeditor::~tst_configeditor() = default;
 
-void tst_configeditor::test_configurationRepository_configModule()
+void tst_configeditor::test_configurationRepository_moduleLifecycle()
 {
   using namespace qds;
 
@@ -14,6 +17,9 @@ void tst_configeditor::test_configurationRepository_configModule()
 
   QVERIFY(db.isOpen());
   QVERIFY(db.isValid());
+
+  QSqlQuery query("DELETE FROM module WHERE serial='TESTMODULE51';", db);
+  QVERIFY(query.exec());
 
   ConfigurationRepository repo(db);
 
@@ -77,4 +83,72 @@ void tst_configeditor::test_configurationRepository_configModule()
   QCOMPARE(
     afterRemove.size(),
     before.size());
+}
+
+void tst_configeditor::test_configurationRepository_moduleLifecycle_withTags()
+{
+  using namespace qds;
+
+  auto db = get_db();
+
+  QVERIFY(db.isOpen());
+  QVERIFY(db.isValid());
+
+  QSqlQuery query("DELETE FROM module WHERE serial='TESTMODULE51';", db);
+  QVERIFY(query.exec());
+
+  ConfigurationRepository repo(db);
+
+  const auto module =
+    repo.addModule(
+      CrateId{1},
+      ModuleType::LTR51,
+      "TESTMODULE51",
+      15,
+      "Модуль для тестирования каскадного удаления");
+
+  QVERIFY(module.has_value());
+
+  QVERIFY(
+    repo.addConfigModule(
+      ConfigurationId{1},
+      *module));
+
+  QJsonObject json{
+    {"mode", 2},
+    {"range", 1}
+  };
+
+  const auto tag =
+    repo.addConfigTag(
+      ConfigurationId{1},
+      *module,
+      ChannelId{13},
+      json);
+
+  QVERIFY(tag.has_value());
+
+  std::vector<ConfigurationTag> tags;
+
+  QVERIFY(
+    repo.moduleConfigTags(
+      ConfigurationId{1},
+      *module,
+      tags));
+
+  QCOMPARE(tags.size(), 1);
+
+  const auto tag1 = tags[0];
+
+  QCOMPARE(tag1.tag, *tag);
+  QCOMPARE(tag1.module, *module);
+  QCOMPARE(tag1.channel, ChannelId{13});
+  QCOMPARE(tag1.settings, json);
+
+  // При наличии configuration_module и configuration_tag
+  // физический модуль должен удалиться каскадно
+  // вместе со всеми зависимыми записями.
+  QVERIFY(
+    repo.removeModule(
+      *module));
 }

@@ -11,7 +11,9 @@ public:
   ~tst_configeditor() override;
 
 private slots:
-  void test_configurationRepository_configModule();
+  void test_configurationRepository_moduleLifecycle();
+
+  void test_configurationRepository_moduleLifecycle_withTags();
 
 };
 

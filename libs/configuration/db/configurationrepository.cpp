@@ -150,7 +150,7 @@ WHERE id = :id;)",
 std::optional<TagId> ConfigurationRepository::addConfigTag(
   const ConfigurationId &configuration,
   const ModuleId &module,
-  const uint16_t channel,
+  const ChannelId &channel,
   const QJsonObject settings)
 {
   m_error = {};
@@ -169,7 +169,7 @@ VALUES
     {
       {":configuration_id", configuration.value},
       {":module_id", module.value},
-      {":channel", channel},
+      {":channel", channel.value},
       {":settings", json}
     });
 
@@ -189,7 +189,104 @@ VALUES
   };
 }
 
-bool ConfigurationRepository::load(ConfigurationId id, SystemConfiguration &configuration)
+bool ConfigurationRepository::removeConfigTag(
+  const ConfigurationId &configuration,
+  const ModuleId &module,
+  const ChannelId& channel)
+{
+  m_error = {};
+
+  auto query = getQuery(
+    R"(
+DELETE FROM configuration_tag
+WHERE configuration_id = :configuration_id
+AND module_id = :module_id
+AND channel = :channel;)",
+    {
+      {":configuration_id", configuration.value},
+      {":module_id", module.value},
+      {":channel", channel.value}
+    });
+
+  if (!query.exec())
+  {
+    setError(query);
+    return false;
+  }
+
+  return true;
+}
+
+bool ConfigurationRepository::moduleConfigTags(
+  const ConfigurationId &configuration,
+  const ModuleId &module,
+  std::vector<ConfigurationTag> &tags)
+{
+  m_error = {};
+
+  auto query = getQuery(
+    R"(
+SELECT id, module_id, channel, settings
+FROM configuration_tag
+WHERE configuration_id = :configuration_id
+AND module_id = :module_id;)",
+    {
+      {":configuration_id", configuration.value},
+      {":module_id", module.value}
+    });
+
+  if (!query.exec())
+  {
+    setError(query);
+    return false;
+  }
+
+  std::vector<ConfigurationTag> result;
+
+  while (query.next())
+  {
+    QJsonParseError error;
+
+    const auto document =
+      QJsonDocument::fromJson(
+        query.value("settings").toString().toUtf8(),
+        &error);
+
+    if (error.error != QJsonParseError::NoError ||
+        !document.isObject())
+    {
+      return false;
+    }
+
+    result.push_back({
+      .tag =
+        TagId{
+          query.value("id").toUInt()
+        },
+
+      .module =
+        ModuleId{
+          query.value("module_id").toUInt()
+        },
+
+      .channel =
+        ChannelId{
+          query.value("channel").toUInt()
+        },
+
+      .settings =
+        document.object()
+    });
+  }
+
+  tags = std::move(result);
+
+  return true;
+}
+
+bool ConfigurationRepository::load(
+  const ConfigurationId& id,
+  SystemConfiguration &configuration)
 {
   m_error = {};
 
