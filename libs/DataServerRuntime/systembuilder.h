@@ -1,6 +1,6 @@
 #pragma once
 
-#include "calibrationrepository.h"
+#include "db/calibrationrepository.h"
 #include "datastreamsourcefactory.h"
 #include "iarchivewriter.h"
 #include "iclock.h"

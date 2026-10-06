@@ -3,7 +3,7 @@
 #include "archivedescriptionwriter.h"
 #include "archivemanager.h"
 #include "archivereader.h"
-#include "configurationrepository.h"
+#include "db/configurationrepository.h"
 #include "protocol/publishheader.h"
 #include "qds/db.h"
 #include "archiveformat.h"

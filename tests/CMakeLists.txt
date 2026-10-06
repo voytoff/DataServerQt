@@ -47,6 +47,7 @@ add_executable(unit_tests
     qds/testpublishersender.h
     qds/nullarchivewriter.h
     qds/teststreamingdatasource.h qds/teststreamingdatasource.cpp
+    tst_configeditor.h tst_configeditor.cpp
 
 )
 

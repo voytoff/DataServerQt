@@ -2,7 +2,7 @@
 
 #include "buffermanager.h"
 #include "calculationplan.h"
-#include "calibrationrepository.h"
+#include "db/calibrationrepository.h"
 #include "datablockqueue.h"
 #include "dataengine.h"
 #include "datastreamprocessor.h"

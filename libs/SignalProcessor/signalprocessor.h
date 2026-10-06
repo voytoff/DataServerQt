@@ -1,7 +1,7 @@
 #pragma once
 
 #include "calculationplan.h"
-#include "calibrationrepository.h"
+#include "db/calibrationrepository.h"
 #include "formulaastrepository.h"
 #include "formulacalculator.h"
 #include "signalmemory.h"

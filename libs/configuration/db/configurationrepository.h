@@ -1,0 +1,99 @@
+#pragma once
+
+#include "availablemodule.h"
+#include "calibrationrepository.h"
+#include "systemconfiguration.h"
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QString>
+#include <QVariantList>
+#include <QVariant>
+#include <qsqlerror.h>
+
+namespace qds
+{
+
+class ConfigurationRepository
+{
+public:
+  explicit ConfigurationRepository(
+    const QSqlDatabase& database);
+
+  [[nodiscard]]
+  std::optional<ConfigurationId> addConfiguration(
+    const QString& name,
+    const QString& description,
+    uint16_t udpPort);
+
+  [[nodiscard]]
+  std::optional<CrateId> addCrate(
+    const CrateType& type,
+    const QString& serial,
+    const QString& host,
+    const uint32_t port,
+    const QString& description);
+
+  [[nodiscard]]
+  std::optional<ModuleId> addModule(
+    const CrateId& crateId,
+    const ModuleType& type,
+    const QString& serial,
+    const uint16_t slot,
+    const QString& description);
+
+  [[nodiscard]]
+  bool removeModule(
+    const ModuleId &module);
+
+  [[nodiscard]]
+  std::optional<TagId> addConfigTag(
+    const ConfigurationId& configuration,
+    const ModuleId &module,
+    const uint16_t channel,
+    const QJsonObject settings
+    );
+
+  [[nodiscard]]
+  bool addConfigModule(
+    const ConfigurationId& configuration,
+    const ModuleId &module);
+
+  [[nodiscard]]
+  bool removeConfigModule(
+    const ConfigurationId& configuration,
+    const ModuleId &module);
+
+  bool load(
+    ConfigurationId id,
+    SystemConfiguration& configuration);
+
+  bool loadCalibrations(
+    const SystemConfiguration& configuration,
+    CalibrationRepository& calibrations);
+
+  [[nodiscard]]
+  bool availableModules(
+    const ConfigurationId& configuration,
+    std::vector<AvailableModule>& modules);
+
+  [[nodiscard]]
+  QSqlError lastError() const;
+
+private:
+  QSqlQuery getQuery(
+    const QString &sql, const QVariantMap& args);
+
+  void assignCalibration(
+    Calibration &calibration, const QSqlQuery &query);
+
+  void setError(
+    const QSqlQuery& query);
+
+private:
+  const QSqlDatabase& m_database;
+
+  QSqlError m_error;
+
+};
+
+}

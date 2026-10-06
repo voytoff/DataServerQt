@@ -13,16 +13,17 @@ add_library(Configuration SHARED
   moduletype.h
   signaldefinition.h
   taginfo.h
-  moduleinfo.cpp moduleinfo.h
-  crateinfo.cpp crateinfo.h
-  systemconfiguration.cpp systemconfiguration.h
-  configurationrepository.h configurationrepository.cpp
-  calibration.h calibration.cpp
-  calibrationrepository.h calibrationrepository.cpp
-  runtimemoduleconfiguration.h runtimemoduleconfiguration.cpp
+  availablemodule.h
   configurationmodule.h
   configurationtag.h
   moduleruntimeconfiguration.h
+  moduleinfo.cpp moduleinfo.h
+  crateinfo.cpp crateinfo.h
+  systemconfiguration.cpp systemconfiguration.h
+  calibration.h calibration.cpp
+  runtimemoduleconfiguration.h runtimemoduleconfiguration.cpp
+  db/calibrationrepository.h db/calibrationrepository.cpp
+  db/configurationrepository.h db/configurationrepository.cpp
 )
 
 target_include_directories(Configuration
