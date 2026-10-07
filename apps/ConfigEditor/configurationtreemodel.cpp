@@ -229,26 +229,52 @@ bool ConfigurationTreeModel::setData(
   if (role != Qt::CheckStateRole)
     return false;
 
-  const auto* item =
+  auto* item =
     static_cast<TreeItem*>(
       index.internalPointer());
 
   if (!item)
     return false;
 
-  const auto& itemData =
+  auto& itemData =
     item->data();
 
-  if (const auto* module =
-      std::get_if<ModuleItemData>(&itemData))
-  {
-    bool checked = (value.toInt() == Qt::Checked);
-    return (checked) ?
-      m_repository.addConfigModule(m_configuration, module->id) :
-      m_repository.removeConfigModule(m_configuration, module->id);
-  }
+  auto* module =
+    std::get_if<ModuleItemData>(
+      &itemData);
 
-  return false;
+  if (!module)
+    return false;
+
+  const bool checked =
+    value.toInt() == Qt::Checked;
+
+  if (checked == module->enabled)
+    return true;
+
+  const bool success =
+    checked
+      ? m_repository.addConfigModule(
+          m_configuration,
+          module->id)
+      : m_repository.removeConfigModule(
+          m_configuration,
+          module->id);
+
+  if (!success)
+    return false;
+
+  module->enabled = checked;
+
+  if (!checked)
+    module->settings = {};
+
+  emit dataChanged(
+    index,
+    index,
+    {Qt::CheckStateRole});
+
+  return true;
 }
 
 Qt::ItemFlags ConfigurationTreeModel::flags(
