@@ -14,7 +14,7 @@ struct ModuleInfo
   ModuleId id;
   QString serial;
   CrateId crate;
-  int slot = 0;
+  uint32_t slot = 0;
   ModuleType type = ModuleType::Unknown;
   QString description;
 };

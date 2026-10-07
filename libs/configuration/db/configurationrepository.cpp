@@ -85,6 +85,55 @@ VALUES
   };
 }
 
+bool ConfigurationRepository::crates(
+  std::vector<CrateInfo> &crates)
+{
+  m_error = {};
+
+  auto query = getQuery(
+    R"(
+SELECT id, `type`, serial, host, port, description
+FROM crate
+ORDER BY id;)");
+
+  if (!query.exec())
+  {
+    setError(query);
+    return false;
+  }
+
+  std::vector<CrateInfo> result;
+
+  while (query.next())
+  {
+    result.push_back({
+      .id =
+        CrateId{
+          query.value("id").toUInt()
+        },
+
+      .serial =
+        query.value("serial").toString(),
+
+      .type =
+        static_cast<CrateType>(query.value("type").toUInt()),
+
+      .host =
+        query.value("host").toString(),
+
+      .port =
+        query.value("port").toUInt(),
+
+      .description =
+        query.value("description").toString(),
+    });
+  }
+
+  crates = std::move(result);
+
+  return true;
+}
+
 std::optional<ModuleId>
 ConfigurationRepository::addModule(
   const CrateId &crateId,
@@ -125,6 +174,57 @@ VALUES
   };
 }
 
+bool ConfigurationRepository::modules(
+  std::vector<ModuleInfo> &modules)
+{
+  m_error = {};
+
+  auto query = getQuery(
+    R"(
+SELECT id, crate_id, `type`, serial, slot, description
+FROM module
+ORDER BY crate_id, slot;)");
+
+  if (!query.exec())
+  {
+    setError(query);
+    return false;
+  }
+
+  std::vector<ModuleInfo> result;
+
+  while (query.next())
+  {
+    result.push_back({
+      .id =
+        ModuleId{
+          query.value("id").toUInt()
+        },
+
+      .serial =
+        query.value("serial").toString(),
+
+      .crate =
+        CrateId{
+          query.value("crate_id").toUInt()
+        },
+
+      .slot =
+        query.value("slot").toUInt(),
+
+      .type =
+        static_cast<ModuleType>(query.value("type").toUInt()),
+
+      .description =
+        query.value("description").toString(),
+    });
+  }
+
+  modules = std::move(result);
+
+  return true;
+}
+
 bool ConfigurationRepository::removeModule(
   const ModuleId &module)
 {
@@ -151,7 +251,7 @@ std::optional<TagId> ConfigurationRepository::addConfigTag(
   const ConfigurationId &configuration,
   const ModuleId &module,
   const ChannelId &channel,
-  const QJsonObject settings)
+  const QJsonObject &settings)
 {
   m_error = {};
 
@@ -285,27 +385,36 @@ AND module_id = :module_id;)",
 }
 
 bool ConfigurationRepository::load(
-  const ConfigurationId& id,
-  SystemConfiguration &configuration)
+  const ConfigurationId& configuration,
+  SystemConfiguration &system)
 {
   m_error = {};
 
   SystemConfiguration cfg;
 
   // проверяем наличие конфигурации
-  auto query = getQuery(
-    "SELECT id, name, description, udp_port FROM configuration WHERE id=:id;",
-    {{":id", id.value}});
-  if (!query.exec() || !query.next()) {
+  auto query = getQuery(R"(
+SELECT id, name, description, udp_port
+FROM configuration WHERE id=:id;)",
+    {{":id", configuration.value}});
+
+  if (!query.exec())
+  {
     setError(query);
     return false;
   }
 
-  cfg.setUdpPort(query.value("udp_port").toUInt());
+  if (!query.next())
+    return false;
 
-  cfg.setName(query.value("name").toString().toStdString());
+  cfg.setUdpPort(
+    query.value("udp_port").toUInt());
 
-  cfg.setDescription(query.value("description").toString().toStdString());
+  cfg.setName(
+    query.value("name").toString().toStdString());
+
+  cfg.setDescription(
+    query.value("description").toString().toStdString());
 
   // 1 загружаем модули
   query = getQuery(R"(
@@ -315,13 +424,13 @@ SELECT
   c.id as crate_id, c.type as crate_type, c.serial as crate_serial, c.host as crate_host, c.port as crate_port, c.description as crate_description
 FROM
   configuration_module cm
-JOIN module m on
-  m.id = cm.module_id
-JOIN crate c on
-  c.id = m.crate_id
+JOIN module m
+  ON m.id = cm.module_id
+JOIN crate c
+  ON c.id = m.crate_id
 WHERE
   cm.configuration_id = :id;)",
-    {{":id", id.value}});
+    {{":id", configuration.value}});
   if (!query.exec()) {
     setError(query);
     return false;
@@ -361,7 +470,7 @@ WHERE
 
     ConfigurationModule configurationModule;
 
-    configurationModule.configurationId = id;
+    configurationModule.configurationId = configuration;
     configurationModule.module = module.id;
 
     const QByteArray data =
@@ -388,7 +497,7 @@ WHERE
   // загружаем теги
   query = getQuery(
     "SELECT id, configuration_id, module_id, channel, settings FROM configuration_tag WHERE configuration_id=:id;",
-    {{":id", id.value}});
+    {{":id", configuration.value}});
 
   if (!query.exec()) {
     setError(query);
@@ -445,7 +554,7 @@ WHERE
   // загружаем сигналы
   query = getQuery(
     "SELECT id, configuration_id, name, kind, tag_id, signal_type_id, archive_frequency, calibration_mode, formula FROM configuration_signal_definition WHERE configuration_id=:id;",
-    {{":id", id.value}});
+    {{":id", configuration.value}});
 
   if (!query.exec()) {
     setError(query);
@@ -473,7 +582,7 @@ WHERE
       return false;
   }
 
-  configuration = cfg;
+  system = cfg;
 
   return true;
 }
@@ -610,89 +719,34 @@ WHERE
   return true;
 }
 
-QSqlQuery ConfigurationRepository::getQuery(
-  const QString& sql,
-  const QVariantMap& args)
-{
-  QSqlQuery query(m_database);
-
-  if (!query.prepare(sql))
-    return query;
-
-  for (auto it = args.cbegin();
-       it != args.cend();
-       ++it)
-  {
-    query.bindValue(
-      it.key(),
-      it.value());
-  }
-
-  return query;
-}
-
-void ConfigurationRepository::assignCalibration(Calibration &calibration, const QSqlQuery &query)
-{
-  calibration.id = CalibrationId{query.value("calibration_id").toUInt()};
-  calibration.name = query.value("calibration_name").toString();
-  calibration.description = query.value("calibration_description").toString();
-  calibration.signalId = SignalId{query.value("signal_id").toUInt()};
-  calibration.signalTypeId = SignalTypeId{query.value("signal_type_id").toUInt()};
-}
-
-void ConfigurationRepository::setError(const QSqlQuery &query)
-{
-  m_error = query.lastError();
-}
-
-bool ConfigurationRepository::addConfigModule(
-  const ConfigurationId& configuration,
-  const ModuleId& module)
-{
-  m_error = {};
-
-  auto query = getQuery(
-    R"(
-INSERT INTO configuration_module
-(
-  configuration_id,
-  module_id,
-  settings
-)
-VALUES
-(
-  :configuration_id,
-  :module_id,
-  '{}'
-);)",
-    {
-      {":configuration_id", configuration.value},
-      {":module_id", module.value}
-    });
-
-  if (!query.exec())
-  {
-    setError(query);
-    return false;
-  }
-
-  return true;
-}
-
-bool ConfigurationRepository::removeConfigModule(
+bool ConfigurationRepository::configModules(
   const ConfigurationId &configuration,
-  const ModuleId& module)
+  std::vector<ConfigModule> &modules)
 {
   m_error = {};
 
   auto query = getQuery(
     R"(
-DELETE FROM configuration_module
-WHERE configuration_id = :configuration_id
-AND module_id = :module_id;)",
+SELECT
+  m.id AS module_id,
+  m.serial AS module_serial,
+  m.type AS module_type,
+  m.slot AS module_slot,
+  c.id AS crate_id,
+  c.serial AS crate_serial,
+  cm.settings
+FROM module m
+JOIN crate c
+  ON c.id = m.crate_id
+JOIN configuration_module cm
+  ON cm.module_id = m.id
+WHERE
+  cm.configuration_id = :configuration_id
+ORDER BY
+  c.id,
+  m.slot;)",
     {
-      {":configuration_id", configuration.value},
-      {":module_id", module.value}
+      {":configuration_id", configuration.value}
     });
 
   if (!query.exec())
@@ -700,6 +754,54 @@ AND module_id = :module_id;)",
     setError(query);
     return false;
   }
+
+  std::vector<ConfigModule> result;
+
+  while (query.next())
+  {
+    QJsonParseError error;
+
+    const auto document =
+      QJsonDocument::fromJson(
+        query.value("settings").toString().toUtf8(),
+        &error);
+
+    if (error.error != QJsonParseError::NoError ||
+        !document.isObject())
+    {
+      return false;
+    }
+
+    result.push_back({
+      .module =
+        ModuleId{
+          query.value("module_id").toUInt()
+        },
+
+      .moduleSerial =
+        query.value("module_serial").toString(),
+
+      .type =
+        static_cast<ModuleType>(
+          query.value("module_type").toUInt()),
+
+      .crate =
+        CrateId{
+          query.value("crate_id").toUInt()
+        },
+
+      .crateSerial =
+        query.value("crate_serial").toString(),
+
+      .slot =
+        query.value("module_slot").toUInt(),
+
+      .settings =
+        document.object()
+    });
+  }
+
+  modules = std::move(result);
 
   return true;
 }
@@ -773,6 +875,101 @@ ORDER BY
   }
 
   modules = std::move(result);
+
+  return true;
+}
+
+QSqlQuery ConfigurationRepository::getQuery(
+  const QString& sql,
+  const QVariantMap& args)
+{
+  QSqlQuery query(m_database);
+
+  if (!query.prepare(sql))
+    return query;
+
+  for (auto it = args.cbegin();
+       it != args.cend();
+       ++it)
+  {
+    query.bindValue(
+      it.key(),
+      it.value());
+  }
+
+  return query;
+}
+
+void ConfigurationRepository::assignCalibration(Calibration &calibration, const QSqlQuery &query)
+{
+  calibration.id = CalibrationId{query.value("calibration_id").toUInt()};
+  calibration.name = query.value("calibration_name").toString();
+  calibration.description = query.value("calibration_description").toString();
+  calibration.signalId = SignalId{query.value("signal_id").toUInt()};
+  calibration.signalTypeId = SignalTypeId{query.value("signal_type_id").toUInt()};
+}
+
+void ConfigurationRepository::setError(const QSqlQuery &query)
+{
+  m_error = query.lastError();
+  qDebug() << m_error.text();
+}
+
+bool ConfigurationRepository::addConfigModule(
+  const ConfigurationId& configuration,
+  const ModuleId& module)
+{
+  m_error = {};
+
+  auto query = getQuery(
+    R"(
+INSERT INTO configuration_module
+(
+  configuration_id,
+  module_id,
+  settings
+)
+VALUES
+(
+  :configuration_id,
+  :module_id,
+  '{}'
+);)",
+    {
+      {":configuration_id", configuration.value},
+      {":module_id", module.value}
+    });
+
+  if (!query.exec())
+  {
+    setError(query);
+    return false;
+  }
+
+  return true;
+}
+
+bool ConfigurationRepository::removeConfigModule(
+  const ConfigurationId &configuration,
+  const ModuleId& module)
+{
+  m_error = {};
+
+  auto query = getQuery(
+    R"(
+DELETE FROM configuration_module
+WHERE configuration_id = :configuration_id
+AND module_id = :module_id;)",
+    {
+      {":configuration_id", configuration.value},
+      {":module_id", module.value}
+    });
+
+  if (!query.exec())
+  {
+    setError(query);
+    return false;
+  }
 
   return true;
 }

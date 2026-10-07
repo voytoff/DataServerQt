@@ -12,8 +12,8 @@ public:
 
 private slots:
   void test_configurationRepository_moduleLifecycle();
-
   void test_configurationRepository_moduleLifecycle_withTags();
+  void test_configurationRepository_configModules();
 
 };
 

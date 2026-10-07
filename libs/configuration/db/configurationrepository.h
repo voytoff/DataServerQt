@@ -2,6 +2,7 @@
 
 #include "availablemodule.h"
 #include "calibrationrepository.h"
+#include "configmodule.h"
 #include "systemconfiguration.h"
 #include <QSqlDatabase>
 #include <QSqlQuery>
@@ -34,12 +35,20 @@ public:
     const QString& description);
 
   [[nodiscard]]
+  bool crates(
+    std::vector<CrateInfo>& crates);
+
+  [[nodiscard]]
   std::optional<ModuleId> addModule(
     const CrateId& crateId,
     const ModuleType& type,
     const QString& serial,
     const uint16_t slot,
     const QString& description);
+
+  [[nodiscard]]
+  bool modules(
+    std::vector<ModuleInfo>& modules);
 
   [[nodiscard]]
   bool removeModule(
@@ -50,7 +59,7 @@ public:
     const ConfigurationId& configuration,
     const ModuleId &module,
     const ChannelId& channel,
-    const QJsonObject settings
+    const QJsonObject& settings
     );
 
   [[nodiscard]]
@@ -75,13 +84,20 @@ public:
     const ConfigurationId& configuration,
     const ModuleId &module);
 
+  [[nodiscard]]
   bool load(
-    const ConfigurationId &id,
-    SystemConfiguration& configuration);
+    const ConfigurationId &configuration,
+    SystemConfiguration& system);
 
+  [[nodiscard]]
   bool loadCalibrations(
     const SystemConfiguration& configuration,
     CalibrationRepository& calibrations);
+
+  [[nodiscard]]
+  bool configModules(
+    const ConfigurationId& configuration,
+    std::vector<ConfigModule>& modules);
 
   [[nodiscard]]
   bool availableModules(
@@ -93,7 +109,7 @@ public:
 
 private:
   QSqlQuery getQuery(
-    const QString &sql, const QVariantMap& args);
+    const QString &sql, const QVariantMap& args = {});
 
   void assignCalibration(
     Calibration &calibration, const QSqlQuery &query);

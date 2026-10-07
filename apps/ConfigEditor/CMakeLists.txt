@@ -10,8 +10,12 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Sql)
 
 qt_add_executable(configeditor
     main.cpp
+
     mainwindow.h mainwindow.cpp
     configurationeditor.h configurationeditor.cpp
+    configurationtreemodel.h configurationtreemodel.cpp
+    treeitem.h treeitem.cpp
+    treeitemdata.h
 
 )
 

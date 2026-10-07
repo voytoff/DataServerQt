@@ -11,6 +11,7 @@
 #include <QSqlRelationalTableModel>
 #include <QSqlRelationalDelegate>
 #include <QSqlRecord>
+#include <QTreeView>
 
 namespace qds
 {
@@ -19,19 +20,25 @@ ConfigurationEditor::ConfigurationEditor(
   const QSqlDatabase& database,
   QWidget* parent)
   : QWidget(parent)
+  , m_repository(database)
 {
   m_configurationsView =
     new QTableView(this);
 
-  m_modulesView =
-    new QTableView(this);
+  m_configurationTree =
+    new QTreeView(this);
+
+  m_treeModel =
+    new ConfigurationTreeModel(
+      m_repository,
+      this);
 
   m_tagsView =
     new QTableView(this);
 
   for (QTableView* view :
        {m_configurationsView,
-        m_modulesView,
+        //m_configurationTree,
         m_tagsView})
   {
     view->verticalHeader()
@@ -53,7 +60,7 @@ ConfigurationEditor::ConfigurationEditor(
   auto* right =
     new QSplitter(Qt::Vertical, this);
 
-  right->addWidget(m_modulesView);
+  right->addWidget(m_configurationTree);
   right->addWidget(m_tagsView);
 
   right->setStretchFactor(0, 1);
@@ -134,45 +141,9 @@ ConfigurationEditor::ConfigurationEditor(
     ->horizontalHeader()
     ->setStretchLastSection(true);
 
+  m_configurationTree->setModel(
+    m_treeModel);
 
-  m_modules =
-    new QSqlRelationalTableModel(
-      this,
-      database);
-
-  m_modules->setTable(
-    "configuration_module");
-
-  m_modules->setEditStrategy(
-    QSqlTableModel::OnManualSubmit);
-
-  m_modules->setRelation(
-    1,
-    QSqlRelation(
-      "module",
-      "id",
-      "serial"));
-
-  m_modulesView->setItemDelegate(
-    new QSqlRelationalDelegate(
-      m_modulesView));
-
-  m_modules->setHeaderData(
-    1,
-    Qt::Horizontal,
-    tr("Модуль"));
-
-  m_modules->setHeaderData(
-    2,
-    Qt::Horizontal,
-    tr("Настройки"));
-
-  m_modulesView->setModel(
-    m_modules);
-
-  m_modulesView->setColumnHidden(
-    0,
-    true);
 
   const int idColumn =
     m_configurations
@@ -180,8 +151,7 @@ ConfigurationEditor::ConfigurationEditor(
       .indexOf("id");
 
   connect(
-    m_configurationsView
-      ->selectionModel(),
+    m_configurationsView->selectionModel(),
     &QItemSelectionModel::currentRowChanged,
     this,
     [this, idColumn](
@@ -189,35 +159,32 @@ ConfigurationEditor::ConfigurationEditor(
       const QModelIndex&)
     {
       if (!current.isValid())
-      {
-        m_modules->setFilter(
-          "1 = 0");
-
-        m_modules->select();
         return;
-      }
 
-      const int configurationId =
+      const auto configurationId =
         m_configurations
           ->data(
             m_configurations->index(
               current.row(),
               idColumn))
-          .toInt();
+          .toUInt();
 
-      m_modules->setFilter(
-        QString(
-          "configuration_id = %1")
-          .arg(configurationId));
+      const ConfigurationId configuration{
+        configurationId
+      };
 
-      m_modules->select();
+      if (!m_treeModel->load(configuration))
+      {
+        qWarning()
+        << "Failed to load configuration tree:"
+        << m_repository.lastError().text();
+
+        return;
+      }
     });
 
   if (m_configurations->rowCount() > 0)
-  {
-    m_configurationsView
-      ->selectRow(0);
-  }
+    m_configurationsView->selectRow(0);
 }
 
 }

@@ -1,10 +1,13 @@
 #pragma once
 
+#include "configurationtreemodel.h"
+#include "db/configurationrepository.h"
 #include <QWidget>
 
 class QSqlTableModel;
 class QSqlRelationalTableModel;
 class QTableView;
+class QTreeView;
 class QSqlDatabase;
 
 namespace qds
@@ -21,12 +24,17 @@ public:
 
 private:
   QTableView* m_configurationsView = nullptr;
-  QTableView* m_modulesView = nullptr;
+  //QTableView* m_modulesView = nullptr;
   QTableView* m_tagsView = nullptr;
 
   QSqlTableModel* m_configurations = nullptr;
-  QSqlRelationalTableModel* m_modules = nullptr;
+  //QSqlRelationalTableModel* m_modules = nullptr;
   QSqlRelationalTableModel* m_tags = nullptr;
+
+  ConfigurationRepository m_repository;
+  ConfigurationTreeModel* m_treeModel = nullptr;
+  QTreeView* m_configurationTree = nullptr;
+
 };
 
 }

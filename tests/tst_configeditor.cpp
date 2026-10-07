@@ -5,6 +5,9 @@
 #include <QByteArray>
 #include <QSqlQuery>
 #include "db/configurationrepository.h"
+#include <vector>
+#include <optional>
+#include <algorithm>
 
 tst_configeditor::tst_configeditor() { }
 tst_configeditor::~tst_configeditor() = default;
@@ -151,4 +154,83 @@ void tst_configeditor::test_configurationRepository_moduleLifecycle_withTags()
   QVERIFY(
     repo.removeModule(
       *module));
+}
+
+void tst_configeditor::test_configurationRepository_configModules()
+{
+  using namespace qds;
+
+  auto db = get_db();
+
+  QVERIFY(db.isOpen());
+  QVERIFY(db.isValid());
+
+  QSqlQuery query("DELETE FROM module WHERE serial='TESTMODULE51';", db);
+  QVERIFY(query.exec());
+
+  ConfigurationRepository repo(db);
+
+  std::vector<ConfigModule> configModules;
+
+  auto findTestModule = [](const std::vector<ConfigModule>& modules) -> const ConfigModule* {
+    auto it = std::find_if(modules.begin(), modules.end(), [](const ConfigModule& m) {
+      return m.moduleSerial == "TESTMODULE51";
+    });
+
+    return (it != modules.end()) ? &(*it) : nullptr;
+  };
+
+  QVERIFY(
+    repo.configModules(
+      ConfigurationId{1},
+      configModules));
+
+  auto m = findTestModule(configModules);
+
+  QVERIFY(!m);
+
+  const auto module =
+    repo.addModule(
+      CrateId{1},
+      ModuleType::LTR51,
+      "TESTMODULE51",
+      15,
+      "Модуль для тестирования каскадного удаления");
+
+  QVERIFY(module.has_value());
+
+  QVERIFY(
+    repo.addConfigModule(
+      ConfigurationId{1},
+      *module));
+
+  QVERIFY(
+    repo.configModules(
+      ConfigurationId{1},
+      configModules));
+
+  m = findTestModule(configModules);
+
+  QVERIFY(m);
+
+  QCOMPARE(
+    m->module,
+    module.value());
+
+  QCOMPARE(
+    m->settings,
+    QJsonObject{});
+
+  QVERIFY(
+    repo.removeModule(
+      *module));
+
+  QVERIFY(
+    repo.configModules(
+      ConfigurationId{1},
+      configModules));
+
+  m = findTestModule(configModules);
+
+  QVERIFY(!m);
 }

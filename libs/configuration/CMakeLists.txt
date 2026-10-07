@@ -16,6 +16,7 @@ add_library(Configuration SHARED
   availablemodule.h
   configurationmodule.h
   configurationtag.h
+  configmodule.h
   moduleruntimeconfiguration.h
   moduleinfo.cpp moduleinfo.h
   crateinfo.cpp crateinfo.h
