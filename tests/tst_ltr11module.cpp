@@ -11,6 +11,10 @@
 #include "signalmemory.h"
 #include "testsrv.h"
 
+#include <limits>
+#include <cmath>
+
+
 tst_ltr11module::tst_ltr11module() { }
 tst_ltr11module::~tst_ltr11module() = default;
 
@@ -296,13 +300,110 @@ void tst_ltr11module::test_ltr11configurationvalidator()
   // Корректная конфигурация
   QVERIFY(Ltr11ConfigurationValidator::validate(cfg));
 
-  /*
-Более 128 логических каналов — false.
-Физический канал с номером 32 — false.
-Недопустимые mode = 3 и range = 4 — false.
-Нулевая и отрицательная частота — false.
-Частота АЦП выше 400 кГц — false.
-Повторяющиеся физические каналы — true.
-NaN и бесконечная частота — false.
-  */
+  for (uint8_t i = 0; i < 128; ++i) {
+    cfg.channels.push_back(
+      {
+        .channel = static_cast<uint8_t>(i / 4),
+        .mode = static_cast<uint8_t>(i % 3),
+        .range = static_cast<uint8_t>(i % 4),
+      });
+  }
+
+  QCOMPARE(cfg.channels.size(), 129);
+
+  // Более 128 логических каналов
+  QVERIFY(!Ltr11ConfigurationValidator::validate(cfg));
+
+  cfg.channels.erase(cfg.channels.begin());
+
+  QCOMPARE(cfg.channels.size(), 128);
+
+  // Повторяющиеся физические каналы = true
+  QVERIFY(Ltr11ConfigurationValidator::validate(cfg));
+
+  cfg.channels[0].channel = 32;
+
+  // Физический канал с номером 32
+  QVERIFY(!Ltr11ConfigurationValidator::validate(cfg));
+
+  cfg.channels.erase(cfg.channels.begin());
+
+  QVERIFY(Ltr11ConfigurationValidator::validate(cfg));
+
+  cfg.channels[0].mode = 3;
+
+  // Недопустимый mode >= 3
+  QVERIFY(!Ltr11ConfigurationValidator::validate(cfg));
+
+  cfg.channels.erase(cfg.channels.begin());
+
+  QVERIFY(Ltr11ConfigurationValidator::validate(cfg));
+
+  cfg.channels[0].range = 4;
+
+  // Недопустимый range >= 4
+  QVERIFY(!Ltr11ConfigurationValidator::validate(cfg));
+
+  cfg.channels.erase(cfg.channels.begin());
+
+  QVERIFY(Ltr11ConfigurationValidator::validate(cfg));
+
+  cfg.channelRate = 0.0;
+
+  // Нулевая частота
+  QVERIFY(!Ltr11ConfigurationValidator::validate(cfg));
+
+  cfg.channelRate = -100.0;
+
+  // Отрицательная частота
+  QVERIFY(!Ltr11ConfigurationValidator::validate(cfg));
+
+  cfg.channelRate = 400'000.0 / cfg.channels.size();
+
+  QVERIFY(Ltr11ConfigurationValidator::validate(cfg));
+
+  cfg.channelRate += 0.1;
+
+  // Частота АЦП выше 400 кГц
+  QVERIFY(!Ltr11ConfigurationValidator::validate(cfg));
+
+  cfg.channelRate = std::numeric_limits<double>::quiet_NaN();
+
+  // Частота АЦП NaN
+  QVERIFY(!Ltr11ConfigurationValidator::validate(cfg));
+
+  cfg.channelRate =  std::numeric_limits<double>::infinity();
+
+  // Частота АЦП бесконечная
+  QVERIFY(!Ltr11ConfigurationValidator::validate(cfg));
+
+  cfg.channelRate = 100.0;
+
+  // Корректная конфигурация
+  QVERIFY(Ltr11ConfigurationValidator::validate(cfg));
+
+
+  // Проверка валидатора канала
+  Ltr11ChannelConfiguration channel{
+    .channel = 31,
+    .mode = 2,
+    .range = 3,
+  };
+
+  // Корректный канал
+  QVERIFY(Ltr11ConfigurationValidator::validate(channel));
+
+  channel.channel = 32;
+  // Физический канал с номером 32
+  QVERIFY(!Ltr11ConfigurationValidator::validate(channel));
+
+  channel.channel = 31;
+  channel.mode = 3;
+  // Недопустимый mode >= 3
+  QVERIFY(!Ltr11ConfigurationValidator::validate(channel));
+
+  channel.mode = 2;
+  channel.range = 4;
+  // Недопустимый range >= 4
+  QVERIFY(!Ltr11ConfigurationValidator::validate(channel));
 }

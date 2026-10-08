@@ -5,7 +5,6 @@
 #include <ranges>
 #include <algorithm>
 
-
 namespace qds
 {
 

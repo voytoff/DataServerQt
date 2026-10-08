@@ -44,6 +44,9 @@ QWidget* ConfigurationPropertiesDelegate::createEditor(
     auto* editor =
       new QComboBox(parent);
 
+    editor->setAutoFillBackground(true);
+    editor->setBackgroundRole(QPalette::Base);
+
     editor->addItem(
       tr("Дифференциальный"),
       0);
@@ -63,6 +66,9 @@ QWidget* ConfigurationPropertiesDelegate::createEditor(
   {
     auto* editor =
       new QComboBox(parent);
+
+    editor->setAutoFillBackground(true);
+    editor->setBackgroundRole(QPalette::Base);
 
     editor->addItem(
       tr("±10 В"),

@@ -53,7 +53,8 @@ ConfigurationEditor::ConfigurationEditor(
     new ConfigurationPropertiesModel(
       m_treeModel, this);
 
-  m_tagsView->setModel(m_propertiesModel);
+  m_tagsView->setModel(
+    m_propertiesModel);
 
   m_tagsView->horizontalHeader()
     ->setSectionResizeMode(
@@ -80,7 +81,7 @@ ConfigurationEditor::ConfigurationEditor(
     view->setSelectionMode(
       QAbstractItemView::SingleSelection);
 
-    view->setAlternatingRowColors(true);
+    //view->setAlternatingRowColors(true);
   }
 
   auto* right =
