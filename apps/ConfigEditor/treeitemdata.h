@@ -8,6 +8,10 @@
 namespace qds
 {
 
+struct RootItemData
+{
+};
+
 struct CrateItemData
 {
   CrateId id;
@@ -30,10 +34,6 @@ struct ChannelItemData
   ChannelId channel;
   std::optional<TagId> tag;
   QJsonObject settings;
-};
-
-struct RootItemData
-{
 };
 
 using TreeItemData =

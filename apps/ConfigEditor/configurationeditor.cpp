@@ -1,17 +1,16 @@
 #include "configurationeditor.h"
+#include "configurationpropertiesdelegate.h"
 
 #include <QSplitter>
 #include <QTableView>
 #include <QVBoxLayout>
 #include <QSqlDatabase>
 #include <QSqlTableModel>
+#include <QSqlRecord>
 #include <QHeaderView>
 #include <QDebug>
-#include <QSqlError>
-#include <QSqlRelationalTableModel>
-#include <QSqlRelationalDelegate>
-#include <QSqlRecord>
 #include <QTreeView>
+#include <QMessageBox>
 
 namespace qds
 {
@@ -28,21 +27,48 @@ ConfigurationEditor::ConfigurationEditor(
   m_configurationTree =
     new QTreeView(this);
 
+  m_configurationTree->header()->hide();
+
   m_treeModel =
     new ConfigurationTreeModel(
       m_repository,
       this);
 
+  connect(
+    m_treeModel,
+    &ConfigurationTreeModel::operationFailed,
+    this,
+    [this](const QString& message)
+    {
+      QMessageBox::warning(
+        this,
+        tr("Ошибка изменения конфигурации"),
+        message);
+    });
+
   m_tagsView =
     new QTableView(this);
 
+  m_propertiesModel =
+    new ConfigurationPropertiesModel(
+      m_treeModel, this);
+
+  m_tagsView->setModel(m_propertiesModel);
+
+  m_tagsView->horizontalHeader()
+    ->setSectionResizeMode(
+      QHeaderView::Stretch);
+
+  m_tagsView->setItemDelegateForColumn(
+    1,
+    new ConfigurationPropertiesDelegate(
+      m_tagsView));
+
   for (QTableView* view :
        {m_configurationsView,
-        //m_configurationTree,
         m_tagsView})
   {
-    view->verticalHeader()
-    ->setSectionResizeMode(
+    view->verticalHeader()->setSectionResizeMode(
       QHeaderView::Fixed);
 
     view->verticalHeader()
@@ -80,8 +106,6 @@ ConfigurationEditor::ConfigurationEditor(
 
   layout->addWidget(splitter);
   layout->setContentsMargins(0, 0, 0, 0);
-
-
 
   m_configurations =
     new QSqlTableModel(
@@ -121,17 +145,9 @@ ConfigurationEditor::ConfigurationEditor(
     << m_configurations->lastError().text();
   }
 
+
   m_configurationsView->setModel(
     m_configurations);
-
-  m_configurationsView->setSelectionBehavior(
-    QAbstractItemView::SelectRows);
-
-  m_configurationsView->setSelectionMode(
-    QAbstractItemView::SingleSelection);
-
-  m_configurationsView->setAlternatingRowColors(
-    true);
 
   m_configurationsView->setColumnHidden(
     0,
@@ -143,7 +159,6 @@ ConfigurationEditor::ConfigurationEditor(
 
   m_configurationTree->setModel(
     m_treeModel);
-
 
   const int idColumn =
     m_configurations
@@ -173,14 +188,30 @@ ConfigurationEditor::ConfigurationEditor(
         configurationId
       };
 
+      m_propertiesModel->setItem({});
+
       if (!m_treeModel->load(configuration))
       {
-        qWarning()
-        << "Failed to load configuration tree:"
-        << m_repository.lastError().text();
+        const auto& error = m_repository.lastError();
+        const QString message = error.isValid() ? error.text() : "Failed to load configuration tree";
+
+        QMessageBox::warning(
+          this,
+          tr("Ошибка загрузки конфигурации"),
+          message);
 
         return;
       }
+    });
+
+  connect(
+    m_configurationTree->selectionModel(),
+    &QItemSelectionModel::currentChanged,
+    this,
+    [this](const QModelIndex& current,
+           const QModelIndex&)
+    {
+      m_propertiesModel->setItem(current);
     });
 
   if (m_configurations->rowCount() > 0)

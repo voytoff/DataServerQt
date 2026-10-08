@@ -10,6 +10,9 @@ MainWindow::MainWindow(
   QWidget* parent)
   : QMainWindow(parent)
 {
+  setWindowIcon(
+    QIcon(":/images/main.png"));
+
   m_editor =
     new ConfigurationEditor(
       database,

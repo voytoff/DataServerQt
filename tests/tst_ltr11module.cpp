@@ -6,6 +6,7 @@
 #include "fakeclock.h"
 #include "lcarddatasource.h"
 #include "ltr11configurationbuilder.h"
+#include "ltr11configurationvalidator.h"
 #include "ltr11module.h"
 #include "signalmemory.h"
 #include "testsrv.h"
@@ -270,4 +271,38 @@ void tst_ltr11module::test_LCardDataSource_base()
 
   source.stop();
   QVERIFY(!source.isRunning());
+}
+
+void tst_ltr11module::test_ltr11configurationvalidator()
+{
+  Ltr11Configuration cfg{
+    .address = QHostAddress("192.168.10.12").toIPv4Address(),
+    .port = 11111,
+    .crateSerial = "CRATE16/EU",
+    .slot = 11,
+    .channelRate = 1000,
+  };
+
+  // Пустой список каналов
+  QVERIFY(!Ltr11ConfigurationValidator::validate(cfg));
+
+  cfg.channels.push_back(
+    {
+      .channel = 0,
+      .mode = 0,
+      .range = 0,
+    });
+
+  // Корректная конфигурация
+  QVERIFY(Ltr11ConfigurationValidator::validate(cfg));
+
+  /*
+Более 128 логических каналов — false.
+Физический канал с номером 32 — false.
+Недопустимые mode = 3 и range = 4 — false.
+Нулевая и отрицательная частота — false.
+Частота АЦП выше 400 кГц — false.
+Повторяющиеся физические каналы — true.
+NaN и бесконечная частота — false.
+  */
 }

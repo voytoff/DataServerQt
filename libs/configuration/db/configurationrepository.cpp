@@ -879,6 +879,85 @@ ORDER BY
   return true;
 }
 
+bool ConfigurationRepository::updateConfigModuleSettings(
+  const ConfigurationId &configuration,
+  const ModuleId &module,
+  const QJsonObject &settings)
+{
+  m_error = {};
+
+  const QString json =
+    QString::fromUtf8(
+      QJsonDocument(settings)
+        .toJson(QJsonDocument::Compact));
+
+  auto query = getQuery(
+    R"(
+UPDATE configuration_module
+SET settings = :settings
+WHERE configuration_id = :configuration_id
+AND module_id = :module_id;)",
+    {
+      {":configuration_id", configuration.value},
+      {":module_id", module.value},
+      {":settings", json}
+    });
+
+  if (!query.exec())
+  {
+    setError(query);
+    return false;
+  }
+  /*
+  if (query.numRowsAffected() == 0)
+  {
+    m_error = QSqlError(
+      {},
+      QStringLiteral("Запись конфигурации не найдена"),
+      QSqlError::UnknownError);
+
+    return false;
+  }
+  */
+  return true;
+}
+
+bool ConfigurationRepository::updateConfigTagSettings(
+  const ConfigurationId &configuration,
+  const ModuleId &module,
+  const ChannelId &channel,
+  const QJsonObject &settings)
+{
+  m_error = {};
+
+  const QString json =
+    QString::fromUtf8(
+      QJsonDocument(settings)
+        .toJson(QJsonDocument::Compact));
+
+  auto query = getQuery(
+    R"(
+UPDATE configuration_tag
+SET settings = :settings
+WHERE configuration_id = :configuration_id
+AND module_id = :module_id
+AND channel = :channel;)",
+    {
+      {":configuration_id", configuration.value},
+      {":module_id", module.value},
+      {":channel", channel.value},
+      {":settings", json}
+    });
+
+  if (!query.exec())
+  {
+    setError(query);
+    return false;
+  }
+
+  return true;
+}
+
 QSqlQuery ConfigurationRepository::getQuery(
   const QString& sql,
   const QVariantMap& args)

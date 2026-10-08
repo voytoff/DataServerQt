@@ -4,10 +4,14 @@
 #include <QMessageBox>
 #include <QSqlDatabase>
 #include <QSqlError>
+#include <QStyleFactory>
 
 int main(int argc, char* argv[])
 {
   QApplication app(argc, argv);
+
+  // "windows11", "windowsvista", "Windows", "Fusion"
+  app.setStyle(QStyleFactory::create("windows11"));
 
   QSqlDatabase database =
     QSqlDatabase::addDatabase(

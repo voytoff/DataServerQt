@@ -17,4 +17,6 @@ private slots:
   void test_Ltr11Module_without_print();
   void test_LCardDataSource_base();
 
+  void test_ltr11configurationvalidator();
+
 };

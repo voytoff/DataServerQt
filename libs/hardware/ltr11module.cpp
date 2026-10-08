@@ -1,5 +1,5 @@
+#include "ltr11configurationvalidator.h"
 #include "ltr11module.h"
-
 #include "ltr11api.h"
 
 #include <algorithm>
@@ -120,6 +120,9 @@ bool Ltr11Module::Impl::start() noexcept
 {
   if (m_started)
     return true;
+
+  if (!Ltr11ConfigurationValidator::validate(m_configuration))
+    return false;
 
   /*
    * Initialize descriptor.

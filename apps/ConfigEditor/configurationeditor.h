@@ -1,8 +1,11 @@
 #pragma once
 
+#include "configurationpropertiesmodel.h"
 #include "configurationtreemodel.h"
 #include "db/configurationrepository.h"
 #include <QWidget>
+#include <qtableview.h>
+#include <qtreeview.h>
 
 class QSqlTableModel;
 class QSqlRelationalTableModel;
@@ -35,6 +38,7 @@ private:
   ConfigurationTreeModel* m_treeModel = nullptr;
   QTreeView* m_configurationTree = nullptr;
 
+  ConfigurationPropertiesModel* m_propertiesModel = nullptr;
 };
 
 }

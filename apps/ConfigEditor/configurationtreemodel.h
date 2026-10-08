@@ -48,12 +48,31 @@ public:
   Qt::ItemFlags flags(
     const QModelIndex& index) const override;
 
+  [[nodiscard]]
+  const TreeItemData* treeItemData(
+    const QModelIndex& index) const noexcept;
+
+  [[nodiscard]]
+  bool updateModuleSettings(
+    const QModelIndex& index,
+    const QJsonObject& settings);
+
+  [[nodiscard]]
+  bool updateChannelSettings(
+    const QModelIndex& index,
+    const QJsonObject& settings);
+
 private:
   ConfigurationRepository& m_repository;
 
   ConfigurationId m_configuration;
 
   std::unique_ptr<TreeItem> m_root;
+
+signals:
+  void operationFailed(
+    const QString& message);
+
 };
 
 }

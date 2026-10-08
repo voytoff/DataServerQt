@@ -1,4 +1,7 @@
 #include "treeitem.h"
+#include <algorithm>
+#include <iterator>
+#include <utility>
 
 namespace qds
 {

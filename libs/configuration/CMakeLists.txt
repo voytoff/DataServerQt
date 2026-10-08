@@ -25,6 +25,7 @@ add_library(Configuration SHARED
   runtimemoduleconfiguration.h runtimemoduleconfiguration.cpp
   db/calibrationrepository.h db/calibrationrepository.cpp
   db/configurationrepository.h db/configurationrepository.cpp
+  moduletypeinfo.h moduletypeinfo.cpp
 )
 
 target_include_directories(Configuration

@@ -21,6 +21,7 @@ add_library(Hardware SHARED
     smartblocklcardmodule.cpp
     smartblocklcardmodule.h
     lcardreadresult.h
+    ltr11configurationvalidator.h ltr11configurationvalidator.cpp
 )
 
 if(WIN32)

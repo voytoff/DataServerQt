@@ -105,6 +105,19 @@ public:
     std::vector<AvailableModule>& modules);
 
   [[nodiscard]]
+  bool updateConfigModuleSettings(
+    const ConfigurationId& configuration,
+    const ModuleId& module,
+    const QJsonObject& settings);
+
+  [[nodiscard]]
+  bool updateConfigTagSettings(
+    const ConfigurationId& configuration,
+    const ModuleId& module,
+    const ChannelId& channel,
+    const QJsonObject& settings);
+
+  [[nodiscard]]
   QSqlError lastError() const;
 
 private:
