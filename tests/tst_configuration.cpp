@@ -163,7 +163,7 @@ void tst_configuration::test_configuration_signalDefinitions()
       .name = "RAW0",
       .kind = SignalKind::Raw,
       .source = {1},
-      .archiveFrequency = 100,
+      .archiveRate = ArchiveRate::Hz100,
     }));
 
   QVERIFY(cfg.addSignalDefinition(
@@ -172,7 +172,7 @@ void tst_configuration::test_configuration_signalDefinitions()
      .name = "RAW1",
      .kind = SignalKind::Raw,
      .source = {3},
-     .archiveFrequency = 1000,
+     .archiveRate = ArchiveRate::Hz1000,
      }));
 
   QVERIFY(cfg.addSignalDefinition(
@@ -180,7 +180,7 @@ void tst_configuration::test_configuration_signalDefinitions()
      .id = {2},
      .name = "A",
      .kind = SignalKind::Calculated,
-     .archiveFrequency = 100,
+     .archiveRate = ArchiveRate::Hz100,
      .calibrationMode = CalibrationMode::BySignal,
      .dependencies = {{0}},
      }));
@@ -190,7 +190,7 @@ void tst_configuration::test_configuration_signalDefinitions()
      .id = {3},
      .name = "B",
      .kind = SignalKind::Calculated,
-     .archiveFrequency = 100,
+     .archiveRate = ArchiveRate::Hz100,
      .calibrationMode = CalibrationMode::BySignalType,
      .dependencies = {{1}},
      }));
@@ -200,7 +200,7 @@ void tst_configuration::test_configuration_signalDefinitions()
      .id = {4},
      .name = "C",
      .kind = SignalKind::Calculated,
-     .archiveFrequency = 10,
+     .archiveRate = ArchiveRate::Hz10,
      .formulaId = {23},
      .dependencies = {{2}, {3}},
      }));
@@ -212,14 +212,14 @@ void tst_configuration::test_configuration_signalDefinitions()
   QVERIFY(def0 != nullptr);
   QCOMPARE(def0->id.value, 0);
   QCOMPARE(def0->kind, SignalKind::Raw);
-  QCOMPARE(def0->archiveFrequency, 100);
+  QCOMPARE(def0->archiveRate, ArchiveRate::Hz100);
   QCOMPARE(def0->source.tag, {1});
 
   auto def3 = cfg.findSignalDefinition({3});
   QVERIFY(def3 != nullptr);
   QCOMPARE(def3->id.value, 3);
   QCOMPARE(def3->kind, SignalKind::Calculated);
-  QCOMPARE(def3->archiveFrequency, 100);
+  QCOMPARE(def3->archiveRate, ArchiveRate::Hz100);
   QCOMPARE(def3->calibrationMode, CalibrationMode::BySignalType);
   QCOMPARE(def3->dependencies.size(), 1);
   QCOMPARE(def3->dependencies[0].value, 1);
@@ -228,7 +228,7 @@ void tst_configuration::test_configuration_signalDefinitions()
   QVERIFY(def4 != nullptr);
   QCOMPARE(def4->id.value, 4);
   QCOMPARE(def4->kind, SignalKind::Calculated);
-  QCOMPARE(def4->archiveFrequency, 10);
+  QCOMPARE(def4->archiveRate, ArchiveRate::Hz10);
   QCOMPARE(def4->formulaId, {23});
   QCOMPARE(def4->dependencies.size(), 2);
   QCOMPARE(def4->dependencies[0].value, 2);
@@ -324,7 +324,7 @@ void tst_configuration::test_configuration_duplicateSignalDefinitions()
      .name = "RAW0",
      .kind = SignalKind::Raw,
      .source = {0},
-     .archiveFrequency = 100,
+     .archiveRate = ArchiveRate::Hz100,
      }));
 
   QVERIFY(!cfg.addSignalDefinition(
@@ -333,7 +333,7 @@ void tst_configuration::test_configuration_duplicateSignalDefinitions()
      .name = "RAW0",
      .kind = SignalKind::Raw,
      .source = {0},
-     .archiveFrequency = 100,
+     .archiveRate = ArchiveRate::Hz100,
      }));
 
   QCOMPARE(cfg.signalDefinitions().size(), 1);
@@ -344,7 +344,7 @@ void tst_configuration::test_configuration_duplicateSignalDefinitions()
      .name = "RAW0",
      .kind = SignalKind::Raw,
      .source = {1000},
-     .archiveFrequency = 100,
+     .archiveRate = ArchiveRate::Hz100,
      }));
 
   QCOMPARE(cfg.signalDefinitions().size(), 1);
@@ -391,7 +391,7 @@ void tst_configuration::test_configuration_sparseSignalDefinitionIds()
      .name = "RAW0",
      .kind = SignalKind::Raw,
      .source = {0},
-     .archiveFrequency = 100,
+     .archiveRate = ArchiveRate::Hz100,
      }));
 
   QVERIFY(!cfg.containsSignalDefinition({999}));
@@ -426,7 +426,7 @@ void tst_configuration::test_configuration_orderIds()
      .name = "RAW0",
      .kind = SignalKind::Raw,
      .source = {1},
-     .archiveFrequency = 100,
+     .archiveRate = ArchiveRate::Hz100,
      }));
 
   QVERIFY(cfg.addSignalDefinition(
@@ -435,7 +435,7 @@ void tst_configuration::test_configuration_orderIds()
      .name = "RAW1",
      .kind = SignalKind::Raw,
      .source = {2},
-     .archiveFrequency = 1000,
+     .archiveRate = ArchiveRate::Hz1000,
      }));
 
   QVERIFY(cfg.addSignalDefinition(
@@ -443,7 +443,7 @@ void tst_configuration::test_configuration_orderIds()
      .id = {2},
      .name = "A",
      .kind = SignalKind::Calculated,
-     .archiveFrequency = 100,
+     .archiveRate = ArchiveRate::Hz100,
      .calibrationMode = CalibrationMode::BySignalType,
       .dependencies = {{4}, {0}},
      }));

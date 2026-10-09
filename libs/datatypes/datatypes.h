@@ -70,6 +70,30 @@ constexpr uint32_t toHz(PublishRate r)
   return static_cast<uint32_t>(r);
 }
 
+// Частота записи в архив, Гц.
+enum class ArchiveRate : uint16_t
+{
+  Hz1    = 1,
+  Hz10   = 10,
+  Hz100  = 100,
+  Hz1000 = 1000
+};
+
+constexpr bool isValidArchiveRate(ArchiveRate rate) noexcept
+{
+  switch (rate)
+  {
+  case ArchiveRate::Hz1:
+  case ArchiveRate::Hz10:
+  case ArchiveRate::Hz100:
+  case ArchiveRate::Hz1000:
+    return true;
+
+  default:
+    return false;
+  }
+}
+
 struct Timestamp
 {
   // Внутренняя монотонная шкала времени, микросекунды

@@ -26,6 +26,10 @@ public:
     QWidget* parent = nullptr);
 
 private:
+  void updateChannelVisibility(
+    const QModelIndex& moduleIndex);
+
+private:
   QTableView* m_configurationsView = nullptr;
   //QTableView* m_modulesView = nullptr;
   QTableView* m_tagsView = nullptr;

@@ -533,7 +533,7 @@ void tst_dataserver::test_systemBuilder_success()
 
   SystemConfiguration cfg =
     createTestConfig_calculate(ModuleType::Test);
-  cfg.addSignalDefinition({.id = {24}, .name = "D", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formula = "A + A", .formulaId = {2}, .dependencies = {{17}, {17}}});
+  cfg.addSignalDefinition({.id = {24}, .name = "D", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .formula = "A + A", .formulaId = {2}, .dependencies = {{17}, {17}}});
 
   DataStreamSourceFactory factory;
 

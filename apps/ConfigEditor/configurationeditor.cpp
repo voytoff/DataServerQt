@@ -161,6 +161,21 @@ ConfigurationEditor::ConfigurationEditor(
   m_configurationTree->setModel(
     m_treeModel);
 
+  connect(
+    m_treeModel,
+    &QAbstractItemModel::dataChanged,
+    this,
+    [this](const QModelIndex& topLeft,
+           const QModelIndex&,
+           const QList<int>&)
+    {
+      const auto* data =
+        m_treeModel->treeItemData(topLeft);
+
+      if (data && std::holds_alternative<ModuleItemData>(*data))
+        updateChannelVisibility(topLeft);
+    });
+
   const int idColumn =
     m_configurations
       ->record()
@@ -203,6 +218,25 @@ ConfigurationEditor::ConfigurationEditor(
 
         return;
       }
+
+      const int crateCount = m_treeModel->rowCount();
+      // Обновление после загрузки конфигурации
+      for (int crateRow = 0; crateRow < crateCount; ++crateRow)
+      {
+        const QModelIndex crateIndex =
+          m_treeModel->index(crateRow, 0);
+
+        const int moduleCount =
+          m_treeModel->rowCount(crateIndex);
+
+        for (int moduleRow = 0; moduleRow < moduleCount; ++moduleRow)
+        {
+          const QModelIndex moduleIndex =
+            m_treeModel->index(moduleRow, 0, crateIndex);
+
+          updateChannelVisibility(moduleIndex);
+        }
+      }
     });
 
   connect(
@@ -217,6 +251,38 @@ ConfigurationEditor::ConfigurationEditor(
 
   if (m_configurations->rowCount() > 0)
     m_configurationsView->selectRow(0);
+}
+
+void ConfigurationEditor::updateChannelVisibility(
+  const QModelIndex& moduleIndex)
+{
+  const auto* data =
+    m_treeModel->treeItemData(moduleIndex);
+
+  if (!data)
+    return;
+
+  const auto* module =
+    std::get_if<ModuleItemData>(data);
+
+  if (!module || module->type != ModuleType::LTR11)
+    return;
+
+  const int mode =
+    module->settings.value("mode").toInt(1);
+
+  const int maxChannels = mode == 0 ? 16 : 32;
+
+  const int count =
+    m_treeModel->rowCount(moduleIndex);
+
+  for (int row = 0; row < count; ++row)
+  {
+    m_configurationTree->setRowHidden(
+      row,
+      moduleIndex,
+      row >= maxChannels);
+  }
 }
 
 }

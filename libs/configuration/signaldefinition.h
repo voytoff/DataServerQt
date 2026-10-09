@@ -74,7 +74,8 @@ struct SignalDefinition
   SignalSource source;
 
   // частота записи в архив
-  uint32_t archiveFrequency = 0;
+  //uint32_t archiveFrequency = 0;
+  ArchiveRate archiveRate = ArchiveRate::Hz10;
 
   // источник таблицы тарировки
   CalibrationMode calibrationMode = CalibrationMode::None;

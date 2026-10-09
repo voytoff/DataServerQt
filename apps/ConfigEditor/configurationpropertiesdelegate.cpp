@@ -38,8 +38,7 @@ QWidget* ConfigurationPropertiesDelegate::createEditor(
 
     return editor;
   }
-
-  if (property == tr("Режим"))
+  else if (property == tr("Режим"))
   {
     auto* editor =
       new QComboBox(parent);
@@ -55,14 +54,9 @@ QWidget* ConfigurationPropertiesDelegate::createEditor(
       tr("Общая земля"),
       1);
 
-    editor->addItem(
-      tr("Измерение нуля"),
-      2);
-
     return editor;
   }
-
-  if (property == tr("Диапазон"))
+  else if (property == tr("Диапазон"))
   {
     auto* editor =
       new QComboBox(parent);
@@ -85,6 +79,21 @@ QWidget* ConfigurationPropertiesDelegate::createEditor(
     editor->addItem(
       tr("±0,156 В"),
       3);
+
+    return editor;
+  }
+  else if (property == tr("Частота архивирования"))
+  {
+    auto* editor =
+      new QComboBox(parent);
+
+    editor->setAutoFillBackground(true);
+    editor->setBackgroundRole(QPalette::Base);
+
+    editor->addItem(tr("1 Гц"), 1);
+    editor->addItem(tr("10 Гц"), 10);
+    editor->addItem(tr("100 Гц"), 100);
+    editor->addItem(tr("1000 Гц"), 1000);
 
     return editor;
   }

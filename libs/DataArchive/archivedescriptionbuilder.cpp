@@ -21,12 +21,33 @@ bool ArchiveDescriptionBuilder::build(
   for (const auto& definition :
        configuration.signalDefinitions())
   {
-    if (definition.archiveFrequency == 0)
-      continue;
+    ArchiveRate archiveRate =
+      definition.archiveRate;
+
+    const ConfigurationTag* tag = nullptr;
+
+    if (definition.kind == SignalKind::Raw)
+    {
+      tag =
+        configuration.findConfigurationTag(
+          definition.source.tag);
+
+      if (tag == nullptr)
+        return false;
+
+      archiveRate = tag->archiveRate;
+    }
+
+    // Проверяем фактически используемую частоту.
+    if (!isValidArchiveRate(archiveRate))
+      return false;
+
+    const uint32_t frequency =
+      static_cast<uint32_t>(archiveRate);
 
     const auto key =
       std::make_tuple(
-        definition.archiveFrequency,
+        frequency,
         definition.kind);
 
     auto it = fileIndexes.find(key);
@@ -35,15 +56,14 @@ bool ArchiveDescriptionBuilder::build(
     {
       ArchiveFileDescription file;
 
-      file.frequency =
-        definition.archiveFrequency;
+      file.frequency = frequency;
 
       file.dataType = "float";
 
       file.name =
         definition.kind == SignalKind::Raw
-          ? "raw_" + std::to_string(definition.archiveFrequency) + "Hz.dat"
-          : "calculated_" + std::to_string(definition.archiveFrequency) + "Hz.dat";
+          ? "raw_" + std::to_string(frequency) + "Hz.dat"
+          : "calculated_" + std::to_string(frequency) + "Hz.dat";
 
       tmp.files.push_back(
         std::move(file));
@@ -67,15 +87,8 @@ bool ArchiveDescriptionBuilder::build(
     signal.name = definition.name;
     signal.kind = definition.kind;
 
-    if (definition.kind == SignalKind::Raw)
+    if (tag)
     {
-      const TagInfo* tag =
-        configuration.findTag(
-          definition.source.tag);
-
-      if (tag == nullptr)
-        return false;
-
       signal.module = tag->module;
       signal.channel = tag->channel;
     }

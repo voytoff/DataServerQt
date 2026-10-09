@@ -275,6 +275,23 @@ bool SystemConfiguration::addConfigurationTag(
   return true;
 }
 
+const ConfigurationTag*
+SystemConfiguration::findConfigurationTag(TagId id) const
+{
+  auto it = std::find_if(
+    m_configurationTags.begin(),
+    m_configurationTags.end(),
+    [id](const ConfigurationTag& tag)
+    {
+      return tag.tag == id;
+    });
+
+  if (it == m_configurationTags.end())
+    return nullptr;
+
+  return &(*it);
+}
+
 const ConfigurationModule *SystemConfiguration::findConfigurationModule(ModuleId module) const
 {
   auto it = std::find_if(

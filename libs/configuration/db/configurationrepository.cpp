@@ -251,7 +251,8 @@ std::optional<TagId> ConfigurationRepository::addConfigTag(
   const ConfigurationId &configuration,
   const ModuleId &module,
   const ChannelId &channel,
-  const QJsonObject &settings)
+  const QJsonObject &settings,
+  ArchiveRate archiveRate)
 {
   m_error = {};
 
@@ -263,13 +264,14 @@ std::optional<TagId> ConfigurationRepository::addConfigTag(
   auto query = getQuery(
     R"(
 INSERT INTO configuration_tag
-  (configuration_id, module_id, channel, settings)
+  (configuration_id, module_id, channel, archive_rate, settings)
 VALUES
-  (:configuration_id, :module_id, :channel, :settings);)",
+  (:configuration_id, :module_id, :channel, :archive_rate, :settings);)",
     {
       {":configuration_id", configuration.value},
       {":module_id", module.value},
       {":channel", channel.value},
+      {":archive_rate", static_cast<uint16_t>(archiveRate)},
       {":settings", json}
     });
 
@@ -326,7 +328,7 @@ bool ConfigurationRepository::moduleConfigTags(
 
   auto query = getQuery(
     R"(
-SELECT id, module_id, channel, settings
+SELECT id, module_id, channel, archive_rate, settings
 FROM configuration_tag
 WHERE configuration_id = :configuration_id
 AND module_id = :module_id;)",
@@ -374,6 +376,10 @@ AND module_id = :module_id;)",
           query.value("channel").toUInt()
         },
 
+      .archiveRate =
+        static_cast<ArchiveRate>(
+          query.value("archive_rate").toUInt()),
+
       .settings =
         document.object()
     });
@@ -395,7 +401,7 @@ bool ConfigurationRepository::load(
   // проверяем наличие конфигурации
   auto query = getQuery(R"(
 SELECT id, name, description, udp_port
-FROM configuration WHERE id=:id;)",
+FROM configuration WHERE id = :id;)",
     {{":id", configuration.value}});
 
   if (!query.exec())
@@ -448,7 +454,8 @@ WHERE
     module.slot = query.value("module_slot").toInt();
     module.description = query.value("module_description").toString();
 
-    auto crates = cfg.crates();
+    const auto& crates = cfg.crates();
+
     auto it = std::find_if(crates.begin(), crates.end(), [&](const CrateInfo &ci) {return ci.id == module.crate;});
 
     if (it == crates.end())
@@ -495,9 +502,13 @@ WHERE
     return false;
 
   // загружаем теги
-  query = getQuery(
-    "SELECT id, configuration_id, module_id, channel, settings FROM configuration_tag WHERE configuration_id=:id;",
-    {{":id", configuration.value}});
+  query = getQuery(R"(
+SELECT id, configuration_id, module_id, channel, archive_rate, settings
+FROM configuration_tag
+WHERE configuration_id = :id;)",
+    {
+      {":id", configuration.value}
+    });
 
   if (!query.exec()) {
     setError(query);
@@ -530,6 +541,12 @@ WHERE
     configurationTag.module = tag.module;
     configurationTag.channel = tag.channel;
 
+    configurationTag.archiveRate =
+      static_cast<ArchiveRate>(query.value("archive_rate").toUInt());
+
+    if (!isValidArchiveRate(configurationTag.archiveRate))
+      return false;
+
     const QByteArray data =
       query.value("settings")
         .toString()
@@ -552,9 +569,14 @@ WHERE
     return false;
 
   // загружаем сигналы
-  query = getQuery(
-    "SELECT id, configuration_id, name, kind, tag_id, signal_type_id, archive_frequency, calibration_mode, formula FROM configuration_signal_definition WHERE configuration_id=:id;",
-    {{":id", configuration.value}});
+  query = getQuery(R"(
+SELECT id, configuration_id, name, kind, tag_id,
+       signal_type_id, calibration_mode, formula, archive_rate
+FROM configuration_signal_definition
+WHERE configuration_id = :id;)",
+    {
+      {":id", configuration.value}
+    });
 
   if (!query.exec()) {
     setError(query);
@@ -567,9 +589,9 @@ WHERE
 
     definition.id = SignalId{query.value("id").toUInt()};
     definition.name = query.value("name").toString().toStdString();
-    definition.archiveFrequency = query.value("archive_frequency").toUInt();
     definition.kind = static_cast<SignalKind>(query.value("kind").toUInt());
     definition.signalType = SignalTypeId{query.value("signal_type_id").toUInt()};
+    definition.archiveRate = static_cast<ArchiveRate>(query.value("archive_rate").toUInt());
 
     if (definition.kind == SignalKind::Raw) {
       definition.source = SignalSource{TagId{query.value("tag_id").toUInt()}};
@@ -947,6 +969,40 @@ AND channel = :channel;)",
       {":module_id", module.value},
       {":channel", channel.value},
       {":settings", json}
+    });
+
+  if (!query.exec())
+  {
+    setError(query);
+    return false;
+  }
+
+  return true;
+}
+
+bool ConfigurationRepository::updateConfigTagArchiveRate(
+  const ConfigurationId& configuration,
+  const ModuleId& module,
+  const ChannelId& channel,
+  ArchiveRate rate)
+{
+  m_error = {};
+
+  if (!isValidArchiveRate(rate))
+    return false;
+
+  auto query = getQuery(
+    R"(
+UPDATE configuration_tag
+SET archive_rate = :archive_rate
+WHERE configuration_id = :configuration_id
+AND module_id = :module_id
+AND channel = :channel;)",
+    {
+      {":configuration_id", configuration.value},
+      {":module_id", module.value},
+      {":channel", channel.value},
+      {":archive_rate", static_cast<uint16_t>(rate)}
     });
 
   if (!query.exec())

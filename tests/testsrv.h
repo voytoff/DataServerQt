@@ -157,7 +157,7 @@ static void createSignalDefinitions(SystemConfiguration &cfg)
 {
   for (const auto &m : cfg.modules())
     for (const auto &t : cfg.moduleTags({m.id}))
-      cfg.addSignalDefinition({.id = {t.value}, .name = std::to_string(t.value), .kind = SignalKind::Raw, .source = {t.value}, .archiveFrequency = 100});
+      cfg.addSignalDefinition({.id = {t.value}, .name = std::to_string(t.value), .kind = SignalKind::Raw, .source = {t.value}, .archiveRate = ArchiveRate::Hz100});
 }
 
 static std::unique_ptr<FormulaFunctionRepository> createFormulaFunctionRepository()
@@ -229,16 +229,16 @@ static SystemConfiguration createTestConfig_1module_2raw_2calc() {
   TagInfo t2{.tag = {1}, .module = {0}, .channel = {0}};
   cfg.addTag(t2);
 
-  SignalDefinition sd1 {.id = {0}, .name = "U000", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100};
+  SignalDefinition sd1 {.id = {0}, .name = "U000", .kind = SignalKind::Raw, .source = {0}, .archiveRate = ArchiveRate::Hz100};
   cfg.addSignalDefinition(sd1);
 
-  SignalDefinition sd2 {.id = {1}, .name = "D10", .kind = SignalKind::Calculated, .source = {0}, .archiveFrequency = 10, .calibrationMode = CalibrationMode::BySignal};
+  SignalDefinition sd2 {.id = {1}, .name = "D10", .kind = SignalKind::Calculated, .source = {0}, .archiveRate = ArchiveRate::Hz10, .calibrationMode = CalibrationMode::BySignal};
   cfg.addSignalDefinition(sd2);
 
-  SignalDefinition sd3 {.id = {2}, .name = "P100", .kind = SignalKind::Calculated, .source = {0}, .archiveFrequency = 100, .formulaId = {15}};
+  SignalDefinition sd3 {.id = {2}, .name = "P100", .kind = SignalKind::Calculated, .source = {0}, .archiveRate = ArchiveRate::Hz100, .formulaId = {15}};
   cfg.addSignalDefinition(sd3);
 
-  SignalDefinition sd4 {.id = {3}, .name = "U001", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 10};
+  SignalDefinition sd4 {.id = {3}, .name = "U001", .kind = SignalKind::Raw, .source = {1}, .archiveRate = ArchiveRate::Hz10};
   cfg.addSignalDefinition(sd4);
 
   return cfg;
@@ -255,16 +255,16 @@ static SystemConfiguration createTestConfig01()
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
   cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}});
 
-  SignalDefinition sd0 {.id = {0}, .name = "U000", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100};
+  SignalDefinition sd0 {.id = {0}, .name = "U000", .kind = SignalKind::Raw, .source = {0}, .archiveRate = ArchiveRate::Hz100};
   cfg.addSignalDefinition(sd0);
 
-  SignalDefinition sd1 {.id = {1}, .name = "U001", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 10};
+  SignalDefinition sd1 {.id = {1}, .name = "U001", .kind = SignalKind::Raw, .source = {1}, .archiveRate = ArchiveRate::Hz10};
   cfg.addSignalDefinition(sd1);
 
-  SignalDefinition sd2 {.id = {2}, .name = "D10", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {3}, .dependencies = {{0}, {1}}};
+  SignalDefinition sd2 {.id = {2}, .name = "D10", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .formulaId = {3}, .dependencies = {{0}, {1}}};
   cfg.addSignalDefinition(sd2);
 
-  SignalDefinition sd3 {.id = {3}, .name = "P100", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {15}, .dependencies = {{1}, {2}}};
+  SignalDefinition sd3 {.id = {3}, .name = "P100", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz100, .formulaId = {15}, .dependencies = {{1}, {2}}};
   cfg.addSignalDefinition(sd3);
 
   return cfg;
@@ -288,19 +288,19 @@ static SystemConfiguration createTestConfig02()
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
   cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}});
 
-  SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100};
+  SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveRate = ArchiveRate::Hz100};
   cfg.addSignalDefinition(sd0);
 
-  SignalDefinition sd1 {.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 10};
+  SignalDefinition sd1 {.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveRate = ArchiveRate::Hz10};
   cfg.addSignalDefinition(sd1);
 
-  SignalDefinition sd2 {.id = {2}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .dependencies = {{0}}};
+  SignalDefinition sd2 {.id = {2}, .name = "A", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz100, .dependencies = {{0}}};
   cfg.addSignalDefinition(sd2);
 
-  SignalDefinition sd3 {.id = {3}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .dependencies = {{1}}};
+  SignalDefinition sd3 {.id = {3}, .name = "B", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .dependencies = {{1}}};
   cfg.addSignalDefinition(sd3);
 
-  SignalDefinition sd4 {.id = {4}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {5}, .dependencies = {{2}, {3}}};
+  SignalDefinition sd4 {.id = {4}, .name = "C", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .formulaId = {5}, .dependencies = {{2}, {3}}};
   cfg.addSignalDefinition(sd4);
 
   return cfg;
@@ -317,19 +317,19 @@ static SystemConfiguration createTestConfig03()
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
   cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}});
 
-  SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100};
+  SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveRate = ArchiveRate::Hz100};
   cfg.addSignalDefinition(sd0);
 
-  SignalDefinition sd1 {.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 10};
+  SignalDefinition sd1 {.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveRate = ArchiveRate::Hz10};
   cfg.addSignalDefinition(sd1);
 
-  SignalDefinition sd2 {.id = {3}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .dependencies = {{0}}};
+  SignalDefinition sd2 {.id = {3}, .name = "A", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz100, .dependencies = {{0}}};
   cfg.addSignalDefinition(sd2);
 
-  SignalDefinition sd3 {.id = {5}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .dependencies = {{1}}};
+  SignalDefinition sd3 {.id = {5}, .name = "B", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .dependencies = {{1}}};
   cfg.addSignalDefinition(sd3);
 
-  SignalDefinition sd4 {.id = {10}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {5}, .dependencies = {{3}, {5}}};
+  SignalDefinition sd4 {.id = {10}, .name = "C", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .formulaId = {5}, .dependencies = {{3}, {5}}};
   cfg.addSignalDefinition(sd4);
 
   return cfg;
@@ -358,14 +358,14 @@ static SystemConfiguration createTestConfig04()
 
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
 
-  SignalDefinition sd0 {.id = {0}, .name = "RAW", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100};
+  SignalDefinition sd0 {.id = {0}, .name = "RAW", .kind = SignalKind::Raw, .source = {0}, .archiveRate = ArchiveRate::Hz100};
   cfg.addSignalDefinition(sd0);
 
-  SignalDefinition sd1 {.id = {2}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{0}}};
+  SignalDefinition sd1 {.id = {2}, .name = "A", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz100, .formulaId = {0}, .dependencies = {{0}}};
   cfg.addSignalDefinition(sd1);
-  SignalDefinition sd2 {.id = {5}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}, .dependencies = {{2}}};
+  SignalDefinition sd2 {.id = {5}, .name = "B", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .formulaId = {0}, .dependencies = {{2}}};
   cfg.addSignalDefinition(sd2);
-  SignalDefinition sd3 {.id = {10}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 1, .formulaId = {0}, .dependencies = {{5}}};
+  SignalDefinition sd3 {.id = {10}, .name = "C", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz1, .formulaId = {0}, .dependencies = {{5}}};
   cfg.addSignalDefinition(sd3);
 
   return cfg;
@@ -397,16 +397,16 @@ static SystemConfiguration createTestConfig05()
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
   cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}});
 
-  SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 1000};
+  SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveRate = ArchiveRate::Hz1000};
   cfg.addSignalDefinition(sd0);
-  SignalDefinition sd2 {.id = {7}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{0}}};
+  SignalDefinition sd2 {.id = {7}, .name = "A", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz100, .formulaId = {0}, .dependencies = {{0}}};
   cfg.addSignalDefinition(sd2);
-  SignalDefinition sd3 {.id = {4}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {2}, .dependencies = {{7}}};
+  SignalDefinition sd3 {.id = {4}, .name = "C", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .formulaId = {2}, .dependencies = {{7}}};
   cfg.addSignalDefinition(sd3);
 
-  SignalDefinition sd1 {.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 100};
+  SignalDefinition sd1 {.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveRate = ArchiveRate::Hz100};
   cfg.addSignalDefinition(sd1);
-  SignalDefinition sd4 {.id = {11}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{1}}};
+  SignalDefinition sd4 {.id = {11}, .name = "B", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz100, .formulaId = {0}, .dependencies = {{1}}};
   cfg.addSignalDefinition(sd4);
 
   return cfg;
@@ -430,14 +430,14 @@ static SystemConfiguration createTestConfig06()
 
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
 
-  SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 1000};
+  SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveRate = ArchiveRate::Hz1000};
   cfg.addSignalDefinition(sd0);
 
-  SignalDefinition sd1 {.id = {101}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{0}}};
+  SignalDefinition sd1 {.id = {101}, .name = "A", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz100, .formulaId = {0}, .dependencies = {{0}}};
   cfg.addSignalDefinition(sd1);
-  SignalDefinition sd2 {.id = {70}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 1, .formulaId = {0}, .dependencies = {{0}}};
+  SignalDefinition sd2 {.id = {70}, .name = "B", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz1, .formulaId = {0}, .dependencies = {{0}}};
   cfg.addSignalDefinition(sd2);
-  SignalDefinition sd3 {.id = {4}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}, .dependencies = {{0}}};
+  SignalDefinition sd3 {.id = {4}, .name = "C", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .formulaId = {0}, .dependencies = {{0}}};
   cfg.addSignalDefinition(sd3);
 
   return cfg;
@@ -458,14 +458,14 @@ static SystemConfiguration createTestConfig_cycle()
 
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
 
-  SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100};
+  SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveRate = ArchiveRate::Hz100};
   cfg.addSignalDefinition(sd0);
 
-  SignalDefinition sd1 {.id = {10}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{7}}};
+  SignalDefinition sd1 {.id = {10}, .name = "A", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz100, .formulaId = {0}, .dependencies = {{7}}};
   cfg.addSignalDefinition(sd1);
-  SignalDefinition sd2 {.id = {7}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{4}}};
+  SignalDefinition sd2 {.id = {7}, .name = "B", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz100, .formulaId = {0}, .dependencies = {{4}}};
   cfg.addSignalDefinition(sd2);
-  SignalDefinition sd3 {.id = {4}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{10}}};
+  SignalDefinition sd3 {.id = {4}, .name = "C", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz100, .formulaId = {0}, .dependencies = {{10}}};
   cfg.addSignalDefinition(sd3);
 
   return cfg;
@@ -484,14 +484,14 @@ static SystemConfiguration createTestConfig_selfReference()
 
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
 
-  SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100};
+  SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveRate = ArchiveRate::Hz100};
   cfg.addSignalDefinition(sd0);
 
-  SignalDefinition sd1 {.id = {10}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{0}}};
+  SignalDefinition sd1 {.id = {10}, .name = "A", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz100, .formulaId = {0}, .dependencies = {{0}}};
   cfg.addSignalDefinition(sd1);
-  SignalDefinition sd2 {.id = {7}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{7}}};
+  SignalDefinition sd2 {.id = {7}, .name = "B", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz100, .formulaId = {0}, .dependencies = {{7}}};
   cfg.addSignalDefinition(sd2);
-  SignalDefinition sd3 {.id = {4}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{0}}};
+  SignalDefinition sd3 {.id = {4}, .name = "C", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz100, .formulaId = {0}, .dependencies = {{0}}};
   cfg.addSignalDefinition(sd3);
 
   return cfg;
@@ -519,23 +519,23 @@ static SystemConfiguration createTestConfig09()
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
   cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}});
 
-  SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 1000};
+  SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveRate = ArchiveRate::Hz1000};
   cfg.addSignalDefinition(sd0);
-  SignalDefinition sd1 {.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 100};
+  SignalDefinition sd1 {.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveRate = ArchiveRate::Hz100};
   cfg.addSignalDefinition(sd1);
 
-  SignalDefinition sd2 {.id = {7}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{0}}};
+  SignalDefinition sd2 {.id = {7}, .name = "A", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz100, .formulaId = {0}, .dependencies = {{0}}};
   cfg.addSignalDefinition(sd2);
-  SignalDefinition sd3 {.id = {4}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}, .dependencies = {{1}}};
+  SignalDefinition sd3 {.id = {4}, .name = "B", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .formulaId = {0}, .dependencies = {{1}}};
   cfg.addSignalDefinition(sd3);
 
-  SignalDefinition sd4 {.id = {11}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {17}, .dependencies = {{4}, {7}}};
+  SignalDefinition sd4 {.id = {11}, .name = "C", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .formulaId = {17}, .dependencies = {{4}, {7}}};
   cfg.addSignalDefinition(sd4);
 
-  SignalDefinition sd5 {.id = {10}, .name = "D", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}, .dependencies = {{11}}};
+  SignalDefinition sd5 {.id = {10}, .name = "D", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .formulaId = {0}, .dependencies = {{11}}};
   cfg.addSignalDefinition(sd5);
 
-  SignalDefinition sd6 {.id = {3}, .name = "E", .kind = SignalKind::Calculated, .archiveFrequency = 1, .formulaId = {10}, .dependencies = {{4}, {10}}};
+  SignalDefinition sd6 {.id = {3}, .name = "E", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz1, .formulaId = {10}, .dependencies = {{4}, {10}}};
   cfg.addSignalDefinition(sd6);
 
   return cfg;
@@ -580,19 +580,19 @@ static SystemConfiguration createTestConfig_Copy_Add(ModuleType type = ModuleTyp
     .settings = {}
   });
 
-  SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100};
+  SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveRate = ArchiveRate::Hz100};
   cfg.addSignalDefinition(sd0);
 
-  SignalDefinition sd1 {.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 10};
+  SignalDefinition sd1 {.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveRate = ArchiveRate::Hz10};
   cfg.addSignalDefinition(sd1);
 
-  SignalDefinition sd2 {.id = {2}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formula = "Raw0"};
+  SignalDefinition sd2 {.id = {2}, .name = "A", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz100, .formula = "Raw0"};
   cfg.addSignalDefinition(sd2);
 
-  SignalDefinition sd3 {.id = {3}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formula = "Raw1"};
+  SignalDefinition sd3 {.id = {3}, .name = "B", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .formula = "Raw1"};
   cfg.addSignalDefinition(sd3);
 
-  SignalDefinition sd4 {.id = {4}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formula = "A / (B + 1)"};
+  SignalDefinition sd4 {.id = {4}, .name = "C", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .formula = "A / (B + 1)"};
   cfg.addSignalDefinition(sd4);
 
   return cfg;
@@ -629,14 +629,14 @@ inline SystemConfiguration createTestConfig_calculate(ModuleType type = ModuleTy
     .settings = {}
   });
 
-  cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 1000});
-  cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 100});
+  cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveRate = ArchiveRate::Hz1000});
+  cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveRate = ArchiveRate::Hz100});
 
-  cfg.addSignalDefinition({.id = {17}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formula = "Raw0", .formulaId = {17}, .dependencies = {{0}}}); // Raw0
+  cfg.addSignalDefinition({.id = {17}, .name = "A", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz100, .formula = "Raw0", .formulaId = {17}, .dependencies = {{0}}}); // Raw0
 
-  cfg.addSignalDefinition({.id = {4}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formula = "Raw1", .formulaId = {4}, .dependencies = {{1}}});  // Raw1
+  cfg.addSignalDefinition({.id = {4}, .name = "B", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .formula = "Raw1", .formulaId = {4}, .dependencies = {{1}}});  // Raw1
 
-  cfg.addSignalDefinition({.id = {23}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formula = "A + B", .formulaId = {23}, .dependencies = {{17}, {4}}}); // A & B
+  cfg.addSignalDefinition({.id = {23}, .name = "C", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .formula = "A + B", .formulaId = {23}, .dependencies = {{17}, {4}}}); // A & B
 
   cfg.setUdpPort(35000);
 
@@ -660,7 +660,7 @@ static SystemConfiguration createTestConfig_Copy_Add_WithoutC()
     .name = "Raw0",
     .kind = SignalKind::Raw,
     .source = {0},
-    .archiveFrequency = 100
+    .archiveRate = ArchiveRate::Hz100
   });
 
   cfg.addSignalDefinition({
@@ -668,14 +668,14 @@ static SystemConfiguration createTestConfig_Copy_Add_WithoutC()
     .name = "Raw1",
     .kind = SignalKind::Raw,
     .source = {1},
-    .archiveFrequency = 10
+    .archiveRate = ArchiveRate::Hz10
   });
 
   cfg.addSignalDefinition({
     .id = {2},
     .name = "A",
     .kind = SignalKind::Calculated,
-    .archiveFrequency = 100,
+    .archiveRate = ArchiveRate::Hz100,
     .formulaId = {0},
     .dependencies = {{0}}
   });
@@ -684,7 +684,7 @@ static SystemConfiguration createTestConfig_Copy_Add_WithoutC()
     .id = {3},
     .name = "B",
     .kind = SignalKind::Calculated,
-    .archiveFrequency = 10,
+    .archiveRate = ArchiveRate::Hz10,
     .formulaId = {0},
     .dependencies = {{1}}
   });
@@ -779,19 +779,19 @@ inline SystemConfiguration createTestConfig_Some_Modules(ModuleType type = Modul
     .settings = {}
   });
 
-  cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100});
+  cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveRate = ArchiveRate::Hz100});
 
-  cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 10});
+  cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveRate = ArchiveRate::Hz10});
 
-  cfg.addSignalDefinition({.id = {2}, .name = "Raw2", .kind = SignalKind::Raw, .source = {4}, .archiveFrequency = 1000});
+  cfg.addSignalDefinition({.id = {2}, .name = "Raw2", .kind = SignalKind::Raw, .source = {4}, .archiveRate = ArchiveRate::Hz1000});
 
-  cfg.addSignalDefinition({.id = {3}, .name = "Raw3", .kind = SignalKind::Raw, .source = {6}, .archiveFrequency = 100});
+  cfg.addSignalDefinition({.id = {3}, .name = "Raw3", .kind = SignalKind::Raw, .source = {6}, .archiveRate = ArchiveRate::Hz100});
 
-  cfg.addSignalDefinition({.id = {4}, .name = "Raw4", .kind = SignalKind::Raw, .source = {7}, .archiveFrequency = 1});
+  cfg.addSignalDefinition({.id = {4}, .name = "Raw4", .kind = SignalKind::Raw, .source = {7}, .archiveRate = ArchiveRate::Hz1});
 
-  cfg.addSignalDefinition({.id = {5}, .name = "Raw5", .kind = SignalKind::Raw, .source = {8}, .archiveFrequency = 100});
+  cfg.addSignalDefinition({.id = {5}, .name = "Raw5", .kind = SignalKind::Raw, .source = {8}, .archiveRate = ArchiveRate::Hz100});
 
-  cfg.addSignalDefinition({.id = {6}, .name = "Raw6", .kind = SignalKind::Raw, .source = {10}, .archiveFrequency = 10});
+  cfg.addSignalDefinition({.id = {6}, .name = "Raw6", .kind = SignalKind::Raw, .source = {10}, .archiveRate = ArchiveRate::Hz10});
 
   return cfg;
 }
@@ -886,17 +886,17 @@ inline SystemConfiguration createTestConfig_Fail_DataSource()
     .settings = {}
   });
 
-  cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100});
+  cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveRate = ArchiveRate::Hz100});
 
-  cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 10});
+  cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveRate = ArchiveRate::Hz10});
 
-  cfg.addSignalDefinition({.id = {2}, .name = "Raw2", .kind = SignalKind::Raw, .source = {4}, .archiveFrequency = 1000});
+  cfg.addSignalDefinition({.id = {2}, .name = "Raw2", .kind = SignalKind::Raw, .source = {4}, .archiveRate = ArchiveRate::Hz1000});
 
-  cfg.addSignalDefinition({.id = {3}, .name = "Raw3", .kind = SignalKind::Raw, .source = {6}, .archiveFrequency = 100});
+  cfg.addSignalDefinition({.id = {3}, .name = "Raw3", .kind = SignalKind::Raw, .source = {6}, .archiveRate = ArchiveRate::Hz100});
 
-  cfg.addSignalDefinition({.id = {5}, .name = "Raw5", .kind = SignalKind::Raw, .source = {8}, .archiveFrequency = 100});
+  cfg.addSignalDefinition({.id = {5}, .name = "Raw5", .kind = SignalKind::Raw, .source = {8}, .archiveRate = ArchiveRate::Hz100});
 
-  cfg.addSignalDefinition({.id = {6}, .name = "Raw6", .kind = SignalKind::Raw, .source = {10}, .archiveFrequency = 10});
+  cfg.addSignalDefinition({.id = {6}, .name = "Raw6", .kind = SignalKind::Raw, .source = {10}, .archiveRate = ArchiveRate::Hz10});
 
   return cfg;
 }
@@ -912,17 +912,17 @@ static SystemConfiguration createTestConfigUnknownDependency()
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
   cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}});
 
-  SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 1000};
+  SignalDefinition sd0 {.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveRate = ArchiveRate::Hz1000};
   cfg.addSignalDefinition(sd0);
-  SignalDefinition sd1 {.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 100};
+  SignalDefinition sd1 {.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveRate = ArchiveRate::Hz100};
   cfg.addSignalDefinition(sd1);
 
-  SignalDefinition sd2 {.id = {7}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{0}}};
+  SignalDefinition sd2 {.id = {7}, .name = "A", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz100, .formulaId = {0}, .dependencies = {{0}}};
   cfg.addSignalDefinition(sd2);
-  SignalDefinition sd3 {.id = {4}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}, .dependencies = {{1}}};
+  SignalDefinition sd3 {.id = {4}, .name = "B", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .formulaId = {0}, .dependencies = {{1}}};
   cfg.addSignalDefinition(sd3);
 
-  SignalDefinition sd4 {.id = {11}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}, .dependencies = {{4}, {8}}};
+  SignalDefinition sd4 {.id = {11}, .name = "C", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .formulaId = {0}, .dependencies = {{4}, {8}}};
   cfg.addSignalDefinition(sd4);
 
   return cfg;
@@ -952,11 +952,11 @@ inline qds::ModuleRuntimeConfiguration createModuleRuntimeConfiguration(ModuleTy
         .settings = QJsonDocument::fromJson(R"({})").object()
       },
       .tags = {
-               {TagId{1}, ModuleId{0}, ChannelId{0}, QJsonDocument::fromJson(R"({"mode":0,"range":0})").object()},
-               {TagId{5}, ModuleId{0}, ChannelId{1}, QJsonDocument::fromJson(R"({"mode":2,"range":1})").object()},
-               {TagId{7}, ModuleId{0}, ChannelId{3}, QJsonDocument::fromJson(R"({"mode":1,"range":2})").object()},
-               {TagId{9}, ModuleId{0}, ChannelId{24}, QJsonDocument::fromJson(R"({"mode":1,"range":3})").object()},
-               }
+       {TagId{1}, ModuleId{0}, ChannelId{0}, ArchiveRate::Hz100, QJsonDocument::fromJson(R"({"mode":0,"range":0})").object()},
+       {TagId{5}, ModuleId{0}, ChannelId{1}, ArchiveRate::Hz100, QJsonDocument::fromJson(R"({"mode":2,"range":1})").object()},
+       {TagId{7}, ModuleId{0}, ChannelId{3}, ArchiveRate::Hz100, QJsonDocument::fromJson(R"({"mode":1,"range":2})").object()},
+       {TagId{9}, ModuleId{0}, ChannelId{24}, ArchiveRate::Hz100, QJsonDocument::fromJson(R"({"mode":1,"range":3})").object()},
+      }
     };
 
   return cfg;

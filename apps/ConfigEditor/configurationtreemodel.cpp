@@ -121,7 +121,10 @@ bool ConfigurationTreeModel::load(
           .channel = ChannelId{channel},
           .settings = enabled ?
             configChannel->settings
-            : QJsonObject{}
+            : QJsonObject{},
+          .archiveRate = enabled
+           ? configChannel->archiveRate
+           : ArchiveRate::Hz10,
         };
 
         if (enabled)
@@ -329,7 +332,8 @@ bool ConfigurationTreeModel::setData(
           m_configuration,
           channel->module,
           channel->channel,
-          channel->settings);
+          channel->settings,
+          channel->archiveRate);
 
       if (!tag)
       {
@@ -580,6 +584,45 @@ bool ConfigurationTreeModel::updateChannelSettings(
   }
 
   channel->settings = settings;
+
+  emit dataChanged(index, index);
+
+  return true;
+}
+
+bool ConfigurationTreeModel::updateChannelArchiveRate(
+  const QModelIndex& index,
+  ArchiveRate rate)
+{
+  auto* data = const_cast<TreeItemData*>(
+    treeItemData(index));
+
+  if (!data)
+    return false;
+
+  auto* channel = std::get_if<ChannelItemData>(data);
+
+  if (!channel || !channel->tag ||
+      !isValidArchiveRate(rate))
+    return false;
+
+  if (!m_repository.updateConfigTagArchiveRate(
+        m_configuration,
+        channel->module,
+        channel->channel,
+        rate))
+  {
+    const auto error = m_repository.lastError();
+
+    emit operationFailed(
+      error.isValid()
+        ? error.text()
+        : tr("Не удалось сохранить частоту архивирования."));
+
+    return false;
+  }
+
+  channel->archiveRate = rate;
 
   emit dataChanged(index, index);
 

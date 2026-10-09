@@ -95,7 +95,7 @@ void tst_database::test_database_loadConfiguration()
   auto raw0 = findSignalDefinition(ss, "Raw0");
   QVERIFY(raw0);
   QCOMPARE(raw0->source.tag, mtags[0]);
-  QCOMPARE(raw0->archiveFrequency, 1000);
+  QCOMPARE(raw0->archiveRate, ArchiveRate::Hz1000);
   QCOMPARE(raw0->kind, SignalKind::Raw);
   QCOMPARE(raw0->calibrationMode, CalibrationMode::None);
   QCOMPARE(raw0->formula, "");
@@ -104,7 +104,7 @@ void tst_database::test_database_loadConfiguration()
   auto raw1 = findSignalDefinition(ss, "Raw1");
   QVERIFY(raw1);
   QCOMPARE(raw1->source.tag, mtags[1]);
-  QCOMPARE(raw1->archiveFrequency, 100);
+  QCOMPARE(raw1->archiveRate, ArchiveRate::Hz100);
   QCOMPARE(raw1->kind, SignalKind::Raw);
   QCOMPARE(raw1->calibrationMode, CalibrationMode::None);
   QCOMPARE(raw1->formula, "");
@@ -112,7 +112,7 @@ void tst_database::test_database_loadConfiguration()
 
   auto a = findSignalDefinition(ss, "A");
   QVERIFY(a);
-  QCOMPARE(a->archiveFrequency, 100);
+  QCOMPARE(a->archiveRate, ArchiveRate::Hz100);
   QCOMPARE(a->kind, SignalKind::Calculated);
   QCOMPARE(a->calibrationMode, CalibrationMode::BySignal);
   QCOMPARE(a->formula, "Raw0");
@@ -120,7 +120,7 @@ void tst_database::test_database_loadConfiguration()
 
   auto b = findSignalDefinition(ss, "B");
   QVERIFY(b);
-  QCOMPARE(b->archiveFrequency, 10);
+  QCOMPARE(b->archiveRate, ArchiveRate::Hz10);
   QCOMPARE(b->kind, SignalKind::Calculated);
   QCOMPARE(b->calibrationMode, CalibrationMode::BySignalType);
   QCOMPARE(b->formula, "Raw1");
@@ -128,7 +128,7 @@ void tst_database::test_database_loadConfiguration()
 
   auto c = findSignalDefinition(ss, "C");
   QVERIFY(c);
-  QCOMPARE(c->archiveFrequency, 10);
+  QCOMPARE(c->archiveRate, ArchiveRate::Hz10);
   QCOMPARE(c->kind, SignalKind::Calculated);
   QCOMPARE(c->calibrationMode, CalibrationMode::None);
   QCOMPARE(c->formula, "A + B");

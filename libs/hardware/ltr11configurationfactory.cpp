@@ -51,56 +51,58 @@ Ltr11ConfigurationFactory::create(
   if (!rateValue.isDouble())
     return std::nullopt;
 
+  const QJsonValue modeValue = settings.value("mode");
+
+  if (!modeValue.isDouble())
+    return std::nullopt;
+
+  const double mode = modeValue.toDouble();
+
+  if (mode != 0.0 && mode != 1.0)
+    return std::nullopt;
+
   Ltr11Configuration result{
     .address = address,
     .port = static_cast<uint16_t>(crate.port),
     .crateSerial = crate.serial.toStdString(),
     .slot = static_cast<int>(module.slot),
+    .mode = static_cast<uint8_t>(mode),
     .channelRate = rateValue.toDouble(),
   };
 
   result.channels.reserve(configuration.tags.size());
 
   /*
-   * Настройка логических каналов.
-   */
+ * Настройка физических каналов.
+ */
+  const uint32_t maxChannels =
+    result.mode == 0 ? 16 : 32;
+
   for (const auto& tag : configuration.tags)
   {
-    const auto& tagSettings = tag.settings;
+    if (tag.channel.value >= maxChannels)
+      continue;
 
-    const QJsonValue modeValue = tagSettings.value("mode");
-    const QJsonValue rangeValue = tagSettings.value("range");
+    const QJsonValue rangeValue =
+      tag.settings.value("range");
 
-    if (!modeValue.isDouble() || !rangeValue.isDouble())
+    if (!rangeValue.isDouble())
       return std::nullopt;
 
-    const double mode = modeValue.toDouble();
     const double range = rangeValue.toDouble();
 
-    if (mode < 0 || mode > 255 ||
-        range < 0 || range > 255)
+    if (range != 0.0 &&
+        range != 1.0 &&
+        range != 2.0 &&
+        range != 3.0)
     {
       return std::nullopt;
     }
 
-    if (mode != static_cast<int>(mode) ||
-        range != static_cast<int>(range))
-    {
-      return std::nullopt;
-    }
-
-    if (tag.channel.value >
-        std::numeric_limits<uint8_t>::max())
-    {
-      return std::nullopt;
-    }
-
-    result.channels.push_back(
-      {
-        .channel = static_cast<uint8_t>(tag.channel.value),
-        .mode = static_cast<uint8_t>(mode),
-        .range = static_cast<uint8_t>(range),
-      });
+    result.channels.push_back({
+      .channel = static_cast<uint8_t>(tag.channel.value),
+      .range = static_cast<uint8_t>(range),
+    });
   }
 
   /*

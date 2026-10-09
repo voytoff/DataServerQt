@@ -1,11 +1,12 @@
 #include "tst_ltr11module.h"
-#include <QJsonDocument>
+#include <QJsonObject>
 #include <qelapsedtimer.h>
 #include <qtestcase.h>
 #include <qtestsupport_core.h>
 #include "fakeclock.h"
 #include "lcarddatasource.h"
 #include "ltr11configurationbuilder.h"
+#include "ltr11configurationfactory.h"
 #include "ltr11configurationvalidator.h"
 #include "ltr11module.h"
 #include "signalmemory.h"
@@ -284,6 +285,7 @@ void tst_ltr11module::test_ltr11configurationvalidator()
     .port = 11111,
     .crateSerial = "CRATE16/EU",
     .slot = 11,
+    .mode = 0,
     .channelRate = 1000,
   };
 
@@ -293,32 +295,55 @@ void tst_ltr11module::test_ltr11configurationvalidator()
   cfg.channels.push_back(
     {
       .channel = 0,
-      .mode = 0,
       .range = 0,
     });
 
   // Корректная конфигурация
   QVERIFY(Ltr11ConfigurationValidator::validate(cfg));
 
-  for (uint8_t i = 0; i < 128; ++i) {
+  for (uint8_t i = 1; i < 17; ++i) {
     cfg.channels.push_back(
       {
-        .channel = static_cast<uint8_t>(i / 4),
-        .mode = static_cast<uint8_t>(i % 3),
+        .channel = i,
         .range = static_cast<uint8_t>(i % 4),
       });
   }
 
-  QCOMPARE(cfg.channels.size(), 129);
+  QCOMPARE(cfg.channels.size(), 17);
 
-  // Более 128 логических каналов
+  // Более 16 логических каналов при mode = 0
   QVERIFY(!Ltr11ConfigurationValidator::validate(cfg));
 
-  cfg.channels.erase(cfg.channels.begin());
+  cfg.channels.pop_back(); // 17 канал
 
-  QCOMPARE(cfg.channels.size(), 128);
+  QVERIFY(Ltr11ConfigurationValidator::validate(cfg));
 
-  // Повторяющиеся физические каналы = true
+  cfg.channels[15].channel = 16;
+
+  // Проверка канала 16 при дифференциальном режиме
+  QVERIFY(!Ltr11ConfigurationValidator::validate(cfg));
+
+  cfg.channels[15].channel = 15;
+
+  for (uint8_t i = 16; i < 33; ++i) {
+    cfg.channels.push_back(
+      {
+        .channel = i,
+        .range = static_cast<uint8_t>(i % 4),
+      });
+  }
+
+  QCOMPARE(cfg.channels.size(), 33);
+
+  cfg.mode = 1;
+
+  // Более 32 логических каналов при mode 1
+  QVERIFY(!Ltr11ConfigurationValidator::validate(cfg));
+
+  cfg.channels.pop_back(); // 33 канал
+
+  QCOMPARE(cfg.channels.size(), 32);
+
   QVERIFY(Ltr11ConfigurationValidator::validate(cfg));
 
   cfg.channels[0].channel = 32;
@@ -326,16 +351,22 @@ void tst_ltr11module::test_ltr11configurationvalidator()
   // Физический канал с номером 32
   QVERIFY(!Ltr11ConfigurationValidator::validate(cfg));
 
+  cfg.channels[0].channel = 30;
+  QCOMPARE(cfg.channels[30].channel, 30);
+
+  // Проверка повторяющихся физических каналов 30
+  QVERIFY(!Ltr11ConfigurationValidator::validate(cfg));
+
   cfg.channels.erase(cfg.channels.begin());
 
   QVERIFY(Ltr11ConfigurationValidator::validate(cfg));
 
-  cfg.channels[0].mode = 3;
+  cfg.mode = 2;
 
-  // Недопустимый mode >= 3
+  // Недопустимый mode >= 2
   QVERIFY(!Ltr11ConfigurationValidator::validate(cfg));
 
-  cfg.channels.erase(cfg.channels.begin());
+  cfg.mode = 1;
 
   QVERIFY(Ltr11ConfigurationValidator::validate(cfg));
 
@@ -386,7 +417,6 @@ void tst_ltr11module::test_ltr11configurationvalidator()
   // Проверка валидатора канала
   Ltr11ChannelConfiguration channel{
     .channel = 31,
-    .mode = 2,
     .range = 3,
   };
 
@@ -398,12 +428,48 @@ void tst_ltr11module::test_ltr11configurationvalidator()
   QVERIFY(!Ltr11ConfigurationValidator::validate(channel));
 
   channel.channel = 31;
-  channel.mode = 3;
-  // Недопустимый mode >= 3
-  QVERIFY(!Ltr11ConfigurationValidator::validate(channel));
 
-  channel.mode = 2;
   channel.range = 4;
   // Недопустимый range >= 4
   QVERIFY(!Ltr11ConfigurationValidator::validate(channel));
+}
+
+void tst_ltr11module::test_Ltr11ConfigurationFactory()
+{
+  ModuleRuntimeConfiguration cfg{
+    .module = {
+      .id = ModuleId{1},
+      .serial = "MODULE11",
+      .crate = CrateId{1},
+      .slot = 12,
+      .type = ModuleType::LTR11,
+      .description = "Тестовый модуль",
+    },
+    .crate = CrateInfo{
+      .id = CrateId{1},
+      .serial = "CRATE16",
+      .host = "192.168.1.10",
+      .port = 11111,
+      .description = "Тестовый крейт"
+    },
+    .configuration = {
+      .configurationId = ConfigurationId{1},
+      .module = ModuleId{1},
+      .settings = QJsonObject{
+        {"mode", 0}
+      }
+    },
+  };
+  cfg.tags.push_back({
+    .tag = TagId{116},
+    .module = ModuleId{1},
+    .channel = ChannelId{0},
+    .settings = QJsonObject{
+      {"range", 1}
+    }
+  });
+
+  Ltr11ConfigurationFactory factory;
+
+  const auto& configuration = factory.create(cfg);
 }

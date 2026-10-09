@@ -2340,15 +2340,15 @@ void tst_formulas::test_calculationOrder_cba()
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
   cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}});
 
-  cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 100});
+  cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveRate = ArchiveRate::Hz100});
 
-  cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 10});
+  cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveRate = ArchiveRate::Hz10});
 
-  cfg.addSignalDefinition({.id = {2}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{5}, {3}}});
+  cfg.addSignalDefinition({.id = {2}, .name = "A", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz100, .formulaId = {0}, .dependencies = {{5}, {3}}});
 
-  cfg.addSignalDefinition({.id = {5}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .calibrationMode = CalibrationMode::BySignal, .dependencies = {{1}}});
+  cfg.addSignalDefinition({.id = {5}, .name = "B", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .calibrationMode = CalibrationMode::BySignal, .dependencies = {{1}}});
 
-  cfg.addSignalDefinition({.id = {3}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {2}, .dependencies = {{0}}});
+  cfg.addSignalDefinition({.id = {3}, .name = "C", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .formulaId = {2}, .dependencies = {{0}}});
 
   CalculationOrder co;
 
@@ -2427,7 +2427,7 @@ void tst_formulas::test_calculationOrder_chain()
     .name = "Raw0",
     .kind = SignalKind::Raw,
     .source = {0},
-    .archiveFrequency = 100
+    .archiveRate = ArchiveRate::Hz100
   });
 
   // A -> B -> C -> Raw0
@@ -2435,7 +2435,7 @@ void tst_formulas::test_calculationOrder_chain()
     .id = {2},
     .name = "A",
     .kind = SignalKind::Calculated,
-    .archiveFrequency = 100,
+    .archiveRate = ArchiveRate::Hz100,
     .dependencies = {{5}}
   });
 
@@ -2443,7 +2443,7 @@ void tst_formulas::test_calculationOrder_chain()
     .id = {5},
     .name = "B",
     .kind = SignalKind::Calculated,
-    .archiveFrequency = 100,
+    .archiveRate = ArchiveRate::Hz100,
     .dependencies = {{3}}
   });
 
@@ -2451,7 +2451,7 @@ void tst_formulas::test_calculationOrder_chain()
     .id = {3},
     .name = "C",
     .kind = SignalKind::Calculated,
-    .archiveFrequency = 100,
+    .archiveRate = ArchiveRate::Hz100,
     .dependencies = {{0}}
   });
 
@@ -2502,16 +2502,16 @@ void tst_formulas::test_calculationOrder_serious()
   QVERIFY(cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}}));
   QVERIFY(cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}}));
 
-  QVERIFY(cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 1000}));
-  QVERIFY(cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 100}));
+  QVERIFY(cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveRate = ArchiveRate::Hz1000}));
+  QVERIFY(cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveRate = ArchiveRate::Hz100}));
 
-  QVERIFY(cfg.addSignalDefinition({.id = {7}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formulaId = {0}, .dependencies = {{0}}})); // Raw0
+  QVERIFY(cfg.addSignalDefinition({.id = {7}, .name = "A", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz100, .formulaId = {0}, .dependencies = {{0}}})); // Raw0
 
-  QVERIFY(cfg.addSignalDefinition({.id = {4}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}, .dependencies = {{1}}}));  // Raw1
+  QVERIFY(cfg.addSignalDefinition({.id = {4}, .name = "B", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .formulaId = {0}, .dependencies = {{1}}}));  // Raw1
 
-  QVERIFY(cfg.addSignalDefinition({.id = {11}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}, .dependencies = {{7}}})); // A
+  QVERIFY(cfg.addSignalDefinition({.id = {11}, .name = "C", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .formulaId = {0}, .dependencies = {{7}}})); // A
 
-  QVERIFY(cfg.addSignalDefinition({.id = {14}, .name = "D", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formulaId = {0}, .dependencies = {{0}}})); // Raw0
+  QVERIFY(cfg.addSignalDefinition({.id = {14}, .name = "D", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .formulaId = {0}, .dependencies = {{0}}})); // Raw0
 
   CalculationOrder co;
 

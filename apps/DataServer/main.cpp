@@ -23,14 +23,14 @@ static qds::SystemConfiguration createTestConfig_calculate(qds::ModuleType type 
   cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
   cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}});
 
-  cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveFrequency = 1000});
-  cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveFrequency = 100});
+  cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveRate = ArchiveRate::Hz1000});
+  cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveRate = ArchiveRate::Hz100});
 
-  cfg.addSignalDefinition({.id = {17}, .name = "A", .kind = SignalKind::Calculated, .archiveFrequency = 100, .formula = "Raw0", .formulaId = {0}, .dependencies = {{0}}}); // Raw0
+  cfg.addSignalDefinition({.id = {17}, .name = "A", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz100, .formula = "Raw0", .formulaId = {0}, .dependencies = {{0}}}); // Raw0
 
-  cfg.addSignalDefinition({.id = {4}, .name = "B", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formula = "Raw1", .formulaId = {1}, .dependencies = {{1}}});  // Raw1
+  cfg.addSignalDefinition({.id = {4}, .name = "B", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .formula = "Raw1", .formulaId = {1}, .dependencies = {{1}}});  // Raw1
 
-  cfg.addSignalDefinition({.id = {23}, .name = "C", .kind = SignalKind::Calculated, .archiveFrequency = 10, .formula = "A + B", .formulaId = {2}, .dependencies = {{17}, {4}}}); // A & B
+  cfg.addSignalDefinition({.id = {23}, .name = "C", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .formula = "A + B", .formulaId = {2}, .dependencies = {{17}, {4}}}); // A & B
 
   return cfg;
 }

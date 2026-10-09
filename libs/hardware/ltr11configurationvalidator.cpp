@@ -1,6 +1,6 @@
 #include "ltr11configurationvalidator.h"
 
-#include <algorithm>
+#include <array>
 #include <cmath>
 
 namespace qds
@@ -9,10 +9,10 @@ namespace qds
 namespace
 {
 
-constexpr uint32_t MaxPhysicalChannels = 32;
-constexpr uint32_t MaxLogicalChannels = 128;
+constexpr uint8_t MaxPhysicalChannels = 32;
+constexpr uint8_t DifferentialChannels = 16;
 
-constexpr uint8_t MaxChannelMode = 2;
+constexpr uint8_t MaxChannelMode = 1;
 constexpr uint8_t MaxChannelRange = 3;
 
 constexpr double MaxAdcFrequency = 400000.0;
@@ -24,46 +24,47 @@ bool Ltr11ConfigurationValidator::validate(
 {
   return
     configuration.channel < MaxPhysicalChannels &&
-    configuration.mode <= MaxChannelMode &&
     configuration.range <= MaxChannelRange;
 }
 
 bool Ltr11ConfigurationValidator::validate(
   const Ltr11Configuration& configuration) noexcept
 {
+  if (configuration.mode > MaxChannelMode)
+    return false;
+
+  const uint8_t maxChannels =
+    configuration.mode == 0
+      ? DifferentialChannels
+      : MaxPhysicalChannels;
+
   const auto& channels = configuration.channels;
 
-  if (channels.empty() ||
-      channels.size() > MaxLogicalChannels)
-  {
+  if (channels.empty() || channels.size() > maxChannels)
     return false;
+
+  std::array<bool, MaxPhysicalChannels> usedChannels{};
+
+  for (const auto& channel : channels)
+  {
+    if (!validate(channel))
+      return false;
+
+    if (channel.channel >= maxChannels)
+      return false;
+
+    if (usedChannels[channel.channel])
+      return false;
+
+    usedChannels[channel.channel] = true;
   }
 
-  if (!std::all_of(
-        channels.begin(),
-        channels.end(),
-        [](const auto& channel)
-        {
-          return validate(channel);
-        }))
-  {
+  if (!std::isfinite(configuration.channelRate) ||
+      configuration.channelRate <= 0.0)
     return false;
-  }
 
-  const double channelRate =
-    configuration.channelRate;
-
-  if (!std::isfinite(channelRate) ||
-      channelRate <= 0.0)
-  {
-    return false;
-  }
-
-  const double adcFrequency =
-    channelRate *
-    static_cast<double>(channels.size());
-
-  return adcFrequency <= MaxAdcFrequency;
+  return configuration.channelRate *
+           static_cast<double>(channels.size()) <= MaxAdcFrequency;
 }
 
 }

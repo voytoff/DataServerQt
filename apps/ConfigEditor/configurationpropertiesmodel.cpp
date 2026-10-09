@@ -1,4 +1,6 @@
 #include "configurationpropertiesmodel.h"
+#include <cmath>
+#include <QMessageBox>
 
 namespace qds
 {
@@ -37,22 +39,25 @@ void ConfigurationPropertiesModel::setItem(
           tr("Частота опроса, Гц"),
           module->settings.value("channelRate").toDouble(1000.0)
         });
+        properties.push_back({
+          tr("Режим"),
+          module->settings.value("mode").toInt(1)
+        });
       }
     }
     else if (const auto* channel =
              std::get_if<ChannelItemData>(data))
     {
-      // Пока выводим только настройки включённых каналов.
       if (channel->tag.has_value())
       {
         properties.push_back({
-          tr("Режим"),
-          channel->settings.value("mode").toInt(1)
+          tr("Диапазон"),
+          channel->settings.value("range").toInt(0)
         });
 
         properties.push_back({
-          tr("Диапазон"),
-          channel->settings.value("range").toInt(0)
+          tr("Частота архивирования"),
+          static_cast<uint16_t>(channel->archiveRate)
         });
       }
     }
@@ -118,12 +123,10 @@ QVariant ConfigurationPropertiesModel::data(
     {
     case 0: return tr("Дифференциальный");
     case 1: return tr("Общая земля");
-    case 2: return tr("Измерение нуля");
     default: return property.value;
     }
   }
-
-  if (property.name == tr("Диапазон"))
+  else if (property.name == tr("Диапазон"))
   {
     switch (property.value.toInt())
     {
@@ -133,6 +136,11 @@ QVariant ConfigurationPropertiesModel::data(
     case 3: return tr("±0,156 В");
     default: return property.value;
     }
+  }
+  else if (property.name == tr("Частота архивирования"))
+  {
+    return QString("%1 Гц")
+      .arg(property.value.toUInt());
   }
 
   return property.value;
@@ -187,16 +195,83 @@ bool ConfigurationPropertiesModel::setData(
   {
     settings = module->settings;
 
-    if (property.name != tr("Частота опроса, Гц"))
+    if (property.name == tr("Частота опроса, Гц"))
+    {
+      bool ok = false;
+      const double frequency = value.toDouble(&ok);
+
+      if (!ok || !std::isfinite(frequency) ||
+          frequency <= 0.0)
+        return false;
+
+      settings["channelRate"] = frequency;
+    }
+    else if (property.name == tr("Режим"))
+    {
+      bool ok = false;
+      const int mode = value.toInt(&ok);
+
+      if (!ok || mode < 0 || mode > 1)
+        return false;
+
+      const int oldMode =
+        module->settings.value("mode").toInt(1);
+
+      if (oldMode == 1 && mode == 0)
+      {
+        bool hasHiddenChannels = false;
+
+        const int count =
+          m_treeModel->rowCount(m_currentItem);
+
+        for (int row = 0; row < count; ++row)
+        {
+          const QModelIndex channelIndex =
+            m_treeModel->index(row, 0, m_currentItem);
+
+          const auto* data =
+            m_treeModel->treeItemData(channelIndex);
+
+          if (!data)
+            continue;
+
+          const auto* channel =
+            std::get_if<ChannelItemData>(data);
+
+          if (channel &&
+              channel->channel.value >= 16 &&
+              channel->tag.has_value())
+          {
+            hasHiddenChannels = true;
+            break;
+          }
+        }
+
+        if (hasHiddenChannels)
+        {
+          const auto answer = QMessageBox::question(
+            qobject_cast<QWidget*>(parent()),
+            tr("Изменение режима LTR11"),
+            tr("В модуле имеются включённые каналы "
+               "16–31.\n\n"
+               "В дифференциальном режиме они будут "
+               "недоступны для измерений, но их "
+               "настройки сохранятся.\n\n"
+               "Продолжить изменение режима?"),
+            QMessageBox::Yes | QMessageBox::No,
+            QMessageBox::No);
+
+          if (answer != QMessageBox::Yes)
+            return false;
+        }
+      }
+
+      settings["mode"] = mode;
+    }
+    else
+    {
       return false;
-
-    bool ok = false;
-    const double frequency = value.toDouble(&ok);
-
-    if (!ok || frequency <= 0.0)
-      return false;
-
-    settings["channelRate"] = frequency;
+    }
 
     if (!m_treeModel->updateModuleSettings(
           m_currentItem,
@@ -208,36 +283,47 @@ bool ConfigurationPropertiesModel::setData(
   else if (const auto* channel =
            std::get_if<ChannelItemData>(itemData))
   {
-    settings = channel->settings;
-
-    bool ok = false;
-    const int number = value.toInt(&ok);
-
-    if (!ok)
-      return false;
-
-    if (property.name == tr("Режим"))
+    if (property.name == tr("Частота архивирования"))
     {
-      if (number < 0 || number > 2)
+      bool ok = false;
+      const uint32_t frequency = value.toUInt(&ok);
+
+      if (!ok)
         return false;
 
-      settings["mode"] = number;
+      const auto rate =
+        static_cast<ArchiveRate>(frequency);
+
+      if (!isValidArchiveRate(rate))
+        return false;
+
+      if (!m_treeModel->updateChannelArchiveRate(
+            m_currentItem,
+            rate))
+      {
+        return false;
+      }
     }
     else if (property.name == tr("Диапазон"))
     {
-      if (number < 0 || number > 3)
+      settings = channel->settings;
+
+      bool ok = false;
+      const int range = value.toInt(&ok);
+
+      if (!ok || range < 0 || range > 3)
         return false;
 
-      settings["range"] = number;
+      settings["range"] = range;
+
+      if (!m_treeModel->updateChannelSettings(
+            m_currentItem,
+            settings))
+      {
+        return false;
+      }
     }
     else
-    {
-      return false;
-    }
-
-    if (!m_treeModel->updateChannelSettings(
-          m_currentItem,
-          settings))
     {
       return false;
     }

@@ -92,6 +92,8 @@ public:
   bool addConfigurationTag(
     const ConfigurationTag& configuration);
 
+  const ConfigurationTag* findConfigurationTag(TagId id) const;
+
   const ConfigurationModule* findConfigurationModule(
     ModuleId id) const;
 

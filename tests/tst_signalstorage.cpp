@@ -257,7 +257,7 @@ void tst_signalstorage::test_datasource_layout_rebuild()
     .name = "RAW5",
     .kind = SignalKind::Raw,
     .source = {10},
-    .archiveFrequency = 100
+    .archiveRate = ArchiveRate::Hz100
   }));
 
   layout.build(cfg);

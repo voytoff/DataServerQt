@@ -349,10 +349,18 @@ bool Ltr11Module::Impl::configureChannels() noexcept
 {
   const auto& channels = m_configuration.channels;
 
-  if (channels.empty())
+  if (channels.empty() ||
+      channels.size() > LTR11_MAX_CHANNEL)
     return false;
 
-  if (channels.size() > LTR11_MAX_LCHANNEL)
+  if (m_configuration.mode != LTR11_CHMODE_DIFF &&
+      m_configuration.mode != LTR11_CHMODE_COMM)
+    return false;
+
+  const std::size_t maxChannels =
+    m_configuration.mode == LTR11_CHMODE_DIFF ? 16 : 32;
+
+  if (channels.size() > maxChannels)
     return false;
 
   m_channelCount = channels.size();
@@ -364,10 +372,7 @@ bool Ltr11Module::Impl::configureChannels() noexcept
   {
     const auto& channel = channels[i];
 
-    if (channel.channel >= LTR11_MAX_CHANNEL)
-      return false;
-
-    if (channel.mode > LTR11_CHMODE_ZERO)
+    if (channel.channel >= maxChannels)
       return false;
 
     if (channel.range > LTR11_CHRANGE_156MV)
@@ -376,7 +381,7 @@ bool Ltr11Module::Impl::configureChannels() noexcept
     m_hltr11.LChTbl[i] =
       LTR11_CreateLChannel(
         channel.channel,
-        channel.mode,
+        m_configuration.mode,
         channel.range);
   }
 
