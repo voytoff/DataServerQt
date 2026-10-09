@@ -19,6 +19,8 @@ struct ConfigModule
 
   uint32_t slot = 0;
 
+  bool active = true;
+
   QJsonObject settings;
 };
 

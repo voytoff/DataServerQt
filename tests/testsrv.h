@@ -952,10 +952,10 @@ inline qds::ModuleRuntimeConfiguration createModuleRuntimeConfiguration(ModuleTy
         .settings = QJsonDocument::fromJson(R"({})").object()
       },
       .tags = {
-       {TagId{1}, ModuleId{0}, ChannelId{0}, ArchiveRate::Hz100, QJsonDocument::fromJson(R"({"mode":0,"range":0})").object()},
-       {TagId{5}, ModuleId{0}, ChannelId{1}, ArchiveRate::Hz100, QJsonDocument::fromJson(R"({"mode":2,"range":1})").object()},
-       {TagId{7}, ModuleId{0}, ChannelId{3}, ArchiveRate::Hz100, QJsonDocument::fromJson(R"({"mode":1,"range":2})").object()},
-       {TagId{9}, ModuleId{0}, ChannelId{24}, ArchiveRate::Hz100, QJsonDocument::fromJson(R"({"mode":1,"range":3})").object()},
+       {TagId{1}, ModuleId{0}, ChannelId{0}, ArchiveRate::Hz100, true, QJsonDocument::fromJson(R"({"mode":0,"range":0})").object()},
+       {TagId{5}, ModuleId{0}, ChannelId{1}, ArchiveRate::Hz100, true, QJsonDocument::fromJson(R"({"mode":2,"range":1})").object()},
+       {TagId{7}, ModuleId{0}, ChannelId{3}, ArchiveRate::Hz100, true, QJsonDocument::fromJson(R"({"mode":1,"range":2})").object()},
+       {TagId{9}, ModuleId{0}, ChannelId{24}, ArchiveRate::Hz100, true, QJsonDocument::fromJson(R"({"mode":1,"range":3})").object()},
       }
     };
 

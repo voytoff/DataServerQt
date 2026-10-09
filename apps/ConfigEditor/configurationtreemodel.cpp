@@ -68,7 +68,7 @@ bool ConfigurationTreeModel::load(
             return item.module == module.id;
           });
 
-      const bool enabled =
+      const bool configured =
         configModule != configModules.end();
 
       ModuleItemData moduleData{
@@ -76,9 +76,9 @@ bool ConfigurationTreeModel::load(
         .type = module.type,
         .serial = module.serial,
         .slot = module.slot,
-        .enabled = enabled,
-        .settings =
-        enabled
+        .configured = configured,
+        .active = configured ? configModule->active : false,
+        .settings = configured
           ? configModule->settings
           : QJsonObject{}
       };
@@ -95,7 +95,7 @@ bool ConfigurationTreeModel::load(
 
       std::vector<ConfigurationTag> channels;
 
-      if (enabled &&
+      if (configured &&
           !m_repository.moduleConfigTags(
             configuration,
             module.id,
@@ -113,23 +113,23 @@ bool ConfigurationTreeModel::load(
               return item.channel == ChannelId{channel};
             });
 
-        const bool enabled =
+        const bool configured =
           configChannel != channels.end();
 
         ChannelItemData channelData{
           .module = module.id,
           .channel = ChannelId{channel},
-          .settings = enabled ?
-            configChannel->settings
+          .tag = configured
+            ? std::optional<TagId>{configChannel->tag}
+            : std::nullopt,
+          .active = configured ? configChannel->active : false,
+          .settings = configured
+            ? configChannel->settings
             : QJsonObject{},
-          .archiveRate = enabled
-           ? configChannel->archiveRate
-           : ArchiveRate::Hz10,
+          .archiveRate = configured
+            ? configChannel->archiveRate
+            : ArchiveRate::Hz10
         };
-
-        if (enabled)
-          channelData.tag = configChannel->tag;
-
 
         moduleItem->addChild(
           std::move(channelData));
@@ -262,9 +262,8 @@ QVariant ConfigurationTreeModel::data(
   {
     if (role == Qt::DisplayRole)
       return module->serial;
-    else if (role == Qt::CheckStateRole) {
-      return module->enabled ? Qt::Checked : Qt::Unchecked;
-    }
+    else if (role == Qt::CheckStateRole)
+      return module->active ? Qt::Checked : Qt::Unchecked;
   }
 
   else if (const auto* channel =
@@ -272,9 +271,8 @@ QVariant ConfigurationTreeModel::data(
   {
     if (role == Qt::DisplayRole)
       return channel->channel.value;
-    else if (role == Qt::CheckStateRole) {
-      return channel->tag.has_value() ? Qt::Checked : Qt::Unchecked;
-    }
+    else if (role == Qt::CheckStateRole)
+      return channel->active ? Qt::Checked : Qt::Unchecked;
   }
 
   return {};
@@ -298,8 +296,10 @@ bool ConfigurationTreeModel::setData(
   if (!item)
     return false;
 
-  auto& itemData =
-    item->data();
+  auto& itemData = item->data();
+
+  const bool active =
+    value.toInt() == Qt::Checked;
 
   if (auto* channel =
       std::get_if<ChannelItemData>(&itemData))
@@ -313,20 +313,17 @@ bool ConfigurationTreeModel::setData(
       std::get_if<ModuleItemData>(
         &parentItem->data());
 
-    if (!module || !module->enabled)
+    if (!module || !module->active)
       return false;
 
-    const bool enabled =
-      value.toInt() == Qt::Checked;
-
-    const bool currentEnabled =
-      channel->tag.has_value();
-
-    if (enabled == currentEnabled)
+    if (active == channel->active)
       return true;
 
-    if (enabled)
+    if (!channel->tag)
     {
+      if (!active)
+        return true;
+
       const auto tag =
         m_repository.addConfigTag(
           m_configuration,
@@ -353,10 +350,11 @@ bool ConfigurationTreeModel::setData(
     else
     {
       const bool success =
-        m_repository.removeConfigTag(
+        m_repository.setConfigTagActive(
           m_configuration,
           channel->module,
-          channel->channel);
+          channel->channel,
+          active);
 
       if (!success)
       {
@@ -366,14 +364,13 @@ bool ConfigurationTreeModel::setData(
         emit operationFailed(
           error.isValid()
             ? error.text()
-            : tr("Не удалось удалить канал."));
+            : tr("Не удалось изменить состояние канала."));
 
         return false;
       }
-
-      channel->tag.reset();
-      channel->settings = {};
     }
+
+    channel->active = active;
 
     emit dataChanged(
       index,
@@ -390,20 +387,29 @@ bool ConfigurationTreeModel::setData(
   if (!module)
     return false;
 
-  const bool enabled =
-    value.toInt() == Qt::Checked;
-
-  if (enabled == module->enabled)
+  if (active == module->active)
     return true;
 
-  const bool success =
-    enabled
-      ? m_repository.addConfigModule(
-          m_configuration,
-          module->id)
-      : m_repository.removeConfigModule(
-          m_configuration,
-          module->id);
+  bool success = false;
+
+  if (!module->configured)
+  {
+    if (!active)
+      return true;
+
+    success =
+      m_repository.addConfigModule(
+        m_configuration,
+        module->id);
+  }
+  else
+  {
+    success =
+      m_repository.setConfigModuleActive(
+        m_configuration,
+        module->id,
+        active);
+  }
 
   if (!success)
   {
@@ -418,25 +424,8 @@ bool ConfigurationTreeModel::setData(
     return false;
   }
 
-  module->enabled = enabled;
-
-  if (!enabled)
-  {
-    module->settings = {};
-
-    for (const auto& child : item->children())
-    {
-      auto* channel =
-        std::get_if<ChannelItemData>(
-          &child->data());
-
-      if (!channel)
-        continue;
-
-      channel->tag.reset();
-      channel->settings = {};
-    }
-  }
+  module->configured = true;
+  module->active = active;
 
   emit dataChanged(
     index,
@@ -488,10 +477,8 @@ Qt::ItemFlags ConfigurationTreeModel::flags(
       std::get_if<ModuleItemData>(
         &parentItem->data());
 
-    if (module && module->enabled)
+    if (module && module->active)
       result |= Qt::ItemIsUserCheckable;
-    else
-      result &= ~Qt::ItemIsEnabled;
   }
 
   return result;
@@ -527,7 +514,7 @@ bool ConfigurationTreeModel::updateModuleSettings(
 
   auto* module = std::get_if<ModuleItemData>(data);
 
-  if (!module || !module->enabled)
+  if (!module || !module->configured)
     return false;
 
   if (!m_repository.updateConfigModuleSettings(

@@ -24,7 +24,8 @@ struct ModuleItemData
   ModuleType type;
   QString serial;
   uint32_t slot = 0;
-  bool enabled = false;
+  bool configured = false;
+  bool active = false;
   QJsonObject settings;
 };
 
@@ -33,6 +34,7 @@ struct ChannelItemData
   ModuleId module;
   ChannelId channel;
   std::optional<TagId> tag;
+  bool active = false;
   QJsonObject settings;
   ArchiveRate archiveRate = ArchiveRate::Hz10;
 };

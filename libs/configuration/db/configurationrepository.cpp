@@ -11,6 +11,261 @@ ConfigurationRepository::ConfigurationRepository(
   const QSqlDatabase &database)
   : m_database(database) { }
 
+bool ConfigurationRepository::load(
+  const ConfigurationId& configuration,
+  SystemConfiguration &system)
+{
+  m_error = {};
+
+  SystemConfiguration cfg;
+
+  // проверяем наличие конфигурации
+  auto query = getQuery(R"(
+SELECT id, name, description, udp_port
+FROM configuration WHERE id = :id;)",
+  {
+    {":id", configuration.value}
+  });
+
+  if (!query.exec())
+  {
+    setError(query);
+    return false;
+  }
+
+  if (!query.next())
+    return false;
+
+  cfg.setUdpPort(
+    query.value("udp_port").toUInt());
+
+  cfg.setName(
+    query.value("name").toString().toStdString());
+
+  cfg.setDescription(
+    query.value("description").toString().toStdString());
+
+  // 1 загружаем модули
+  query = getQuery(R"(
+SELECT
+  cm.configuration_id, cm.module_id, cm.settings,
+  m.type as module_type, m.serial as module_serial, m.slot as module_slot, m.description as module_description,
+  c.id as crate_id, c.type as crate_type, c.serial as crate_serial, c.host as crate_host, c.port as crate_port, c.description as crate_description
+FROM
+  configuration_module cm
+JOIN module m
+  ON m.id = cm.module_id
+JOIN crate c
+  ON c.id = m.crate_id
+WHERE
+  cm.configuration_id = :id
+  AND cm.active = 1;)",
+  {
+    {":id", configuration.value}
+  });
+
+  if (!query.exec()) {
+    setError(query);
+    return false;
+  }
+
+  while (query.next())
+  {
+    ModuleInfo module;
+    module.id = ModuleId{query.value("module_id").toUInt()};
+
+    // информация о модуле из module
+    module.type = static_cast<ModuleType>(query.value("module_type").toUInt());
+    module.crate = CrateId{query.value("crate_id").toUInt()};
+    module.serial = query.value("module_serial").toString();
+    module.slot = query.value("module_slot").toInt();
+    module.description = query.value("module_description").toString();
+
+    const auto& crates = cfg.crates();
+
+    auto it = std::find_if(
+      crates.begin(),
+      crates.end(),
+      [&](const CrateInfo &ci) {
+        return ci.id == module.crate;
+      });
+
+    if (it == crates.end())
+    {
+      // запишем информацию о крейте
+      CrateInfo crate;
+      crate.id = CrateId{query.value("crate_id").toUInt()};
+      crate.serial = query.value("crate_serial").toString();
+      crate.host = query.value("crate_host").toString();
+      crate.port = query.value("crate_port").toUInt();
+      crate.description = query.value("crate_description").toString();
+      crate.type = static_cast<CrateType>(query.value("crate_type").toUInt());
+
+      cfg.addCrate(crate);
+    }
+
+    if (!cfg.addModule(module))
+      return false;
+
+    ConfigurationModule configurationModule;
+
+    configurationModule.configurationId = configuration;
+    configurationModule.module = module.id;
+
+    const QByteArray data =
+      query.value("settings")
+        .toString()
+        .toUtf8();
+
+    const QJsonDocument document =
+      QJsonDocument::fromJson(data);
+
+    if (!document.isObject())
+      return false;
+
+    configurationModule.settings =
+      document.object();
+
+    if (!cfg.addConfigurationModule(configurationModule))
+      return false;
+  }
+
+  if (cfg.modules().empty())
+    return false;
+
+  // загружаем теги
+  query = getQuery(R"(
+SELECT
+  ct.id,
+  ct.configuration_id,
+  ct.module_id,
+  ct.channel,
+  ct.archive_rate,
+  ct.settings
+FROM configuration_tag ct
+JOIN configuration_module cm
+  ON cm.configuration_id = ct.configuration_id
+  AND cm.module_id = ct.module_id
+WHERE
+  ct.configuration_id = :id
+  AND ct.active = 1
+  AND cm.active = 1;)",
+  {
+    {":id", configuration.value}
+  });
+
+  if (!query.exec()) {
+    setError(query);
+    return false;
+  }
+
+  while (query.next())
+  {
+    TagInfo tag;
+
+    tag.tag = TagId{
+      query.value("id").toUInt()
+    };
+
+    const ModuleId moduleId{
+      query.value("module_id").toUInt()
+    };
+
+    const auto* module = cfg.findModule(moduleId);
+
+    if (module == nullptr)
+      return false;
+
+    tag.module = module->id;
+    tag.channel = ChannelId{
+      query.value("channel").toUInt()
+    };
+
+    if (!cfg.addTag(tag))
+      return false;
+
+    ConfigurationTag configurationTag;
+    configurationTag.tag = tag.tag;
+    configurationTag.module = tag.module;
+    configurationTag.channel = tag.channel;
+
+    configurationTag.archiveRate =
+      static_cast<ArchiveRate>(query.value("archive_rate").toUInt());
+
+    if (!isValidArchiveRate(configurationTag.archiveRate))
+      return false;
+
+    const QByteArray data =
+      query.value("settings")
+        .toString()
+        .toUtf8();
+
+    const QJsonDocument document =
+      QJsonDocument::fromJson(data);
+
+    if (!document.isObject())
+      return false;
+
+    configurationTag.settings =
+      document.object();
+
+    if (!cfg.addConfigurationTag(configurationTag))
+      return false;
+  }
+
+  if (cfg.tags().empty())
+    return false;
+
+  // загружаем сигналы
+  query = getQuery(R"(
+SELECT id, configuration_id, name, kind, tag_id,
+  signal_type_id, calibration_mode, formula, archive_rate
+FROM configuration_signal_definition
+WHERE configuration_id = :id;)",
+   {
+     {":id", configuration.value}
+   });
+
+  if (!query.exec()) {
+    setError(query);
+    return false;
+  }
+
+  while (query.next())
+  {
+    SignalDefinition definition;
+
+    definition.id = SignalId{query.value("id").toUInt()};
+    definition.name = query.value("name").toString().toStdString();
+    definition.kind = static_cast<SignalKind>(query.value("kind").toUInt());
+    definition.signalType = SignalTypeId{query.value("signal_type_id").toUInt()};
+    definition.archiveRate = static_cast<ArchiveRate>(query.value("archive_rate").toUInt());
+
+    if (definition.kind == SignalKind::Raw) {
+
+      const TagId tag{
+        query.value("tag_id").toUInt()
+      };
+
+      if (!cfg.findTag(tag))
+        continue;
+
+      definition.source = SignalSource{tag};
+
+    } else if (definition.kind == SignalKind::Calculated) {
+      definition.formula = query.value("formula").toString().toStdString();
+      definition.calibrationMode = static_cast<CalibrationMode>(query.value("calibration_mode").toUInt());
+    } else return false;
+
+    if (!cfg.addSignalDefinition(definition))
+      return false;
+  }
+
+  system = std::move(cfg);
+
+  return true;
+}
+
 std::optional<ConfigurationId> ConfigurationRepository::addConfiguration(
   const QString& name,
   const QString& description,
@@ -328,7 +583,7 @@ bool ConfigurationRepository::moduleConfigTags(
 
   auto query = getQuery(
     R"(
-SELECT id, module_id, channel, archive_rate, settings
+SELECT id, module_id, channel, archive_rate, settings, active
 FROM configuration_tag
 WHERE configuration_id = :configuration_id
 AND module_id = :module_id;)",
@@ -380,231 +635,15 @@ AND module_id = :module_id;)",
         static_cast<ArchiveRate>(
           query.value("archive_rate").toUInt()),
 
+      .active =
+        query.value("active").toBool(),
+
       .settings =
-        document.object()
+        document.object(),
     });
   }
 
   tags = std::move(result);
-
-  return true;
-}
-
-bool ConfigurationRepository::load(
-  const ConfigurationId& configuration,
-  SystemConfiguration &system)
-{
-  m_error = {};
-
-  SystemConfiguration cfg;
-
-  // проверяем наличие конфигурации
-  auto query = getQuery(R"(
-SELECT id, name, description, udp_port
-FROM configuration WHERE id = :id;)",
-    {{":id", configuration.value}});
-
-  if (!query.exec())
-  {
-    setError(query);
-    return false;
-  }
-
-  if (!query.next())
-    return false;
-
-  cfg.setUdpPort(
-    query.value("udp_port").toUInt());
-
-  cfg.setName(
-    query.value("name").toString().toStdString());
-
-  cfg.setDescription(
-    query.value("description").toString().toStdString());
-
-  // 1 загружаем модули
-  query = getQuery(R"(
-SELECT
-  cm.configuration_id, cm.module_id, cm.settings,
-  m.type as module_type, m.serial as module_serial, m.slot as module_slot, m.description as module_description,
-  c.id as crate_id, c.type as crate_type, c.serial as crate_serial, c.host as crate_host, c.port as crate_port, c.description as crate_description
-FROM
-  configuration_module cm
-JOIN module m
-  ON m.id = cm.module_id
-JOIN crate c
-  ON c.id = m.crate_id
-WHERE
-  cm.configuration_id = :id;)",
-    {{":id", configuration.value}});
-  if (!query.exec()) {
-    setError(query);
-    return false;
-  }
-
-  while (query.next())
-  {
-    ModuleInfo module;
-    module.id = ModuleId{query.value("module_id").toUInt()};
-
-    // информация о модуле из module
-    module.type = static_cast<ModuleType>(query.value("module_type").toUInt());
-    module.crate = CrateId{query.value("crate_id").toUInt()};
-    module.serial = query.value("module_serial").toString();
-    module.slot = query.value("module_slot").toInt();
-    module.description = query.value("module_description").toString();
-
-    const auto& crates = cfg.crates();
-
-    auto it = std::find_if(crates.begin(), crates.end(), [&](const CrateInfo &ci) {return ci.id == module.crate;});
-
-    if (it == crates.end())
-    {
-      // запишем информацию о крейте
-      CrateInfo crate;
-      crate.id = CrateId{query.value("crate_id").toUInt()};
-      crate.serial = query.value("crate_serial").toString();
-      crate.host = query.value("crate_host").toString();
-      crate.port = query.value("crate_port").toUInt();
-      crate.description = query.value("crate_description").toString();
-      crate.type = static_cast<CrateType>(query.value("crate_type").toUInt());
-
-      cfg.addCrate(crate);
-    }
-
-    if (!cfg.addModule(module))
-      return false;
-
-    ConfigurationModule configurationModule;
-
-    configurationModule.configurationId = configuration;
-    configurationModule.module = module.id;
-
-    const QByteArray data =
-      query.value("settings")
-        .toString()
-        .toUtf8();
-
-    const QJsonDocument document =
-      QJsonDocument::fromJson(data);
-
-    if (!document.isObject())
-      return false;
-
-    configurationModule.settings =
-      document.object();
-
-    if (!cfg.addConfigurationModule(configurationModule))
-      return false;
-  }
-
-  if (cfg.modules().empty())
-    return false;
-
-  // загружаем теги
-  query = getQuery(R"(
-SELECT id, configuration_id, module_id, channel, archive_rate, settings
-FROM configuration_tag
-WHERE configuration_id = :id;)",
-    {
-      {":id", configuration.value}
-    });
-
-  if (!query.exec()) {
-    setError(query);
-    return false;
-  }
-
-  while (query.next())
-  {
-    TagInfo tag;
-
-    tag.tag = TagId{query.value("id").toUInt()};
-
-    const ModuleId moduleId{
-      query.value("module_id").toUInt()
-    };
-
-    const auto* module = cfg.findModule(moduleId);
-
-    if (module == nullptr)
-      return false;
-
-    tag.module = module->id;
-    tag.channel = ChannelId{query.value("channel").toUInt()};
-
-    if (!cfg.addTag(tag))
-      return false;
-
-    ConfigurationTag configurationTag;
-    configurationTag.tag = tag.tag;
-    configurationTag.module = tag.module;
-    configurationTag.channel = tag.channel;
-
-    configurationTag.archiveRate =
-      static_cast<ArchiveRate>(query.value("archive_rate").toUInt());
-
-    if (!isValidArchiveRate(configurationTag.archiveRate))
-      return false;
-
-    const QByteArray data =
-      query.value("settings")
-        .toString()
-        .toUtf8();
-
-    const QJsonDocument document =
-      QJsonDocument::fromJson(data);
-
-    if (!document.isObject())
-      return false;
-
-    configurationTag.settings =
-      document.object();
-
-    if (!cfg.addConfigurationTag(configurationTag))
-      return false;
-  }
-
-  if (cfg.tags().empty())
-    return false;
-
-  // загружаем сигналы
-  query = getQuery(R"(
-SELECT id, configuration_id, name, kind, tag_id,
-       signal_type_id, calibration_mode, formula, archive_rate
-FROM configuration_signal_definition
-WHERE configuration_id = :id;)",
-    {
-      {":id", configuration.value}
-    });
-
-  if (!query.exec()) {
-    setError(query);
-    return false;
-  }
-
-  while (query.next())
-  {
-    SignalDefinition definition;
-
-    definition.id = SignalId{query.value("id").toUInt()};
-    definition.name = query.value("name").toString().toStdString();
-    definition.kind = static_cast<SignalKind>(query.value("kind").toUInt());
-    definition.signalType = SignalTypeId{query.value("signal_type_id").toUInt()};
-    definition.archiveRate = static_cast<ArchiveRate>(query.value("archive_rate").toUInt());
-
-    if (definition.kind == SignalKind::Raw) {
-      definition.source = SignalSource{TagId{query.value("tag_id").toUInt()}};
-    } else if (definition.kind == SignalKind::Calculated) {
-      definition.formula = query.value("formula").toString().toStdString();
-      definition.calibrationMode = static_cast<CalibrationMode>(query.value("calibration_mode").toUInt());
-    } else return false;
-
-    if (!cfg.addSignalDefinition(definition))
-      return false;
-  }
-
-  system = cfg;
 
   return true;
 }
@@ -756,7 +795,7 @@ SELECT
   m.slot AS module_slot,
   c.id AS crate_id,
   c.serial AS crate_serial,
-  cm.settings
+  cm.settings, cm.active
 FROM module m
 JOIN crate c
   ON c.id = m.crate_id
@@ -801,11 +840,11 @@ ORDER BY
         },
 
       .moduleSerial =
-        query.value("module_serial").toString(),
+      query.value("module_serial").toString(),
 
       .type =
-        static_cast<ModuleType>(
-          query.value("module_type").toUInt()),
+      static_cast<ModuleType>(
+        query.value("module_type").toUInt()),
 
       .crate =
         CrateId{
@@ -818,8 +857,11 @@ ORDER BY
       .slot =
         query.value("module_slot").toUInt(),
 
+      .active =
+        query.value("active").toBool(),
+
       .settings =
-        document.object()
+        document.object(),
     });
   }
 
@@ -1008,6 +1050,141 @@ AND channel = :channel;)",
   if (!query.exec())
   {
     setError(query);
+    return false;
+  }
+
+  return true;
+}
+
+bool ConfigurationRepository::setConfigModuleActive(
+  const ConfigurationId& configuration,
+  const ModuleId& module,
+  bool active)
+{
+  m_error = {};
+
+  auto query = getQuery(R"(
+UPDATE configuration_module
+SET active = :active
+WHERE configuration_id = :configuration_id
+  AND module_id = :module_id;)",
+  {
+    {":configuration_id", configuration.value},
+    {":module_id", module.value},
+    {":active", active}
+  });
+
+  if (!query.exec())
+  {
+    setError(query);
+    return false;
+  }
+
+  return query.numRowsAffected() == 1;
+}
+
+bool ConfigurationRepository::setConfigTagActive(
+  const ConfigurationId& configuration,
+  const ModuleId& module,
+  const ChannelId& channel,
+  bool active)
+{
+  m_error = {};
+
+  auto query = getQuery(R"(
+UPDATE configuration_tag
+SET active = :active
+WHERE configuration_id = :configuration_id
+  AND module_id = :module_id
+  AND channel = :channel;)",
+  {
+    {":configuration_id", configuration.value},
+    {":module_id", module.value},
+    {":channel", channel.value},
+    {":active", active}
+  });
+
+  if (!query.exec())
+  {
+    setError(query);
+    return false;
+  }
+
+  return query.numRowsAffected() == 1;
+}
+
+bool ConfigurationRepository::signalDefinitions(
+  const ConfigurationId& configuration,
+  std::vector<SignalDefinition>& definitions)
+{
+  definitions.clear();
+
+  QSqlQuery query = getQuery(
+    R"(
+      SELECT
+        id,
+        name,
+        kind,
+        tag_id,
+        signal_type_id,
+        archive_rate,
+        calibration_mode,
+        formula
+      FROM configuration_signal_definition
+      WHERE configuration_id = :id
+      ORDER BY id
+    )",
+    {
+      {":id", configuration.value}
+    });
+
+  if (!query.exec())
+  {
+    setError(query);
+    return false;
+  }
+
+  while (query.next())
+  {
+    SignalDefinition definition;
+
+    definition.id = SignalId{
+      query.value("id").toUInt()
+    };
+
+    definition.name =
+      query.value("name").toString().toStdString();
+
+    definition.kind = static_cast<SignalKind>(
+      query.value("kind").toInt());
+
+    if (!query.value("tag_id").isNull())
+    {
+      definition.source.tag = TagId{
+        query.value("tag_id").toUInt()
+      };
+    }
+
+    definition.signalType = SignalTypeId{
+      query.value("signal_type_id").toUInt()
+    };
+
+    definition.archiveRate = static_cast<ArchiveRate>(
+      query.value("archive_rate").toInt());
+
+    definition.calibrationMode = static_cast<CalibrationMode>(
+      query.value("calibration_mode").toInt());
+
+    definition.formula =
+      query.value("formula").toString().toStdString();
+
+    definitions.push_back(std::move(definition));
+  }
+
+  if (query.lastError().isValid())
+  {
+    setError(query);
+    definitions.clear();
     return false;
   }
 

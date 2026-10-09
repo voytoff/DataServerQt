@@ -15,6 +15,8 @@ struct ConfigurationTag
 
   ArchiveRate archiveRate = ArchiveRate::Hz10;
 
+  bool active = true;
+
   QJsonObject settings;
 };
 

@@ -11,6 +11,7 @@
 #include <QDebug>
 #include <QTreeView>
 #include <QMessageBox>
+#include <QTabWidget>
 
 namespace qds
 {
@@ -56,24 +57,51 @@ ConfigurationEditor::ConfigurationEditor(
   m_tagsView->setModel(
     m_propertiesModel);
 
-  m_tagsView->horizontalHeader()
-    ->setSectionResizeMode(
-      QHeaderView::Stretch);
+  //m_tagsView->horizontalHeader()
+  //  ->setSectionResizeMode(
+  //    QHeaderView::Stretch);
+
+  m_tagsView->setColumnWidth(0, 150);
+  m_tagsView->setColumnWidth(1, 150);
 
   m_tagsView->setItemDelegateForColumn(
     1,
     new ConfigurationPropertiesDelegate(
       m_tagsView));
 
+
+  m_signalsView =
+    new QTableView(this);
+
+  m_signalModel =
+    new ConfigurationSignalModel(
+      m_repository, this);
+
+  m_signalsView->setModel(
+    m_signalModel);
+
+  m_signalsView->setEditTriggers(
+    QAbstractItemView::NoEditTriggers);
+
+  //m_signalsView->horizontalHeader()
+  //  ->setSectionResizeMode(
+  //    QHeaderView::Stretch);
+  m_signalsView->setColumnWidth(0, 150);
+  m_signalsView->setColumnWidth(1, 150);
+  m_signalsView->setColumnWidth(2, 150);
+
+  m_signalsView->verticalHeader()->hide();
+
   for (QTableView* view :
        {m_configurationsView,
+        m_signalsView,
         m_tagsView})
   {
     view->verticalHeader()->setSectionResizeMode(
       QHeaderView::Fixed);
 
     view->verticalHeader()
-      ->setDefaultSectionSize(22);
+      ->setDefaultSectionSize(24);
 
     view->setSelectionBehavior(
       QAbstractItemView::SelectRows);
@@ -93,11 +121,23 @@ ConfigurationEditor::ConfigurationEditor(
   right->setStretchFactor(0, 1);
   right->setStretchFactor(1, 1);
 
+
+  auto* tabs = new QTabWidget(this);
+
+  tabs->addTab(
+    right,
+    tr("Модули"));
+
+  tabs->addTab(
+    m_signalsView,
+    tr("Сигналы"));
+
+
   auto* splitter =
     new QSplitter(Qt::Horizontal, this);
 
   splitter->addWidget(m_configurationsView);
-  splitter->addWidget(right);
+  splitter->addWidget(tabs);
 
   splitter->setStretchFactor(0, 0);
   splitter->setStretchFactor(1, 1);
@@ -214,6 +254,24 @@ ConfigurationEditor::ConfigurationEditor(
         QMessageBox::warning(
           this,
           tr("Ошибка загрузки конфигурации"),
+          message);
+
+        return;
+      }
+
+      if (!m_signalModel->load(configuration))
+      {
+        const auto& error =
+          m_repository.lastError();
+
+        const QString message =
+          error.isValid()
+            ? error.text()
+            : tr("Не удалось загрузить сигналы");
+
+        QMessageBox::warning(
+          this,
+          tr("Ошибка загрузки сигналов"),
           message);
 
         return;

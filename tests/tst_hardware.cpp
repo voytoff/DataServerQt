@@ -269,8 +269,8 @@ void tst_hardware::test_ltr11configurationbuilder()
       .settings = QJsonDocument::fromJson(R"({})").object()
     },
     .tags = {
-      {TagId{1}, ModuleId{0}, ChannelId{0}, ArchiveRate::Hz100, QJsonDocument::fromJson(R"({"mode":1,"range":0})").object()},
-      {TagId{5}, ModuleId{0}, ChannelId{12}, ArchiveRate::Hz100, QJsonDocument::fromJson(R"({"mode":2,"range":1})").object()},
+      {TagId{1}, ModuleId{0}, ChannelId{0}, ArchiveRate::Hz100, true, QJsonDocument::fromJson(R"({"mode":1,"range":0})").object()},
+      {TagId{5}, ModuleId{0}, ChannelId{12}, ArchiveRate::Hz100, true, QJsonDocument::fromJson(R"({"mode":2,"range":1})").object()},
     }
   };
 
@@ -300,7 +300,7 @@ void tst_hardware::test_ltr11configurationbuilder()
   const auto validConfiguration = config;
 
   cfg.tags.push_back(
-    {TagId{9}, ModuleId{0}, ChannelId{17}, ArchiveRate::Hz100, QJsonDocument::fromJson(R"({"range":2})").object()}
+    {TagId{9}, ModuleId{0}, ChannelId{17}, ArchiveRate::Hz100, true, QJsonDocument::fromJson(R"({"range":2})").object()}
     );
   QCOMPARE(cfg.tags.size(), 3);
 
@@ -309,7 +309,7 @@ void tst_hardware::test_ltr11configurationbuilder()
   cfg.tags.pop_back();
 
   cfg.tags.push_back(
-    {TagId{9}, ModuleId{0}, ChannelId{17}, ArchiveRate::Hz100, QJsonDocument::fromJson(R"({"mode":2})").object()}
+    {TagId{9}, ModuleId{0}, ChannelId{17}, ArchiveRate::Hz100, true, QJsonDocument::fromJson(R"({"mode":2})").object()}
     );
   QCOMPARE(cfg.tags.size(), 3);
 
@@ -318,7 +318,7 @@ void tst_hardware::test_ltr11configurationbuilder()
   cfg.tags.pop_back();
 
   cfg.tags.push_back(
-    {TagId{9}, ModuleId{0}, ChannelId{17}, ArchiveRate::Hz100, QJsonDocument::fromJson(R"({})").object()}
+    {TagId{9}, ModuleId{0}, ChannelId{17}, ArchiveRate::Hz100, true, QJsonDocument::fromJson(R"({})").object()}
     );
 
   QVERIFY(!builder.build(cfg, config));
@@ -326,7 +326,7 @@ void tst_hardware::test_ltr11configurationbuilder()
   cfg.tags.pop_back();
 
   cfg.tags.push_back(
-    {TagId{9}, ModuleId{0}, ChannelId{17}, ArchiveRate::Hz100, QJsonDocument::fromJson(R"({"mode":3,"range":1})").object()}
+    {TagId{9}, ModuleId{0}, ChannelId{17}, ArchiveRate::Hz100, true, QJsonDocument::fromJson(R"({"mode":3,"range":1})").object()}
     );
   QCOMPARE(cfg.tags.size(), 3);
 
@@ -335,7 +335,7 @@ void tst_hardware::test_ltr11configurationbuilder()
   cfg.tags.pop_back();
 
   cfg.tags.push_back(
-    {TagId{9}, ModuleId{0}, ChannelId{17}, ArchiveRate::Hz100, QJsonDocument::fromJson(R"({"mode":1,"range":4})").object()}
+    {TagId{9}, ModuleId{0}, ChannelId{17}, ArchiveRate::Hz100, true, QJsonDocument::fromJson(R"({"mode":1,"range":4})").object()}
     );
   QCOMPARE(cfg.tags.size(), 3);
 

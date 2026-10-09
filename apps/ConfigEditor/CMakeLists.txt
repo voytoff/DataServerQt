@@ -22,6 +22,7 @@ qt_add_executable(configeditor
     configurationpropertiesmodel.h configurationpropertiesmodel.cpp
     res.qrc
     configurationpropertiesdelegate.h configurationpropertiesdelegate.cpp
+    configurationsignalmodel.h configurationsignalmodel.cpp
 )
 
 target_include_directories(configeditor

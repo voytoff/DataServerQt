@@ -21,6 +21,12 @@ public:
     const QSqlDatabase& database);
 
   [[nodiscard]]
+  bool load(
+    const ConfigurationId &configuration,
+    SystemConfiguration& system);
+
+
+  [[nodiscard]]
   std::optional<ConfigurationId> addConfiguration(
     const QString& name,
     const QString& description,
@@ -85,11 +91,6 @@ public:
     const ModuleId &module);
 
   [[nodiscard]]
-  bool load(
-    const ConfigurationId &configuration,
-    SystemConfiguration& system);
-
-  [[nodiscard]]
   bool loadCalibrations(
     const SystemConfiguration& configuration,
     CalibrationRepository& calibrations);
@@ -123,6 +124,22 @@ public:
     const ModuleId& module,
     const ChannelId& channel,
     ArchiveRate rate);
+
+  bool setConfigModuleActive(
+    const ConfigurationId& configuration,
+    const ModuleId& module,
+    bool active);
+
+  bool setConfigTagActive(
+    const ConfigurationId& configuration,
+    const ModuleId& module,
+    const ChannelId& channel,
+    bool active);
+
+  [[nodiscard]]
+  bool signalDefinitions(
+    const ConfigurationId& configuration,
+    std::vector<SignalDefinition>& definitions);
 
   [[nodiscard]]
   QSqlError lastError() const;

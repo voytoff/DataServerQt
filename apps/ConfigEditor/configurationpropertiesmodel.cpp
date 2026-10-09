@@ -33,7 +33,7 @@ void ConfigurationPropertiesModel::setItem(
         std::get_if<ModuleItemData>(data))
     {
       if (module->type == ModuleType::LTR11 &&
-          module->enabled)
+          module->configured)
       {
         properties.push_back({
           tr("Частота опроса, Гц"),
