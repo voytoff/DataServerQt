@@ -5,10 +5,23 @@
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QStyleFactory>
+#include <QLibraryInfo>
+#include <QTranslator>
 
 int main(int argc, char* argv[])
 {
   QApplication app(argc, argv);
+
+  QTranslator qtTranslator;
+  QString lang = QLocale::system().name();
+  // Загружаем системный перевод (ищет файлы вида qt_ru.qm)
+  if (qtTranslator.load("qt_" + lang, QLibraryInfo::path(QLibraryInfo::TranslationsPath)))
+    app.installTranslator(&qtTranslator);
+
+  // Здесь загружается перевод для собственного приложения
+  QTranslator myTranslator;
+  if (myTranslator.load("acdanalizer_" + lang, ":/translations"))
+    app.installTranslator(&myTranslator);
 
   // "windows11", "windowsvista", "Windows", "Fusion"
   app.setStyle(QStyleFactory::create("windows11"));

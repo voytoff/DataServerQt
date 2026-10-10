@@ -3,6 +3,7 @@
 #include "configurationpropertiesmodel.h"
 #include "configurationsignalmodel.h"
 #include "configurationtreemodel.h"
+#include "basetableview.h"
 #include "db/configurationrepository.h"
 #include <QWidget>
 
@@ -29,9 +30,9 @@ private:
     const QModelIndex& moduleIndex);
 
 private:
-  QTableView* m_configurationsView = nullptr;
+  BaseTableView* m_configurationsView = nullptr;
   //QTableView* m_modulesView = nullptr;
-  QTableView* m_tagsView = nullptr;
+  BaseTableView* m_tagsView = nullptr;
 
   QSqlTableModel* m_configurations = nullptr;
   //QSqlRelationalTableModel* m_modules = nullptr;
@@ -44,7 +45,11 @@ private:
   ConfigurationPropertiesModel* m_propertiesModel = nullptr;
 
   ConfigurationSignalModel* m_signalModel = nullptr;
-  QTableView* m_signalsView = nullptr;
+  BaseTableView* m_signalsView = nullptr;
+
+signals:
+  void statusMessage(
+    const QString& message);
 };
 
 }

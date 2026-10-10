@@ -23,7 +23,13 @@ ConfigurationEditor::ConfigurationEditor(
   , m_repository(database)
 {
   m_configurationsView =
-    new QTableView(this);
+    new BaseTableView(0, this);
+
+  m_configurationsView->horizontalHeader()->setSectionResizeMode(
+    QHeaderView::ResizeToContents);
+
+  m_configurationsView->horizontalHeader()->setStretchLastSection(
+    true);
 
   m_configurationTree =
     new QTreeView(this);
@@ -48,7 +54,7 @@ ConfigurationEditor::ConfigurationEditor(
     });
 
   m_tagsView =
-    new QTableView(this);
+    new BaseTableView(150, this);
 
   m_propertiesModel =
     new ConfigurationPropertiesModel(
@@ -57,13 +63,6 @@ ConfigurationEditor::ConfigurationEditor(
   m_tagsView->setModel(
     m_propertiesModel);
 
-  //m_tagsView->horizontalHeader()
-  //  ->setSectionResizeMode(
-  //    QHeaderView::Stretch);
-
-  m_tagsView->setColumnWidth(0, 150);
-  m_tagsView->setColumnWidth(1, 150);
-
   m_tagsView->setItemDelegateForColumn(
     1,
     new ConfigurationPropertiesDelegate(
@@ -71,7 +70,7 @@ ConfigurationEditor::ConfigurationEditor(
 
 
   m_signalsView =
-    new QTableView(this);
+    new BaseTableView(150, this);
 
   m_signalModel =
     new ConfigurationSignalModel(
@@ -83,34 +82,7 @@ ConfigurationEditor::ConfigurationEditor(
   m_signalsView->setEditTriggers(
     QAbstractItemView::NoEditTriggers);
 
-  //m_signalsView->horizontalHeader()
-  //  ->setSectionResizeMode(
-  //    QHeaderView::Stretch);
-  m_signalsView->setColumnWidth(0, 150);
-  m_signalsView->setColumnWidth(1, 150);
-  m_signalsView->setColumnWidth(2, 150);
-
   m_signalsView->verticalHeader()->hide();
-
-  for (QTableView* view :
-       {m_configurationsView,
-        m_signalsView,
-        m_tagsView})
-  {
-    view->verticalHeader()->setSectionResizeMode(
-      QHeaderView::Fixed);
-
-    view->verticalHeader()
-      ->setDefaultSectionSize(24);
-
-    view->setSelectionBehavior(
-      QAbstractItemView::SelectRows);
-
-    view->setSelectionMode(
-      QAbstractItemView::SingleSelection);
-
-    //view->setAlternatingRowColors(true);
-  }
 
   auto* right =
     new QSplitter(Qt::Vertical, this);
@@ -194,10 +166,6 @@ ConfigurationEditor::ConfigurationEditor(
     0,
     true);
 
-  m_configurationsView
-    ->horizontalHeader()
-    ->setStretchLastSection(true);
-
   m_configurationTree->setModel(
     m_treeModel);
 
@@ -229,8 +197,10 @@ ConfigurationEditor::ConfigurationEditor(
       const QModelIndex& current,
       const QModelIndex&)
     {
-      if (!current.isValid())
+      if (!current.isValid()) {
+        m_propertiesModel->setItem({});
         return;
+      }
 
       const auto configurationId =
         m_configurations
@@ -295,6 +265,8 @@ ConfigurationEditor::ConfigurationEditor(
           updateChannelVisibility(moduleIndex);
         }
       }
+
+      emit statusMessage("Конфигурация загружена");
     });
 
   connect(
