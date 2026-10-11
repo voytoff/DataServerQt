@@ -2,9 +2,11 @@
 
 #include "configurationpropertiesmodel.h"
 #include "configurationsignalmodel.h"
+#include "configurationsignalpropertiesmodel.h"
 #include "configurationtreemodel.h"
 #include "basetableview.h"
 #include "db/configurationrepository.h"
+
 #include <QWidget>
 
 class QSqlTableModel;
@@ -46,6 +48,10 @@ private:
 
   ConfigurationSignalModel* m_signalModel = nullptr;
   BaseTableView* m_signalsView = nullptr;
+
+  ConfigurationSignalPropertiesModel* m_signalPropertiesModel = nullptr;
+
+  BaseTableView* m_signalPropertiesView = nullptr;
 
 signals:
   void statusMessage(

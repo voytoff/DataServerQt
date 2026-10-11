@@ -28,6 +28,7 @@ bool ConfigurationSignalModel::load(
 
   beginResetModel();
 
+  m_configuration = configuration;
   m_signals = std::move(signalDefs);
 
   endResetModel();
@@ -135,6 +136,87 @@ ConfigurationSignalModel::signal(
   }
 
   return &m_signals[index.row()];
+}
+
+bool ConfigurationSignalModel::updateSignalName(
+  const QModelIndex& index,
+  const QString& name)
+{
+  const auto* s = signal(index);
+
+  if (!s)
+    return false;
+
+  if (QString::fromStdString(s->name) == name)
+    return true;
+
+  if (!m_repository.updateSignalName(
+        m_configuration,
+        s->id,
+        name))
+  {
+    const auto error = m_repository.lastError();
+
+    emit operationFailed(
+      error.isValid()
+        ? error.text()
+        : tr("Не удалось сохранить настройки сигнала."));
+
+    return false;
+  }
+
+  m_signals[index.row()].name =
+    name.toStdString();
+
+  const QModelIndex changed =
+    this->index(index.row(), 0);
+
+  emit dataChanged(
+    changed,
+    changed,
+    {Qt::DisplayRole});
+
+  return true;
+}
+
+bool ConfigurationSignalModel::updateSignalArchiveRate(
+  const QModelIndex& index,
+  ArchiveRate rate)
+{
+  const auto* s = signal(index);
+
+  if (!s || !isValidArchiveRate(rate))
+    return false;
+
+  if (s->archiveRate == rate)
+    return true;
+
+  if (!m_repository.updateSignalArchiveRate(
+        m_configuration,
+        s->id,
+        rate))
+  {
+    const auto error = m_repository.lastError();
+
+    emit operationFailed(
+      error.isValid()
+        ? error.text()
+        : tr("Не удалось сохранить настройки сигнала."));
+
+    return false;
+  }
+
+  m_signals[index.row()].archiveRate = rate;
+
+  const QModelIndex changed =
+    this->index(index.row(), 2);
+
+  emit dataChanged(
+    changed,
+    changed,
+    {Qt::DisplayRole});
+
+  return true;
 }
 
 }

@@ -1117,6 +1117,8 @@ bool ConfigurationRepository::signalDefinitions(
   const ConfigurationId& configuration,
   std::vector<SignalDefinition>& definitions)
 {
+  m_error = {};
+
   definitions.clear();
 
   QSqlQuery query = getQuery(
@@ -1189,6 +1191,65 @@ bool ConfigurationRepository::signalDefinitions(
   }
 
   return true;
+}
+
+bool ConfigurationRepository::updateSignalName(
+  ConfigurationId configuration,
+  SignalId signal,
+  const QString& name)
+{
+  m_error = {};
+
+  auto query = getQuery(
+    R"(
+UPDATE configuration_signal_definition
+SET name = :name
+WHERE configuration_id = :configuration_id
+  AND id = :signal_id)",
+    {
+     {":configuration_id", configuration.value},
+     {":signal_id", signal.value},
+     {":name", name},
+     });
+
+  if (!query.exec())
+  {
+    setError(query);
+    return false;
+  }
+
+  return query.numRowsAffected() == 1;
+}
+
+bool ConfigurationRepository::updateSignalArchiveRate(
+  ConfigurationId configuration,
+  SignalId signal,
+  ArchiveRate rate)
+{
+  m_error = {};
+
+  if (!isValidArchiveRate(rate))
+    return false;
+
+  auto query = getQuery(
+    R"(
+UPDATE configuration_signal_definition
+SET archive_rate = :archive_rate
+WHERE configuration_id = :configuration_id
+  AND id = :signal_id)",
+    {
+     {":configuration_id", configuration.value},
+     {":signal_id", signal.value},
+     {":archive_rate", static_cast<uint32_t>(rate)},
+     });
+
+  if (!query.exec())
+  {
+    setError(query);
+    return false;
+  }
+
+  return query.numRowsAffected() == 1;
 }
 
 QSqlQuery ConfigurationRepository::getQuery(

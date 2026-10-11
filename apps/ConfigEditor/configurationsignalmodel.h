@@ -40,10 +40,25 @@ public:
   const SignalDefinition* signal(
     const QModelIndex& index) const noexcept;
 
+  [[nodiscard]]
+  bool updateSignalName(
+    const QModelIndex& index,
+    const QString& name);
+
+  [[nodiscard]]
+  bool updateSignalArchiveRate(
+    const QModelIndex& index,
+    ArchiveRate rate);
+
 private:
   ConfigurationRepository& m_repository;
-
+  ConfigurationId m_configuration;
   std::vector<SignalDefinition> m_signals;
+
+signals:
+  void operationFailed(
+    const QString& message);
+
 };
 
 }

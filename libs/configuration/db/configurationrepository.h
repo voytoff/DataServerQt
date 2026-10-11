@@ -142,6 +142,18 @@ public:
     std::vector<SignalDefinition>& definitions);
 
   [[nodiscard]]
+  bool updateSignalName(
+    ConfigurationId configuration,
+    SignalId signal,
+    const QString& name);
+
+  [[nodiscard]]
+  bool updateSignalArchiveRate(
+    ConfigurationId configuration,
+    SignalId signal,
+    ArchiveRate rate);
+
+  [[nodiscard]]
   QSqlError lastError() const;
 
 private:

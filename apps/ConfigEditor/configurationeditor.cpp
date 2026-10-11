@@ -12,6 +12,7 @@
 #include <QTreeView>
 #include <QMessageBox>
 #include <QTabWidget>
+#include <QString>
 
 namespace qds
 {
@@ -40,18 +41,6 @@ ConfigurationEditor::ConfigurationEditor(
     new ConfigurationTreeModel(
       m_repository,
       this);
-
-  connect(
-    m_treeModel,
-    &ConfigurationTreeModel::operationFailed,
-    this,
-    [this](const QString& message)
-    {
-      QMessageBox::warning(
-        this,
-        tr("Ошибка изменения конфигурации"),
-        message);
-    });
 
   m_tagsView =
     new BaseTableView(150, this);
@@ -84,6 +73,21 @@ ConfigurationEditor::ConfigurationEditor(
 
   m_signalsView->verticalHeader()->hide();
 
+
+  m_signalPropertiesView =
+    new BaseTableView(150, this);
+
+  m_signalPropertiesModel =
+    new ConfigurationSignalPropertiesModel(
+      m_signalModel, this);
+
+  m_signalPropertiesView->setModel(
+    m_signalPropertiesModel);
+
+  m_signalPropertiesView->setEditTriggers(
+    QAbstractItemView::DoubleClicked |
+    QAbstractItemView::EditKeyPressed);
+
   auto* right =
     new QSplitter(Qt::Vertical, this);
 
@@ -100,10 +104,18 @@ ConfigurationEditor::ConfigurationEditor(
     right,
     tr("Модули"));
 
-  tabs->addTab(
-    m_signalsView,
-    tr("Сигналы"));
+  auto* signalsSplitter =
+    new QSplitter(Qt::Vertical, this);
 
+  signalsSplitter->addWidget(m_signalsView);
+  signalsSplitter->addWidget(m_signalPropertiesView);
+
+  signalsSplitter->setStretchFactor(0, 1);
+  signalsSplitter->setStretchFactor(1, 1);
+
+  tabs->addTab(
+    signalsSplitter,
+    tr("Сигналы"));
 
   auto* splitter =
     new QSplitter(Qt::Horizontal, this);
@@ -153,11 +165,10 @@ ConfigurationEditor::ConfigurationEditor(
 
   if (!m_configurations->select())
   {
-    qWarning()
-    << "Failed to select configuration:"
-    << m_configurations->lastError().text();
+    QString message = QString("Возникла ошибка при выборе конфигурации.\n%1")
+      .arg(m_configurations->lastError().text());
+    emit statusMessage(message);
   }
-
 
   m_configurationsView->setModel(
     m_configurations);
@@ -281,6 +292,57 @@ ConfigurationEditor::ConfigurationEditor(
 
   if (m_configurations->rowCount() > 0)
     m_configurationsView->selectRow(0);
+
+  connect(
+    m_signalsView->selectionModel(),
+    &QItemSelectionModel::currentChanged,
+    this,
+    [this](const QModelIndex& current,
+           const QModelIndex&)
+    {
+      m_signalPropertiesModel->setItem(current);
+    });
+
+  // регистрируем обработку и отображение ошибок
+  // ошибки в дереве объектов крейта
+  connect(
+    m_treeModel,
+    &ConfigurationTreeModel::operationFailed,
+    this,
+    [this](const QString& message)
+    {
+      QMessageBox::warning(
+        this,
+        tr("Ошибка изменения конфигурации"),
+        message);
+    });
+
+  // ошибки изменения сигналов
+  connect(
+    m_signalModel,
+    &ConfigurationSignalModel::operationFailed,
+    this,
+    [this](const QString& message)
+    {
+      QMessageBox::warning(
+        this,
+        tr("Ошибка изменения конфигурации"),
+        message);
+    });
+
+  // ошибки изменения сигнала
+  connect(
+    m_signalPropertiesModel,
+    &ConfigurationSignalPropertiesModel::operationFailed,
+    this,
+    [this](const QString& message)
+    {
+      QMessageBox::warning(
+        this,
+        tr("Ошибка изменения конфигурации"),
+        message);
+    });
+
 }
 
 void ConfigurationEditor::updateChannelVisibility(
