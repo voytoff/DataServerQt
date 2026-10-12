@@ -4,7 +4,6 @@
 
 #include <QAbstractTableModel>
 #include <QPersistentModelIndex>
-
 #include <vector>
 
 namespace qds
@@ -18,6 +17,8 @@ class ConfigurationSignalPropertiesModel final
 public:
   explicit ConfigurationSignalPropertiesModel(
     ConfigurationSignalModel* signalModel,
+    const std::vector<SignalTypeInfo>& signalTypes,
+    const std::vector<TagSourceInfo>& tagSources,
     QObject* parent = nullptr);
 
   void setItem(
@@ -46,9 +47,29 @@ public:
   Qt::ItemFlags flags(
     const QModelIndex& index) const override;
 
+  void setTagSources(std::vector<TagSourceInfo> sources);
+
+public:
+  enum Role
+  {
+    PropertyIdRole = Qt::UserRole + 1
+  };
+
+  enum class PropertyId
+  {
+    Name,
+    Kind,
+    Source,
+    Formula,
+    SignalType,
+    ArchiveRate,
+    CalibrationMode
+  };
+
 private:
   struct Property
   {
+    PropertyId id;
     QString name;
     QVariant value;
   };
@@ -56,8 +77,9 @@ private:
   ConfigurationSignalModel* m_signalModel = nullptr;
 
   QPersistentModelIndex m_currentItem;
-
   std::vector<Property> m_properties;
+  std::vector<SignalTypeInfo> m_signalTypes;
+  std::vector<TagSourceInfo> m_tagSources;
 
 signals:
   void operationFailed(

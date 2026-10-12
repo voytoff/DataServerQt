@@ -58,6 +58,21 @@ enum class CalibrationMode : uint8_t
   BySignalType
 };
 
+constexpr bool isValidCalibrationMode(CalibrationMode mode) noexcept
+{
+  switch (mode)
+  {
+  case CalibrationMode::None:
+  case CalibrationMode::BySignal:
+  case CalibrationMode::BySignalType:
+    return true;
+
+  default:
+    return false;
+  }
+}
+
+
 struct SignalDefinition
 {
   // постоянный идентификатор сигнала

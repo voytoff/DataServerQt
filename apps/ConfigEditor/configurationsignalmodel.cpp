@@ -219,4 +219,68 @@ bool ConfigurationSignalModel::updateSignalArchiveRate(
   return true;
 }
 
+bool ConfigurationSignalModel::updateSignalCalibrationMode(
+  const QModelIndex& index,
+  CalibrationMode mode)
+{
+  const auto* s = signal(index);
+
+  if (!s || !isValidCalibrationMode(mode))
+    return false;
+
+  if (s->calibrationMode == mode)
+    return true;
+
+  if (!m_repository.updateSignalCalibrationMode(
+        m_configuration,
+        s->id,
+        mode))
+  {
+    const auto error = m_repository.lastError();
+
+    emit operationFailed(
+      error.isValid()
+        ? error.text()
+        : tr("Не удалось сохранить настройки сигнала."));
+
+    return false;
+  }
+
+  m_signals[index.row()].calibrationMode = mode;
+
+  return true;
+}
+
+bool ConfigurationSignalModel::updateSignalSignalType(
+  const QModelIndex &index,
+  SignalTypeId type)
+{
+  const auto* s = signal(index);
+
+  if (!s)
+    return false;
+
+  if (s->signalType == type)
+    return true;
+
+  if (!m_repository.updateSignalSignalType(
+        m_configuration,
+        s->id,
+        type))
+  {
+    const auto error = m_repository.lastError();
+
+    emit operationFailed(
+      error.isValid()
+        ? error.text()
+        : tr("Не удалось сохранить настройки сигнала."));
+
+    return false;
+  }
+
+  m_signals[index.row()].signalType = type;
+
+  return true;
+}
+
 }

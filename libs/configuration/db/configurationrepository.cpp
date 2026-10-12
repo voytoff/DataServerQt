@@ -1231,8 +1231,7 @@ bool ConfigurationRepository::updateSignalArchiveRate(
   if (!isValidArchiveRate(rate))
     return false;
 
-  auto query = getQuery(
-    R"(
+  auto query = getQuery(R"(
 UPDATE configuration_signal_definition
 SET archive_rate = :archive_rate
 WHERE configuration_id = :configuration_id
@@ -1250,6 +1249,149 @@ WHERE configuration_id = :configuration_id
   }
 
   return query.numRowsAffected() == 1;
+}
+
+bool ConfigurationRepository::updateSignalCalibrationMode(
+  ConfigurationId configuration,
+  SignalId signal,
+  CalibrationMode mode)
+{
+  m_error = {};
+
+  if (!isValidCalibrationMode(mode))
+    return false;
+
+  auto query = getQuery(
+    R"(
+UPDATE configuration_signal_definition
+SET calibration_mode = :calibration_mode
+WHERE configuration_id = :configuration_id
+  AND id = :signal_id)",
+    {
+     {":configuration_id", configuration.value},
+     {":signal_id", signal.value},
+     {":calibration_mode", static_cast<uint32_t>(mode)},
+     });
+
+  if (!query.exec())
+  {
+    setError(query);
+    return false;
+  }
+
+  return query.numRowsAffected() == 1;
+}
+
+bool ConfigurationRepository::updateSignalSignalType(
+  ConfigurationId configuration,
+  SignalId signal,
+  SignalTypeId type)
+{
+  m_error = {};
+
+  const QVariant value =
+    type.value == 0 ?
+      QVariant(QMetaType(QMetaType::Int)) :
+      type.value;
+
+  auto query = getQuery(
+    R"(
+UPDATE configuration_signal_definition
+SET signal_type_id = :signal_type_id
+WHERE configuration_id = :configuration_id
+  AND id = :signal_id)",
+    {
+      {":configuration_id", configuration.value},
+      {":signal_id", signal.value},
+      {":signal_type_id", value}
+    });
+
+  if (!query.exec())
+  {
+    setError(query);
+    return false;
+  }
+
+  return query.numRowsAffected() == 1;
+}
+
+std::vector<SignalTypeInfo>
+ConfigurationRepository::signalTypes()
+{
+  m_error = {};
+
+  std::vector<SignalTypeInfo> result;
+
+  auto query = getQuery(R"(
+SELECT id, name, description
+FROM signal_type
+ORDER BY name;)");
+
+  if (!query.exec())
+  {
+    setError(query);
+    return result;
+  }
+
+  while (query.next())
+  {
+    SignalTypeInfo info;
+
+    info.id.value =
+      query.value(0).toUInt();
+
+    info.name =
+      query.value(1).toString().toStdString();
+
+    info.description =
+      query.value(2).toString().toStdString();
+
+    result.push_back(std::move(info));
+  }
+
+  return result;
+}
+
+std::vector<TagSourceInfo> ConfigurationRepository::tagSources(
+  ConfigurationId configuration)
+{
+  m_error = {};
+
+  std::vector<TagSourceInfo> result;
+
+  auto query = getQuery(R"(
+SELECT ct.id, m.serial
+FROM configuration_tag ct
+JOIN configuration_module cm ON cm.module_id = ct.module_id
+JOIN module m ON m.id  = cm.module_id
+WHERE ct.configuration_id = :configuration
+ORDER BY ct.id;)",
+  {
+    {":configuration_id", configuration.value},
+  });
+
+  if (!query.exec())
+  {
+    setError(query);
+    return result;
+  }
+
+  while (query.next())
+  {
+    TagSourceInfo info;
+
+    info.id.value =
+      query.value(0).toUInt();
+
+    info.name = QString("%1 (%2)")
+      .arg(query.value("id").toString()
+      .arg(query.value("serial").toString()))
+      .toStdString();
+
+    result.push_back(std::move(info));
+  }
+
+  return result;
 }
 
 QSqlQuery ConfigurationRepository::getQuery(

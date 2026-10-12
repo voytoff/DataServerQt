@@ -1,4 +1,5 @@
 #include "configurationpropertiesdelegate.h"
+#include "configurationpropertiesmodel.h"
 
 #include <QAbstractItemModel>
 #include <QComboBox>
@@ -6,6 +7,8 @@
 
 namespace qds
 {
+
+using Model = ConfigurationPropertiesModel;
 
 ConfigurationPropertiesDelegate::ConfigurationPropertiesDelegate(
   QObject* parent)
@@ -21,15 +24,13 @@ QWidget* ConfigurationPropertiesDelegate::createEditor(
   if (!index.isValid() || index.column() != 1)
     return nullptr;
 
-  const QString property =
-    index.siblingAtColumn(0)
-      .data(Qt::DisplayRole)
-      .toString();
+  const auto propertyId =
+    static_cast<Model::PropertyId>(
+      index.data(Model::PropertyIdRole).toInt());
 
-  if (property == tr("Частота опроса, Гц"))
+  if (propertyId == Model::PropertyId::ChannelRate)
   {
-    auto* editor =
-      new QDoubleSpinBox(parent);
+    auto* editor = new QDoubleSpinBox(parent);
 
     editor->setDecimals(2);
     editor->setRange(0.01, 400000.0);
@@ -38,54 +39,35 @@ QWidget* ConfigurationPropertiesDelegate::createEditor(
 
     return editor;
   }
-  else if (property == tr("Режим"))
+  else if (propertyId == Model::PropertyId::ModuleMode)
   {
-    auto* editor =
-      new QComboBox(parent);
+    auto* editor = new QComboBox(parent);
 
     editor->setAutoFillBackground(true);
     editor->setBackgroundRole(QPalette::Base);
 
-    editor->addItem(
-      tr("Дифференциальный"),
-      0);
-
-    editor->addItem(
-      tr("Общая земля"),
-      1);
+    editor->addItem(tr("Дифференциальный"), 0);
+    editor->addItem(tr("Общая земля"), 1);
 
     return editor;
   }
-  else if (property == tr("Диапазон"))
+  else if (propertyId == Model::PropertyId::ChannelRange)
   {
-    auto* editor =
-      new QComboBox(parent);
+    auto* editor = new QComboBox(parent);
 
     editor->setAutoFillBackground(true);
     editor->setBackgroundRole(QPalette::Base);
 
-    editor->addItem(
-      tr("±10 В"),
-      0);
-
-    editor->addItem(
-      tr("±2,5 В"),
-      1);
-
-    editor->addItem(
-      tr("±0,625 В"),
-      2);
-
-    editor->addItem(
-      tr("±0,156 В"),
-      3);
+    editor->addItem(tr("±10 В"), 0);
+    editor->addItem(tr("±2,5 В"), 1);
+    editor->addItem(tr("±0,625 В"), 2);
+    editor->addItem(tr("±0,156 В"), 3);
 
     return editor;
   }
-  else if (property == tr("Частота архивирования"))
+  else if (propertyId == Model::PropertyId::ArchiveRate)
   {
-    auto* editor =
-      new QComboBox(parent);
+    auto* editor = new QComboBox(parent);
 
     editor->setAutoFillBackground(true);
     editor->setBackgroundRole(QPalette::Base);
@@ -117,8 +99,7 @@ void ConfigurationPropertiesDelegate::setEditorData(
     spin->setValue(value.toDouble());
     return;
   }
-
-  if (auto* combo =
+  else if (auto* combo =
       qobject_cast<QComboBox*>(editor))
   {
     const int position =
@@ -152,8 +133,7 @@ void ConfigurationPropertiesDelegate::setModelData(
 
     return;
   }
-
-  if (auto* combo =
+  else if (auto* combo =
       qobject_cast<QComboBox*>(editor))
   {
     model->setData(

@@ -2,6 +2,7 @@
 
 #include <compare>
 #include <cstdint>
+#include <string>
 #include <strongid.h>
 
 namespace qds
@@ -49,6 +50,19 @@ using SignalTypeId =
 
 using ConfigurationId =
   StrongId<ConfigurationIdTag>;
+
+struct SignalTypeInfo
+{
+  SignalTypeId id = {0};
+  std::string name;
+  std::string description;
+};
+
+struct TagSourceInfo
+{
+  TagId id = {0};
+  std::string name;
+};
 
 struct Sample
 {

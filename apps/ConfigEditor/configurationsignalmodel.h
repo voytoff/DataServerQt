@@ -50,6 +50,15 @@ public:
     const QModelIndex& index,
     ArchiveRate rate);
 
+  bool updateSignalCalibrationMode(
+    const QModelIndex& index,
+    CalibrationMode mode);
+
+  [[nodiscard]]
+  bool updateSignalSignalType(
+    const QModelIndex& index,
+    SignalTypeId type);
+
 private:
   ConfigurationRepository& m_repository;
   ConfigurationId m_configuration;

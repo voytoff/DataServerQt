@@ -6,7 +6,6 @@
 #include <QJsonObject>
 #include <QModelIndex>
 #include <QPersistentModelIndex>
-
 #include <vector>
 
 namespace qds
@@ -46,14 +45,29 @@ public:
   Qt::ItemFlags flags(
     const QModelIndex& index) const override;
 
-private:
-  ConfigurationTreeModel* m_treeModel = nullptr;
+public:
+  enum Role
+  {
+    PropertyIdRole = Qt::UserRole + 1
+  };
 
+  enum class PropertyId
+  {
+    ChannelRate,
+    ModuleMode,
+    ChannelRange,
+    ArchiveRate
+  };
+
+private:
   struct Property
   {
+    PropertyId id;
     QString name;
     QVariant value;
   };
+
+  ConfigurationTreeModel* m_treeModel = nullptr;
 
   std::vector<Property> m_properties;
 

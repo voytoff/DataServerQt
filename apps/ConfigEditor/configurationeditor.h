@@ -33,11 +33,9 @@ private:
 
 private:
   BaseTableView* m_configurationsView = nullptr;
-  //QTableView* m_modulesView = nullptr;
   BaseTableView* m_tagsView = nullptr;
 
   QSqlTableModel* m_configurations = nullptr;
-  //QSqlRelationalTableModel* m_modules = nullptr;
   QSqlRelationalTableModel* m_tags = nullptr;
 
   ConfigurationRepository m_repository;

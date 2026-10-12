@@ -8,9 +8,11 @@ namespace qds
 ConfigurationSignalPropertiesModel::
   ConfigurationSignalPropertiesModel(
     ConfigurationSignalModel* signalModel,
+    const std::vector<SignalTypeInfo>& signalTypes,
     QObject* parent)
   : QAbstractTableModel(parent)
   , m_signalModel(signalModel)
+  , m_signalTypes(signalTypes)
 {
   connect(
     m_signalModel,
@@ -31,11 +33,13 @@ void ConfigurationSignalPropertiesModel::setItem(
       m_signalModel->signal(index))
   {
     properties.push_back({
+      PropertyId::Name,
       tr("Название"),
       QString::fromStdString(signal->name)
     });
 
     properties.push_back({
+      PropertyId::Kind,
       tr("Вид"),
       signal->kind == SignalKind::Raw
         ? QStringLiteral("Raw")
@@ -45,6 +49,7 @@ void ConfigurationSignalPropertiesModel::setItem(
     if (signal->kind == SignalKind::Raw)
     {
       properties.push_back({
+        PropertyId::Source,
         tr("Источник (TagId)"),
         signal->source.tag.value
       });
@@ -52,22 +57,26 @@ void ConfigurationSignalPropertiesModel::setItem(
     else if (signal->kind == SignalKind::Calculated)
     {
       properties.push_back({
+        PropertyId::Formula,
         tr("Формула"),
         QString::fromStdString(signal->formula)
       });
     }
 
     properties.push_back({
+      PropertyId::SignalType,
       tr("Тип сигнала (ID)"),
       signal->signalType.value
     });
 
     properties.push_back({
+      PropertyId::ArchiveRate,
       tr("Частота архивирования"),
       static_cast<uint16_t>(signal->archiveRate)
     });
 
     properties.push_back({
+      PropertyId::CalibrationMode,
       tr("Режим калибровки"),
       static_cast<int>(signal->calibrationMode)
     });
@@ -109,6 +118,15 @@ QVariant ConfigurationSignalPropertiesModel::data(
     return {};
   }
 
+  if (role == PropertyIdRole)
+  {
+    if (index.column() != 1)
+      return {};
+
+    return static_cast<int>(
+      m_properties[index.row()].id);
+  }
+
   if (role != Qt::DisplayRole &&
       role != Qt::EditRole)
   {
@@ -125,12 +143,12 @@ QVariant ConfigurationSignalPropertiesModel::data(
   if (role == Qt::EditRole)
     return property.value;
 
-  if (property.name == tr("Частота архивирования"))
+  if (property.id == PropertyId::ArchiveRate)
   {
     return QString("%1 Гц")
       .arg(property.value.toUInt());
   }
-  else if (property.name == tr("Режим калибровки"))
+  else if (property.id == PropertyId::CalibrationMode)
   {
     switch (property.value.toInt())
     {
@@ -139,6 +157,26 @@ QVariant ConfigurationSignalPropertiesModel::data(
     case 2: return tr("По типу сигнала");
     default: return property.value;
     }
+  }
+  else if (property.id == PropertyId::SignalType)
+  {
+    const uint32_t id = property.value.toUInt();
+
+    if (id == 0)
+      return tr("Нет");
+
+    const auto it = std::find_if(
+      m_signalTypes.begin(),
+      m_signalTypes.end(),
+      [id](const SignalTypeInfo& info)
+      {
+        return info.id.value == id;
+      });
+
+    if (it != m_signalTypes.end())
+      return QString::fromStdString(it->name);
+
+    return QString::number(id);
   }
 
   return property.value;
@@ -157,11 +195,8 @@ QVariant ConfigurationSignalPropertiesModel::headerData(
 
   switch (section)
   {
-  case 0:
-    return tr("Параметр");
-
-  case 1:
-    return tr("Значение");
+  case 0: return tr("Параметр");
+  case 1: return tr("Значение");
   }
 
   return {};
@@ -185,9 +220,12 @@ bool ConfigurationSignalPropertiesModel::setData(
     return false;
   }
 
-  auto& property = m_properties.at(index.row());
+  auto& property =
+    m_properties[index.row()];
 
-  if (property.name == tr("Название"))
+  QVariant newValue = value;
+
+  if (property.id == PropertyId::Name)
   {
     const QString name = value.toString().trimmed();
 
@@ -207,9 +245,9 @@ bool ConfigurationSignalPropertiesModel::setData(
       return false;
     }
 
-    property.value = name;
+    newValue = name;
   }
-  else if (property.name == tr("Частота архивирования"))
+  else if (property.id == PropertyId::ArchiveRate)
   {
     bool ok = false;
     const uint32_t frequency = value.toUInt(&ok);
@@ -233,12 +271,63 @@ bool ConfigurationSignalPropertiesModel::setData(
       return false;
     }
 
-    property.value = frequency;
+    newValue = frequency;
+  }
+  else if (property.id == PropertyId::CalibrationMode)
+  {
+    bool ok = false;
+    const uint32_t mode = value.toUInt(&ok);
+
+    if (!ok ||
+        !isValidCalibrationMode(static_cast<CalibrationMode>(mode)))
+    {
+      emit operationFailed(
+        tr("Недопустимый режим калибровки: %1.\n")
+          .arg(value.toString()));
+
+      return false;
+    }
+
+    const auto calibrationMode = static_cast<CalibrationMode>(mode);
+
+    if (!m_signalModel->updateSignalCalibrationMode(
+          m_currentItem, calibrationMode))
+    {
+      return false;
+    }
+
+    newValue = mode;
+  }
+  else if (property.id == PropertyId::SignalType)
+  {
+    bool ok = false;
+    const uint32_t type = value.toUInt(&ok);
+
+    if (!ok)
+    {
+      emit operationFailed(
+        tr("Недопустимый тип сигнала: %1.\n")
+          .arg(value.toString()));
+
+      return false;
+    }
+
+    const auto signalType = SignalTypeId{type};
+
+    if (!m_signalModel->updateSignalSignalType(
+          m_currentItem, signalType))
+    {
+      return false;
+    }
+
+    newValue = type;
   }
   else
   {
     return false;
   }
+
+  property.value = newValue;
 
   emit dataChanged(
     index,
@@ -253,7 +342,8 @@ Qt::ItemFlags ConfigurationSignalPropertiesModel::flags(
 {
   auto result = QAbstractTableModel::flags(index);
 
-  if (!index.isValid() ||
+  if (index.model() != this ||
+      !index.isValid() ||
       index.column() != 1 ||
       !m_currentItem.isValid() ||
       index.row() < 0 ||
@@ -262,15 +352,31 @@ Qt::ItemFlags ConfigurationSignalPropertiesModel::flags(
     return result;
   }
 
-  const auto& propertyName = m_properties[index.row()].name;
+  const auto& propertyId = m_properties[index.row()].id;
 
-  if (propertyName == tr("Название") ||
-      propertyName == tr("Частота архивирования"))
+  if (propertyId == PropertyId::Name ||
+      propertyId == PropertyId::ArchiveRate ||
+      propertyId == PropertyId::CalibrationMode ||
+      propertyId == PropertyId::SignalType)
   {
     result |= Qt::ItemIsEditable;
   }
 
   return result;
+}
+
+void ConfigurationSignalPropertiesModel::setTagSources(
+  std::vector<TagSourceInfo> sources)
+{
+  m_tagSources = std::move(sources);
+
+  if (!m_properties.empty())
+  {
+    emit dataChanged(
+      index(0, 1),
+      index(rowCount() - 1, 1),
+      {Qt::DisplayRole});
+  }
 }
 
 }

@@ -3,6 +3,7 @@
 #include "availablemodule.h"
 #include "calibrationrepository.h"
 #include "configmodule.h"
+#include "datatypes.h"
 #include "systemconfiguration.h"
 #include <QSqlDatabase>
 #include <QSqlQuery>
@@ -152,6 +153,25 @@ public:
     ConfigurationId configuration,
     SignalId signal,
     ArchiveRate rate);
+
+  [[nodiscard]]
+  bool updateSignalCalibrationMode(
+    ConfigurationId configuration,
+    SignalId signal,
+    CalibrationMode mode);
+
+  [[nodiscard]]
+  bool updateSignalSignalType(
+    ConfigurationId configuration,
+    SignalId signal,
+    SignalTypeId type);
+
+  [[nodiscard]]
+  std::vector<SignalTypeInfo> signalTypes();
+
+  [[nodiscard]]
+  std::vector<TagSourceInfo> tagSources(
+    ConfigurationId configuration);
 
   [[nodiscard]]
   QSqlError lastError() const;

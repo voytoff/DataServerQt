@@ -36,10 +36,12 @@ void ConfigurationPropertiesModel::setItem(
           module->configured)
       {
         properties.push_back({
+          PropertyId::ChannelRate,
           tr("Частота опроса, Гц"),
           module->settings.value("channelRate").toDouble(1000.0)
         });
         properties.push_back({
+          PropertyId::ModuleMode,
           tr("Режим"),
           module->settings.value("mode").toInt(1)
         });
@@ -51,11 +53,13 @@ void ConfigurationPropertiesModel::setItem(
       if (channel->tag.has_value())
       {
         properties.push_back({
+          PropertyId::ChannelRange,
           tr("Диапазон"),
           channel->settings.value("range").toInt(0)
         });
 
         properties.push_back({
+          PropertyId::ArchiveRate,
           tr("Частота архивирования"),
           static_cast<uint16_t>(channel->archiveRate)
         });
@@ -100,6 +104,15 @@ QVariant ConfigurationPropertiesModel::data(
     return {};
   }
 
+  if (role == PropertyIdRole)
+  {
+    if (index.column() != 1)
+      return {};
+
+    return static_cast<int>(
+      m_properties[index.row()].id);
+  }
+
   if (role != Qt::DisplayRole &&
       role != Qt::EditRole)
   {
@@ -117,7 +130,7 @@ QVariant ConfigurationPropertiesModel::data(
   if (role == Qt::EditRole)
     return property.value;
 
-  if (property.name == tr("Режим"))
+  if (property.id == PropertyId::ModuleMode)
   {
     switch (property.value.toInt())
     {
@@ -126,7 +139,7 @@ QVariant ConfigurationPropertiesModel::data(
     default: return property.value;
     }
   }
-  else if (property.name == tr("Диапазон"))
+  else if (property.id == PropertyId::ChannelRange)
   {
     switch (property.value.toInt())
     {
@@ -137,7 +150,12 @@ QVariant ConfigurationPropertiesModel::data(
     default: return property.value;
     }
   }
-  else if (property.name == tr("Частота архивирования"))
+  else if (property.id == PropertyId::ChannelRate)
+  {
+    return QString("%1 Гц")
+      .arg(property.value.toDouble());
+  }
+  else if (property.id == PropertyId::ArchiveRate)
   {
     return QString("%1 Гц")
       .arg(property.value.toUInt());
@@ -155,9 +173,13 @@ QVariant ConfigurationPropertiesModel::headerData(
       role != Qt::DisplayRole)
     return {};
 
-  return section == 0
-           ? tr("Параметр")
-           : tr("Значение");
+  switch (section)
+  {
+  case 0: return tr("Параметр");
+  case 1: return tr("Значение");
+  }
+
+  return {};
 }
 
 bool ConfigurationPropertiesModel::setData(
@@ -165,6 +187,9 @@ bool ConfigurationPropertiesModel::setData(
   const QVariant& value,
   int role)
 {
+  if (index.model() != this)
+    return false;
+
   if (role != Qt::EditRole ||
       !index.isValid() ||
       index.column() != 1 ||
@@ -185,8 +210,10 @@ bool ConfigurationPropertiesModel::setData(
   if (!itemData)
     return false;
 
-  const auto& property =
+  auto& property =
     m_properties[index.row()];
+
+  QVariant newValue = value;
 
   QJsonObject settings;
 
@@ -195,7 +222,7 @@ bool ConfigurationPropertiesModel::setData(
   {
     settings = module->settings;
 
-    if (property.name == tr("Частота опроса, Гц"))
+    if (property.id == PropertyId::ChannelRate)
     {
       bool ok = false;
       const double frequency = value.toDouble(&ok);
@@ -205,8 +232,10 @@ bool ConfigurationPropertiesModel::setData(
         return false;
 
       settings["channelRate"] = frequency;
+
+      newValue = frequency;
     }
-    else if (property.name == tr("Режим"))
+    else if (property.id == PropertyId::ModuleMode)
     {
       bool ok = false;
       const int mode = value.toInt(&ok);
@@ -267,6 +296,8 @@ bool ConfigurationPropertiesModel::setData(
       }
 
       settings["mode"] = mode;
+
+      newValue = mode;
     }
     else
     {
@@ -283,7 +314,7 @@ bool ConfigurationPropertiesModel::setData(
   else if (const auto* channel =
            std::get_if<ChannelItemData>(itemData))
   {
-    if (property.name == tr("Частота архивирования"))
+    if (property.id == PropertyId::ArchiveRate)
     {
       bool ok = false;
       const uint32_t frequency = value.toUInt(&ok);
@@ -291,7 +322,7 @@ bool ConfigurationPropertiesModel::setData(
       if (!ok)
         return false;
 
-      const auto rate =
+      const ArchiveRate rate =
         static_cast<ArchiveRate>(frequency);
 
       if (!isValidArchiveRate(rate))
@@ -303,8 +334,10 @@ bool ConfigurationPropertiesModel::setData(
       {
         return false;
       }
+
+      newValue = frequency;
     }
-    else if (property.name == tr("Диапазон"))
+    else if (property.id == PropertyId::ChannelRange)
     {
       settings = channel->settings;
 
@@ -322,6 +355,8 @@ bool ConfigurationPropertiesModel::setData(
       {
         return false;
       }
+
+      newValue = range;
     }
     else
     {
@@ -333,7 +368,7 @@ bool ConfigurationPropertiesModel::setData(
     return false;
   }
 
-  m_properties[index.row()].value = value;
+  property.value = newValue;
 
   emit dataChanged(
     index,
@@ -346,12 +381,16 @@ bool ConfigurationPropertiesModel::setData(
 Qt::ItemFlags ConfigurationPropertiesModel::flags(
   const QModelIndex& index) const
 {
+
   auto result =
     QAbstractTableModel::flags(index);
 
-  if (!index.isValid() ||
+  if (index.model() != this ||
+      !index.isValid() ||
       index.column() != 1 ||
-      !m_currentItem.isValid())
+      !m_currentItem.isValid() ||
+      index.row() < 0 ||
+      index.row() >= static_cast<int>(m_properties.size()))
   {
     return result;
   }

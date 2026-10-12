@@ -1,5 +1,6 @@
 #include "configurationeditor.h"
 #include "configurationpropertiesdelegate.h"
+#include "configurationsignalpropertiesdelegate.h"
 
 #include <QSplitter>
 #include <QTableView>
@@ -77,9 +78,14 @@ ConfigurationEditor::ConfigurationEditor(
   m_signalPropertiesView =
     new BaseTableView(150, this);
 
+  const auto signalTypes = m_repository.signalTypes();
+  const auto tagSources = m_repository.tagSources();
+
   m_signalPropertiesModel =
     new ConfigurationSignalPropertiesModel(
-      m_signalModel, this);
+      m_signalModel,
+      signalTypes,
+      this);
 
   m_signalPropertiesView->setModel(
     m_signalPropertiesModel);
@@ -87,6 +93,12 @@ ConfigurationEditor::ConfigurationEditor(
   m_signalPropertiesView->setEditTriggers(
     QAbstractItemView::DoubleClicked |
     QAbstractItemView::EditKeyPressed);
+
+  m_signalPropertiesView->setItemDelegateForColumn(
+    1,
+    new ConfigurationSignalPropertiesDelegate(
+      signalTypes,
+      m_signalPropertiesView));
 
   auto* right =
     new QSplitter(Qt::Vertical, this);
