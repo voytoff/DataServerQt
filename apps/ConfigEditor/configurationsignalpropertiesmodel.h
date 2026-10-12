@@ -17,8 +17,6 @@ class ConfigurationSignalPropertiesModel final
 public:
   explicit ConfigurationSignalPropertiesModel(
     ConfigurationSignalModel* signalModel,
-    const std::vector<SignalTypeInfo>& signalTypes,
-    const std::vector<TagSourceInfo>& tagSources,
     QObject* parent = nullptr);
 
   void setItem(
@@ -47,7 +45,11 @@ public:
   Qt::ItemFlags flags(
     const QModelIndex& index) const override;
 
-  void setTagSources(std::vector<TagSourceInfo> sources);
+  void setTagSources(
+    std::vector<TagSourceInfo> sources);
+
+  void setSignalTypes(
+    std::vector<SignalTypeInfo> types);
 
 public:
   enum Role
@@ -78,6 +80,7 @@ private:
 
   QPersistentModelIndex m_currentItem;
   std::vector<Property> m_properties;
+
   std::vector<SignalTypeInfo> m_signalTypes;
   std::vector<TagSourceInfo> m_tagSources;
 

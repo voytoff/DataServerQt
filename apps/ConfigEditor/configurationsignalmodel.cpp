@@ -1,6 +1,7 @@
 #include "configurationsignalmodel.h"
 #include "signaldefinition.h"
 
+#include <strongidhash.h>
 #include <vector>
 #include <QSize>
 
@@ -136,6 +137,16 @@ ConfigurationSignalModel::signal(
   }
 
   return &m_signals[index.row()];
+}
+
+void ConfigurationSignalModel::clear()
+{
+  beginResetModel();
+
+  m_signals.clear();
+  m_configuration = ConfigurationId{0};
+
+  endResetModel();
 }
 
 bool ConfigurationSignalModel::updateSignalName(
@@ -279,6 +290,38 @@ bool ConfigurationSignalModel::updateSignalSignalType(
   }
 
   m_signals[index.row()].signalType = type;
+
+  return true;
+}
+
+bool ConfigurationSignalModel::updateSignalSource(
+  const QModelIndex& index,
+  TagId tag)
+{
+  const auto* s = signal(index);
+
+  if (!s || s->kind != SignalKind::Raw)
+    return false;
+
+  if (s->source.tag == tag)
+    return true;
+
+  if (!m_repository.updateSignalSource(
+        m_configuration,
+        s->id,
+        tag))
+  {
+    const auto error = m_repository.lastError();
+
+    emit operationFailed(
+      error.isValid()
+        ? error.text()
+        : tr("Не удалось сохранить настройки сигнала."));
+
+    return false;
+  }
+
+  m_signals[index.row()].source = SignalSource{tag};
 
   return true;
 }

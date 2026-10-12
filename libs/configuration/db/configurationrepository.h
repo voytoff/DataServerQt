@@ -167,11 +167,19 @@ public:
     SignalTypeId type);
 
   [[nodiscard]]
-  std::vector<SignalTypeInfo> signalTypes();
+  bool updateSignalSource(
+    ConfigurationId configuration,
+    SignalId signal,
+    TagId tag);
 
   [[nodiscard]]
-  std::vector<TagSourceInfo> tagSources(
-    ConfigurationId configuration);
+  bool signalTypes(
+    std::vector<SignalTypeInfo>& types);
+
+  [[nodiscard]]
+  bool tagSources(
+    ConfigurationId configuration,
+    std::vector<TagSourceInfo>& sources);
 
   [[nodiscard]]
   QSqlError lastError() const;

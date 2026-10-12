@@ -40,6 +40,8 @@ public:
   const SignalDefinition* signal(
     const QModelIndex& index) const noexcept;
 
+  void clear();
+
   [[nodiscard]]
   bool updateSignalName(
     const QModelIndex& index,
@@ -58,6 +60,11 @@ public:
   bool updateSignalSignalType(
     const QModelIndex& index,
     SignalTypeId type);
+
+  [[nodiscard]]
+  bool updateSignalSource(
+    const QModelIndex& index,
+    TagId tag);
 
 private:
   ConfigurationRepository& m_repository;

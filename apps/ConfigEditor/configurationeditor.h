@@ -2,6 +2,7 @@
 
 #include "configurationpropertiesmodel.h"
 #include "configurationsignalmodel.h"
+#include "configurationsignalpropertiesdelegate.h"
 #include "configurationsignalpropertiesmodel.h"
 #include "configurationtreemodel.h"
 #include "basetableview.h"
@@ -50,6 +51,8 @@ private:
   ConfigurationSignalPropertiesModel* m_signalPropertiesModel = nullptr;
 
   BaseTableView* m_signalPropertiesView = nullptr;
+
+  ConfigurationSignalPropertiesDelegate* m_signalPropertiesDelegate = nullptr;
 
 signals:
   void statusMessage(

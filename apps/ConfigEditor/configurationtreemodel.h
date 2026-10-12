@@ -77,6 +77,8 @@ signals:
   void operationFailed(
     const QString& message);
 
+  void tagSourcesChanged();
+
 };
 
 }

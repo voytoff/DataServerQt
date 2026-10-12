@@ -12,10 +12,8 @@ using Model = ConfigurationSignalPropertiesModel;
 
 ConfigurationSignalPropertiesDelegate::
   ConfigurationSignalPropertiesDelegate(
-    std::vector<SignalTypeInfo> signalTypes,
     QObject* parent)
   : QStyledItemDelegate(parent)
-  , m_signalTypes(std::move(signalTypes))
 {
 }
 
@@ -170,26 +168,24 @@ void ConfigurationSignalPropertiesDelegate::setModelData(
     index);
 }
 
-void ConfigurationSignalPropertiesDelegate::setTagSources(
-  std::vector<TagSourceInfo> sources)
-{
-  m_tagSources = std::move(sources);
-
-  if (!m_properties.empty())
-  {
-    emit dataChanged(
-      index(0, 1),
-      index(rowCount() - 1, 1),
-      {Qt::DisplayRole});
-  }
-}
-
 void ConfigurationSignalPropertiesDelegate::updateEditorGeometry(
   QWidget *editor,
   const QStyleOptionViewItem &option,
   const QModelIndex &) const
 {
   editor->setGeometry(option.rect);
+}
+
+void ConfigurationSignalPropertiesDelegate::setTagSources(
+  std::vector<TagSourceInfo> sources)
+{
+  m_tagSources = std::move(sources);
+}
+
+void ConfigurationSignalPropertiesDelegate::setSignalTypes(
+  std::vector<SignalTypeInfo> types)
+{
+  m_signalTypes = std::move(types);
 }
 
 }

@@ -8,11 +8,9 @@ namespace qds
 ConfigurationSignalPropertiesModel::
   ConfigurationSignalPropertiesModel(
     ConfigurationSignalModel* signalModel,
-    const std::vector<SignalTypeInfo>& signalTypes,
     QObject* parent)
   : QAbstractTableModel(parent)
   , m_signalModel(signalModel)
-  , m_signalTypes(signalTypes)
 {
   connect(
     m_signalModel,
@@ -178,6 +176,26 @@ QVariant ConfigurationSignalPropertiesModel::data(
 
     return QString::number(id);
   }
+  else if (property.id == PropertyId::Source)
+  {
+    const uint32_t id = property.value.toUInt();
+
+    if (id == 0)
+      return tr("Нет");
+
+    const auto it = std::find_if(
+      m_tagSources.begin(),
+      m_tagSources.end(),
+      [id](const TagSourceInfo& info)
+      {
+        return info.id.value == id;
+      });
+
+    if (it != m_tagSources.end())
+      return QString::fromStdString(it->name);
+
+    return QString::number(id);
+  }
 
   return property.value;
 }
@@ -322,6 +340,30 @@ bool ConfigurationSignalPropertiesModel::setData(
 
     newValue = type;
   }
+  else if (property.id == PropertyId::Source)
+  {
+    bool ok = false;
+    const uint32_t id = value.toUInt(&ok);
+
+    if (!ok)
+    {
+      emit operationFailed(
+        tr("Недопустимый источник сигнала: %1.")
+          .arg(value.toString()));
+
+      return false;
+    }
+
+    const TagId tag{id};
+
+    if (!m_signalModel->updateSignalSource(
+          m_currentItem, tag))
+    {
+      return false;
+    }
+
+    newValue = id;
+  }
   else
   {
     return false;
@@ -357,7 +399,8 @@ Qt::ItemFlags ConfigurationSignalPropertiesModel::flags(
   if (propertyId == PropertyId::Name ||
       propertyId == PropertyId::ArchiveRate ||
       propertyId == PropertyId::CalibrationMode ||
-      propertyId == PropertyId::SignalType)
+      propertyId == PropertyId::SignalType ||
+      propertyId == PropertyId::Source)
   {
     result |= Qt::ItemIsEditable;
   }
@@ -369,6 +412,20 @@ void ConfigurationSignalPropertiesModel::setTagSources(
   std::vector<TagSourceInfo> sources)
 {
   m_tagSources = std::move(sources);
+
+  if (!m_properties.empty())
+  {
+    emit dataChanged(
+      index(0, 1),
+      index(rowCount() - 1, 1),
+      {Qt::DisplayRole});
+  }
+}
+
+void ConfigurationSignalPropertiesModel::setSignalTypes(
+  std::vector<SignalTypeInfo> types)
+{
+  m_signalTypes = std::move(types);
 
   if (!m_properties.empty())
   {

@@ -1315,83 +1315,125 @@ WHERE configuration_id = :configuration_id
   return query.numRowsAffected() == 1;
 }
 
-std::vector<SignalTypeInfo>
-ConfigurationRepository::signalTypes()
+bool ConfigurationRepository::updateSignalSource(
+  ConfigurationId configuration,
+  SignalId signal,
+  TagId tag)
 {
   m_error = {};
 
-  std::vector<SignalTypeInfo> result;
+  const QVariant value =
+    tag.value == 0
+      ? QVariant(QMetaType(QMetaType::Int))
+      : QVariant(tag.value);
 
-  auto query = getQuery(R"(
-SELECT id, name, description
-FROM signal_type
-ORDER BY name;)");
+  auto query = getQuery(
+    R"(
+UPDATE configuration_signal_definition
+SET tag_id = :tag_id
+WHERE configuration_id = :configuration_id
+  AND id = :signal_id
+  AND kind = 0
+  AND (
+    :tag_id_check IS NULL
+    OR EXISTS (
+      SELECT 1
+      FROM configuration_tag ct
+      WHERE ct.id = :tag_id_source
+        AND ct.configuration_id = :configuration_id_source
+    )
+  ))",
+    {
+      {":configuration_id", configuration.value},
+      {":signal_id", signal.value},
+      {":tag_id", value},
+      {":tag_id_check", value},
+      {":tag_id_source", value},
+      {":configuration_id_source", configuration.value}
+    });
 
   if (!query.exec())
   {
     setError(query);
-    return result;
+    return false;
+  }
+
+  return query.numRowsAffected() == 1;
+}
+
+bool ConfigurationRepository::signalTypes(
+  std::vector<SignalTypeInfo>& types)
+{
+  m_error = {};
+  types.clear();
+
+  auto query = getQuery(R"(
+SELECT id, name, description
+FROM signal_type
+ORDER BY name)");
+
+  if (!query.exec())
+  {
+    setError(query);
+    return false;
   }
 
   while (query.next())
   {
     SignalTypeInfo info;
 
-    info.id.value =
-      query.value(0).toUInt();
+    info.id.value = query.value("id").toUInt();
+    info.name = query.value("name").toString().toStdString();
+    info.description = query.value("description").toString().toStdString();
 
-    info.name =
-      query.value(1).toString().toStdString();
-
-    info.description =
-      query.value(2).toString().toStdString();
-
-    result.push_back(std::move(info));
+    types.push_back(std::move(info));
   }
 
-  return result;
+  return true;
 }
 
-std::vector<TagSourceInfo> ConfigurationRepository::tagSources(
-  ConfigurationId configuration)
+bool ConfigurationRepository::tagSources(
+  ConfigurationId configuration,
+  std::vector<TagSourceInfo>& sources)
 {
   m_error = {};
-
-  std::vector<TagSourceInfo> result;
+  sources.clear();
 
   auto query = getQuery(R"(
-SELECT ct.id, m.serial
+SELECT ct.id, ct.channel, m.serial
 FROM configuration_tag ct
-JOIN configuration_module cm ON cm.module_id = ct.module_id
-JOIN module m ON m.id  = cm.module_id
+JOIN configuration_module cm
+  ON cm.module_id = ct.module_id
+ AND cm.configuration_id = ct.configuration_id
+JOIN module m
+  ON m.id = cm.module_id
 WHERE ct.configuration_id = :configuration
-ORDER BY ct.id;)",
+ORDER BY m.serial, ct.channel)",
   {
-    {":configuration_id", configuration.value},
+    {":configuration", configuration.value}
   });
 
   if (!query.exec())
   {
     setError(query);
-    return result;
+    return false;
   }
 
   while (query.next())
   {
     TagSourceInfo info;
 
-    info.id.value =
-      query.value(0).toUInt();
+    info.id.value = query.value("id").toUInt();
 
     info.name = QString("%1 (%2)")
-      .arg(query.value("id").toString()
-      .arg(query.value("serial").toString()))
-      .toStdString();
+                  .arg(query.value("channel").toUInt())
+                  .arg(query.value("serial").toString())
+                  .toStdString();
 
-    result.push_back(std::move(info));
+    sources.push_back(std::move(info));
   }
 
-  return result;
+  return true;
 }
 
 QSqlQuery ConfigurationRepository::getQuery(

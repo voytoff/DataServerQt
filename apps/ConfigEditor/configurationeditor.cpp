@@ -78,14 +78,25 @@ ConfigurationEditor::ConfigurationEditor(
   m_signalPropertiesView =
     new BaseTableView(150, this);
 
-  const auto signalTypes = m_repository.signalTypes();
-  const auto tagSources = m_repository.tagSources();
 
   m_signalPropertiesModel =
     new ConfigurationSignalPropertiesModel(
       m_signalModel,
-      signalTypes,
       this);
+
+  std::vector<SignalTypeInfo> signalTypes;
+
+  if (!m_repository.signalTypes(signalTypes))
+  {
+    QMessageBox::warning(
+      this,
+      tr("Ошибка загрузки сигналов"),
+      m_repository.lastError().text());
+
+    return;
+  }
+
+  m_signalPropertiesModel->setSignalTypes(signalTypes);
 
   m_signalPropertiesView->setModel(
     m_signalPropertiesModel);
@@ -94,11 +105,13 @@ ConfigurationEditor::ConfigurationEditor(
     QAbstractItemView::DoubleClicked |
     QAbstractItemView::EditKeyPressed);
 
-  m_signalPropertiesView->setItemDelegateForColumn(
-    1,
+  m_signalPropertiesDelegate =
     new ConfigurationSignalPropertiesDelegate(
-      signalTypes,
-      m_signalPropertiesView));
+      m_signalPropertiesView);
+
+  m_signalPropertiesDelegate->setSignalTypes(std::move(signalTypes));
+
+  m_signalPropertiesView->setItemDelegateForColumn(1, m_signalPropertiesDelegate);
 
   auto* right =
     new QSplitter(Qt::Vertical, this);
@@ -192,6 +205,7 @@ ConfigurationEditor::ConfigurationEditor(
   m_configurationTree->setModel(
     m_treeModel);
 
+  // изменение ыделения в дереве объектов
   connect(
     m_treeModel,
     &QAbstractItemModel::dataChanged,
@@ -212,6 +226,8 @@ ConfigurationEditor::ConfigurationEditor(
       ->record()
       .indexOf("id");
 
+  // Изменение текущей конфигурации. TODO = Я бы сделал этот элемент небольшим
+  // глобальным QComboBox-ом прям в QToolbar-е...
   connect(
     m_configurationsView->selectionModel(),
     &QItemSelectionModel::currentRowChanged,
@@ -220,8 +236,15 @@ ConfigurationEditor::ConfigurationEditor(
       const QModelIndex& current,
       const QModelIndex&)
     {
-      if (!current.isValid()) {
+      if (!current.isValid())
+      {
         m_propertiesModel->setItem({});
+
+        m_signalModel->clear();
+
+        m_signalPropertiesModel->setTagSources({});
+        m_signalPropertiesDelegate->setTagSources({});
+
         return;
       }
 
@@ -289,6 +312,21 @@ ConfigurationEditor::ConfigurationEditor(
         }
       }
 
+      std::vector<TagSourceInfo> tagSources;
+
+      if (!m_repository.tagSources(configuration, tagSources))
+      {
+        QMessageBox::warning(
+          this,
+          tr("Ошибка загрузки источников"),
+          m_repository.lastError().text());
+
+        return;
+      }
+
+      m_signalPropertiesModel->setTagSources(tagSources);
+      m_signalPropertiesDelegate->setTagSources(std::move(tagSources));
+
       emit statusMessage("Конфигурация загружена");
     });
 
@@ -355,6 +393,44 @@ ConfigurationEditor::ConfigurationEditor(
         message);
     });
 
+  // обновляем список tagSources сразу после изменения состава каналов.
+  connect(
+    m_treeModel,
+    &ConfigurationTreeModel::tagSourcesChanged,
+    this,
+    [this]()
+    {
+      const QModelIndex current =
+        m_configurationsView->currentIndex();
+
+      if (!current.isValid())
+        return;
+
+      const int idColumn =
+        m_configurations->record().indexOf("id");
+
+      const ConfigurationId configuration{
+        m_configurations->data(
+                          m_configurations->index(
+                            current.row(),
+                            idColumn)).toUInt()
+      };
+
+      std::vector<TagSourceInfo> tagSources;
+
+      if (!m_repository.tagSources(configuration, tagSources))
+      {
+        QMessageBox::warning(
+          this,
+          tr("Ошибка загрузки источников"),
+          m_repository.lastError().text());
+
+        return;
+      }
+
+      m_signalPropertiesModel->setTagSources(tagSources);
+      m_signalPropertiesDelegate->setTagSources(std::move(tagSources));
+    });
 }
 
 void ConfigurationEditor::updateChannelVisibility(

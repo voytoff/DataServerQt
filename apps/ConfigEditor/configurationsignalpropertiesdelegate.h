@@ -11,7 +11,6 @@ class ConfigurationSignalPropertiesDelegate final
 {
 public:
   explicit ConfigurationSignalPropertiesDelegate(
-    std::vector<SignalTypeInfo> signalTypes,
     QObject* parent = nullptr);
 
   QWidget* createEditor(
@@ -28,12 +27,16 @@ public:
     QAbstractItemModel* model,
     const QModelIndex& index) const override;
 
-  void setTagSources(std::vector<TagSourceInfo> sources);
-
   void updateEditorGeometry(
     QWidget* editor,
     const QStyleOptionViewItem& option,
     const QModelIndex& index) const override;
+
+  void setTagSources(
+    std::vector<TagSourceInfo> sources);
+
+  void setSignalTypes(
+    std::vector<SignalTypeInfo> types);
 
 private:
   std::vector<SignalTypeInfo> m_signalTypes;
