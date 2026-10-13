@@ -64,10 +64,8 @@ WHERE
     {":id", configuration.value}
   });
 
-  if (!query.exec()) {
-    setError(query);
+  if (!exec(query))
     return false;
-  }
 
   while (query.next())
   {
@@ -154,10 +152,8 @@ WHERE
     {":id", configuration.value}
   });
 
-  if (!query.exec()) {
-    setError(query);
+  if (!exec(query))
     return false;
-  }
 
   while (query.next())
   {
@@ -226,10 +222,8 @@ WHERE configuration_id = :id;)",
      {":id", configuration.value}
    });
 
-  if (!query.exec()) {
-    setError(query);
+  if (!exec(query))
     return false;
-  }
 
   while (query.next())
   {
@@ -248,7 +242,7 @@ WHERE configuration_id = :id;)",
       };
 
       if (!cfg.findTag(tag))
-        continue;
+        continue; /// ???
 
       definition.source = SignalSource{tag};
 
@@ -440,11 +434,8 @@ SELECT id, crate_id, `type`, serial, slot, description
 FROM module
 ORDER BY crate_id, slot;)");
 
-  if (!query.exec())
-  {
-    setError(query);
+  if (!exec(query))
     return false;
-  }
 
   std::vector<ModuleInfo> result;
 
@@ -493,13 +484,7 @@ WHERE id = :id;)",
       {":id", module.value}
     });
 
-  if (!query.exec())
-  {
-    setError(query);
-    return false;
-  }
-
-  return true;
+  return exec(query);
 }
 
 std::optional<TagId> ConfigurationRepository::addConfigTag(
@@ -565,13 +550,7 @@ AND channel = :channel;)",
       {":channel", channel.value}
     });
 
-  if (!query.exec())
-  {
-    setError(query);
-    return false;
-  }
-
-  return true;
+  return exec(query);
 }
 
 bool ConfigurationRepository::moduleConfigTags(
@@ -592,11 +571,8 @@ AND module_id = :module_id;)",
       {":module_id", module.value}
     });
 
-  if (!query.exec())
-  {
-    setError(query);
+  if (!exec(query))
     return false;
-  }
 
   std::vector<ConfigurationTag> result;
 
@@ -689,10 +665,8 @@ WHERE
   {
     auto query = getQuery(sql, {{":id", id.value}});
 
-    if (!query.exec()) {
-      setError(query);
+    if (!exec(query))
       return false;
-    }
 
     Calibration calibration;
     bool assigned = false;
@@ -739,11 +713,8 @@ WHERE
   {
     auto query = getQuery(sql, {{":id", id.value}});
 
-    if (!query.exec())
-    {
-      setError(query);
+    if (!exec(query))
       return false;
-    }
 
     Calibration calibration;
     bool assigned = false;
@@ -810,11 +781,8 @@ ORDER BY
       {":configuration_id", configuration.value}
     });
 
-  if (!query.exec())
-  {
-    setError(query);
+  if (!exec(query))
     return false;
-  }
 
   std::vector<ConfigModule> result;
 
@@ -902,11 +870,8 @@ ORDER BY
       {":configuration_id", configuration.value}
     });
 
-  if (!query.exec())
-  {
-    setError(query);
+  if (!exec(query))
     return false;
-  }
 
   std::vector<AvailableModule> result;
 
@@ -967,11 +932,9 @@ AND module_id = :module_id;)",
       {":settings", json}
     });
 
-  if (!query.exec())
-  {
-    setError(query);
+  if (!exec(query))
     return false;
-  }
+
   /*
   if (query.numRowsAffected() == 0)
   {
@@ -1013,13 +976,7 @@ AND channel = :channel;)",
       {":settings", json}
     });
 
-  if (!query.exec())
-  {
-    setError(query);
-    return false;
-  }
-
-  return true;
+  return exec(query);
 }
 
 bool ConfigurationRepository::updateConfigTagArchiveRate(
@@ -1047,13 +1004,7 @@ AND channel = :channel;)",
       {":archive_rate", static_cast<uint16_t>(rate)}
     });
 
-  if (!query.exec())
-  {
-    setError(query);
-    return false;
-  }
-
-  return true;
+  return exec(query);
 }
 
 bool ConfigurationRepository::setConfigModuleActive(
@@ -1074,11 +1025,8 @@ WHERE configuration_id = :configuration_id
     {":active", active}
   });
 
-  if (!query.exec())
-  {
-    setError(query);
+  if (!exec(query))
     return false;
-  }
 
   return query.numRowsAffected() == 1;
 }
@@ -1104,11 +1052,8 @@ WHERE configuration_id = :configuration_id
     {":active", active}
   });
 
-  if (!query.exec())
-  {
-    setError(query);
+  if (!exec(query))
     return false;
-  }
 
   return query.numRowsAffected() == 1;
 }
@@ -1121,30 +1066,25 @@ bool ConfigurationRepository::signalDefinitions(
 
   definitions.clear();
 
-  QSqlQuery query = getQuery(
-    R"(
-      SELECT
-        id,
-        name,
-        kind,
-        tag_id,
-        signal_type_id,
-        archive_rate,
-        calibration_mode,
-        formula
-      FROM configuration_signal_definition
-      WHERE configuration_id = :id
-      ORDER BY id
-    )",
+  QSqlQuery query = getQuery(R"(
+SELECT
+  id,
+  name,
+  kind,
+  tag_id,
+  signal_type_id,
+  archive_rate,
+  calibration_mode,
+  formula
+FROM configuration_signal_definition
+WHERE configuration_id = :id
+ORDER BY id)",
     {
       {":id", configuration.value}
     });
 
-  if (!query.exec())
-  {
-    setError(query);
+  if (!exec(query))
     return false;
-  }
 
   while (query.next())
   {
@@ -1200,8 +1140,7 @@ bool ConfigurationRepository::updateSignalName(
 {
   m_error = {};
 
-  auto query = getQuery(
-    R"(
+  auto query = getQuery(R"(
 UPDATE configuration_signal_definition
 SET name = :name
 WHERE configuration_id = :configuration_id
@@ -1212,11 +1151,8 @@ WHERE configuration_id = :configuration_id
      {":name", name},
      });
 
-  if (!query.exec())
-  {
-    setError(query);
+  if (!exec(query))
     return false;
-  }
 
   return query.numRowsAffected() == 1;
 }
@@ -1242,11 +1178,8 @@ WHERE configuration_id = :configuration_id
      {":archive_rate", static_cast<uint32_t>(rate)},
      });
 
-  if (!query.exec())
-  {
-    setError(query);
+  if (!exec(query))
     return false;
-  }
 
   return query.numRowsAffected() == 1;
 }
@@ -1261,8 +1194,7 @@ bool ConfigurationRepository::updateSignalCalibrationMode(
   if (!isValidCalibrationMode(mode))
     return false;
 
-  auto query = getQuery(
-    R"(
+  auto query = getQuery(R"(
 UPDATE configuration_signal_definition
 SET calibration_mode = :calibration_mode
 WHERE configuration_id = :configuration_id
@@ -1273,11 +1205,8 @@ WHERE configuration_id = :configuration_id
      {":calibration_mode", static_cast<uint32_t>(mode)},
      });
 
-  if (!query.exec())
-  {
-    setError(query);
+  if (!exec(query))
     return false;
-  }
 
   return query.numRowsAffected() == 1;
 }
@@ -1294,8 +1223,7 @@ bool ConfigurationRepository::updateSignalSignalType(
       QVariant(QMetaType(QMetaType::Int)) :
       type.value;
 
-  auto query = getQuery(
-    R"(
+  auto query = getQuery(R"(
 UPDATE configuration_signal_definition
 SET signal_type_id = :signal_type_id
 WHERE configuration_id = :configuration_id
@@ -1306,11 +1234,8 @@ WHERE configuration_id = :configuration_id
       {":signal_type_id", value}
     });
 
-  if (!query.exec())
-  {
-    setError(query);
+  if (!exec(query))
     return false;
-  }
 
   return query.numRowsAffected() == 1;
 }
@@ -1327,8 +1252,7 @@ bool ConfigurationRepository::updateSignalSource(
       ? QVariant(QMetaType(QMetaType::Int))
       : QVariant(tag.value);
 
-  auto query = getQuery(
-    R"(
+  auto query = getQuery(R"(
 UPDATE configuration_signal_definition
 SET tag_id = :tag_id
 WHERE configuration_id = :configuration_id
@@ -1352,13 +1276,86 @@ WHERE configuration_id = :configuration_id
       {":configuration_id_source", configuration.value}
     });
 
-  if (!query.exec())
-  {
-    setError(query);
+  if (!exec(query))
     return false;
-  }
 
   return query.numRowsAffected() == 1;
+}
+
+bool ConfigurationRepository::updateSignalFormula(
+  ConfigurationId configuration,
+  SignalId signal,
+  QString formula)
+{
+  m_error = {};
+
+  auto query = getQuery(R"(
+UPDATE configuration_signal_definition
+SET formula = :formula
+WHERE configuration_id = :configuration_id
+  AND id = :signal_id)",
+    {
+     {":configuration_id", configuration.value},
+     {":signal_id", signal.value},
+     {":formula", formula},
+     });
+
+  return exec(query) && query.numRowsAffected() == 1;
+}
+
+bool ConfigurationRepository::createSignal(
+  ConfigurationId configuration,
+  const QString& name,
+  SignalKind kind,
+  SignalId& createdId)
+{
+  m_error = {};
+
+  createdId = SignalId{0};
+
+  auto query = getQuery(R"(
+INSERT INTO configuration_signal_definition
+  (configuration_id, name, kind)
+VALUES
+  (:configuration_id, :name, :kind))",
+    {
+      {":configuration_id", configuration.value},
+      {":name", name},
+      {":kind", static_cast<int>(kind)}
+    });
+
+  if (!exec(query))
+    return false;
+
+  bool ok = false;
+
+  const uint32_t id =
+    query.lastInsertId().toUInt(&ok);
+
+  if (!ok || id == 0)
+    return false;
+
+  createdId = SignalId{id};
+
+  return true;
+}
+
+bool ConfigurationRepository::removeSignal(
+  ConfigurationId configuration,
+  SignalId signal)
+{
+  m_error = {};
+
+  auto query = getQuery(R"(
+DELETE FROM configuration_signal_definition
+WHERE configuration_id = :configuration_id
+  AND id = :signal_id)",
+    {
+      {":configuration_id", configuration.value},
+      {":signal_id", signal.value}
+    });
+
+  return exec(query) && query.numRowsAffected() == 1;
 }
 
 bool ConfigurationRepository::signalTypes(
@@ -1372,11 +1369,8 @@ SELECT id, name, description
 FROM signal_type
 ORDER BY name)");
 
-  if (!query.exec())
-  {
-    setError(query);
+  if (!exec(query))
     return false;
-  }
 
   while (query.next())
   {
@@ -1413,11 +1407,8 @@ ORDER BY m.serial, ct.channel)",
     {":configuration", configuration.value}
   });
 
-  if (!query.exec())
-  {
-    setError(query);
+  if (!exec(query))
     return false;
-  }
 
   while (query.next())
   {
@@ -1434,27 +1425,6 @@ ORDER BY m.serial, ct.channel)",
   }
 
   return true;
-}
-
-QSqlQuery ConfigurationRepository::getQuery(
-  const QString& sql,
-  const QVariantMap& args)
-{
-  QSqlQuery query(m_database);
-
-  if (!query.prepare(sql))
-    return query;
-
-  for (auto it = args.cbegin();
-       it != args.cend();
-       ++it)
-  {
-    query.bindValue(
-      it.key(),
-      it.value());
-  }
-
-  return query;
 }
 
 void ConfigurationRepository::assignCalibration(Calibration &calibration, const QSqlQuery &query)
@@ -1497,13 +1467,7 @@ VALUES
       {":module_id", module.value}
     });
 
-  if (!query.exec())
-  {
-    setError(query);
-    return false;
-  }
-
-  return true;
+  return exec(query);
 }
 
 bool ConfigurationRepository::removeConfigModule(
@@ -1522,8 +1486,38 @@ AND module_id = :module_id;)",
       {":module_id", module.value}
     });
 
+  return exec(query);
+}
+
+QSqlQuery ConfigurationRepository::getQuery(
+  const QString& sql,
+  const QVariantMap& args)
+{
+  QSqlQuery query(m_database);
+
+  if (!query.prepare(sql))
+    return query;
+
+  for (auto it = args.cbegin();
+       it != args.cend();
+       ++it)
+  {
+    query.bindValue(
+      it.key(),
+      it.value());
+  }
+
+  return query;
+}
+
+bool ConfigurationRepository::exec(QSqlQuery &query)
+{
   if (!query.exec())
   {
+    qDebug() << query.lastError().text();
+    qDebug() << query.lastQuery();
+    qDebug() << query.boundValues();
+
     setError(query);
     return false;
   }

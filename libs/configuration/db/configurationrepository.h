@@ -173,6 +173,24 @@ public:
     TagId tag);
 
   [[nodiscard]]
+  bool updateSignalFormula(
+    ConfigurationId configuration,
+    SignalId signal,
+    QString formula);
+
+  [[nodiscard]]
+  bool createSignal(
+    ConfigurationId configuration,
+    const QString& name,
+    SignalKind kind,
+    SignalId& createdId);
+
+  [[nodiscard]]
+  bool removeSignal(
+    ConfigurationId configuration,
+    SignalId signal);
+
+  [[nodiscard]]
   bool signalTypes(
     std::vector<SignalTypeInfo>& types);
 
@@ -185,11 +203,15 @@ public:
   QSqlError lastError() const;
 
 private:
+  void assignCalibration(
+    Calibration &calibration, const QSqlQuery &query);
+
   QSqlQuery getQuery(
     const QString &sql, const QVariantMap& args = {});
 
-  void assignCalibration(
-    Calibration &calibration, const QSqlQuery &query);
+  [[nodiscard]]
+  bool exec(
+    QSqlQuery& query);
 
   void setError(
     const QSqlQuery& query);

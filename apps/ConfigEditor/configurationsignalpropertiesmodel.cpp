@@ -364,6 +364,28 @@ bool ConfigurationSignalPropertiesModel::setData(
 
     newValue = id;
   }
+  else if (property.id == PropertyId::Formula)
+  {
+    const QString formula = value.toString().trimmed();
+
+    if (formula.isEmpty() || formula.size() > 512)
+    {
+      emit operationFailed(
+        tr("Недопустимая формула сигнала: %1.\n"
+           "Формула должна быть непустой и иметь длину не более 512 символов.")
+          .arg(value.toString()));
+
+      return false;
+    }
+
+    if (!m_signalModel->updateSignalFormula(
+          m_currentItem, formula))
+    {
+      return false;
+    }
+
+    newValue = formula;
+  }
   else
   {
     return false;
@@ -400,7 +422,8 @@ Qt::ItemFlags ConfigurationSignalPropertiesModel::flags(
       propertyId == PropertyId::ArchiveRate ||
       propertyId == PropertyId::CalibrationMode ||
       propertyId == PropertyId::SignalType ||
-      propertyId == PropertyId::Source)
+      propertyId == PropertyId::Source ||
+      propertyId == PropertyId::Formula)
   {
     result |= Qt::ItemIsEditable;
   }

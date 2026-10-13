@@ -1,4 +1,5 @@
 #include "tst_configuration.h"
+#include "calibration.h"
 #include "systemconfiguration.h"
 #include "testsrv.h"
 #include <qtestcase.h>
@@ -507,4 +508,17 @@ void tst_configuration::test_configuration_findSignalDefinition()
   QCOMPARE(c->id, SignalId{4});
 
   QVERIFY(cfg.findSignalDefinition("NONE") == nullptr);
+}
+
+void tst_configuration::test_configuration_polynomial()
+{
+  Calibration calibration;
+
+  calibration.kind = CalibrationKind::Polynomial;
+  calibration.coefficients = {2.0, 3.0, 4.0};
+
+  double result = 0.0;
+
+  QVERIFY(calibration.apply(2.0, result));
+  QCOMPARE(result, 24.0);
 }

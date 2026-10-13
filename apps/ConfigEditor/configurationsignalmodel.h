@@ -66,6 +66,20 @@ public:
     const QModelIndex& index,
     TagId tag);
 
+  [[nodiscard]]
+  bool updateSignalFormula(
+    const QModelIndex& index,
+    QString formula);
+
+  [[nodiscard]]
+  bool createSignal(
+    QString name,
+    SignalKind kind);
+
+  [[nodiscard]]
+  bool removeSignal(
+    const QModelIndex &index);
+
 private:
   ConfigurationRepository& m_repository;
   ConfigurationId m_configuration;

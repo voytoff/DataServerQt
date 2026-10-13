@@ -15,6 +15,8 @@ class QSqlRelationalTableModel;
 class QTableView;
 class QTreeView;
 class QSqlDatabase;
+class QToolBar;
+class QAction;
 
 namespace qds
 {
@@ -31,6 +33,10 @@ public:
 private:
   void updateChannelVisibility(
     const QModelIndex& moduleIndex);
+
+  void createToolbar();
+
+  void updateActions();
 
 private:
   BaseTableView* m_configurationsView = nullptr;
@@ -53,6 +59,14 @@ private:
   BaseTableView* m_signalPropertiesView = nullptr;
 
   ConfigurationSignalPropertiesDelegate* m_signalPropertiesDelegate = nullptr;
+
+  QTabWidget* m_tabs = nullptr;
+
+  QToolBar* m_toolBar = nullptr;
+
+  QAction* m_addAction = nullptr;
+  QAction* m_removeAction = nullptr;
+  QAction* m_testAction = nullptr;
 
 signals:
   void statusMessage(

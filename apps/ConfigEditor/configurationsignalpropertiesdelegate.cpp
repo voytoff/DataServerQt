@@ -99,6 +99,13 @@ QWidget *ConfigurationSignalPropertiesDelegate::createEditor(
 
     return editor;
   }
+  else if (propertyId == Model::PropertyId::Formula)
+  {
+    auto* editor =
+      new QLineEdit(parent);
+
+    return editor;
+  }
 
   return QStyledItemDelegate::createEditor(
     parent,

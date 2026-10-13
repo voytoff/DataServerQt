@@ -17,6 +17,9 @@ add_library(Configuration SHARED
   configurationmodule.h
   configurationtag.h
   configmodule.h
+  sensortype.h
+  sensor.h
+  calibrationkind.h
   moduleruntimeconfiguration.h
   moduleinfo.cpp moduleinfo.h
   crateinfo.cpp crateinfo.h

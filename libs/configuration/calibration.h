@@ -1,10 +1,17 @@
 #pragma once
 
 #include "signaldefinition.h"
+#include "calibrationkind.h"
 #include <QString>
 
 namespace qds
 {
+
+enum class SensorCalibrationMode
+{
+  Own = 0,
+  ByType = 1
+};
 
 struct CalibrationPoint
 {
@@ -24,14 +31,18 @@ struct Calibration
 {
   CalibrationId id;
 
-  SignalId signalId;
-  SignalTypeId signalTypeId;
+  SensorId sensorId;
+  SensorTypeId sensorTypeId;
+
+  CalibrationKind kind = CalibrationKind::Table;
 
   QString name;
   QString description;
 
   std::vector<CalibrationPoint> points;
   std::vector<CalibrationSegment> segments;
+
+  std::vector<double> coefficients;
 
   bool buildSegments();
 

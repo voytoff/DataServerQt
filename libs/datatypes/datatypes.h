@@ -128,4 +128,16 @@ struct FrameNumber
   constexpr auto operator<=>(const FrameNumber&) const = default;
 };
 
+struct SensorTypeId
+{
+  uint32_t value = 0;
+  auto operator<=>(const SensorTypeId&) const = default;
+};
+
+struct SensorId
+{
+  uint32_t value = 0;
+  auto operator<=>(const SensorId&) const = default;
+};
+
 }

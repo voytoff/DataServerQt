@@ -326,4 +326,114 @@ bool ConfigurationSignalModel::updateSignalSource(
   return true;
 }
 
+bool ConfigurationSignalModel::updateSignalFormula(
+  const QModelIndex &index,
+  QString formula)
+{
+  const auto* s = signal(index);
+
+  if (!s || s->kind != SignalKind::Calculated)
+    return false;
+
+  if (QString::fromStdString(s->formula) == formula)
+    return true;
+
+  if (!m_repository.updateSignalFormula(
+        m_configuration,
+        s->id,
+        formula))
+  {
+    const auto error = m_repository.lastError();
+
+    emit operationFailed(
+      error.isValid()
+        ? error.text()
+        : tr("Не удалось сохранить настройки сигнала."));
+
+    return false;
+  }
+
+  m_signals[index.row()].formula = formula.toStdString();
+
+  return true;
+}
+
+bool ConfigurationSignalModel::createSignal(
+  QString name,
+  SignalKind kind)
+{
+  SignalId createdId{0};
+
+  if (!m_repository.createSignal(
+        m_configuration,
+        name,
+        kind,
+        createdId))
+  {
+    const auto error = m_repository.lastError();
+
+    emit operationFailed(
+      error.isValid()
+        ? error.text()
+        : tr("Не удалось создать новый сигнал."));
+
+    return false;
+  }
+
+  SignalDefinition signal;
+
+  signal.id = createdId;
+  signal.name = name.toStdString();
+  signal.kind = kind;
+
+  signal.source = SignalSource{TagId{0}};
+  signal.signalType = SignalTypeId{0};
+  signal.calibrationMode = CalibrationMode::None;
+  signal.archiveRate = ArchiveRate::Hz10;
+
+  const int row =
+    static_cast<int>(m_signals.size());
+
+  beginInsertRows(QModelIndex(), row, row);
+
+  m_signals.push_back(std::move(signal));
+
+  endInsertRows();
+
+  return true;
+}
+
+bool ConfigurationSignalModel::removeSignal(
+  const QModelIndex& index)
+{
+  const auto* s = signal(index);
+
+  if (!s)
+    return false;
+
+  if (!m_repository.removeSignal(
+        m_configuration,
+        s->id))
+  {
+    const auto error = m_repository.lastError();
+
+    emit operationFailed(
+      error.isValid()
+        ? error.text()
+        : tr("Не удалось удалить сигнал."));
+
+    return false;
+  }
+
+  const int row = index.row();
+
+  beginRemoveRows(QModelIndex(), row, row);
+
+  m_signals.erase(m_signals.begin() + row);
+
+  endRemoveRows();
+
+  return true;
+}
+
 }

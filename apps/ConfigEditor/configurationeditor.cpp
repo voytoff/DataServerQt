@@ -1,6 +1,7 @@
 #include "configurationeditor.h"
 #include "configurationpropertiesdelegate.h"
 #include "configurationsignalpropertiesdelegate.h"
+#include "dlg/configurationsignaldialog.h"
 
 #include <QSplitter>
 #include <QTableView>
@@ -14,6 +15,9 @@
 #include <QMessageBox>
 #include <QTabWidget>
 #include <QString>
+#include <QToolBar>
+#include <QAction>
+#include <QStyle>
 
 namespace qds
 {
@@ -113,6 +117,8 @@ ConfigurationEditor::ConfigurationEditor(
 
   m_signalPropertiesView->setItemDelegateForColumn(1, m_signalPropertiesDelegate);
 
+  createToolbar();
+
   auto* right =
     new QSplitter(Qt::Vertical, this);
 
@@ -123,9 +129,9 @@ ConfigurationEditor::ConfigurationEditor(
   right->setStretchFactor(1, 1);
 
 
-  auto* tabs = new QTabWidget(this);
+  m_tabs = new QTabWidget(this);
 
-  tabs->addTab(
+  m_tabs->addTab(
     right,
     tr("Модули"));
 
@@ -138,7 +144,7 @@ ConfigurationEditor::ConfigurationEditor(
   signalsSplitter->setStretchFactor(0, 1);
   signalsSplitter->setStretchFactor(1, 1);
 
-  tabs->addTab(
+  m_tabs->addTab(
     signalsSplitter,
     tr("Сигналы"));
 
@@ -146,16 +152,18 @@ ConfigurationEditor::ConfigurationEditor(
     new QSplitter(Qt::Horizontal, this);
 
   splitter->addWidget(m_configurationsView);
-  splitter->addWidget(tabs);
+  splitter->addWidget(m_tabs);
 
   splitter->setStretchFactor(0, 0);
   splitter->setStretchFactor(1, 1);
 
-  auto* layout =
-    new QVBoxLayout(this);
+  auto* layout = new QVBoxLayout(this);
 
+  layout->addWidget(m_toolBar);
   layout->addWidget(splitter);
+
   layout->setContentsMargins(0, 0, 0, 0);
+  layout->setSpacing(0);
 
   m_configurations =
     new QSqlTableModel(
@@ -343,6 +351,7 @@ ConfigurationEditor::ConfigurationEditor(
   if (m_configurations->rowCount() > 0)
     m_configurationsView->selectRow(0);
 
+  // обрабатываем событике изменения сигнала
   connect(
     m_signalsView->selectionModel(),
     &QItemSelectionModel::currentChanged,
@@ -351,6 +360,10 @@ ConfigurationEditor::ConfigurationEditor(
            const QModelIndex&)
     {
       m_signalPropertiesModel->setItem(current);
+
+      m_removeAction->setEnabled(
+        m_tabs->currentIndex() == 1 &&
+        current.isValid());
     });
 
   // регистрируем обработку и отображение ошибок
@@ -431,6 +444,16 @@ ConfigurationEditor::ConfigurationEditor(
       m_signalPropertiesModel->setTagSources(tagSources);
       m_signalPropertiesDelegate->setTagSources(std::move(tagSources));
     });
+
+  // подключаем обновление действий при выборе вкладки.
+  connect(
+    m_tabs,
+    &QTabWidget::currentChanged,
+    this,
+    [this]()
+    {
+      updateActions();
+    });
 }
 
 void ConfigurationEditor::updateChannelVisibility(
@@ -463,6 +486,112 @@ void ConfigurationEditor::updateChannelVisibility(
       moduleIndex,
       row >= maxChannels);
   }
+}
+
+void ConfigurationEditor::createToolbar()
+{
+  m_toolBar = new QToolBar(this);
+
+  m_toolBar->setIconSize(QSize(16, 16));
+  m_toolBar->setMovable(false);
+  m_toolBar->setFloatable(false);
+  m_toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+
+  m_addAction = m_toolBar->addAction(
+    style()->standardIcon(QStyle::SP_FileIcon),
+    tr("Добавить"));
+
+  m_removeAction = m_toolBar->addAction(
+    style()->standardIcon(QStyle::SP_TrashIcon),
+    tr("Удалить"));
+
+  m_toolBar->addSeparator();
+
+  m_testAction = m_toolBar->addAction(
+    tr("Тест"));
+
+  m_addAction->setEnabled(false);
+  m_removeAction->setEnabled(false);
+  m_testAction->setEnabled(false);
+
+  connect(
+    m_addAction,
+    &QAction::triggered,
+    this,
+    [this]()
+    {
+      if (m_tabs->currentIndex() != 1 ||
+          !m_configurationsView->currentIndex().isValid())
+      {
+        return;
+      }
+
+      ConfigurationSignalDialog dialog(this);
+
+      if (dialog.exec() != QDialog::Accepted)
+        return;
+
+      const QString name = dialog.signalName();
+      const SignalKind kind = dialog.signalKind();
+
+      if (m_signalModel->createSignal(name, kind))
+        m_signalsView->selectRow(m_signalModel->rowCount() - 1);
+    });
+
+  connect(
+    m_removeAction,
+    &QAction::triggered,
+    this,
+    [this]()
+    {
+      const QModelIndex current =
+        m_signalsView->currentIndex();
+
+      const auto* signal =
+        m_signalModel->signal(current);
+
+      if (!signal)
+        return;
+
+      const QString name =
+        QString::fromStdString(signal->name);
+
+      const auto answer = QMessageBox::question(
+        this,
+        tr("Удаление сигнала"),
+        tr("Удалить сигнал «%1»?\n"
+           "Это действие нельзя отменить.")
+          .arg(name),
+        QMessageBox::Yes | QMessageBox::No,
+        QMessageBox::No);
+
+      if (answer != QMessageBox::Yes)
+        return;
+
+      (void)m_signalModel->removeSignal(
+        current);
+    });
+}
+
+void ConfigurationEditor::updateActions()
+{
+  const bool hasConfiguration =
+    m_configurationsView->currentIndex().isValid();
+
+  const bool signalsTab =
+    m_tabs->currentIndex() == 1;
+
+  const bool hasSignal =
+    m_signalsView->currentIndex().isValid();
+
+  m_addAction->setEnabled(
+    hasConfiguration && signalsTab);
+
+  m_removeAction->setEnabled(
+    hasConfiguration && signalsTab && hasSignal);
+
+  // Включим после реализации проверки конфигурации.
+  m_testAction->setEnabled(false);
 }
 
 }

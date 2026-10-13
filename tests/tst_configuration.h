@@ -26,5 +26,7 @@ private slots:
   void test_configuration_orderIds();
   void test_configuration_findSignalDefinition();
 
+  void test_configuration_polynomial();
+
 };
 
