@@ -25,10 +25,11 @@ add_library(Configuration SHARED
   crateinfo.cpp crateinfo.h
   systemconfiguration.cpp systemconfiguration.h
   calibration.h calibration.cpp
+  moduletypeinfo.h moduletypeinfo.cpp
   runtimemoduleconfiguration.h runtimemoduleconfiguration.cpp
   db/calibrationrepository.h db/calibrationrepository.cpp
   db/configurationrepository.h db/configurationrepository.cpp
-  moduletypeinfo.h moduletypeinfo.cpp
+  db/sensorrepository.h db/sensorrepository.cpp
 )
 
 target_include_directories(Configuration

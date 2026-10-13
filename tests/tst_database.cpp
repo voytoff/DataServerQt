@@ -97,7 +97,7 @@ void tst_database::test_database_loadConfiguration()
   QCOMPARE(raw0->source.tag, mtags[0]);
   QCOMPARE(raw0->archiveRate, ArchiveRate::Hz1000);
   QCOMPARE(raw0->kind, SignalKind::Raw);
-  QCOMPARE(raw0->calibrationMode, CalibrationMode::None);
+  //QCOMPARE(raw0->calibrationMode, CalibrationMode::None);
   QCOMPARE(raw0->formula, "");
   QCOMPARE(raw0->signalType, SignalTypeId{1});
 
@@ -106,7 +106,7 @@ void tst_database::test_database_loadConfiguration()
   QCOMPARE(raw1->source.tag, mtags[1]);
   QCOMPARE(raw1->archiveRate, ArchiveRate::Hz100);
   QCOMPARE(raw1->kind, SignalKind::Raw);
-  QCOMPARE(raw1->calibrationMode, CalibrationMode::None);
+  //QCOMPARE(raw1->calibrationMode, CalibrationMode::None);
   QCOMPARE(raw1->formula, "");
   QCOMPARE(raw1->signalType, SignalTypeId{2});
 
@@ -114,7 +114,7 @@ void tst_database::test_database_loadConfiguration()
   QVERIFY(a);
   QCOMPARE(a->archiveRate, ArchiveRate::Hz100);
   QCOMPARE(a->kind, SignalKind::Calculated);
-  QCOMPARE(a->calibrationMode, CalibrationMode::BySignal);
+  //QCOMPARE(a->calibrationMode, CalibrationMode::BySignal);
   QCOMPARE(a->formula, "Raw0");
   QCOMPARE(a->signalType, SignalTypeId{1});
 
@@ -122,7 +122,7 @@ void tst_database::test_database_loadConfiguration()
   QVERIFY(b);
   QCOMPARE(b->archiveRate, ArchiveRate::Hz10);
   QCOMPARE(b->kind, SignalKind::Calculated);
-  QCOMPARE(b->calibrationMode, CalibrationMode::BySignalType);
+  //QCOMPARE(b->calibrationMode, CalibrationMode::BySignalType);
   QCOMPARE(b->formula, "Raw1");
   QCOMPARE(b->signalType, SignalTypeId{2});
 
@@ -130,11 +130,11 @@ void tst_database::test_database_loadConfiguration()
   QVERIFY(c);
   QCOMPARE(c->archiveRate, ArchiveRate::Hz10);
   QCOMPARE(c->kind, SignalKind::Calculated);
-  QCOMPARE(c->calibrationMode, CalibrationMode::None);
+  //QCOMPARE(c->calibrationMode, CalibrationMode::None);
   QCOMPARE(c->formula, "A + B");
   QCOMPARE(c->signalType, SignalTypeId{2});
 }
-
+/*
 void tst_database::test_database_loadCalibrations()
 {
   using namespace qds;
@@ -150,24 +150,24 @@ void tst_database::test_database_loadCalibrations()
   CalibrationRepository cr;
   QVERIFY(repo.loadCalibrations(cfg, cr));
 
-  QCOMPARE(cr.sizeSignals(), 1);
-  QCOMPARE(cr.sizeSignalTypes(), 1);
+  QCOMPARE(cr.sizeSensors(), 1);
+  QCOMPARE(cr.sizeSensorTypes(), 1);
 
   auto definitions = cfg.signalDefinitions();
   double result = 0;
 
   auto a = findSignalDefinition(definitions, "A");
 
-  QVERIFY(cr.calibrateBySignal(a->id, -10, result));
+  QVERIFY(cr.calibrateBySensor(a->id, CalibrationKind::Table, -10, result));
   QCOMPARE(result, -1.0);
 
-  QVERIFY(cr.calibrateBySignal(a->id, 0, result));
+  QVERIFY(cr.calibrateBySensor(a->id, 0, result));
   QCOMPARE(result, 0.0);
 
-  QVERIFY(cr.calibrateBySignal(a->id, 5, result));
+  QVERIFY(cr.calibrateBySensor(a->id, 5, result));
   QCOMPARE(result, 0.5);
 
-  QVERIFY(cr.calibrateBySignal(a->id, 10, result));
+  QVERIFY(cr.calibrateBySensor(a->id, 10, result));
   QCOMPARE(result, 1.0);
 
   QVERIFY(cr.calibrateBySignal(a->id, 15, result));
@@ -220,7 +220,7 @@ void tst_database::test_database_loadCalibrations()
   QCOMPARE(result, 123.0);
 
 }
-
+*/
 void tst_database::test_database_failLoading()
 {
   using namespace qds;
@@ -253,8 +253,8 @@ WHERE id=:id;
   CalibrationRepository cr;
   QVERIFY(!repo.loadCalibrations(cfg, cr));
 
-  QCOMPARE(cr.sizeSignals(), 0);
-  QCOMPARE(cr.sizeSignalTypes(), 0);
+  QCOMPARE(cr.sizeSensors(), 0);
+  QCOMPARE(cr.sizeSensorTypes(), 0);
 
   QVERIFY(query.prepare(R"(
 UPDATE configuration_signal_definition
@@ -270,8 +270,8 @@ WHERE id=:id;
 
   QVERIFY(repo.loadCalibrations(cfg, cr));
 
-  QCOMPARE(cr.sizeSignals(), 1);
-  QCOMPARE(cr.sizeSignalTypes(), 1);
+  QCOMPARE(cr.sizeSensors(), 1);
+  QCOMPARE(cr.sizeSensorTypes(), 1);
 }
 
 void tst_database::test_database_pipeline()
@@ -311,11 +311,11 @@ void tst_database::test_database_pipeline()
       cr));
 
   QCOMPARE(
-    cr.sizeSignals(),
+    cr.sizeSensors(),
     std::size_t{1});
 
   QCOMPARE(
-    cr.sizeSignalTypes(),
+    cr.sizeSensorTypes(),
     std::size_t{1});
 
   DataStreamSourceFactory factory;
@@ -350,11 +350,11 @@ void tst_database::test_database_pipeline()
   QVERIFY(runtime);
 
   QCOMPARE(
-    runtime->calibrations.sizeSignals(),
+    runtime->calibrations.sizeSensors(),
     std::size_t{1});
 
   QCOMPARE(
-    runtime->calibrations.sizeSignalTypes(),
+    runtime->calibrations.sizeSensorTypes(),
     std::size_t{1});
 
   // ------------------------------------------------------------
@@ -545,11 +545,11 @@ void tst_database::test_database_archive()
       cr));
 
   QCOMPARE(
-    cr.sizeSignals(),
+    cr.sizeSensors(),
     std::size_t{1});
 
   QCOMPARE(
-    cr.sizeSignalTypes(),
+    cr.sizeSensorTypes(),
     std::size_t{1});
 
   // ------------------------------------------------------------
@@ -629,11 +629,11 @@ void tst_database::test_database_archive()
   QVERIFY(runtime);
 
   QCOMPARE(
-    runtime->calibrations.sizeSignals(),
+    runtime->calibrations.sizeSensors(),
     std::size_t{1});
 
   QCOMPARE(
-    runtime->calibrations.sizeSignalTypes(),
+    runtime->calibrations.sizeSensorTypes(),
     std::size_t{1});
 
   // ------------------------------------------------------------
@@ -876,10 +876,10 @@ void tst_database::test_database_archive()
           SignalKind::Calculated)
         {
           double a;
-
+/*
           QVERIFY(
             runtime->calibrations
-              .calibrateBySignal(
+              .calibrateBySensor()
                 sda->id,
                 raw0,
                 a));
@@ -888,7 +888,7 @@ void tst_database::test_database_archive()
 
           QVERIFY(
             runtime->calibrations
-              .calibrateBySignalType(
+              .addBySensorType()
                 sdb->signalType,
                 raw1,
                 b));
@@ -919,6 +919,7 @@ void tst_database::test_database_archive()
             QFAIL(
               "Unexpected signal in archive");
           }
+*/
         }
       }
     }

@@ -13,10 +13,17 @@ public:
 
   FormulaCalculator();
 
+  [[nodiscard]]
   bool calculate(
     const FormulaNode& formula,
     const RawMemory& raw,
     const CalculatedMemory& calculated,
+    double& result) const noexcept;
+
+  [[nodiscard]]
+  bool calculate(
+    const FormulaNode& formula,
+    double x,
     double& result) const noexcept;
 
 private:

@@ -21,12 +21,19 @@ public:
     const CalculatedMemory& calculated,
     double& result) const noexcept;
 
+  [[nodiscard]]
+  bool evaluate(
+    const FormulaNode& node,
+    double x,
+    double& result) const noexcept;
+
 private:
 
   bool evaluateNode(
     const FormulaNode& node,
-    const RawMemory& raw,
-    const CalculatedMemory& calculated,
+    const RawMemory* raw,
+    const CalculatedMemory* calculated,
+    const double* input,
     double& result) const noexcept;
 
   bool readSignal(

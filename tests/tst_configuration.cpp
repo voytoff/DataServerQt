@@ -1,5 +1,11 @@
 #include "tst_configuration.h"
 #include "calibration.h"
+#include "db/configurationrepository.h"
+#include "db/sensorrepository.h"
+#include "formulacalculator.h"
+#include "parser/formulaparser.h"
+#include "parser/preprocessingresolver.h"
+#include "qds/db.h"
 #include "systemconfiguration.h"
 #include "testsrv.h"
 #include <qtestcase.h>
@@ -182,7 +188,6 @@ void tst_configuration::test_configuration_signalDefinitions()
      .name = "A",
      .kind = SignalKind::Calculated,
      .archiveRate = ArchiveRate::Hz100,
-     .calibrationMode = CalibrationMode::BySignal,
      .dependencies = {{0}},
      }));
 
@@ -192,7 +197,6 @@ void tst_configuration::test_configuration_signalDefinitions()
      .name = "B",
      .kind = SignalKind::Calculated,
      .archiveRate = ArchiveRate::Hz100,
-     .calibrationMode = CalibrationMode::BySignalType,
      .dependencies = {{1}},
      }));
 
@@ -221,7 +225,6 @@ void tst_configuration::test_configuration_signalDefinitions()
   QCOMPARE(def3->id.value, 3);
   QCOMPARE(def3->kind, SignalKind::Calculated);
   QCOMPARE(def3->archiveRate, ArchiveRate::Hz100);
-  QCOMPARE(def3->calibrationMode, CalibrationMode::BySignalType);
   QCOMPARE(def3->dependencies.size(), 1);
   QCOMPARE(def3->dependencies[0].value, 1);
 
@@ -445,8 +448,7 @@ void tst_configuration::test_configuration_orderIds()
      .name = "A",
      .kind = SignalKind::Calculated,
      .archiveRate = ArchiveRate::Hz100,
-     .calibrationMode = CalibrationMode::BySignalType,
-      .dependencies = {{4}, {0}},
+    .dependencies = {{4}, {0}},
      }));
 
   const auto &tags = cfg.tags();
@@ -521,4 +523,84 @@ void tst_configuration::test_configuration_polynomial()
 
   QVERIFY(calibration.apply(2.0, result));
   QCOMPARE(result, 24.0);
+}
+
+void tst_configuration::test_preprocessing()
+{
+  FormulaParser parser(
+    "sqrt(x * x + 9)");
+
+  auto node = parser.parse();
+
+  QVERIFY(node != nullptr);
+
+  PreprocessingResolver resolver;
+
+  QVERIFY(resolver.resolve(*node));
+
+  FormulaCalculator calculator;
+
+  double result = 0.0;
+
+  QVERIFY(calculator.calculate(
+    *node,
+    4.0,
+    result));
+
+  QCOMPARE(result, 5.0);
+}
+
+void tst_configuration::test_sensorRepository()
+{
+  SensorRepository repository;
+
+  QVERIFY(repository.add(
+    Sensor{
+      .id = SensorId{1},
+      .sensorTypeId = SensorTypeId{1},
+      .name = "POWER",
+      .serial = "SERIAL01",
+      .calibrationMode = SensorCalibrationMode::Own,
+      .calibrationKind = CalibrationKind::Table,
+    }));
+
+  QCOMPARE(repository.sensorCount(), 1);
+
+  QVERIFY(repository.add(
+    SensorType{
+      .id = SensorTypeId{1},
+      .name = "SENST01",
+      .calibrationKind = CalibrationKind::Polynomial,
+  }));
+
+  QCOMPARE(repository.sensorTypeCount(), 1);
+
+  QVERIFY(repository.find(SensorId{1}));
+
+  QVERIFY(!repository.add(
+    Sensor{
+      .id = SensorId{1},
+      .name = "DUPLICATE"
+    }));
+
+  repository.clear();
+  QCOMPARE(repository.sensorCount(), 0);
+  QCOMPARE(repository.sensorTypeCount(), 0);
+}
+
+void tst_configuration::test_loadSensors()
+{
+  using namespace qds;
+
+  auto db = get_db();
+  QVERIFY(db.isOpen());
+  QVERIFY(db.isValid());
+
+  ConfigurationRepository database(db);
+  SensorRepository sensors;
+
+  QVERIFY(database.loadSensors(sensors));
+
+  QVERIFY(sensors.sensorTypeCount() > 0);
+  QVERIFY(sensors.sensorCount() > 0);
 }

@@ -65,7 +65,9 @@ public:
     Formula,
     SignalType,
     ArchiveRate,
-    CalibrationMode
+    //CalibrationMode,
+    Sensor,
+    PreprocessingFormula
   };
 
 private:

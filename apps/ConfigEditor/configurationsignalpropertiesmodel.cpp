@@ -51,6 +51,19 @@ void ConfigurationSignalPropertiesModel::setItem(
         tr("Источник (TagId)"),
         signal->source.tag.value
       });
+
+      properties.push_back({
+        PropertyId::Sensor,
+        tr("Датчик (SensorId)"),
+        signal->sensorId.value
+      });
+
+      properties.push_back({
+        PropertyId::PreprocessingFormula,
+        tr("Предварительная формула"),
+        QString::fromStdString(
+          signal->preprocessingFormula)
+      });
     }
     else if (signal->kind == SignalKind::Calculated)
     {
@@ -73,11 +86,6 @@ void ConfigurationSignalPropertiesModel::setItem(
       static_cast<uint16_t>(signal->archiveRate)
     });
 
-    properties.push_back({
-      PropertyId::CalibrationMode,
-      tr("Режим калибровки"),
-      static_cast<int>(signal->calibrationMode)
-    });
   }
 
   beginResetModel();
@@ -145,16 +153,6 @@ QVariant ConfigurationSignalPropertiesModel::data(
   {
     return QString("%1 Гц")
       .arg(property.value.toUInt());
-  }
-  else if (property.id == PropertyId::CalibrationMode)
-  {
-    switch (property.value.toInt())
-    {
-    case 0: return tr("Нет");
-    case 1: return tr("По сигналу");
-    case 2: return tr("По типу сигнала");
-    default: return property.value;
-    }
   }
   else if (property.id == PropertyId::SignalType)
   {
@@ -291,30 +289,50 @@ bool ConfigurationSignalPropertiesModel::setData(
 
     newValue = frequency;
   }
-  else if (property.id == PropertyId::CalibrationMode)
+  else if (property.id == PropertyId::Sensor)
   {
     bool ok = false;
-    const uint32_t mode = value.toUInt(&ok);
+    const uint32_t id = value.toUInt(&ok);
 
-    if (!ok ||
-        !isValidCalibrationMode(static_cast<CalibrationMode>(mode)))
+    if (!ok)
     {
       emit operationFailed(
-        tr("Недопустимый режим калибровки: %1.\n")
+        tr("Недопустимый идентификатор датчика: %1.")
           .arg(value.toString()));
 
       return false;
     }
 
-    const auto calibrationMode = static_cast<CalibrationMode>(mode);
+    const SensorId sensor{id};
 
-    if (!m_signalModel->updateSignalCalibrationMode(
-          m_currentItem, calibrationMode))
+    if (!m_signalModel->updateSignalSensor(
+          m_currentItem, sensor))
     {
       return false;
     }
 
-    newValue = mode;
+    newValue = id;
+  }
+  else if (property.id == PropertyId::PreprocessingFormula)
+  {
+    const QString formula = value.toString().trimmed();
+
+    if (formula.size() > 512)
+    {
+      emit operationFailed(
+        tr("Предварительная формула должна иметь "
+           "длину не более 512 символов."));
+
+      return false;
+    }
+
+    if (!m_signalModel->updateSignalPreprocessingFormula(
+          m_currentItem, formula))
+    {
+      return false;
+    }
+
+    newValue = formula;
   }
   else if (property.id == PropertyId::SignalType)
   {
@@ -420,7 +438,7 @@ Qt::ItemFlags ConfigurationSignalPropertiesModel::flags(
 
   if (propertyId == PropertyId::Name ||
       propertyId == PropertyId::ArchiveRate ||
-      propertyId == PropertyId::CalibrationMode ||
+      propertyId == PropertyId::PreprocessingFormula ||
       propertyId == PropertyId::SignalType ||
       propertyId == PropertyId::Source ||
       propertyId == PropertyId::Formula)

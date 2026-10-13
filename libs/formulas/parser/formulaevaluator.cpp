@@ -8,18 +8,29 @@ FormulaEvaluator::FormulaEvaluator(
   : m_functions(functions) { }
 
 bool FormulaEvaluator::evaluate(
-  const FormulaNode &node,
-  const RawMemory &raw,
-  const CalculatedMemory &calculated,
-  double &result) const noexcept
+  const FormulaNode& node,
+  const RawMemory& raw,
+  const CalculatedMemory& calculated,
+  double& result) const noexcept
 {
-  return evaluateNode(node, raw, calculated, result);
+  return evaluateNode(
+    node, &raw, &calculated, nullptr, result);
+}
+
+bool FormulaEvaluator::evaluate(
+  const FormulaNode& node,
+  double x,
+  double& result) const noexcept
+{
+  return evaluateNode(
+    node, nullptr, nullptr, &x, result);
 }
 
 bool FormulaEvaluator::evaluateNode(
   const FormulaNode& node,
-  const RawMemory& raw,
-  const CalculatedMemory& calculated,
+  const RawMemory* raw,
+  const CalculatedMemory* calculated,
+  const double* input,
   double& result) const noexcept
 {
   switch (node.type)
@@ -28,11 +39,24 @@ bool FormulaEvaluator::evaluateNode(
     result = node.number;
     return true;
 
-  case FormulaNodeType::Signal:
-    if (!node.signal.isValid())
+  case FormulaNodeType::Input:
+    if (input == nullptr)
       return false;
 
-    return readSignal(node.signal, raw, calculated, result);
+    result = *input;
+    return true;
+
+  case FormulaNodeType::Signal:
+    if (raw == nullptr ||
+        calculated == nullptr ||
+        !node.signal.isValid())
+      return false;
+
+    return readSignal(
+      node.signal,
+      *raw,
+      *calculated,
+      result);
 
   case FormulaNodeType::Add:
   {
@@ -42,10 +66,22 @@ bool FormulaEvaluator::evaluateNode(
     double left;
     double right;
 
-    if (!evaluateNode(*node.left, raw, calculated, left))
+    if (!evaluateNode(
+          *node.left,
+          raw,
+          calculated,
+          input,
+          left))
+
       return false;
 
-    if (!evaluateNode(*node.right, raw, calculated, right))
+    if (!evaluateNode(
+          *node.right,
+          raw,
+          calculated,
+          input,
+          right))
+
       return false;
 
     result = left + right;
@@ -60,10 +96,22 @@ bool FormulaEvaluator::evaluateNode(
     double left;
     double right;
 
-    if (!evaluateNode(*node.left, raw, calculated, left))
+    if (!evaluateNode(
+          *node.left,
+          raw,
+          calculated,
+          input,
+          left))
+
       return false;
 
-    if (!evaluateNode(*node.right, raw, calculated, right))
+    if (!evaluateNode(
+          *node.right,
+          raw,
+          calculated,
+          input,
+          right))
+
       return false;
 
     result = left - right;
@@ -78,10 +126,22 @@ bool FormulaEvaluator::evaluateNode(
     double left;
     double right;
 
-    if (!evaluateNode(*node.left, raw, calculated, left))
+    if (!evaluateNode(
+          *node.left,
+          raw,
+          calculated,
+          input,
+          left))
+
       return false;
 
-    if (!evaluateNode(*node.right, raw, calculated, right))
+    if (!evaluateNode(
+          *node.right,
+          raw,
+          calculated,
+          input,
+          right))
+
       return false;
 
     result = left * right;
@@ -96,10 +156,22 @@ bool FormulaEvaluator::evaluateNode(
     double left;
     double right;
 
-    if (!evaluateNode(*node.left, raw, calculated, left))
+    if (!evaluateNode(
+          *node.left,
+          raw,
+          calculated,
+          input,
+          left))
+
       return false;
 
-    if (!evaluateNode(*node.right, raw, calculated, right))
+    if (!evaluateNode(
+          *node.right,
+          raw,
+          calculated,
+          input,
+          right))
+
       return false;
 
     if (right == 0.0)
@@ -116,7 +188,13 @@ bool FormulaEvaluator::evaluateNode(
 
     double value;
 
-    if (!evaluateNode(*node.left, raw, calculated, value))
+    if (!evaluateNode(
+          *node.left,
+          raw,
+          calculated,
+          input,
+          value))
+
       return false;
 
     result = -value;
@@ -145,6 +223,7 @@ bool FormulaEvaluator::evaluateNode(
             *argument,
             raw,
             calculated,
+            input,
             value))
       {
         return false;
@@ -157,6 +236,8 @@ bool FormulaEvaluator::evaluateNode(
       arguments,
       result);
   }
+  case FormulaNodeType::Identifier:
+    return false;
 
   }
 

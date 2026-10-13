@@ -75,37 +75,28 @@ constexpr bool isValidCalibrationMode(CalibrationMode mode) noexcept
 
 struct SignalDefinition
 {
-  // постоянный идентификатор сигнала
-  SignalId id = {0};
-
-  // имя, используемое пользователем
+  SignalId id;
   std::string name;
 
-  // физический или вычисляемый сигнал
   SignalKind kind = SignalKind::Raw;
-
-  // источник для RAW сигнала
-  // для Calculated может быть пустым
   SignalSource source;
 
-  // частота записи в архив
-  //uint32_t archiveFrequency = 0;
+  SensorId sensorId;
+
+  // Предварительное преобразование Raw.
+  std::string preprocessingFormula;
+
   ArchiveRate archiveRate = ArchiveRate::Hz10;
-
-  // источник таблицы тарировки
-  CalibrationMode calibrationMode = CalibrationMode::None;
-
-  // тип датчика
   SignalTypeId signalType;
 
-  // текст формулы
+  // Для Calculated.
   std::string formula;
 
-  // Runtime
-  // ссылка на формулу вычисления в репозитории
-  FormulaId formulaId = {0};
-  // аргументы формулы
+  // Runtime.
+  FormulaId formulaId;
   std::vector<SignalId> dependencies;
+
+  FormulaId preprocessingFormulaId;
 };
 
 struct SignalReference

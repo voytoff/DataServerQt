@@ -4,6 +4,7 @@
 #include "calibrationrepository.h"
 #include "configmodule.h"
 #include "datatypes.h"
+#include "db/sensorrepository.h"
 #include "systemconfiguration.h"
 #include <QSqlDatabase>
 #include <QSqlQuery>
@@ -25,6 +26,9 @@ public:
   bool load(
     const ConfigurationId &configuration,
     SystemConfiguration& system);
+
+  bool loadSensors(
+    SensorRepository& repository);
 
 
   [[nodiscard]]
@@ -155,10 +159,10 @@ public:
     ArchiveRate rate);
 
   [[nodiscard]]
-  bool updateSignalCalibrationMode(
-    ConfigurationId configuration,
-    SignalId signal,
-    CalibrationMode mode);
+  bool updateSignalSensor(
+    const ConfigurationId &configuration,
+    const SignalId &signal,
+    const SensorId &sensor);
 
   [[nodiscard]]
   bool updateSignalSignalType(
@@ -174,6 +178,12 @@ public:
 
   [[nodiscard]]
   bool updateSignalFormula(
+    ConfigurationId configuration,
+    SignalId signal,
+    QString formula);
+
+  [[nodiscard]]
+  bool updateSignalPreprocessingFormula(
     ConfigurationId configuration,
     SignalId signal,
     QString formula);
@@ -203,8 +213,6 @@ public:
   QSqlError lastError() const;
 
 private:
-  void assignCalibration(
-    Calibration &calibration, const QSqlQuery &query);
 
   QSqlQuery getQuery(
     const QString &sql, const QVariantMap& args = {});

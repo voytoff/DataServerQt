@@ -49,8 +49,8 @@ SystemBuilder::build(
     std::make_unique<SignalProcessor>(
       runtime->layout,
       runtime->formulas,
-      runtime->calculationPlan,
-      runtime->calibrations);
+      runtime->calculationPlan/*,
+      runtime->calibrations*/);
 
   runtime->buffers.initialize(
     runtime->layout);

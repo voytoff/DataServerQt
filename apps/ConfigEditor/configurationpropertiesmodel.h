@@ -56,7 +56,9 @@ public:
     ChannelRate,
     ModuleMode,
     ChannelRange,
-    ArchiveRate
+    ArchiveRate,
+    //Sensor,
+    //PreprocessingFormula
   };
 
 private:

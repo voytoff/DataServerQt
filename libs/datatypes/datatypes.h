@@ -24,6 +24,8 @@ struct ChannelIdTag {};
 struct SubscriptionIdTag {};
 struct SignalTypeIdTag {};
 struct ConfigurationIdTag {};
+struct SensorTypeIdTag{};
+struct SensorIdTag{};
 
 using SignalId =
   StrongId<SignalIdTag>;
@@ -50,6 +52,13 @@ using SignalTypeId =
 
 using ConfigurationId =
   StrongId<ConfigurationIdTag>;
+
+using SensorTypeId =
+  StrongId<SensorTypeIdTag>;
+
+using SensorId =
+  StrongId<SensorIdTag>;
+
 
 struct SignalTypeInfo
 {
@@ -126,18 +135,6 @@ struct FrameNumber
 {
   uint64_t value = 0;
   constexpr auto operator<=>(const FrameNumber&) const = default;
-};
-
-struct SensorTypeId
-{
-  uint32_t value = 0;
-  auto operator<=>(const SensorTypeId&) const = default;
-};
-
-struct SensorId
-{
-  uint32_t value = 0;
-  auto operator<=>(const SensorId&) const = default;
 };
 
 }

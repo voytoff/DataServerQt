@@ -47,9 +47,7 @@ bool CalculationCompiler::build(
 
     tmp.add({
       .signal = id,
-      .formula = definition->formulaId,
-      .calibrationMode = definition->calibrationMode,
-      .signalType = definition->signalType
+      .formula = definition->formulaId
     });
   }
 

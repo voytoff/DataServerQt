@@ -230,34 +230,34 @@ bool ConfigurationSignalModel::updateSignalArchiveRate(
   return true;
 }
 
-bool ConfigurationSignalModel::updateSignalCalibrationMode(
+bool ConfigurationSignalModel::updateSignalSensor(
   const QModelIndex& index,
-  CalibrationMode mode)
+  SensorId sensorId)
 {
   const auto* s = signal(index);
 
-  if (!s || !isValidCalibrationMode(mode))
+  if (!s || s->kind != SignalKind::Raw)
     return false;
 
-  if (s->calibrationMode == mode)
+  if (s->sensorId == sensorId)
     return true;
 
-  if (!m_repository.updateSignalCalibrationMode(
+  if (!m_repository.updateSignalSensor(
         m_configuration,
         s->id,
-        mode))
+        sensorId))
   {
     const auto error = m_repository.lastError();
 
     emit operationFailed(
       error.isValid()
         ? error.text()
-        : tr("Не удалось сохранить настройки сигнала."));
+        : tr("Не удалось сохранить датчик сигнала."));
 
     return false;
   }
 
-  m_signals[index.row()].calibrationMode = mode;
+  m_signals[index.row()].sensorId = sensorId;
 
   return true;
 }
@@ -358,6 +358,38 @@ bool ConfigurationSignalModel::updateSignalFormula(
   return true;
 }
 
+bool ConfigurationSignalModel::updateSignalPreprocessingFormula(
+  const QModelIndex &index,
+  const QString &formula)
+{
+  const auto* s = signal(index);
+
+  if (!s || s->kind != SignalKind::Raw)
+    return false;
+
+  if (s->preprocessingFormula == formula)
+    return true;
+
+  if (!m_repository.updateSignalPreprocessingFormula(
+        m_configuration,
+        s->id,
+        formula))
+  {
+    const auto error = m_repository.lastError();
+
+    emit operationFailed(
+      error.isValid()
+        ? error.text()
+        : tr("Не удалось сохранить настройки сигнала."));
+
+    return false;
+  }
+
+  m_signals[index.row()].preprocessingFormula = formula.toStdString();
+
+  return true;
+}
+
 bool ConfigurationSignalModel::createSignal(
   QString name,
   SignalKind kind)
@@ -388,7 +420,7 @@ bool ConfigurationSignalModel::createSignal(
 
   signal.source = SignalSource{TagId{0}};
   signal.signalType = SignalTypeId{0};
-  signal.calibrationMode = CalibrationMode::None;
+  //signal.calibrationMode = CalibrationMode::None;
   signal.archiveRate = ArchiveRate::Hz10;
 
   const int row =

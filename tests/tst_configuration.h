@@ -27,6 +27,9 @@ private slots:
   void test_configuration_findSignalDefinition();
 
   void test_configuration_polynomial();
+  void test_preprocessing();
+  void test_sensorRepository();
+  void test_loadSensors();
 
 };
 

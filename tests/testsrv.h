@@ -232,7 +232,7 @@ static SystemConfiguration createTestConfig_1module_2raw_2calc() {
   SignalDefinition sd1 {.id = {0}, .name = "U000", .kind = SignalKind::Raw, .source = {0}, .archiveRate = ArchiveRate::Hz100};
   cfg.addSignalDefinition(sd1);
 
-  SignalDefinition sd2 {.id = {1}, .name = "D10", .kind = SignalKind::Calculated, .source = {0}, .archiveRate = ArchiveRate::Hz10, .calibrationMode = CalibrationMode::BySignal};
+  SignalDefinition sd2 {.id = {1}, .name = "D10", .kind = SignalKind::Calculated, .source = {0}, .archiveRate = ArchiveRate::Hz10};
   cfg.addSignalDefinition(sd2);
 
   SignalDefinition sd3 {.id = {2}, .name = "P100", .kind = SignalKind::Calculated, .source = {0}, .archiveRate = ArchiveRate::Hz100, .formulaId = {15}};

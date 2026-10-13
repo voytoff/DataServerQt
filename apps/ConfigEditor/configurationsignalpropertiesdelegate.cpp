@@ -50,16 +50,10 @@ QWidget *ConfigurationSignalPropertiesDelegate::createEditor(
 
     return editor;
   }
-  else if (propertyId == Model::PropertyId::CalibrationMode)
+  else if (propertyId == Model::PropertyId::PreprocessingFormula)
   {
-    auto* editor = new QComboBox(parent);
-
-    editor->setAutoFillBackground(true);
-    editor->setBackgroundRole(QPalette::Base);
-
-    editor->addItem(tr("Нет"), 0);
-    editor->addItem(tr("По сигналу"), 1);
-    editor->addItem(tr("По типу сигнала"), 2);
+    auto* editor =
+      new QLineEdit(parent);
 
     return editor;
   }

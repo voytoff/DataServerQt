@@ -6,6 +6,7 @@
 #include "dataengine.h"
 #include "datasourcefactory.h"
 #include "datasourcemanager.h"
+#include "db/calibrationrepository.h"
 #include "failoncedatasource.h"
 #include "fakedatasource.h"
 #include "fakeschedulerclock.h"
@@ -242,8 +243,7 @@ void tst_signalprocessor::test_signalProcessor_calculate()
   SignalProcessor processor(
     layout,
     formulas,
-    plan,
-    cr);
+    plan);
 
   QVERIFY(processor.process(
     raw,

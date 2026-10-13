@@ -52,9 +52,9 @@ public:
     const QModelIndex& index,
     ArchiveRate rate);
 
-  bool updateSignalCalibrationMode(
+  bool updateSignalSensor(
     const QModelIndex& index,
-    CalibrationMode mode);
+    SensorId sensorId);
 
   [[nodiscard]]
   bool updateSignalSignalType(
@@ -70,6 +70,11 @@ public:
   bool updateSignalFormula(
     const QModelIndex& index,
     QString formula);
+
+  [[nodiscard]]
+  bool updateSignalPreprocessingFormula(
+    const QModelIndex& index,
+    const QString& formula);
 
   [[nodiscard]]
   bool createSignal(

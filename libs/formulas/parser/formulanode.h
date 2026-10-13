@@ -13,6 +13,7 @@ enum class FormulaNodeType
   Number,
   Identifier,
   Signal,
+  Input,  // Исходное значение Raw-сигнала
 
   Add,
   Subtract,

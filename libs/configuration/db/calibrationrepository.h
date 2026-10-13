@@ -3,50 +3,56 @@
 #include <strongidhash.h>
 #include "calibration.h"
 #include "datatypes.h"
+
+#include <map>
 #include <unordered_map>
+#include <strongidhash.h>
 
-namespace  qds
+
+namespace qds
 {
-
+/** табличные и полиномиальные тарировки. */
 class CalibrationRepository
 {
 public:
 
-  bool addBySignal(
-    const SignalId &signalId,
-    const Calibration &calibration);
+  bool addBySensor(
+    const SensorId& sensorId,
+    const Calibration& calibration);
 
-  bool addBySignalType(
-    const SignalTypeId &signalTypeId,
-    const Calibration &calibration);
+  bool addBySensorType(
+    const SensorTypeId& sensorTypeId,
+    const Calibration& calibration);
 
-  bool calibrateBySignal(
-    const SignalId &signalId,
+  bool calibrateBySensor(
+    const SensorId& sensorId,
+    CalibrationKind kind,
     double x,
     double& result) const;
 
-  bool calibrateBySignalType(
-    const SignalTypeId &signalTypeId,
+  bool calibrateBySensorType(
+    const SensorTypeId& sensorTypeId,
+    CalibrationKind kind,
     double x,
     double& result) const;
 
   [[nodiscard]]
-  std::size_t sizeSignals() const noexcept;
+  std::size_t sizeSensors() const noexcept;
 
   [[nodiscard]]
-  std::size_t sizeSignalTypes() const noexcept;
+  std::size_t sizeSensorTypes() const noexcept;
 
   void clear() noexcept;
 
 private:
 
   std::unordered_map<
-    SignalId,
-    Calibration> m_bySignal;
+    SensorId,
+    std::map<CalibrationKind, Calibration>> m_bySensor;
 
   std::unordered_map<
-    SignalTypeId,
-    Calibration> m_bySignalType;
+    SensorTypeId,
+    std::map<CalibrationKind, Calibration>> m_bySensorType;
 };
 
 }

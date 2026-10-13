@@ -35,8 +35,6 @@ bool IdentifierResolver::resolveNode(
     if (definition == nullptr)
       return false;
 
-    //dependencies.push_back(
-    //  definition->id);
     if (std::find(
           dependencies.begin(),
           dependencies.end(),
@@ -103,6 +101,9 @@ bool IdentifierResolver::resolveNode(
 
   case FormulaNodeType::Signal:
     return true;
+
+  case FormulaNodeType::Input:
+    return false;
   }
 
   return false;

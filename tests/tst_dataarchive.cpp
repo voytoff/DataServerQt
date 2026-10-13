@@ -11,6 +11,7 @@
 #include "datastreamreader.h"
 #include "datastreamtime.h"
 #include "datastreamworker.h"
+#include "db/calibrationrepository.h"
 #include "failingarchivewriter.h"
 #include "fakeclock.h"
 #include "framestartpolicy.h"
@@ -3069,8 +3070,7 @@ void tst_dataarchive::test_DataStreamProcessor_archiveFailure()
   SignalProcessor signalProcessor(
     layout,
     formulas,
-    plan,
-    calibrations);
+    plan);
 
   FailingArchiveWriter archive;
   TestLogger logger;
@@ -3244,8 +3244,7 @@ void tst_dataarchive::test_DataStreamProcessor_wait_for_all()
   SignalProcessor signalProcessor(
     layout,
     formulas,
-    plan,
-    calibrations);
+    plan);
 
   TestArchiveFrameWriter archive;
 
@@ -3409,8 +3408,7 @@ void tst_dataarchive::test_DataStreamProcessor_livetime()
   SignalProcessor signalProcessor(
     layout,
     formulas,
-    plan,
-    calibrations);
+    plan);
 
   TestArchiveFrameWriter archive;
 
@@ -3552,8 +3550,7 @@ void tst_dataarchive::
   SignalProcessor signalProcessor(
     layout,
     formulas,
-    plan,
-    calibrations);
+    plan);
 
   TestArchiveFrameWriter archive;
   TestLogger logger;
@@ -3704,8 +3701,7 @@ void tst_dataarchive::test_DataStreamWorker_base()
   SignalProcessor signalProcessor(
     layout,
     formulas,
-    plan,
-    calibrations);
+    plan);
 
   TestArchiveFrameWriter archive;
   TestLogger logger;
@@ -3838,8 +3834,7 @@ void tst_dataarchive::test_LCardDataSource_to_archive()
   SignalProcessor signalProcessor(
     layout,
     formulas,
-    plan,
-    calibrations);
+    plan);
 
   TestArchiveFrameWriter archive;
   TestLogger logger;
@@ -3995,8 +3990,7 @@ void tst_dataarchive::test_LCardDataSource_some_modules_to_archive()
   SignalProcessor signalProcessor(
     layout,
     formulas,
-    plan,
-    calibrations);
+    plan);
 
   TestArchiveFrameWriter archive;
   TestLogger logger;
@@ -4213,8 +4207,7 @@ void tst_dataarchive::test_DataStreamWorker_restart()
   SignalProcessor signalProcessor(
     layout,
     formulas,
-    plan,
-    calibrations);
+    plan);
 
   TestArchiveFrameWriter archive;
   TestLogger logger;

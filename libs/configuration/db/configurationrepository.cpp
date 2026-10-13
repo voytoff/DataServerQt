@@ -131,7 +131,7 @@ WHERE
   if (cfg.modules().empty())
     return false;
 
-  // загружаем теги
+  // 2. загружаем теги
   query = getQuery(R"(
 SELECT
   ct.id,
@@ -214,13 +214,22 @@ WHERE
 
   // загружаем сигналы
   query = getQuery(R"(
-SELECT id, configuration_id, name, kind, tag_id,
-  signal_type_id, calibration_mode, formula, archive_rate
+SELECT
+  id,
+  configuration_id,
+  name,
+  kind,
+  tag_id,
+  sensor_id,
+  signal_type_id,
+  formula,
+  preprocessing_formula,
+  archive_rate
 FROM configuration_signal_definition
 WHERE configuration_id = :id;)",
-   {
-     {":id", configuration.value}
-   });
+    {
+      {":id", configuration.value}
+    });
 
   if (!exec(query))
     return false;
@@ -229,33 +238,196 @@ WHERE configuration_id = :id;)",
   {
     SignalDefinition definition;
 
-    definition.id = SignalId{query.value("id").toUInt()};
-    definition.name = query.value("name").toString().toStdString();
-    definition.kind = static_cast<SignalKind>(query.value("kind").toUInt());
-    definition.signalType = SignalTypeId{query.value("signal_type_id").toUInt()};
-    definition.archiveRate = static_cast<ArchiveRate>(query.value("archive_rate").toUInt());
+    definition.id =
+      SignalId{query.value("id").toUInt()};
 
-    if (definition.kind == SignalKind::Raw) {
+    definition.name =
+      query.value("name").toString().toStdString();
 
+    definition.kind =
+      static_cast<SignalKind>(
+        query.value("kind").toUInt());
+
+    definition.signalType =
+      SignalTypeId{
+      query.value("signal_type_id").toUInt()
+    };
+
+    definition.archiveRate =
+      static_cast<ArchiveRate>(
+        query.value("archive_rate").toUInt());
+
+    if (!isValidArchiveRate(definition.archiveRate))
+      return false;
+
+    if (definition.kind == SignalKind::Raw)
+    {
       const TagId tag{
         query.value("tag_id").toUInt()
       };
 
       if (!cfg.findTag(tag))
-        continue; /// ???
+        return false;
 
       definition.source = SignalSource{tag};
 
-    } else if (definition.kind == SignalKind::Calculated) {
-      definition.formula = query.value("formula").toString().toStdString();
-      definition.calibrationMode = static_cast<CalibrationMode>(query.value("calibration_mode").toUInt());
-    } else return false;
+      definition.sensorId =
+        SensorId{
+        query.value("sensor_id").toUInt()
+      };
+
+      definition.preprocessingFormula =
+        query.value("preprocessing_formula")
+          .toString().toStdString();
+    }
+    else if (definition.kind == SignalKind::Calculated)
+    {
+      definition.formula =
+        query.value("formula").toString().toStdString();
+    }
+    else
+    {
+      return false;
+    }
 
     if (!cfg.addSignalDefinition(definition))
       return false;
   }
 
   system = std::move(cfg);
+
+  return true;
+}
+
+bool ConfigurationRepository::loadSensors(
+  SensorRepository& repository)
+{
+  SensorRepository tmp;
+
+  // Типы датчиков.
+  {
+    auto query = getQuery(R"(
+      SELECT
+        id,
+        name,
+        description,
+        calibration_kind
+      FROM sensor_type
+      ORDER BY id;
+    )");
+
+    if (!exec(query))
+      return false;
+
+    while (query.next())
+    {
+      SensorType type;
+
+      type.id = SensorTypeId{
+        query.value("id").toUInt()
+      };
+
+      type.name =
+        query.value("name").toString().toStdString();
+
+      type.description =
+        query.value("description").toString().toStdString();
+
+      const int kind =
+        query.value("calibration_kind").toInt();
+
+      if (kind < 0 || kind > 1)
+        return false;
+
+      type.calibrationKind =
+        static_cast<CalibrationKind>(kind);
+
+      if (!tmp.add(type))
+        return false;
+    }
+
+    if (query.lastError().isValid())
+    {
+      setError(query);
+      return false;
+    }
+  }
+
+  // Датчики.
+  {
+    auto query = getQuery(R"(
+      SELECT
+        id,
+        sensor_type_id,
+        name,
+        serial,
+        description,
+        calibration_mode,
+        calibration_kind
+      FROM sensor
+      ORDER BY id;
+    )");
+
+    if (!exec(query))
+      return false;
+
+    while (query.next())
+    {
+      Sensor sensor;
+
+      sensor.id = SensorId{
+        query.value("id").toUInt()
+      };
+
+      sensor.sensorTypeId = SensorTypeId{
+        query.value("sensor_type_id").toUInt()
+      };
+
+      sensor.name =
+        query.value("name").toString().toStdString();
+
+      sensor.serial =
+        query.value("serial").toString().toStdString();
+
+      sensor.description =
+        query.value("description").toString().toStdString();
+
+      const int mode =
+        query.value("calibration_mode").toInt();
+
+      const int kind =
+        query.value("calibration_kind").toInt();
+
+      if (mode < 0 || mode > 1 ||
+          kind < 0 || kind > 1)
+      {
+        return false;
+      }
+
+      sensor.calibrationMode =
+        static_cast<SensorCalibrationMode>(mode);
+
+      sensor.calibrationKind =
+        static_cast<CalibrationKind>(kind);
+
+      // Проверяем существование типа датчика.
+      if (!tmp.find(sensor.sensorTypeId))
+        return false;
+
+      if (!tmp.add(sensor))
+        return false;
+    }
+
+    if (query.lastError().isValid())
+    {
+      setError(query);
+      return false;
+    }
+  }
+
+  // Обновляем репозиторий только после
+  // полной успешной загрузки.
+  repository = std::move(tmp);
 
   return true;
 }
@@ -624,129 +796,133 @@ AND module_id = :module_id;)",
   return true;
 }
 
-bool ConfigurationRepository::loadCalibrations(const SystemConfiguration &configuration, CalibrationRepository &calibrations)
+bool ConfigurationRepository::loadCalibrations(
+  const SystemConfiguration&,
+  CalibrationRepository& calibrations)
 {
   m_error = {};
 
   CalibrationRepository repo;
-  std::vector<SignalId> signalIds;
-  std::vector<SignalTypeId> signalTypes;
-  for (auto &definition : configuration.signalDefinitions())
-  {
-    if (definition.kind == SignalKind::Calculated)
-    {
-      switch (definition.calibrationMode) {
-      case CalibrationMode::BySignal:
-        if (std::ranges::find(signalIds, definition.id) == signalIds.end())
-          signalIds.push_back(definition.id);
-        break;
-      case CalibrationMode::BySignalType:
-        if (std::ranges::find(signalTypes, definition.signalType) == signalTypes.end())
-          signalTypes.push_back(definition.signalType);
-        break;
-      default:
-        break;
-      }
-    }
-  }
 
-  QString sql = R"(
+  const QString sql = R"(
 SELECT
-  calibration_id, `index`, x, y,
-  signal_id, signal_type_id, c.name as calibration_name, c.description as calibration_description
-FROM
-  calibration_point cp
-JOIN calibration c on
-  cp.calibration_id = c.id
-WHERE
-  c.signal_id = :id;)";
+  id,
+  sensor_id,
+  sensor_type_id,
+  kind,
+  name,
+  description
+FROM calibration
+ORDER BY id;)";
 
-  for (const auto &id : signalIds)
+  auto query = getQuery(sql, {});
+
+  if (!exec(query))
+    return false;
+
+  while (query.next())
   {
-    auto query = getQuery(sql, {{":id", id.value}});
+    Calibration calibration;
 
-    if (!exec(query))
+    calibration.id = CalibrationId{query.value("id").toUInt()};
+    calibration.sensorId = SensorId{query.value("sensor_id").toUInt()};
+    calibration.sensorTypeId = SensorTypeId{query.value("sensor_type_id").toUInt()};
+    calibration.kind =
+      static_cast<CalibrationKind>(query.value("kind").toInt());
+
+    calibration.name = query.value("name").toString();
+    calibration.description = query.value("description").toString();
+
+    // Ровно один владелец.
+    if (bool(calibration.sensorId) == bool(calibration.sensorTypeId))
       return false;
 
-    Calibration calibration;
-    bool assigned = false;
+    if (calibration.kind != CalibrationKind::Table &&
+        calibration.kind != CalibrationKind::Polynomial)
+      return false;
 
-    while (query.next())
+    QString dataSql;
+
+    if (calibration.kind == CalibrationKind::Table)
     {
-      if (!assigned)
-      {
-        assignCalibration(calibration, query);
-        assigned = true;
-      }
-
-      CalibrationPoint point;
-
-      point.index = query.value("index").toUInt();
-      point.x = query.value("x").toDouble();
-      point.y = query.value("y").toDouble();
-
-      calibration.points.push_back(point);
+      dataSql = R"(
+SELECT `index`, x, y
+FROM calibration_point
+WHERE calibration_id = :id
+ORDER BY `index`;)";
+    }
+    else
+    {
+      dataSql = R"(
+SELECT `index`, value
+FROM calibration_coefficient
+WHERE calibration_id = :id
+ORDER BY `index`;)";
     }
 
-    if (calibration.points.empty())
+    auto dataQuery = getQuery(
+      dataSql,
+      {{":id", calibration.id.value}});
+
+    if (!exec(dataQuery))
       return false;
 
-    if (!calibration.buildSegments())
-      return false;
+    if (calibration.kind == CalibrationKind::Table)
+    {
+      while (dataQuery.next())
+      {
+        CalibrationPoint point;
 
-    if (!repo.addBySignal(id, calibration))
+        point.index = dataQuery.value("index").toUInt();
+        point.x = dataQuery.value("x").toDouble();
+        point.y = dataQuery.value("y").toDouble();
+
+        calibration.points.push_back(point);
+      }
+
+      if (!calibration.buildSegments())
+        return false;
+    }
+    else
+    {
+      uint32_t expectedIndex = 0;
+
+      while (dataQuery.next())
+      {
+        const auto index =
+          dataQuery.value("index").toUInt();
+
+        if (index != expectedIndex++)
+          return false;
+
+        calibration.coefficients.push_back(
+          dataQuery.value("value").toDouble());
+      }
+
+      if (calibration.coefficients.empty())
+        return false;
+    }
+
+    bool added = false;
+
+    if (calibration.sensorId)
+    {
+      added = repo.addBySensor(
+        calibration.sensorId,
+        calibration);
+    }
+    else
+    {
+      added = repo.addBySensorType(
+        calibration.sensorTypeId,
+        calibration);
+    }
+
+    if (!added)
       return false;
   }
 
-  sql = R"(
-SELECT
-  calibration_id, `index`, x, y,
-  signal_id, signal_type_id, c.name as calibration_name, c.description as calibration_description
-FROM
-  calibration_point cp
-JOIN calibration c on
-  cp.calibration_id = c.id
-WHERE
-  c.signal_type_id = :id;)";
-
-  for (const auto &id : signalTypes)
-  {
-    auto query = getQuery(sql, {{":id", id.value}});
-
-    if (!exec(query))
-      return false;
-
-    Calibration calibration;
-    bool assigned = false;
-
-    while (query.next())
-    {
-      if (!assigned)
-      {
-        assignCalibration(calibration, query);
-        assigned = true;
-      }
-
-      CalibrationPoint point;
-
-      point.index = query.value("index").toUInt();
-      point.x = query.value("x").toDouble();
-      point.y = query.value("y").toDouble();
-
-      calibration.points.push_back(point);
-    }
-
-    if (calibration.points.empty())
-      return false;
-
-    if (!calibration.buildSegments())
-      return false;
-
-    if (!repo.addBySignalType(id, calibration))
-      return false;
-  }
-
-  calibrations = repo;
+  calibrations = std::move(repo);
 
   return true;
 }
@@ -1072,10 +1248,11 @@ SELECT
   name,
   kind,
   tag_id,
+  sensor_id,
   signal_type_id,
   archive_rate,
-  calibration_mode,
-  formula
+  formula,
+  preprocessing_formula
 FROM configuration_signal_definition
 WHERE configuration_id = :id
 ORDER BY id)",
@@ -1107,6 +1284,13 @@ ORDER BY id)",
       };
     }
 
+    if (!query.value("sensor_id").isNull())
+    {
+      definition.sensorId = SensorId{
+        query.value("sensor_id").toUInt()
+      };
+    }
+
     definition.signalType = SignalTypeId{
       query.value("signal_type_id").toUInt()
     };
@@ -1114,11 +1298,12 @@ ORDER BY id)",
     definition.archiveRate = static_cast<ArchiveRate>(
       query.value("archive_rate").toInt());
 
-    definition.calibrationMode = static_cast<CalibrationMode>(
-      query.value("calibration_mode").toInt());
-
     definition.formula =
       query.value("formula").toString().toStdString();
+
+    definition.preprocessingFormula =
+      query.value("preprocessing_formula")
+        .toString().toStdString();
 
     definitions.push_back(std::move(definition));
   }
@@ -1184,31 +1369,27 @@ WHERE configuration_id = :configuration_id
   return query.numRowsAffected() == 1;
 }
 
-bool ConfigurationRepository::updateSignalCalibrationMode(
-  ConfigurationId configuration,
-  SignalId signal,
-  CalibrationMode mode)
+bool ConfigurationRepository::updateSignalSensor(
+  const ConfigurationId& configuration,
+  const SignalId& signal,
+  const SensorId& sensor)
 {
   m_error = {};
 
-  if (!isValidCalibrationMode(mode))
-    return false;
-
   auto query = getQuery(R"(
 UPDATE configuration_signal_definition
-SET calibration_mode = :calibration_mode
+SET sensor_id = :sensor_id
 WHERE configuration_id = :configuration_id
-  AND id = :signal_id)",
+  AND id = :signal_id
+  AND kind = 0;)",
     {
-     {":configuration_id", configuration.value},
-     {":signal_id", signal.value},
-     {":calibration_mode", static_cast<uint32_t>(mode)},
-     });
+      {":sensor_id",
+       sensor ? QVariant(sensor.value) : QVariant()},
+      {":configuration_id", configuration.value},
+      {":signal_id", signal.value}
+    });
 
-  if (!exec(query))
-    return false;
-
-  return query.numRowsAffected() == 1;
+  return exec(query);
 }
 
 bool ConfigurationRepository::updateSignalSignalType(
@@ -1299,6 +1480,28 @@ WHERE configuration_id = :configuration_id
      {":signal_id", signal.value},
      {":formula", formula},
      });
+
+  return exec(query) && query.numRowsAffected() == 1;
+}
+
+bool ConfigurationRepository::updateSignalPreprocessingFormula(
+  ConfigurationId configuration,
+  SignalId signal,
+  QString formula)
+{
+  m_error = {};
+
+  auto query = getQuery(R"(
+UPDATE configuration_signal_definition
+SET preprocessing_formula = :formula
+WHERE configuration_id = :configuration_id
+  AND id = :signal_id
+  AND kind = 0;)",
+    {
+      {":configuration_id", configuration.value},
+      {":signal_id", signal.value},
+      {":formula", formula},
+    });
 
   return exec(query) && query.numRowsAffected() == 1;
 }
@@ -1426,7 +1629,7 @@ ORDER BY m.serial, ct.channel)",
 
   return true;
 }
-
+/*
 void ConfigurationRepository::assignCalibration(Calibration &calibration, const QSqlQuery &query)
 {
   calibration.id = CalibrationId{query.value("calibration_id").toUInt()};
@@ -1435,7 +1638,7 @@ void ConfigurationRepository::assignCalibration(Calibration &calibration, const 
   calibration.signalId = SignalId{query.value("signal_id").toUInt()};
   calibration.signalTypeId = SignalTypeId{query.value("signal_type_id").toUInt()};
 }
-
+*/
 void ConfigurationRepository::setError(const QSqlQuery &query)
 {
   m_error = query.lastError();

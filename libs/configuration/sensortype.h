@@ -1,6 +1,6 @@
 #pragma once
 
-#include "calibration.h"
+#include "calibrationkind.h"
 #include "datatypes.h"
 
 #include <string>

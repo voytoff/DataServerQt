@@ -1,17 +1,12 @@
 #pragma once
 
-#include "sensortype.h"
 
+#include "calibration.h"
+#include "datatypes.h"
 #include <string>
 
 namespace qds
 {
-
-enum class SensorCalibrationMode
-{
-  Own = 0,
-  ByType = 1
-};
 
 struct Sensor
 {

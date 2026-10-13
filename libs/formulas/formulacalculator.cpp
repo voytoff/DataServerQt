@@ -13,21 +13,25 @@ namespace qds
 FormulaCalculator::FormulaCalculator()
   : m_evaluator(m_functions)
 {
-  assert(m_functions.add(
+  bool added = m_functions.add(
     "abs",
-    std::make_unique<FormulaFunctionAbs>()));
+    std::make_unique<FormulaFunctionAbs>());
+  assert(added);
 
-  assert(m_functions.add(
+  added = m_functions.add(
     "max",
-    std::make_unique<FormulaFunctionMax>()));
+    std::make_unique<FormulaFunctionMax>());
+  assert(added);
 
-  assert(m_functions.add(
+  added = m_functions.add(
     "min",
-    std::make_unique<FormulaFunctionMin>()));
+    std::make_unique<FormulaFunctionMin>());
+  assert(added);
 
-  assert(m_functions.add(
+  added = m_functions.add(
     "sqrt",
-    std::make_unique<FormulaFunctionSqrt>()));
+    std::make_unique<FormulaFunctionSqrt>());
+  assert(added);
 }
 
 bool FormulaCalculator::calculate(
@@ -40,6 +44,17 @@ bool FormulaCalculator::calculate(
     formula,
     raw,
     calculated,
+    result);
+}
+
+bool FormulaCalculator::calculate(
+  const FormulaNode& formula,
+  double x,
+  double& result) const noexcept
+{
+  return m_evaluator.evaluate(
+    formula,
+    x,
     result);
 }
 
