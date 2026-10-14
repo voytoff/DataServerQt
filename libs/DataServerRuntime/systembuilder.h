@@ -21,6 +21,7 @@ public:
   std::unique_ptr<RuntimeSystem> build(
     SystemConfiguration& configuration,
     const DataStreamSourceFactory& dataSourceFactory,
+    const SensorRepository& sensors,
     const CalibrationRepository& calibrations,
     IClock& clock,
     IArchiveWriter& archive,

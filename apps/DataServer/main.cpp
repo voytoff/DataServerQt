@@ -95,9 +95,11 @@ int main(int argc, char *argv[]) {
   qds::FakeSchedulerClock clock;
   qds::UdpSender sender;
   qds::Logger logger(std::filesystem::current_path(), clock);
+  qds::SensorRepository sensors;
 
   qds::DataServer server(
     cfg,
+    sensors,
     repository,
     factory,
     archive,

@@ -20,12 +20,6 @@ public:
     const CalculatedMemory& calculated,
     double& result) const noexcept;
 
-  [[nodiscard]]
-  bool calculate(
-    const FormulaNode& formula,
-    double x,
-    double& result) const noexcept;
-
 private:
 
   FormulaFunctionRepository m_functions;

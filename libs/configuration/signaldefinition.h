@@ -83,9 +83,6 @@ struct SignalDefinition
 
   SensorId sensorId;
 
-  // Предварительное преобразование Raw.
-  std::string preprocessingFormula;
-
   ArchiveRate archiveRate = ArchiveRate::Hz10;
   SignalTypeId signalType;
 
@@ -95,8 +92,6 @@ struct SignalDefinition
   // Runtime.
   FormulaId formulaId;
   std::vector<SignalId> dependencies;
-
-  FormulaId preprocessingFormulaId;
 };
 
 struct SignalReference

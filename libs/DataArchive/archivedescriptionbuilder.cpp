@@ -13,7 +13,7 @@ bool ArchiveDescriptionBuilder::build(
 
   tmp.version = 1;
 
-  // Частота + SignalKind -> индекс файла в tmp.files.
+  // Частота + SignalKind -> индекс файла.
   std::map<
     std::tuple<uint32_t, SignalKind>,
     std::size_t> fileIndexes;
@@ -21,8 +21,11 @@ bool ArchiveDescriptionBuilder::build(
   for (const auto& definition :
        configuration.signalDefinitions())
   {
-    ArchiveRate archiveRate =
+    const ArchiveRate archiveRate =
       definition.archiveRate;
+
+    if (!isValidArchiveRate(archiveRate))
+      return false;
 
     const ConfigurationTag* tag = nullptr;
 
@@ -34,13 +37,7 @@ bool ArchiveDescriptionBuilder::build(
 
       if (tag == nullptr)
         return false;
-
-      archiveRate = tag->archiveRate;
     }
-
-    // Проверяем фактически используемую частоту.
-    if (!isValidArchiveRate(archiveRate))
-      return false;
 
     const uint32_t frequency =
       static_cast<uint32_t>(archiveRate);
@@ -57,7 +54,6 @@ bool ArchiveDescriptionBuilder::build(
       ArchiveFileDescription file;
 
       file.frequency = frequency;
-
       file.dataType = "float";
 
       file.name =
@@ -72,14 +68,15 @@ bool ArchiveDescriptionBuilder::build(
         tmp.files.size() - 1;
 
       it = fileIndexes.emplace(
-        key,
-        index).first;
+                        key,
+                        index).first;
     }
 
     auto& file =
       tmp.files[it->second];
 
     ArchiveSignal signal;
+
     signal.index =
       static_cast<uint32_t>(file.signalIds.size());
 
@@ -97,8 +94,7 @@ bool ArchiveDescriptionBuilder::build(
       std::move(signal));
   }
 
-  description =
-    std::move(tmp);
+  description = std::move(tmp);
 
   return true;
 }

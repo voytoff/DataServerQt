@@ -13,8 +13,6 @@ struct ConfigurationTag
   ModuleId module;
   ChannelId channel;
 
-  ArchiveRate archiveRate = ArchiveRate::Hz10;
-
   bool active = true;
 
   QJsonObject settings;

@@ -337,11 +337,13 @@ void tst_database::test_database_pipeline()
   TestLogger logger;
 
   SystemBuilder builder;
+  SensorRepository sensors;
 
   auto runtime =
     builder.build(
       cfg,
       factory,
+    sensors,
       cr,
       clock,
       archive,
@@ -616,11 +618,13 @@ void tst_database::test_database_archive()
   TestLogger logger;
 
   SystemBuilder builder;
+  SensorRepository sensors;
 
   auto runtime =
     builder.build(
       cfg,
       factory,
+      sensors,
       cr,
       clock,
       archive,
@@ -1530,11 +1534,13 @@ void tst_database::test_publisher_raw_calculated()
   TestLogger logger;
 
   SystemBuilder builder;
+  SensorRepository sensors;
 
   auto runtime =
     builder.build(
       cfg,
       factory,
+      sensors,
       cr,
       clock,
       archive,

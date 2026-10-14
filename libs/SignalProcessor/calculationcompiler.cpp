@@ -47,7 +47,8 @@ bool CalculationCompiler::build(
 
     tmp.add({
       .signal = id,
-      .formula = definition->formulaId
+      .formula = definition->formulaId,
+      .sensorId = definition->sensorId
     });
   }
 

@@ -65,20 +65,6 @@ QWidget* ConfigurationPropertiesDelegate::createEditor(
 
     return editor;
   }
-  else if (propertyId == Model::PropertyId::ArchiveRate)
-  {
-    auto* editor = new QComboBox(parent);
-
-    editor->setAutoFillBackground(true);
-    editor->setBackgroundRole(QPalette::Base);
-
-    editor->addItem(tr("1 Гц"), 1);
-    editor->addItem(tr("10 Гц"), 10);
-    editor->addItem(tr("100 Гц"), 100);
-    editor->addItem(tr("1000 Гц"), 1000);
-
-    return editor;
-  }
 
   return QStyledItemDelegate::createEditor(
     parent,

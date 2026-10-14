@@ -236,7 +236,7 @@ bool ConfigurationSignalModel::updateSignalSensor(
 {
   const auto* s = signal(index);
 
-  if (!s || s->kind != SignalKind::Raw)
+  if (!s || s->kind != SignalKind::Calculated)
     return false;
 
   if (s->sensorId == sensorId)
@@ -357,7 +357,7 @@ bool ConfigurationSignalModel::updateSignalFormula(
 
   return true;
 }
-
+/*
 bool ConfigurationSignalModel::updateSignalPreprocessingFormula(
   const QModelIndex &index,
   const QString &formula)
@@ -389,7 +389,7 @@ bool ConfigurationSignalModel::updateSignalPreprocessingFormula(
 
   return true;
 }
-
+*/
 bool ConfigurationSignalModel::createSignal(
   QString name,
   SignalKind kind)

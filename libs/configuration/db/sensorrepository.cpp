@@ -61,4 +61,15 @@ std::size_t SensorRepository::sensorTypeCount()
   return m_sensorTypes.size();
 }
 
+std::vector<Sensor> SensorRepository::sensors() const
+{
+  std::vector<Sensor> result;
+  result.reserve(m_sensors.size());
+
+  for (const auto& [id, sensor] : m_sensors)
+    result.push_back(sensor);
+
+  return result;
+}
+
 }

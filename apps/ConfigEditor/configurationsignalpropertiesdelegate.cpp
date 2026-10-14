@@ -4,6 +4,7 @@
 #include <QLineEdit>
 #include <QComboBox>
 #include <QString>
+#include <algorithm>
 
 namespace qds
 {
@@ -50,10 +51,21 @@ QWidget *ConfigurationSignalPropertiesDelegate::createEditor(
 
     return editor;
   }
-  else if (propertyId == Model::PropertyId::PreprocessingFormula)
+  else if (propertyId == Model::PropertyId::Sensor)
   {
-    auto* editor =
-      new QLineEdit(parent);
+    auto* editor = new QComboBox(parent);
+
+    editor->setAutoFillBackground(true);
+    editor->setBackgroundRole(QPalette::Base);
+
+    editor->addItem(tr("Нет"), 0);
+
+    for (const auto& sensor : m_sensors)
+    {
+      editor->addItem(
+        QString::fromStdString(sensor.name),
+        sensor.id.value);
+    }
 
     return editor;
   }
@@ -187,6 +199,12 @@ void ConfigurationSignalPropertiesDelegate::setSignalTypes(
   std::vector<SignalTypeInfo> types)
 {
   m_signalTypes = std::move(types);
+}
+
+void ConfigurationSignalPropertiesDelegate::setSensors(
+  std::vector<Sensor> sensors)
+{
+  m_sensors = std::move(sensors);
 }
 
 }

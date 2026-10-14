@@ -30,6 +30,18 @@ int main(int argc, char *argv[])
   int rc = 0;
 
   {
+    tst_dataserver tc;
+    rc |= QTest::qExec(&tc, argc, argv);
+  }
+  {
+    tst_database tc;
+    rc |= QTest::qExec(&tc, argc, argv);
+  }
+  {
+    tst_signalprocessor tc;
+    rc |= QTest::qExec(&tc, argc, argv);
+  }
+  {
     tst_configuration tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
@@ -43,14 +55,6 @@ int main(int argc, char *argv[])
   }
   {
     tst_hardware tc;
-    rc |= QTest::qExec(&tc, argc, argv);
-  }
-  {
-    tst_dataserver tc;
-    rc |= QTest::qExec(&tc, argc, argv);
-  }
-  {
-    tst_database tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
   {
@@ -87,10 +91,6 @@ int main(int argc, char *argv[])
   }
   {
     tst_formulas tc;
-    rc |= QTest::qExec(&tc, argc, argv);
-  }
-  {
-    tst_signalprocessor tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
   {

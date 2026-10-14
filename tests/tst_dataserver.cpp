@@ -41,6 +41,9 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
   SystemConfiguration cfg;
   QVERIFY(repository.load(ConfigurationId{1}, cfg));
 
+  SensorRepository sensors;
+  QVERIFY(repository.loadSensors(sensors));
+
   CalibrationRepository calibrations;
   QVERIFY(repository.loadCalibrations(cfg, calibrations));
 
@@ -88,6 +91,7 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
 
   DataServer ds(
     cfg,
+    sensors,
     calibrations,
     factory,
     archive,
@@ -302,9 +306,9 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
         static_cast<double>(
           frameIndex * 10 + 1);
 
-      const double a = raw0 * 0.1;
-      const double b = raw1 - 20.0;
-      const double c = a + b;
+      const double a = raw0;
+      const double b = raw1;
+      const double c = 2.0 * (a + b);
 
       QCOMPARE(
         samples1[0],
@@ -349,8 +353,7 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
         static_cast<double>(
           frameIndex * 10);
 
-      const double a =
-        raw0 * 0.1;
+      const double a = raw0;
 
       QCOMPARE(
         samples2[0],
@@ -376,14 +379,22 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
   description = archiveReader.description();
   QCOMPARE(description.version, ArchiveDescriptionVersion);
 
-  std::size_t fileIndex;
-  ArchiveSample sample;
+  qDebug() << "Archive files:";
+  for (const auto& file : description.files)
+  {
+    qDebug() << QString::fromStdString(file.name);
+  }
+  qDebug() << "Raw0 archive rate:"
+           << static_cast<uint32_t>(
+                cfg.findSignalDefinition(SignalId{6})->archiveRate);
+
+  ArchiveSample sample{};
   const DataFileHeader *fileHeader;
 
   // Raw0
-  fileIndex = findFile(description, SignalKind::Raw, 1000);
-  QVERIFY(fileIndex >= 0);
-  fileHeader = archiveReader.fileHeader(fileIndex);
+  auto fileIndex = findFile(description, SignalKind::Raw, 1000);
+  QVERIFY(fileIndex.has_value());
+  fileHeader = archiveReader.fileHeader(fileIndex.value());
   QVERIFY(fileHeader);
   QVERIFY(fileHeader->recordCount > 0);
   QCOMPARE(fileHeader->sampleFrequency, 1000);
@@ -391,7 +402,7 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
 
   for (uint64_t i = 0; i < fileHeader->recordCount; ++i)
   {
-    QVERIFY(archiveReader.read(fileIndex, sample));
+    QVERIFY(archiveReader.read(fileIndex.value(), sample));
     const uint64_t frameIndex = i;
 
     QCOMPARE(
@@ -422,8 +433,8 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
 
   // Raw1
   fileIndex = findFile(description, SignalKind::Raw, 100);
-  QVERIFY(fileIndex >= 0);
-  fileHeader = archiveReader.fileHeader(fileIndex);
+  QVERIFY(fileIndex.has_value());
+  fileHeader = archiveReader.fileHeader(fileIndex.value());
   QVERIFY(fileHeader);
   QVERIFY(fileHeader->recordCount > 0);
   QCOMPARE(fileHeader->sampleFrequency, 100);
@@ -431,7 +442,7 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
 
   for (uint64_t i = 0; i < fileHeader->recordCount; ++i)
   {
-    QVERIFY(archiveReader.read(fileIndex, sample));
+    QVERIFY(archiveReader.read(fileIndex.value(), sample));
 
     const uint64_t frameIndex = i * 10;
 
@@ -464,7 +475,7 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
   // A
   fileIndex = findFile(description, SignalKind::Calculated, 100);
   QVERIFY(fileIndex >= 0);
-  fileHeader = archiveReader.fileHeader(fileIndex);
+  fileHeader = archiveReader.fileHeader(fileIndex.value());
   QVERIFY(fileHeader);
   QVERIFY(fileHeader->recordCount > 0);
   QCOMPARE(fileHeader->sampleFrequency, 100);
@@ -472,15 +483,14 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
 
   for (uint64_t i = 0; i < fileHeader->recordCount; ++i)
   {
-    QVERIFY(archiveReader.read(fileIndex, sample));
+    QVERIFY(archiveReader.read(fileIndex.value(), sample));
     const uint64_t frameIndex = i * 10;
 
     const double raw0 =
       static_cast<double>(
         frameIndex * 10);
 
-    const double a =
-      raw0 * 0.1;
+    const double a = raw0;
 
     QCOMPARE(
       sample.values[0],
@@ -490,7 +500,7 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
   // B C
   fileIndex = findFile(description, SignalKind::Calculated, 10);
   QVERIFY(fileIndex >= 0);
-  fileHeader = archiveReader.fileHeader(fileIndex);
+  fileHeader = archiveReader.fileHeader(fileIndex.value());
   QVERIFY(fileHeader);
   QVERIFY(fileHeader->recordCount > 0);
   QCOMPARE(fileHeader->sampleFrequency, 10);
@@ -498,7 +508,7 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
 
   for (uint64_t i = 0; i < fileHeader->recordCount; ++i)
   {
-    QVERIFY(archiveReader.read(fileIndex, sample));
+    QVERIFY(archiveReader.read(fileIndex.value(), sample));
     const uint64_t frameIndex = i * 100;
 
     const double raw0 =
@@ -509,9 +519,9 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
       static_cast<double>(
         frameIndex * 10 + 1);
 
-    const double a = raw0 * 0.1;
-    const double b = raw1 - 20.0;
-    const double c = a + b;
+    const double a = raw0;
+    const double b = raw1;
+    const double c = 2.0 * (a + b);
 
     QCOMPARE(
       sample.values[0],
@@ -557,11 +567,13 @@ void tst_dataserver::test_systemBuilder_success()
   CalibrationRepository cr;
 
   SystemBuilder builder;
+  SensorRepository sensors;
 
   auto runtime =
     builder.build(
       cfg,
       factory,
+      sensors,
       cr,
       clock,
       archive,
@@ -657,11 +669,13 @@ void tst_dataserver::test_systemBuilder_buildRuntime()
   CalibrationRepository cr;
 
   SystemBuilder builder;
+  SensorRepository sensors;
 
   auto runtime =
     builder.build(
       cfg,
       factory,
+      sensors,
       cr,
       clock,
       archive,
@@ -748,13 +762,14 @@ void tst_dataserver::test_systemBuilder_failErrorFormula()
   TestLogger logger;
 
   CalibrationRepository cr;
-
   SystemBuilder builder;
+  SensorRepository sensors;
 
   auto runtime =
     builder.build(
       cfg,
       factory,
+      sensors,
       cr,
       clock,
       archive,
@@ -790,13 +805,14 @@ void tst_dataserver::test_systemBuilder_failDataSourceManager()
   TestLogger logger;
 
   CalibrationRepository cr;
-
   SystemBuilder builder;
+  SensorRepository sensors;
 
   auto runtime =
     builder.build(
       cfg,
       factory,
+      sensors,
       cr,
       clock,
       archive,
@@ -833,13 +849,14 @@ void tst_dataserver::test_systemBuilder_pipeline()
   TestLogger logger;
 
   CalibrationRepository cr;
-
   SystemBuilder builder;
+  SensorRepository sensors;
 
   auto runtime =
     builder.build(
       cfg,
       factory,
+      sensors,
       cr,
       clock,
       archive,
@@ -1255,9 +1272,11 @@ void tst_dataserver::test_dataServer_failStart_moduleType()
 
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
+  SensorRepository sensors;
 
   DataServer ds(
     cfg,
+    sensors,
     cr,
     factory,
     archive,
@@ -1297,9 +1316,11 @@ void tst_dataserver::test_dataServer_failSubscribe_invalidSignalId()
 
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
+  SensorRepository sensors;
 
   DataServer ds(
     cfg,
+    sensors,
     cr,
     factory,
     archive,
@@ -1417,9 +1438,11 @@ void tst_dataserver::test_dataServer_failSubscribe_duplicateSignalId()
 
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
+  SensorRepository sensors;
 
   DataServer ds(
     cfg,
+    sensors,
     cr,
     factory,
     archive,
@@ -1538,9 +1561,11 @@ void tst_dataserver::test_dataServer_failSubscribe_invalidRate()
 
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
+  SensorRepository sensors;
 
   DataServer ds(
     cfg,
+    sensors,
     cr,
     factory,
     archive,
@@ -1658,9 +1683,11 @@ void tst_dataserver::test_dataServer_failSubscribe_emptyList()
 
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
+  SensorRepository sensors;
 
   DataServer ds(
     cfg,
+    sensors,
     cr,
     factory,
     archive,
@@ -1768,9 +1795,11 @@ void tst_dataserver::test_dataServer_failSubscribe_tooManySignals()
 
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
+  SensorRepository sensors;
 
   DataServer ds(
     cfg,
+    sensors,
     cr,
     factory,
     archive,
@@ -1881,9 +1910,11 @@ void tst_dataserver::test_dataServer_unsubscribe_ok()
 
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
+  SensorRepository sensors;
 
   DataServer ds(
     cfg,
+    sensors,
     cr,
     factory,
     archive,
@@ -2100,9 +2131,11 @@ void tst_dataserver::test_dataServer_unsubscribe_invalidId()
 
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
+  SensorRepository sensors;
 
   DataServer ds(
     cfg,
+    sensors,
     cr,
     factory,
     archive,
@@ -2330,9 +2363,11 @@ void tst_dataserver::test_dataServer_start_stop()
 
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
+  SensorRepository sensors;
 
   DataServer ds(
     cfg,
+    sensors,
     cr,
     factory,
     archive,
@@ -2468,9 +2503,11 @@ void tst_dataserver::test_dataServer_start_after_failed_start()
 
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
+  SensorRepository sensors;
 
   DataServer ds(
     cfg,
+    sensors,
     cr,
     factory,
     archive,
@@ -2534,9 +2571,11 @@ void tst_dataserver::test_dataServer_failStart_invalidUdpPort()
 
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
+  SensorRepository sensors;
 
   DataServer ds(
     cfg,
+    sensors,
     cr,
     factory,
     archive,
@@ -2677,9 +2716,11 @@ void tst_dataserver::test_dataServer_subscriptionId_after_restart()
 
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
+  SensorRepository sensors;
 
   DataServer ds(
     cfg,
+    sensors,
     cr,
     factory,
     archive,
@@ -2873,11 +2914,13 @@ void tst_dataserver::test_SystemBuilder_buildAfterFailure()
 
   // Fake ещё не зарегистрирован.
   // Первая сборка должна завершиться неудачно.
+  SensorRepository sensors;
 
   auto runtime =
     builder.build(
       cfg,
       factory,
+      sensors,
       cr,
       clock,
       archive,
@@ -2906,6 +2949,7 @@ void tst_dataserver::test_SystemBuilder_buildAfterFailure()
     builder.build(
       cfg,
       factory,
+      sensors,
       cr,
       clock,
       archive,
@@ -3044,9 +3088,11 @@ void tst_dataserver::test_dataServer_stop_on_dataSourceFailure()
 
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
+  SensorRepository sensors;
 
   DataServer ds(
     cfg,
+    sensors,
     cr,
     factory,
     archive,
@@ -3108,11 +3154,13 @@ void tst_dataserver::test_SystemBuilder_failedThenSuccess()
   // ------------------------------------------------------------
   // Failed build
   // ------------------------------------------------------------
+  SensorRepository sensors;
 
   auto runtime =
     builder.build(
       badCfg,
       factory,
+      sensors,
       cr,
       clock,
       archive,
@@ -3128,6 +3176,7 @@ void tst_dataserver::test_SystemBuilder_failedThenSuccess()
     builder.build(
       goodCfg,
       factory,
+      sensors,
       cr,
       clock,
       archive,
@@ -3190,9 +3239,11 @@ void tst_dataserver::test_dataServer_start_twice()
 
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
+  SensorRepository sensors;
 
   DataServer ds(
     cfg,
+    sensors,
     cr,
     factory,
     archive,
@@ -3234,9 +3285,11 @@ void tst_dataserver::test_dataServer_stop_before_start()
 
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
+  SensorRepository sensors;
 
   DataServer ds(
     cfg,
+    sensors,
     cr,
     factory,
     archive,
@@ -3284,9 +3337,11 @@ void tst_dataserver::test_dataServer_udp_pipeline()
 
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
+  SensorRepository sensors;
 
   DataServer ds(
     cfg,
+    sensors,
     cr,
     factory,
     archive,
@@ -3588,9 +3643,11 @@ void tst_dataserver::test_dataServer_failModule()
 
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
+  SensorRepository sensors;
 
   DataServer server(
     cfg,
+    sensors,
     cr,
     factory,
     archive,
@@ -3690,9 +3747,11 @@ void tst_dataserver::test_dataServer_restart_after_runtime_failure()
 
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
+  SensorRepository sensors;
 
   DataServer server(
     cfg,
+    sensors,
     cr,
     factory,
     archive,

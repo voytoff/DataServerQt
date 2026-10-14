@@ -36,7 +36,6 @@ struct ChannelItemData
   std::optional<TagId> tag;
   bool active = false;
   QJsonObject settings;
-  ArchiveRate archiveRate = ArchiveRate::Hz10;
 };
 
 using TreeItemData =

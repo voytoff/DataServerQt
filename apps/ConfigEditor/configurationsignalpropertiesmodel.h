@@ -51,6 +51,9 @@ public:
   void setSignalTypes(
     std::vector<SignalTypeInfo> types);
 
+  void setSensors(
+    std::vector<Sensor> sensors);
+
 public:
   enum Role
   {
@@ -67,7 +70,7 @@ public:
     ArchiveRate,
     //CalibrationMode,
     Sensor,
-    PreprocessingFormula
+    //PreprocessingFormula
   };
 
 private:
@@ -85,6 +88,7 @@ private:
 
   std::vector<SignalTypeInfo> m_signalTypes;
   std::vector<TagSourceInfo> m_tagSources;
+  std::vector<Sensor> m_sensors;
 
 signals:
   void operationFailed(

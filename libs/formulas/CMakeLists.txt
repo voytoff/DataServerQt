@@ -28,8 +28,8 @@ add_library(Formulas SHARED
   calculationorder.h calculationorder.cpp
   formulaastrepository.h formulaastrepository.cpp
   formulacalculator.h formulacalculator.cpp
-  parser/preprocessingresolver.h parser/preprocessingresolver.cpp
-  preprocessingbuilder.h preprocessingbuilder.cpp
+
+
 )
 
 target_include_directories(Formulas

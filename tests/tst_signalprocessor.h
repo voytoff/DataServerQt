@@ -43,4 +43,7 @@ private slots:
 
   void test_signalProcessor_calculate();
 
+  void test_signalProcessor_calibrationOwn();
+  void test_signalProcessor_calibrationByType();
+  void test_signalProcessor_fail();
 };

@@ -6,10 +6,71 @@
 namespace qds
 {
 
+namespace
+{
+
+bool validateCalibrations(
+  const CalculationPlan& plan,
+  const SensorRepository& sensors,
+  const CalibrationRepository& calibrations)
+{
+  for (const CalculationStep& step : plan.steps())
+  {
+    if (!step.sensorId)
+      continue;
+
+    const Sensor* sensor =
+      sensors.find(step.sensorId);
+
+    if (sensor == nullptr)
+      return false;
+
+    double result = 0.0;
+
+    switch (sensor->calibrationMode)
+    {
+    case SensorCalibrationMode::Own:
+      if (!calibrations.calibrateBySensor(
+            sensor->id,
+            sensor->calibrationKind,
+            0.0,
+            result))
+        return false;
+      break;
+
+    case SensorCalibrationMode::ByType:
+    {
+      const SensorType* type =
+        sensors.find(sensor->sensorTypeId);
+
+      if (type == nullptr)
+        return false;
+
+      if (!calibrations.calibrateBySensorType(
+            type->id,
+            type->calibrationKind,
+            0.0,
+            result))
+        return false;
+
+      break;
+    }
+
+    default:
+      return false;
+    }
+  }
+
+  return true;
+}
+
+}
+
 std::unique_ptr<RuntimeSystem>
 SystemBuilder::build(
   SystemConfiguration& configuration,
   const DataStreamSourceFactory& dataSourceFactory,
+  const SensorRepository &sensors,
   const CalibrationRepository& calibrations,
   IClock& clock,
   IArchiveWriter& archive,
@@ -24,15 +85,12 @@ SystemBuilder::build(
   FormulaBuilder formulaBuilder;
 
   if (!formulaBuilder.build(
-        configuration,
-        runtime->layout,
-        runtime->formulas))
+      configuration,
+      runtime->layout,
+      runtime->formulas))
   {
     return nullptr;
   }
-
-  runtime->calibrations =
-    calibrations;
 
   CalculationCompiler compiler(
     configuration,
@@ -40,17 +98,29 @@ SystemBuilder::build(
     runtime->formulas);
 
   if (!compiler.build(
-        runtime->calculationPlan))
+      runtime->calculationPlan))
   {
     return nullptr;
   }
+
+  if (!validateCalibrations(
+      runtime->calculationPlan,
+      sensors,
+      calibrations))
+  {
+    return nullptr;
+  }
+
+  runtime->sensors = sensors;
+  runtime->calibrations = calibrations;
 
   runtime->signalProcessor =
     std::make_unique<SignalProcessor>(
       runtime->layout,
       runtime->formulas,
-      runtime->calculationPlan/*,
-      runtime->calibrations*/);
+      runtime->calculationPlan,
+      runtime->sensors,
+      runtime->calibrations);
 
   runtime->buffers.initialize(
     runtime->layout);

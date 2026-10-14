@@ -101,9 +101,6 @@ bool IdentifierResolver::resolveNode(
 
   case FormulaNodeType::Signal:
     return true;
-
-  case FormulaNodeType::Input:
-    return false;
   }
 
   return false;

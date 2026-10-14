@@ -4,7 +4,6 @@
 #include "db/sensorrepository.h"
 #include "formulacalculator.h"
 #include "parser/formulaparser.h"
-#include "parser/preprocessingresolver.h"
 #include "qds/db.h"
 #include "systemconfiguration.h"
 #include "testsrv.h"
@@ -523,31 +522,6 @@ void tst_configuration::test_configuration_polynomial()
 
   QVERIFY(calibration.apply(2.0, result));
   QCOMPARE(result, 24.0);
-}
-
-void tst_configuration::test_preprocessing()
-{
-  FormulaParser parser(
-    "sqrt(x * x + 9)");
-
-  auto node = parser.parse();
-
-  QVERIFY(node != nullptr);
-
-  PreprocessingResolver resolver;
-
-  QVERIFY(resolver.resolve(*node));
-
-  FormulaCalculator calculator;
-
-  double result = 0.0;
-
-  QVERIFY(calculator.calculate(
-    *node,
-    4.0,
-    result));
-
-  QCOMPARE(result, 5.0);
 }
 
 void tst_configuration::test_sensorRepository()

@@ -70,8 +70,7 @@ public:
     const ConfigurationId& configuration,
     const ModuleId &module,
     const ChannelId& channel,
-    const QJsonObject& settings,
-    ArchiveRate archiveRate = ArchiveRate::Hz10);
+    const QJsonObject& settings);
 
   [[nodiscard]]
   bool removeConfigTag(
@@ -122,13 +121,6 @@ public:
     const ModuleId& module,
     const ChannelId& channel,
     const QJsonObject& settings);
-
-  [[nodiscard]]
-  bool updateConfigTagArchiveRate(
-    const ConfigurationId& configuration,
-    const ModuleId& module,
-    const ChannelId& channel,
-    ArchiveRate rate);
 
   bool setConfigModuleActive(
     const ConfigurationId& configuration,

@@ -138,7 +138,6 @@ SELECT
   ct.configuration_id,
   ct.module_id,
   ct.channel,
-  ct.archive_rate,
   ct.settings
 FROM configuration_tag ct
 JOIN configuration_module cm
@@ -185,12 +184,6 @@ WHERE
     configurationTag.module = tag.module;
     configurationTag.channel = tag.channel;
 
-    configurationTag.archiveRate =
-      static_cast<ArchiveRate>(query.value("archive_rate").toUInt());
-
-    if (!isValidArchiveRate(configurationTag.archiveRate))
-      return false;
-
     const QByteArray data =
       query.value("settings")
         .toString()
@@ -223,7 +216,6 @@ SELECT
   sensor_id,
   signal_type_id,
   formula,
-  preprocessing_formula,
   archive_rate
 FROM configuration_signal_definition
 WHERE configuration_id = :id;)",
@@ -262,28 +254,34 @@ WHERE configuration_id = :id;)",
 
     if (definition.kind == SignalKind::Raw)
     {
+      const QVariant tagValue =
+        query.value("tag_id");
+
+      if (tagValue.isNull())
+        return false;
+
       const TagId tag{
-        query.value("tag_id").toUInt()
+        tagValue.toUInt()
       };
 
       if (!cfg.findTag(tag))
         return false;
 
       definition.source = SignalSource{tag};
-
-      definition.sensorId =
-        SensorId{
-        query.value("sensor_id").toUInt()
-      };
-
-      definition.preprocessingFormula =
-        query.value("preprocessing_formula")
-          .toString().toStdString();
     }
     else if (definition.kind == SignalKind::Calculated)
     {
       definition.formula =
         query.value("formula").toString().toStdString();
+
+      const QVariant sensorValue =
+        query.value("sensor_id");
+
+      if (!sensorValue.isNull())
+      {
+        definition.sensorId =
+          SensorId{sensorValue.toUInt()};
+      }
     }
     else
     {
@@ -307,13 +305,13 @@ bool ConfigurationRepository::loadSensors(
   // Типы датчиков.
   {
     auto query = getQuery(R"(
-      SELECT
-        id,
-        name,
-        description,
-        calibration_kind
-      FROM sensor_type
-      ORDER BY id;
+SELECT
+  id,
+  name,
+  description,
+  calibration_kind
+FROM sensor_type
+ORDER BY id;
     )");
 
     if (!exec(query))
@@ -660,11 +658,10 @@ WHERE id = :id;)",
 }
 
 std::optional<TagId> ConfigurationRepository::addConfigTag(
-  const ConfigurationId &configuration,
-  const ModuleId &module,
-  const ChannelId &channel,
-  const QJsonObject &settings,
-  ArchiveRate archiveRate)
+  const ConfigurationId& configuration,
+  const ModuleId& module,
+  const ChannelId& channel,
+  const QJsonObject& settings)
 {
   m_error = {};
 
@@ -676,18 +673,18 @@ std::optional<TagId> ConfigurationRepository::addConfigTag(
   auto query = getQuery(
     R"(
 INSERT INTO configuration_tag
-  (configuration_id, module_id, channel, archive_rate, settings)
+  (configuration_id, module_id, channel, settings)
 VALUES
-  (:configuration_id, :module_id, :channel, :archive_rate, :settings);)",
+  (:configuration_id, :module_id, :channel, :settings);)",
     {
       {":configuration_id", configuration.value},
       {":module_id", module.value},
       {":channel", channel.value},
-      {":archive_rate", static_cast<uint16_t>(archiveRate)},
       {":settings", json}
     });
 
-  if (!query.exec()) {
+  if (!query.exec())
+  {
     setError(query);
     return std::nullopt;
   }
@@ -703,28 +700,6 @@ VALUES
   };
 }
 
-bool ConfigurationRepository::removeConfigTag(
-  const ConfigurationId &configuration,
-  const ModuleId &module,
-  const ChannelId& channel)
-{
-  m_error = {};
-
-  auto query = getQuery(
-    R"(
-DELETE FROM configuration_tag
-WHERE configuration_id = :configuration_id
-AND module_id = :module_id
-AND channel = :channel;)",
-    {
-      {":configuration_id", configuration.value},
-      {":module_id", module.value},
-      {":channel", channel.value}
-    });
-
-  return exec(query);
-}
-
 bool ConfigurationRepository::moduleConfigTags(
   const ConfigurationId &configuration,
   const ModuleId &module,
@@ -734,7 +709,7 @@ bool ConfigurationRepository::moduleConfigTags(
 
   auto query = getQuery(
     R"(
-SELECT id, module_id, channel, archive_rate, settings, active
+SELECT id, module_id, channel, settings, active
 FROM configuration_tag
 WHERE configuration_id = :configuration_id
 AND module_id = :module_id;)",
@@ -778,10 +753,6 @@ AND module_id = :module_id;)",
         ChannelId{
           query.value("channel").toUInt()
         },
-
-      .archiveRate =
-        static_cast<ArchiveRate>(
-          query.value("archive_rate").toUInt()),
 
       .active =
         query.value("active").toBool(),
@@ -1155,34 +1126,6 @@ AND channel = :channel;)",
   return exec(query);
 }
 
-bool ConfigurationRepository::updateConfigTagArchiveRate(
-  const ConfigurationId& configuration,
-  const ModuleId& module,
-  const ChannelId& channel,
-  ArchiveRate rate)
-{
-  m_error = {};
-
-  if (!isValidArchiveRate(rate))
-    return false;
-
-  auto query = getQuery(
-    R"(
-UPDATE configuration_tag
-SET archive_rate = :archive_rate
-WHERE configuration_id = :configuration_id
-AND module_id = :module_id
-AND channel = :channel;)",
-    {
-      {":configuration_id", configuration.value},
-      {":module_id", module.value},
-      {":channel", channel.value},
-      {":archive_rate", static_cast<uint16_t>(rate)}
-    });
-
-  return exec(query);
-}
-
 bool ConfigurationRepository::setConfigModuleActive(
   const ConfigurationId& configuration,
   const ModuleId& module,
@@ -1251,8 +1194,7 @@ SELECT
   sensor_id,
   signal_type_id,
   archive_rate,
-  formula,
-  preprocessing_formula
+  formula
 FROM configuration_signal_definition
 WHERE configuration_id = :id
 ORDER BY id)",
@@ -1277,18 +1219,27 @@ ORDER BY id)",
     definition.kind = static_cast<SignalKind>(
       query.value("kind").toInt());
 
-    if (!query.value("tag_id").isNull())
+    if (definition.kind == SignalKind::Raw)
     {
-      definition.source.tag = TagId{
-        query.value("tag_id").toUInt()
-      };
+      if (!query.value("tag_id").isNull())
+      {
+        definition.source.tag = TagId{
+          query.value("tag_id").toUInt()
+        };
+      }
+    }    else if (definition.kind == SignalKind::Calculated)
+    {
+      if (!query.value("sensor_id").isNull())
+      {
+        definition.sensorId = SensorId{
+          query.value("sensor_id").toUInt()
+        };
+      }
     }
-
-    if (!query.value("sensor_id").isNull())
+    else
     {
-      definition.sensorId = SensorId{
-        query.value("sensor_id").toUInt()
-      };
+      definitions.clear();
+      return false;
     }
 
     definition.signalType = SignalTypeId{
@@ -1301,9 +1252,6 @@ ORDER BY id)",
     definition.formula =
       query.value("formula").toString().toStdString();
 
-    definition.preprocessingFormula =
-      query.value("preprocessing_formula")
-        .toString().toStdString();
 
     definitions.push_back(std::move(definition));
   }
@@ -1381,7 +1329,7 @@ UPDATE configuration_signal_definition
 SET sensor_id = :sensor_id
 WHERE configuration_id = :configuration_id
   AND id = :signal_id
-  AND kind = 0;)",
+  AND kind = 1;)",
     {
       {":sensor_id",
        sensor ? QVariant(sensor.value) : QVariant()},
@@ -1629,16 +1577,7 @@ ORDER BY m.serial, ct.channel)",
 
   return true;
 }
-/*
-void ConfigurationRepository::assignCalibration(Calibration &calibration, const QSqlQuery &query)
-{
-  calibration.id = CalibrationId{query.value("calibration_id").toUInt()};
-  calibration.name = query.value("calibration_name").toString();
-  calibration.description = query.value("calibration_description").toString();
-  calibration.signalId = SignalId{query.value("signal_id").toUInt()};
-  calibration.signalTypeId = SignalTypeId{query.value("signal_type_id").toUInt()};
-}
-*/
+
 void ConfigurationRepository::setError(const QSqlQuery &query)
 {
   m_error = query.lastError();

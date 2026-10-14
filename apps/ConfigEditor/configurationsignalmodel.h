@@ -72,11 +72,6 @@ public:
     QString formula);
 
   [[nodiscard]]
-  bool updateSignalPreprocessingFormula(
-    const QModelIndex& index,
-    const QString& formula);
-
-  [[nodiscard]]
   bool createSignal(
     QString name,
     SignalKind kind);

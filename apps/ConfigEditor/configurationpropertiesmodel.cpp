@@ -57,12 +57,6 @@ void ConfigurationPropertiesModel::setItem(
           tr("Диапазон"),
           channel->settings.value("range").toInt(0)
         });
-
-        properties.push_back({
-          PropertyId::ArchiveRate,
-          tr("Частота архивирования"),
-          static_cast<uint16_t>(channel->archiveRate)
-        });
       }
     }
   }
@@ -154,11 +148,6 @@ QVariant ConfigurationPropertiesModel::data(
   {
     return QString("%1 Гц")
       .arg(property.value.toDouble());
-  }
-  else if (property.id == PropertyId::ArchiveRate)
-  {
-    return QString("%1 Гц")
-      .arg(property.value.toUInt());
   }
 
   return property.value;
@@ -314,30 +303,7 @@ bool ConfigurationPropertiesModel::setData(
   else if (const auto* channel =
            std::get_if<ChannelItemData>(itemData))
   {
-    if (property.id == PropertyId::ArchiveRate)
-    {
-      bool ok = false;
-      const uint32_t frequency = value.toUInt(&ok);
-
-      if (!ok)
-        return false;
-
-      const ArchiveRate rate =
-        static_cast<ArchiveRate>(frequency);
-
-      if (!isValidArchiveRate(rate))
-        return false;
-
-      if (!m_treeModel->updateChannelArchiveRate(
-            m_currentItem,
-            rate))
-      {
-        return false;
-      }
-
-      newValue = frequency;
-    }
-    else if (property.id == PropertyId::ChannelRange)
+    if (property.id == PropertyId::ChannelRange)
     {
       settings = channel->settings;
 
@@ -350,8 +316,8 @@ bool ConfigurationPropertiesModel::setData(
       settings["range"] = range;
 
       if (!m_treeModel->updateChannelSettings(
-            m_currentItem,
-            settings))
+          m_currentItem,
+          settings))
       {
         return false;
       }
@@ -362,8 +328,7 @@ bool ConfigurationPropertiesModel::setData(
     {
       return false;
     }
-  }
-  else
+  }  else
   {
     return false;
   }

@@ -26,7 +26,7 @@ add_library(Configuration SHARED
   systemconfiguration.cpp systemconfiguration.h
   calibration.h calibration.cpp
   moduletypeinfo.h moduletypeinfo.cpp
-  runtimemoduleconfiguration.h runtimemoduleconfiguration.cpp
+  runtimemoduleconfiguration.h
   db/calibrationrepository.h db/calibrationrepository.cpp
   db/configurationrepository.h db/configurationrepository.cpp
   db/sensorrepository.h db/sensorrepository.cpp

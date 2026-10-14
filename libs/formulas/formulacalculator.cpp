@@ -47,15 +47,4 @@ bool FormulaCalculator::calculate(
     result);
 }
 
-bool FormulaCalculator::calculate(
-  const FormulaNode& formula,
-  double x,
-  double& result) const noexcept
-{
-  return m_evaluator.evaluate(
-    formula,
-    x,
-    result);
-}
-
 }

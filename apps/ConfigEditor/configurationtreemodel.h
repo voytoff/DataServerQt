@@ -62,10 +62,6 @@ public:
     const QModelIndex& index,
     const QJsonObject& settings);
 
-  bool updateChannelArchiveRate(
-    const QModelIndex& index,
-    ArchiveRate rate);
-
 private:
   ConfigurationRepository& m_repository;
 

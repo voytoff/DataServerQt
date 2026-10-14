@@ -3065,12 +3065,16 @@ void tst_dataarchive::test_DataStreamProcessor_archiveFailure()
 
   FormulaAstRepository formulas;
   CalculationPlan plan;
+
+  SensorRepository sensors;
   CalibrationRepository calibrations;
 
   SignalProcessor signalProcessor(
     layout,
     formulas,
-    plan);
+    plan,
+    sensors,
+    calibrations);
 
   FailingArchiveWriter archive;
   TestLogger logger;
@@ -3239,12 +3243,16 @@ void tst_dataarchive::test_DataStreamProcessor_wait_for_all()
 
   FormulaAstRepository formulas;
   CalculationPlan plan;
+
+  SensorRepository sensors;
   CalibrationRepository calibrations;
 
   SignalProcessor signalProcessor(
     layout,
     formulas,
-    plan);
+    plan,
+    sensors,
+    calibrations);
 
   TestArchiveFrameWriter archive;
 
@@ -3403,12 +3411,16 @@ void tst_dataarchive::test_DataStreamProcessor_livetime()
 
   FormulaAstRepository formulas;
   CalculationPlan plan;
+
+  SensorRepository sensors;
   CalibrationRepository calibrations;
 
   SignalProcessor signalProcessor(
     layout,
     formulas,
-    plan);
+    plan,
+    sensors,
+    calibrations);
 
   TestArchiveFrameWriter archive;
 
@@ -3545,12 +3557,16 @@ void tst_dataarchive::
 
   FormulaAstRepository formulas;
   CalculationPlan plan;
+
+  SensorRepository sensors;
   CalibrationRepository calibrations;
 
   SignalProcessor signalProcessor(
     layout,
     formulas,
-    plan);
+    plan,
+    sensors,
+    calibrations);
 
   TestArchiveFrameWriter archive;
   TestLogger logger;
@@ -3696,12 +3712,16 @@ void tst_dataarchive::test_DataStreamWorker_base()
 
   FormulaAstRepository formulas;
   CalculationPlan plan;
+
+  SensorRepository sensors;
   CalibrationRepository calibrations;
 
   SignalProcessor signalProcessor(
     layout,
     formulas,
-    plan);
+    plan,
+    sensors,
+    calibrations);
 
   TestArchiveFrameWriter archive;
   TestLogger logger;
@@ -3829,12 +3849,16 @@ void tst_dataarchive::test_LCardDataSource_to_archive()
 
   FormulaAstRepository formulas;
   CalculationPlan plan;
+
+  SensorRepository sensors;
   CalibrationRepository calibrations;
 
   SignalProcessor signalProcessor(
     layout,
     formulas,
-    plan);
+    plan,
+    sensors,
+    calibrations);
 
   TestArchiveFrameWriter archive;
   TestLogger logger;
@@ -3985,12 +4009,16 @@ void tst_dataarchive::test_LCardDataSource_some_modules_to_archive()
 
   FormulaAstRepository formulas;
   CalculationPlan plan;
+
+  SensorRepository sensors;
   CalibrationRepository calibrations;
 
   SignalProcessor signalProcessor(
     layout,
     formulas,
-    plan);
+    plan,
+    sensors,
+    calibrations);
 
   TestArchiveFrameWriter archive;
   TestLogger logger;
@@ -4202,12 +4230,16 @@ void tst_dataarchive::test_DataStreamWorker_restart()
 
   FormulaAstRepository formulas;
   CalculationPlan plan;
+
+  SensorRepository sensors;
   CalibrationRepository calibrations;
 
   SignalProcessor signalProcessor(
     layout,
     formulas,
-    plan);
+    plan,
+    sensors,
+    calibrations);
 
   TestArchiveFrameWriter archive;
   TestLogger logger;

@@ -240,10 +240,14 @@ void tst_signalprocessor::test_signalProcessor_calculate()
 
   CalibrationRepository cr;
 
+  SensorRepository sensors;
+
   SignalProcessor processor(
     layout,
     formulas,
-    plan);
+    plan,
+    sensors,
+    cr);
 
   QVERIFY(processor.process(
     raw,
@@ -252,6 +256,266 @@ void tst_signalprocessor::test_signalProcessor_calculate()
   QCOMPARE(calculated.valueRef(0), 15.0);
   QCOMPARE(calculated.valueRef(1), 40.0);
   QCOMPARE(calculated.valueRef(2), 55.0);
+}
+
+void tst_signalprocessor::test_signalProcessor_calibrationOwn()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_calculate();
+
+  // Назначаем датчик вычисляемому сигналу A.
+  auto* signal =
+    cfg.findSignalDefinition(SignalId{17});
+
+  QVERIFY(signal != nullptr);
+
+  signal->sensorId = SensorId{1};
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.calculatedSignalCount());
+
+  raw.setValue(0, 10.0);
+  raw.setValue(1, 20.0);
+
+  FormulaAstRepository formulas;
+
+  FormulaBuilder formulaBuilder;
+
+  QVERIFY(formulaBuilder.build(
+    cfg,
+    layout,
+    formulas));
+
+  CalculationPlan plan;
+
+  CalculationCompiler compiler(
+    cfg,
+    layout,
+    formulas);
+
+  QVERIFY(compiler.build(plan));
+
+  QCOMPARE(plan.size(), 3);
+
+  SensorRepository sensors;
+
+  Sensor sensor;
+  sensor.id = SensorId{1};
+  sensor.name = "Test Sensor";
+  sensor.calibrationMode = SensorCalibrationMode::Own;
+  sensor.calibrationKind = CalibrationKind::Table;
+
+  QVERIFY(sensors.add(sensor));
+
+  CalibrationRepository calibrations;
+
+  Calibration calibration;
+  calibration.id = CalibrationId{1};
+  calibration.sensorId = SensorId{1};
+  calibration.kind = CalibrationKind::Table;
+
+  calibration.points = {
+    {.index = 0, .x = 0.0,   .y = 0.0},
+    {.index = 1, .x = 100.0, .y = 200.0}
+  };
+
+  QVERIFY(calibration.buildSegments());
+
+  QVERIFY(calibrations.addBySensor(
+    SensorId{1},
+    calibration));
+
+  SignalProcessor processor(
+    layout,
+    formulas,
+    plan,
+    sensors,
+    calibrations);
+
+  QVERIFY(processor.process(
+    raw,
+    calculated));
+
+  QCOMPARE(calculated.valueRef(0), 20.0);
+  QCOMPARE(calculated.valueRef(1), 20.0);
+  QCOMPARE(calculated.valueRef(2), 40.0);
+}
+
+void tst_signalprocessor::test_signalProcessor_calibrationByType()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_calculate();
+
+  // Назначаем датчик вычисляемому сигналу A.
+  auto* signal =
+    cfg.findSignalDefinition(SignalId{17});
+
+  QVERIFY(signal != nullptr);
+
+  signal->sensorId = SensorId{1};
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.calculatedSignalCount());
+
+  raw.setValue(0, 10.0);
+  raw.setValue(1, 20.0);
+
+  FormulaAstRepository formulas;
+
+  FormulaBuilder formulaBuilder;
+
+  QVERIFY(formulaBuilder.build(
+    cfg,
+    layout,
+    formulas));
+
+  CalculationPlan plan;
+
+  CalculationCompiler compiler(
+    cfg,
+    layout,
+    formulas);
+
+  QVERIFY(compiler.build(plan));
+
+  QCOMPARE(plan.size(), 3);
+
+  SensorRepository sensors;
+
+  Sensor sensor;
+  sensor.id = SensorId{1};
+  sensor.name = "Test Sensor";
+  sensor.calibrationMode = SensorCalibrationMode::ByType;
+  sensor.calibrationKind = CalibrationKind::Table;
+  sensor.sensorTypeId = SensorTypeId{1};
+
+  QVERIFY(sensors.add(sensor));
+
+  SensorType sensorType;
+  sensorType.id = SensorTypeId{1};
+  sensorType.name = "Test type Sensor";
+  sensorType.calibrationKind = CalibrationKind::Table;
+
+  QVERIFY(sensors.add(sensorType));
+
+  CalibrationRepository calibrations;
+
+  Calibration calibration;
+  calibration.id = CalibrationId{1};
+  calibration.sensorTypeId = SensorTypeId{1};
+  calibration.kind = CalibrationKind::Table;
+
+  calibration.points = {
+    {.index = 0, .x = 0.0,   .y = 0.0},
+    {.index = 1, .x = 100.0, .y = 200.0}
+  };
+
+  QVERIFY(calibration.buildSegments());
+
+  QVERIFY(calibrations.addBySensorType(
+    SensorTypeId{1},
+    calibration));
+
+  SignalProcessor processor(
+    layout,
+    formulas,
+    plan,
+    sensors,
+    calibrations);
+
+  QVERIFY(processor.process(
+    raw,
+    calculated));
+
+  QCOMPARE(calculated.valueRef(0), 20.0);
+  QCOMPARE(calculated.valueRef(1), 20.0);
+  QCOMPARE(calculated.valueRef(2), 40.0);
+}
+
+void tst_signalprocessor::test_signalProcessor_fail()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_calculate();
+
+  // Назначаем датчик вычисляемому сигналу A.
+  auto* signal =
+    cfg.findSignalDefinition(SignalId{17});
+
+  QVERIFY(signal != nullptr);
+
+  signal->sensorId = SensorId{1};
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  RawMemory raw;
+  CalculatedMemory calculated;
+
+  raw.initialize(layout.rawSignalCount());
+  calculated.initialize(layout.calculatedSignalCount());
+
+  raw.setValue(0, 10.0);
+  raw.setValue(1, 20.0);
+
+  FormulaAstRepository formulas;
+
+  FormulaBuilder formulaBuilder;
+
+  QVERIFY(formulaBuilder.build(
+    cfg,
+    layout,
+    formulas));
+
+  CalculationPlan plan;
+
+  CalculationCompiler compiler(
+    cfg,
+    layout,
+    formulas);
+
+  QVERIFY(compiler.build(plan));
+
+  QCOMPARE(plan.size(), 3);
+
+  SensorRepository sensors;
+  Sensor sensor;
+  sensor.id = SensorId{1};
+  sensor.name = "Test Sensor";
+  sensor.calibrationMode = SensorCalibrationMode::Own;
+  sensor.calibrationKind = CalibrationKind::Table;
+
+  QVERIFY(sensors.add(sensor));
+
+  CalibrationRepository calibrations;
+
+  SignalProcessor processor(
+    layout,
+    formulas,
+    plan,
+    sensors,
+    calibrations);
+
+  QVERIFY(!processor.process(
+    raw,
+    calculated));
 }
 
 /*

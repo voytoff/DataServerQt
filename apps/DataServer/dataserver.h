@@ -26,7 +26,8 @@ public:
 
   explicit DataServer(
     SystemConfiguration configuration,
-    const CalibrationRepository &repository,
+    const SensorRepository& sensors,
+    const CalibrationRepository& calibrations,
     const DataStreamSourceFactory& dataSourceFactory,
     IArchiveWriter& archive,
     ISchedulerClock& clock,
@@ -45,7 +46,8 @@ private:
   void cleanup();
 
   SystemConfiguration m_configuration;
-  const CalibrationRepository& m_repository;
+  SensorRepository m_sensors;
+  CalibrationRepository m_calibrations;
 
   const DataStreamSourceFactory& m_dataSourceFactory;
 

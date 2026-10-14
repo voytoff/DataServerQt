@@ -49,6 +49,14 @@ void SignalMemoryLayout::build(
                    def.source.tag == tag;
           });
 
+      if (p == definitions.end())
+      {
+        qDebug() << "Missing Raw signal for module:"
+                 << module.id.value
+                 << "tag:"
+                 << tag.value;
+      }
+
       assert(p != definitions.end());
 
       SignalLocation location;

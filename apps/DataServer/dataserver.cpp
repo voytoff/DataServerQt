@@ -15,16 +15,18 @@ constexpr int EngineTimerIntervalMs = 1;
 
 DataServer::DataServer(
   SystemConfiguration configuration,
-  const CalibrationRepository& repository,
+  const SensorRepository& sensors,
+  const CalibrationRepository& calibrations,
   const DataStreamSourceFactory& dataSourceFactory,
   IArchiveWriter& archive,
   ISchedulerClock& clock,
   ISender& sender,
-  ILogger &logger,
+  ILogger& logger,
   QObject* parent)
   : QObject(parent)
   , m_configuration(std::move(configuration))
-  , m_repository(repository)
+  , m_sensors(sensors)
+  , m_calibrations(calibrations)
   , m_dataSourceFactory(dataSourceFactory)
   , m_archive(archive)
   , m_clock(clock)
@@ -54,7 +56,8 @@ bool DataServer::start()
     builder.build(
       m_configuration,
       m_dataSourceFactory,
-      m_repository,
+      m_sensors,
+      m_calibrations,
       m_clock,
       m_archive,
       m_logger);

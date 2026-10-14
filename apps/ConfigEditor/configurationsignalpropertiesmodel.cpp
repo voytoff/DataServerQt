@@ -51,19 +51,6 @@ void ConfigurationSignalPropertiesModel::setItem(
         tr("Источник (TagId)"),
         signal->source.tag.value
       });
-
-      properties.push_back({
-        PropertyId::Sensor,
-        tr("Датчик (SensorId)"),
-        signal->sensorId.value
-      });
-
-      properties.push_back({
-        PropertyId::PreprocessingFormula,
-        tr("Предварительная формула"),
-        QString::fromStdString(
-          signal->preprocessingFormula)
-      });
     }
     else if (signal->kind == SignalKind::Calculated)
     {
@@ -71,6 +58,12 @@ void ConfigurationSignalPropertiesModel::setItem(
         PropertyId::Formula,
         tr("Формула"),
         QString::fromStdString(signal->formula)
+      });
+
+      properties.push_back({
+        PropertyId::Sensor,
+        tr("Датчик (SensorId)"),
+        signal->sensorId.value
       });
     }
 
@@ -85,7 +78,6 @@ void ConfigurationSignalPropertiesModel::setItem(
       tr("Частота архивирования"),
       static_cast<uint16_t>(signal->archiveRate)
     });
-
   }
 
   beginResetModel();
@@ -170,6 +162,26 @@ QVariant ConfigurationSignalPropertiesModel::data(
       });
 
     if (it != m_signalTypes.end())
+      return QString::fromStdString(it->name);
+
+    return QString::number(id);
+  }
+  else if (property.id == PropertyId::Sensor)
+  {
+    const uint32_t id = property.value.toUInt();
+
+    if (id == 0)
+      return tr("Нет");
+
+    const auto it = std::find_if(
+      m_sensors.begin(),
+      m_sensors.end(),
+      [id](const Sensor& sensor)
+      {
+        return sensor.id.value == id;
+      });
+
+    if (it != m_sensors.end())
       return QString::fromStdString(it->name);
 
     return QString::number(id);
@@ -313,27 +325,6 @@ bool ConfigurationSignalPropertiesModel::setData(
 
     newValue = id;
   }
-  else if (property.id == PropertyId::PreprocessingFormula)
-  {
-    const QString formula = value.toString().trimmed();
-
-    if (formula.size() > 512)
-    {
-      emit operationFailed(
-        tr("Предварительная формула должна иметь "
-           "длину не более 512 символов."));
-
-      return false;
-    }
-
-    if (!m_signalModel->updateSignalPreprocessingFormula(
-          m_currentItem, formula))
-    {
-      return false;
-    }
-
-    newValue = formula;
-  }
   else if (property.id == PropertyId::SignalType)
   {
     bool ok = false;
@@ -438,10 +429,10 @@ Qt::ItemFlags ConfigurationSignalPropertiesModel::flags(
 
   if (propertyId == PropertyId::Name ||
       propertyId == PropertyId::ArchiveRate ||
-      propertyId == PropertyId::PreprocessingFormula ||
       propertyId == PropertyId::SignalType ||
       propertyId == PropertyId::Source ||
-      propertyId == PropertyId::Formula)
+      propertyId == PropertyId::Formula ||
+      propertyId == PropertyId::Sensor)
   {
     result |= Qt::ItemIsEditable;
   }
@@ -467,6 +458,20 @@ void ConfigurationSignalPropertiesModel::setSignalTypes(
   std::vector<SignalTypeInfo> types)
 {
   m_signalTypes = std::move(types);
+
+  if (!m_properties.empty())
+  {
+    emit dataChanged(
+      index(0, 1),
+      index(rowCount() - 1, 1),
+      {Qt::DisplayRole});
+  }
+}
+
+void ConfigurationSignalPropertiesModel::setSensors(
+  std::vector<Sensor> sensors)
+{
+  m_sensors = std::move(sensors);
 
   if (!m_properties.empty())
   {

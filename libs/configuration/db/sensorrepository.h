@@ -5,6 +5,7 @@
 
 #include <strongidhash.h>
 #include <unordered_map>
+#include <vector>
 
 namespace qds
 {
@@ -31,6 +32,9 @@ public:
 
   [[nodiscard]]
   std::size_t sensorTypeCount() const noexcept;
+
+  [[nodiscard]]
+  std::vector<Sensor> sensors() const;
 
 private:
 

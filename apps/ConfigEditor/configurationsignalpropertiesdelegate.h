@@ -1,6 +1,7 @@
 #pragma once
 
 #include "datatypes.h"
+#include "sensor.h"
 #include <QStyledItemDelegate>
 
 namespace qds
@@ -38,7 +39,12 @@ public:
   void setSignalTypes(
     std::vector<SignalTypeInfo> types);
 
+  void setSensors(
+    std::vector<Sensor> sensors);
+
 private:
+  std::vector<Sensor> m_sensors;
+
   std::vector<SignalTypeInfo> m_signalTypes;
   std::vector<TagSourceInfo> m_tagSources;
 

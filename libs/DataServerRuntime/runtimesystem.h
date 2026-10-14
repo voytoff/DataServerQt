@@ -13,6 +13,7 @@
 #include "frameassembler.h"
 #include "signalmemorylayout.h"
 #include "signalprocessor.h"
+#include "db/sensorrepository.h"
 
 #include <memory>
 
@@ -40,6 +41,7 @@ struct RuntimeSystem
 
   FormulaAstRepository formulas;
   CalibrationRepository calibrations;
+  SensorRepository sensors;
   CalculationPlan calculationPlan;
 
   BufferManager buffers;

@@ -39,13 +39,6 @@ bool FormulaEvaluator::evaluateNode(
     result = node.number;
     return true;
 
-  case FormulaNodeType::Input:
-    if (input == nullptr)
-      return false;
-
-    result = *input;
-    return true;
-
   case FormulaNodeType::Signal:
     if (raw == nullptr ||
         calculated == nullptr ||

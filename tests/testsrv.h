@@ -130,7 +130,7 @@ static const SignalDefinition* findSignalDefinition(
   return &(*it);
 }
 
-static const std::size_t findFile(const ArchiveDescription &description, SignalKind kind, uint32_t archiveFrequency)
+static const std::optional<std::size_t> findFile(const ArchiveDescription &description, SignalKind kind, uint32_t archiveFrequency)
 {
   const std::string name =
     kind == SignalKind::Raw
@@ -148,7 +148,7 @@ static const std::size_t findFile(const ArchiveDescription &description, SignalK
     });
 
   if (it == files.end())
-    return -1;
+    return std::nullopt;
 
   return std::distance(files.begin(), it);;
 }
@@ -952,10 +952,10 @@ inline qds::ModuleRuntimeConfiguration createModuleRuntimeConfiguration(ModuleTy
         .settings = QJsonDocument::fromJson(R"({})").object()
       },
       .tags = {
-       {TagId{1}, ModuleId{0}, ChannelId{0}, ArchiveRate::Hz100, true, QJsonDocument::fromJson(R"({"mode":0,"range":0})").object()},
-       {TagId{5}, ModuleId{0}, ChannelId{1}, ArchiveRate::Hz100, true, QJsonDocument::fromJson(R"({"mode":2,"range":1})").object()},
-       {TagId{7}, ModuleId{0}, ChannelId{3}, ArchiveRate::Hz100, true, QJsonDocument::fromJson(R"({"mode":1,"range":2})").object()},
-       {TagId{9}, ModuleId{0}, ChannelId{24}, ArchiveRate::Hz100, true, QJsonDocument::fromJson(R"({"mode":1,"range":3})").object()},
+       {TagId{1}, ModuleId{0}, ChannelId{0}, true, QJsonDocument::fromJson(R"({"mode":0,"range":0})").object()},
+       {TagId{5}, ModuleId{0}, ChannelId{1}, true, QJsonDocument::fromJson(R"({"mode":2,"range":1})").object()},
+       {TagId{7}, ModuleId{0}, ChannelId{3}, true, QJsonDocument::fromJson(R"({"mode":1,"range":2})").object()},
+       {TagId{9}, ModuleId{0}, ChannelId{24}, true, QJsonDocument::fromJson(R"({"mode":1,"range":3})").object()},
       }
     };
 

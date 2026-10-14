@@ -100,7 +100,21 @@ ConfigurationEditor::ConfigurationEditor(
     return;
   }
 
-  m_signalPropertiesModel->setSignalTypes(signalTypes);
+  SensorRepository sensors;
+
+  if (!m_repository.loadSensors(sensors))
+    return;
+
+  auto loaded = sensors.sensors();
+
+  std::sort(
+    loaded.begin(),
+    loaded.end(),
+    [](const Sensor& a, const Sensor& b)
+    {
+      return a.name < b.name;
+    });
+
 
   m_signalPropertiesView->setModel(
     m_signalPropertiesModel);
@@ -113,7 +127,10 @@ ConfigurationEditor::ConfigurationEditor(
     new ConfigurationSignalPropertiesDelegate(
       m_signalPropertiesView);
 
+  m_signalPropertiesModel->setSignalTypes(signalTypes);
+  m_signalPropertiesModel->setSensors(loaded);
   m_signalPropertiesDelegate->setSignalTypes(std::move(signalTypes));
+  m_signalPropertiesDelegate->setSensors(std::move(loaded));
 
   m_signalPropertiesView->setItemDelegateForColumn(1, m_signalPropertiesDelegate);
 
