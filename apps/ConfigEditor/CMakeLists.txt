@@ -17,21 +17,29 @@ qt_add_executable(configeditor
     treeitemdata.h
     mainwindow.h mainwindow.cpp
     configurationeditor.h configurationeditor.cpp
-    configurationtreemodel.h configurationtreemodel.cpp
+    model/configurationtreemodel.h model/configurationtreemodel.cpp
     treeitem.h treeitem.cpp
-    configurationpropertiesmodel.h configurationpropertiesmodel.cpp
-    configurationpropertiesdelegate.h configurationpropertiesdelegate.cpp
-    configurationsignalmodel.h configurationsignalmodel.cpp
+    model/configurationpropertiesmodel.h model/configurationpropertiesmodel.cpp
+    delegate/configurationpropertiesdelegate.h delegate/configurationpropertiesdelegate.cpp
+    model/configurationsignalmodel.h model/configurationsignalmodel.cpp
     basetableview.h basetableview.cpp
-    configurationsignalpropertiesmodel.h configurationsignalpropertiesmodel.cpp
-    configurationsignalpropertiesdelegate.h configurationsignalpropertiesdelegate.cpp
+    model/configurationsignalpropertiesmodel.h model/configurationsignalpropertiesmodel.cpp
+    delegate/configurationsignalpropertiesdelegate.h delegate/configurationsignalpropertiesdelegate.cpp
     dlg/configurationsignaldialog.h dlg/configurationsignaldialog.cpp
+    model/sensortypemodel.h model/sensortypemodel.cpp
+    delegate/basecomboboxdelegate.h delegate/basecomboboxdelegate.cpp
+    model/sensormodel.h model/sensormodel.cpp
+    dlg/sensordialog.h dlg/sensordialog.cpp
+    model/sensorpropertiesmodel.h model/sensorpropertiesmodel.cpp
 )
 
 target_include_directories(configeditor
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../../libs/datatypes
+    ${CMAKE_CURRENT_SOURCE_DIR}/model
+    ${CMAKE_CURRENT_SOURCE_DIR}/delegate
+    ${CMAKE_CURRENT_SOURCE_DIR}/dlg
 )
 
 target_link_libraries(configeditor

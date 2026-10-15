@@ -36,6 +36,9 @@ public:
   [[nodiscard]]
   std::vector<Sensor> sensors() const;
 
+  [[nodiscard]]
+  std::vector<SensorType> sensorTypes() const;
+
 private:
 
   std::unordered_map<SensorId, Sensor> m_sensors;

@@ -35,18 +35,16 @@ BaseTableView::BaseTableView(
 
   if (columnWidth > 0)
     hHeader->setDefaultSectionSize(columnWidth);
+
+  // продолжает последнюю колонку до границы
+  //hHeader->setStretchLastSection(true);
+
+  //hHeader->setSectionResizeMode(
+  //  QHeaderView::ResizeToContents);
 }
 
 void BaseTableView::keyPressEvent(QKeyEvent *event)
 {
-  if (event->key() == Qt::Key_Delete) {
-    qDebug() << "Нажата клавиша Delete. Здесь можно удалить строку из модели.";
-    // Вы можете обработать событие здесь или передать наверх, если нужно:
-    // event->accept();
-    // return;
-  }
-
-  // Обязательно вызываем базовый класс, чтобы не сломать стандартную навигацию клавишами
   QTableView::keyPressEvent(event);
 }
 

@@ -11,12 +11,64 @@ ConfigurationRepository::ConfigurationRepository(
   const QSqlDatabase &database)
   : m_database(database) { }
 
+
+QSqlQuery ConfigurationRepository::getQuery(
+  const QString& sql,
+  const QVariantMap& args)
+{
+  m_error = {};
+
+  QSqlQuery query(m_database);
+
+  if (!query.prepare(sql))
+  {
+    setError(query);
+    return query;
+  }
+
+  for (auto it = args.cbegin();
+       it != args.cend();
+       ++it)
+  {
+    query.bindValue(
+      it.key(),
+      it.value());
+  }
+
+  return query;
+}
+
+bool ConfigurationRepository::exec(QSqlQuery& query)
+{
+  if (m_error.isValid())
+    return false;
+
+  if (!query.exec())
+  {
+    setError(query);
+    return false;
+  }
+
+  return true;
+}
+
+void ConfigurationRepository::setError(const QSqlQuery &query)
+{
+  m_error = query.lastError();
+  qDebug() << query.lastError().text();
+  qDebug() << query.lastQuery();
+  qDebug() << query.boundValues();
+}
+
+QSqlError ConfigurationRepository::lastError() const
+{
+  return m_error;
+}
+
 bool ConfigurationRepository::load(
   const ConfigurationId& configuration,
   SystemConfiguration &system)
 {
-  m_error = {};
-
   SystemConfiguration cfg;
 
   // проверяем наличие конфигурации
@@ -354,16 +406,16 @@ ORDER BY id;
   // Датчики.
   {
     auto query = getQuery(R"(
-      SELECT
-        id,
-        sensor_type_id,
-        name,
-        serial,
-        description,
-        calibration_mode,
-        calibration_kind
-      FROM sensor
-      ORDER BY id;
+SELECT
+  id,
+  sensor_type_id,
+  name,
+  serial,
+  description,
+  calibration_mode,
+  calibration_kind
+FROM sensor
+ORDER BY id;
     )");
 
     if (!exec(query))
@@ -435,10 +487,7 @@ std::optional<ConfigurationId> ConfigurationRepository::addConfiguration(
   const QString& description,
   uint16_t udpPort)
 {
-  m_error = {};
-
-  auto query = getQuery(
-    R"(
+  auto query = getQuery(R"(
 INSERT INTO configuration
   (name, description, udp_port)
 VALUES
@@ -472,10 +521,7 @@ std::optional<CrateId> ConfigurationRepository::addCrate(
   const uint32_t port,
   const QString &description)
 {
-  m_error = {};
-
-  auto query = getQuery(
-    R"(
+  auto query = getQuery(R"(
 INSERT INTO crate
   (`type`, serial, host, port, description)
 VALUES
@@ -507,10 +553,7 @@ VALUES
 bool ConfigurationRepository::crates(
   std::vector<CrateInfo> &crates)
 {
-  m_error = {};
-
-  auto query = getQuery(
-    R"(
+  auto query = getQuery(R"(
 SELECT id, `type`, serial, host, port, description
 FROM crate
 ORDER BY id;)");
@@ -561,10 +604,7 @@ ConfigurationRepository::addModule(
   const uint16_t slot,
   const QString& description)
 {
-  m_error = {};
-
-  auto query = getQuery(
-    R"(
+  auto query = getQuery(R"(
 INSERT INTO module
   (crate_id, type, serial, slot, description)
 VALUES
@@ -596,10 +636,7 @@ VALUES
 bool ConfigurationRepository::modules(
   std::vector<ModuleInfo> &modules)
 {
-  m_error = {};
-
-  auto query = getQuery(
-    R"(
+  auto query = getQuery(R"(
 SELECT id, crate_id, `type`, serial, slot, description
 FROM module
 ORDER BY crate_id, slot;)");
@@ -644,10 +681,7 @@ ORDER BY crate_id, slot;)");
 bool ConfigurationRepository::removeModule(
   const ModuleId &module)
 {
-  m_error = {};
-
-  auto query = getQuery(
-    R"(
+  auto query = getQuery(R"(
 DELETE FROM module
 WHERE id = :id;)",
     {
@@ -663,15 +697,12 @@ std::optional<TagId> ConfigurationRepository::addConfigTag(
   const ChannelId& channel,
   const QJsonObject& settings)
 {
-  m_error = {};
-
   const QString json =
     QString::fromUtf8(
       QJsonDocument(settings)
         .toJson(QJsonDocument::Compact));
 
-  auto query = getQuery(
-    R"(
+  auto query = getQuery(R"(
 INSERT INTO configuration_tag
   (configuration_id, module_id, channel, settings)
 VALUES
@@ -705,10 +736,7 @@ bool ConfigurationRepository::moduleConfigTags(
   const ModuleId &module,
   std::vector<ConfigurationTag> &tags)
 {
-  m_error = {};
-
-  auto query = getQuery(
-    R"(
+  auto query = getQuery(R"(
 SELECT id, module_id, channel, settings, active
 FROM configuration_tag
 WHERE configuration_id = :configuration_id
@@ -771,11 +799,9 @@ bool ConfigurationRepository::loadCalibrations(
   const SystemConfiguration&,
   CalibrationRepository& calibrations)
 {
-  m_error = {};
-
   CalibrationRepository repo;
 
-  const QString sql = R"(
+  auto query = getQuery(R"(
 SELECT
   id,
   sensor_id,
@@ -784,9 +810,7 @@ SELECT
   name,
   description
 FROM calibration
-ORDER BY id;)";
-
-  auto query = getQuery(sql, {});
+ORDER BY id;)");
 
   if (!exec(query))
     return false;
@@ -902,10 +926,7 @@ bool ConfigurationRepository::configModules(
   const ConfigurationId &configuration,
   std::vector<ConfigModule> &modules)
 {
-  m_error = {};
-
-  auto query = getQuery(
-    R"(
+  auto query = getQuery(R"(
 SELECT
   m.id AS module_id,
   m.serial AS module_serial,
@@ -989,10 +1010,7 @@ bool ConfigurationRepository::availableModules(
   const ConfigurationId& configuration,
   std::vector<AvailableModule>& modules)
 {
-  m_error = {};
-
-  auto query = getQuery(
-    R"(
+  auto query = getQuery(R"(
 SELECT
   m.id AS module_id,
   m.serial AS module_serial,
@@ -1060,15 +1078,12 @@ bool ConfigurationRepository::updateConfigModuleSettings(
   const ModuleId &module,
   const QJsonObject &settings)
 {
-  m_error = {};
-
   const QString json =
     QString::fromUtf8(
       QJsonDocument(settings)
         .toJson(QJsonDocument::Compact));
 
-  auto query = getQuery(
-    R"(
+  auto query = getQuery(R"(
 UPDATE configuration_module
 SET settings = :settings
 WHERE configuration_id = :configuration_id
@@ -1102,15 +1117,12 @@ bool ConfigurationRepository::updateConfigTagSettings(
   const ChannelId &channel,
   const QJsonObject &settings)
 {
-  m_error = {};
-
   const QString json =
     QString::fromUtf8(
       QJsonDocument(settings)
         .toJson(QJsonDocument::Compact));
 
-  auto query = getQuery(
-    R"(
+  auto query = getQuery(R"(
 UPDATE configuration_tag
 SET settings = :settings
 WHERE configuration_id = :configuration_id
@@ -1131,8 +1143,6 @@ bool ConfigurationRepository::setConfigModuleActive(
   const ModuleId& module,
   bool active)
 {
-  m_error = {};
-
   auto query = getQuery(R"(
 UPDATE configuration_module
 SET active = :active
@@ -1156,8 +1166,6 @@ bool ConfigurationRepository::setConfigTagActive(
   const ChannelId& channel,
   bool active)
 {
-  m_error = {};
-
   auto query = getQuery(R"(
 UPDATE configuration_tag
 SET active = :active
@@ -1181,8 +1189,6 @@ bool ConfigurationRepository::signalDefinitions(
   const ConfigurationId& configuration,
   std::vector<SignalDefinition>& definitions)
 {
-  m_error = {};
-
   definitions.clear();
 
   QSqlQuery query = getQuery(R"(
@@ -1271,8 +1277,6 @@ bool ConfigurationRepository::updateSignalName(
   SignalId signal,
   const QString& name)
 {
-  m_error = {};
-
   auto query = getQuery(R"(
 UPDATE configuration_signal_definition
 SET name = :name
@@ -1295,8 +1299,6 @@ bool ConfigurationRepository::updateSignalArchiveRate(
   SignalId signal,
   ArchiveRate rate)
 {
-  m_error = {};
-
   if (!isValidArchiveRate(rate))
     return false;
 
@@ -1322,8 +1324,6 @@ bool ConfigurationRepository::updateSignalSensor(
   const SignalId& signal,
   const SensorId& sensor)
 {
-  m_error = {};
-
   auto query = getQuery(R"(
 UPDATE configuration_signal_definition
 SET sensor_id = :sensor_id
@@ -1345,8 +1345,6 @@ bool ConfigurationRepository::updateSignalSignalType(
   SignalId signal,
   SignalTypeId type)
 {
-  m_error = {};
-
   const QVariant value =
     type.value == 0 ?
       QVariant(QMetaType(QMetaType::Int)) :
@@ -1374,8 +1372,6 @@ bool ConfigurationRepository::updateSignalSource(
   SignalId signal,
   TagId tag)
 {
-  m_error = {};
-
   const QVariant value =
     tag.value == 0
       ? QVariant(QMetaType(QMetaType::Int))
@@ -1416,8 +1412,6 @@ bool ConfigurationRepository::updateSignalFormula(
   SignalId signal,
   QString formula)
 {
-  m_error = {};
-
   auto query = getQuery(R"(
 UPDATE configuration_signal_definition
 SET formula = :formula
@@ -1437,8 +1431,6 @@ bool ConfigurationRepository::updateSignalPreprocessingFormula(
   SignalId signal,
   QString formula)
 {
-  m_error = {};
-
   auto query = getQuery(R"(
 UPDATE configuration_signal_definition
 SET preprocessing_formula = :formula
@@ -1460,8 +1452,6 @@ bool ConfigurationRepository::createSignal(
   SignalKind kind,
   SignalId& createdId)
 {
-  m_error = {};
-
   createdId = SignalId{0};
 
   auto query = getQuery(R"(
@@ -1495,8 +1485,6 @@ bool ConfigurationRepository::removeSignal(
   ConfigurationId configuration,
   SignalId signal)
 {
-  m_error = {};
-
   auto query = getQuery(R"(
 DELETE FROM configuration_signal_definition
 WHERE configuration_id = :configuration_id
@@ -1512,7 +1500,6 @@ WHERE configuration_id = :configuration_id
 bool ConfigurationRepository::signalTypes(
   std::vector<SignalTypeInfo>& types)
 {
-  m_error = {};
   types.clear();
 
   auto query = getQuery(R"(
@@ -1541,7 +1528,6 @@ bool ConfigurationRepository::tagSources(
   ConfigurationId configuration,
   std::vector<TagSourceInfo>& sources)
 {
-  m_error = {};
   sources.clear();
 
   auto query = getQuery(R"(
@@ -1578,28 +1564,18 @@ ORDER BY m.serial, ct.channel)",
   return true;
 }
 
-void ConfigurationRepository::setError(const QSqlQuery &query)
-{
-  m_error = query.lastError();
-  qDebug() << m_error.text();
-}
-
 bool ConfigurationRepository::addConfigModule(
   const ConfigurationId& configuration,
   const ModuleId& module)
 {
-  m_error = {};
-
   auto query = getQuery(
     R"(
-INSERT INTO configuration_module
-(
+INSERT INTO configuration_module (
   configuration_id,
   module_id,
   settings
 )
-VALUES
-(
+VALUES (
   :configuration_id,
   :module_id,
   '{}'
@@ -1616,10 +1592,7 @@ bool ConfigurationRepository::removeConfigModule(
   const ConfigurationId &configuration,
   const ModuleId& module)
 {
-  m_error = {};
-
-  auto query = getQuery(
-    R"(
+  auto query = getQuery(R"(
 DELETE FROM configuration_module
 WHERE configuration_id = :configuration_id
 AND module_id = :module_id;)",
@@ -1631,45 +1604,168 @@ AND module_id = :module_id;)",
   return exec(query);
 }
 
-QSqlQuery ConfigurationRepository::getQuery(
-  const QString& sql,
-  const QVariantMap& args)
+bool ConfigurationRepository::updateSensorType(
+  const SensorType& type)
 {
-  QSqlQuery query(m_database);
+  auto query = getQuery(R"(
+UPDATE sensor_type
+SET
+  name = :name,
+  description = :description,
+  calibration_kind = :calibration_kind
+WHERE id = :id;
+  )");
 
-  if (!query.prepare(sql))
-    return query;
+  query.bindValue(
+    ":id",
+    type.id.value);
 
-  for (auto it = args.cbegin();
-       it != args.cend();
-       ++it)
-  {
-    query.bindValue(
-      it.key(),
-      it.value());
-  }
+  query.bindValue(
+    ":name",
+    QString::fromStdString(type.name));
 
-  return query;
+  query.bindValue(
+    ":description",
+    QString::fromStdString(type.description));
+
+  query.bindValue(
+    ":calibration_kind",
+    static_cast<int>(type.calibrationKind));
+
+  return exec(query);
 }
 
-bool ConfigurationRepository::exec(QSqlQuery &query)
+bool ConfigurationRepository::createSensorType(
+  const QString& name,
+  SensorTypeId& id)
 {
-  if (!query.exec())
-  {
-    qDebug() << query.lastError().text();
-    qDebug() << query.lastQuery();
-    qDebug() << query.boundValues();
+  auto query = getQuery(R"(
+INSERT INTO sensor_type
+  (name, description, calibration_kind)
+VALUES
+  (:name, '', 0);
+  )");
 
-    setError(query);
+  query.bindValue(":name", name);
+
+  if (!exec(query))
     return false;
-  }
+
+  const auto newId = query.lastInsertId();
+
+  if (!newId.isValid() || newId.toUInt() == 0)
+    return false;
+
+  id = SensorTypeId{newId.toUInt()};
 
   return true;
 }
 
-QSqlError ConfigurationRepository::lastError() const
+bool ConfigurationRepository::removeSensorType(
+  SensorTypeId id)
 {
-  return m_error;
+  auto query = getQuery(R"(
+DELETE FROM sensor_type
+WHERE id = :id;
+  )");
+
+  query.bindValue(":id", id.value);
+
+  return exec(query);
+}
+
+bool ConfigurationRepository::updateSensor(
+  const Sensor& sensor)
+{
+  auto query = getQuery(R"(
+UPDATE sensor
+SET
+  sensor_type_id = :sensor_type_id,
+  name = :name,
+  serial = :serial,
+  description = :description,
+  calibration_mode = :calibration_mode,
+  calibration_kind = :calibration_kind
+WHERE id = :id;
+  )");
+
+  query.bindValue(
+    ":id",
+    sensor.id.value);
+
+  query.bindValue(
+    ":sensor_type_id",
+    sensor.sensorTypeId.value);
+
+  query.bindValue(
+    ":name",
+    QString::fromStdString(sensor.name));
+
+  query.bindValue(
+    ":serial",
+    QString::fromStdString(sensor.serial));
+
+  query.bindValue(
+    ":description",
+    QString::fromStdString(sensor.description));
+
+  query.bindValue(
+    ":calibration_mode",
+    static_cast<int>(sensor.calibrationMode));
+
+  query.bindValue(
+    ":calibration_kind",
+    static_cast<int>(sensor.calibrationKind));
+
+  return exec(query);
+}
+
+bool ConfigurationRepository::createSensor(
+  const QString& name,
+  SensorTypeId typeId,
+  SensorId& id)
+{
+  auto query = getQuery(R"(
+INSERT INTO sensor
+  (sensor_type_id, name)
+VALUES
+  (:sensor_type_id, :name);
+  )");
+
+  query.bindValue(
+    ":sensor_type_id",
+    typeId.value);
+
+  query.bindValue(
+    ":name",
+    name);
+
+  if (!exec(query))
+    return false;
+
+  const auto newId = query.lastInsertId();
+
+  if (!newId.isValid() || newId.toUInt() == 0)
+    return false;
+
+  id = SensorId{newId.toUInt()};
+
+  return true;
+}
+
+bool ConfigurationRepository::removeSensor(
+  SensorId id)
+{
+  auto query = getQuery(R"(
+DELETE FROM sensor
+WHERE id = :id;
+  )");
+
+  query.bindValue(
+    ":id",
+    id.value);
+
+  return exec(query);
 }
 
 }

@@ -1,12 +1,16 @@
 #pragma once
 
+#include "basecomboboxdelegate.h"
 #include "configurationpropertiesmodel.h"
 #include "configurationsignalmodel.h"
-#include "configurationsignalpropertiesdelegate.h"
+#include "delegate/configurationsignalpropertiesdelegate.h"
 #include "configurationsignalpropertiesmodel.h"
 #include "configurationtreemodel.h"
 #include "basetableview.h"
 #include "db/configurationrepository.h"
+#include "sensormodel.h"
+#include "sensortypemodel.h"
+#include "sensorpropertiesmodel.h"
 
 #include <QWidget>
 
@@ -17,6 +21,7 @@ class QTreeView;
 class QSqlDatabase;
 class QToolBar;
 class QAction;
+class QSplitter;
 
 namespace qds
 {
@@ -37,6 +42,8 @@ private:
   void createToolbar();
 
   void updateActions();
+
+  void updateSensorTypes();
 
 private:
   BaseTableView* m_configurationsView = nullptr;
@@ -59,6 +66,17 @@ private:
   BaseTableView* m_signalPropertiesView = nullptr;
 
   ConfigurationSignalPropertiesDelegate* m_signalPropertiesDelegate = nullptr;
+
+  SensorTypeModel* m_sensorTypeModel = nullptr;
+  BaseTableView* m_sensorTypesView = nullptr;
+  BaseComboBoxDelegate* m_sensorTypeDelegate = nullptr;
+
+  SensorModel* m_sensorModel = nullptr;
+  BaseTableView* m_sensorsView = nullptr;
+
+  SensorPropertiesModel* m_sensorPropertiesModel = nullptr;
+  BaseTableView* m_sensorPropertiesView = nullptr;
+  QSplitter* m_sensorsSplitter = nullptr;
 
   QTabWidget* m_tabs = nullptr;
 

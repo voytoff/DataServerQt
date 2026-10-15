@@ -72,4 +72,15 @@ std::vector<Sensor> SensorRepository::sensors() const
   return result;
 }
 
+std::vector<SensorType> SensorRepository::sensorTypes() const
+{
+  std::vector<SensorType> result;
+  result.reserve(m_sensorTypes.size());
+
+  for (const auto& [id, type] : m_sensorTypes)
+    result.push_back(type);
+
+  return result;
+}
+
 }

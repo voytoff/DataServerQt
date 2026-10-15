@@ -23,6 +23,9 @@ public:
     const QSqlDatabase& database);
 
   [[nodiscard]]
+  QSqlError lastError() const;
+
+  [[nodiscard]]
   bool load(
     const ConfigurationId &configuration,
     SystemConfiguration& system);
@@ -201,13 +204,35 @@ public:
     ConfigurationId configuration,
     std::vector<TagSourceInfo>& sources);
 
-  [[nodiscard]]
-  QSqlError lastError() const;
+  /// типы датчиков ============================================
+
+  bool updateSensorType(
+    const SensorType& type);
+
+  bool createSensorType(
+    const QString& name,
+    SensorTypeId& id);
+
+  bool removeSensorType(
+    SensorTypeId id);
+
+  /// датчики ==================================================
+
+  bool updateSensor(
+    const Sensor& sensor);
+
+  bool createSensor(
+    const QString& name,
+    SensorTypeId typeId,
+    SensorId& id);
+
+  bool removeSensor(
+    SensorId id);
 
 private:
-
   QSqlQuery getQuery(
-    const QString &sql, const QVariantMap& args = {});
+    const QString &sql,
+    const QVariantMap& args = {});
 
   [[nodiscard]]
   bool exec(
