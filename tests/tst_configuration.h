@@ -30,6 +30,7 @@ private slots:
   void test_sensorRepository();
   void test_loadSensors();
 
+  void test_createTableCalibration();
 
 };
 

@@ -31,6 +31,7 @@ qt_add_executable(configeditor
     model/sensormodel.h model/sensormodel.cpp
     dlg/sensordialog.h dlg/sensordialog.cpp
     model/sensorpropertiesmodel.h model/sensorpropertiesmodel.cpp
+    model/calibrationmodel.h model/calibrationmodel.cpp
 )
 
 target_include_directories(configeditor

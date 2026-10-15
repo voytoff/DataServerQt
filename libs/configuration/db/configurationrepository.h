@@ -229,6 +229,17 @@ public:
   bool removeSensor(
     SensorId id);
 
+  /// тарировки ================================================
+
+  bool createCalibration(
+    Calibration& calibration);
+
+  bool removeCalibration(
+    CalibrationId id);
+
+  bool updateCalibration(
+    const Calibration& calibration);
+
 private:
   QSqlQuery getQuery(
     const QString &sql,
@@ -242,7 +253,7 @@ private:
     const QSqlQuery& query);
 
 private:
-  const QSqlDatabase& m_database;
+  QSqlDatabase m_database;
 
   QSqlError m_error;
 

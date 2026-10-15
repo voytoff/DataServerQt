@@ -1,8 +1,11 @@
 #include <vector>
-#include <algorithm>
 #include "configurationrepository.h"
+
+#include <algorithm>
 #include <QSqlQuery>
 #include <QSqlError>
+#include <cmath>
+#include <utility>
 
 namespace qds
 {
@@ -898,6 +901,12 @@ ORDER BY `index`;)";
         return false;
     }
 
+    if (dataQuery.lastError().isValid())
+    {
+      setError(dataQuery);
+      return false;
+    }
+
     bool added = false;
 
     if (calibration.sensorId)
@@ -915,6 +924,12 @@ ORDER BY `index`;)";
 
     if (!added)
       return false;
+  }
+
+  if (query.lastError().isValid())
+  {
+    setError(query);
+    return false;
   }
 
   calibrations = std::move(repo);
@@ -1766,6 +1781,404 @@ WHERE id = :id;
     id.value);
 
   return exec(query);
+}
+
+bool ConfigurationRepository::createCalibration(
+  Calibration& calibration)
+{
+  if (calibration.id)
+    return false;
+
+  // Ровно один владелец.
+  if (bool(calibration.sensorId) ==
+      bool(calibration.sensorTypeId))
+    return false;
+
+  Calibration validated = calibration;
+
+  switch (validated.kind)
+  {
+  case CalibrationKind::Table:
+    if (!validated.buildSegments())
+      return false;
+    break;
+
+  case CalibrationKind::Polynomial:
+    if (validated.coefficients.empty())
+      return false;
+
+    for (double value : validated.coefficients)
+    {
+      if (!std::isfinite(value))
+        return false;
+    }
+    break;
+
+  default:
+    return false;
+  }
+
+  if (!m_database.transaction())
+  {
+    m_error = m_database.lastError();
+    return false;
+  }
+
+  auto rollback = [this]()
+  {
+    m_database.rollback();
+    return false;
+  };
+
+  auto query = getQuery(R"(
+INSERT INTO calibration (
+  sensor_id,
+  sensor_type_id,
+  kind,
+  name,
+  description
+)
+VALUES (
+  :sensor_id,
+  :sensor_type_id,
+  :kind,
+  :name,
+  :description
+);)");
+
+  query.bindValue(
+    ":sensor_id",
+    calibration.sensorId
+      ? QVariant(calibration.sensorId.value)
+      : QVariant());
+
+  query.bindValue(
+    ":sensor_type_id",
+    calibration.sensorTypeId
+      ? QVariant(calibration.sensorTypeId.value)
+      : QVariant());
+
+  query.bindValue(
+    ":kind",
+    static_cast<int>(calibration.kind));
+
+  query.bindValue(
+    ":name",
+    calibration.name);
+
+  query.bindValue(
+    ":description",
+    calibration.description);
+
+  if (!exec(query))
+    return rollback();
+
+  const auto id =
+    query.lastInsertId().toUInt();
+
+  if (id == 0)
+    return rollback();
+
+  if (calibration.kind == CalibrationKind::Table)
+  {
+    auto pointQuery = getQuery(R"(
+INSERT INTO calibration_point (
+  calibration_id,
+  `index`,
+  x,
+  y
+)
+VALUES (
+  :calibration_id,
+  :index,
+  :x,
+  :y
+);)");
+
+    for (std::size_t i = 0;
+         i < validated.points.size();
+         ++i)
+    {
+      const auto& point = validated.points[i];
+
+      pointQuery.bindValue(
+        ":calibration_id", id);
+
+      pointQuery.bindValue(
+        ":index", static_cast<uint>(i));
+
+      pointQuery.bindValue(
+        ":x", point.x);
+
+      pointQuery.bindValue(
+        ":y", point.y);
+
+      if (!exec(pointQuery))
+        return rollback();
+    }
+  }
+  else
+  {
+    auto coefficientQuery = getQuery(R"(
+INSERT INTO calibration_coefficient (
+  calibration_id,
+  `index`,
+  value
+)
+VALUES (
+  :calibration_id,
+  :index,
+  :value
+);)");
+
+    for (std::size_t i = 0;
+         i < validated.coefficients.size();
+         ++i)
+    {
+      coefficientQuery.bindValue(
+        ":calibration_id", id);
+
+      coefficientQuery.bindValue(
+        ":index", static_cast<uint>(i));
+
+      coefficientQuery.bindValue(
+        ":value", validated.coefficients[i]);
+
+      if (!exec(coefficientQuery))
+        return rollback();
+    }
+  }
+
+  if (!m_database.commit())
+  {
+    m_error = m_database.lastError();
+    m_database.rollback();
+    return false;
+  }
+
+  calibration.id = CalibrationId{id};
+
+  if (calibration.kind == CalibrationKind::Table)
+  {
+    calibration.segments =
+      std::move(validated.segments);
+
+    for (std::size_t i = 0;
+         i < calibration.points.size();
+         ++i)
+    {
+      calibration.points[i].index =
+        static_cast<uint32_t>(i);
+    }
+  }
+
+  return true;
+}
+
+bool ConfigurationRepository::removeCalibration(
+  CalibrationId id)
+{
+  if (!id)
+    return false;
+
+  auto query = getQuery(R"(
+DELETE FROM calibration
+WHERE id = :id;)");
+
+  query.bindValue(":id", id.value);
+
+  if (!exec(query))
+    return false;
+
+  return query.numRowsAffected() == 1;
+}
+
+bool ConfigurationRepository::updateCalibration(
+  const Calibration& calibration)
+{
+  if (!calibration.id)
+    return false;
+
+  // Ровно один владелец.
+  if (bool(calibration.sensorId) ==
+      bool(calibration.sensorTypeId))
+    return false;
+
+  // Проверяем данные тарировки.
+  Calibration validated = calibration;
+
+  switch (validated.kind)
+  {
+  case CalibrationKind::Table:
+    if (!validated.buildSegments())
+      return false;
+    break;
+
+  case CalibrationKind::Polynomial:
+    if (validated.coefficients.empty())
+      return false;
+
+    for (double value : validated.coefficients)
+    {
+      if (!std::isfinite(value))
+        return false;
+    }
+    break;
+
+  default:
+    return false;
+  }
+
+  if (!m_database.transaction())
+  {
+    m_error = m_database.lastError();
+    return false;
+  }
+
+  auto rollback = [this]()
+  {
+    m_database.rollback();
+    return false;
+  };
+
+  // Проверяем существующую тарировку и её владельца.
+  auto query = getQuery(R"(
+SELECT
+  sensor_id,
+  sensor_type_id,
+  kind
+FROM calibration
+WHERE id = :id
+FOR UPDATE;)",
+    {{":id", calibration.id.value}});
+
+  if (!exec(query))
+    return rollback();
+
+  if (!query.next())
+    return rollback();
+
+  const SensorId sensorId{
+    query.value("sensor_id").toUInt()
+  };
+
+  const SensorTypeId sensorTypeId{
+    query.value("sensor_type_id").toUInt()
+  };
+
+  const auto kind =
+    static_cast<CalibrationKind>(
+      query.value("kind").toInt());
+
+  if (sensorId != calibration.sensorId ||
+      sensorTypeId != calibration.sensorTypeId ||
+      kind != calibration.kind)
+  {
+    return rollback();
+  }
+
+  // Обновляем только название и описание.
+  query = getQuery(R"(
+UPDATE calibration
+SET
+  name = :name,
+  description = :description
+WHERE id = :id;)",
+   {
+     {":id", calibration.id.value},
+     {":name", calibration.name},
+     {":description", calibration.description}
+   });
+
+  if (!exec(query))
+    return rollback();
+
+  // Удаляем прежние данные выбранного вида.
+  const QString table =
+    calibration.kind == CalibrationKind::Table
+      ? "calibration_point"
+      : "calibration_coefficient";
+
+  query = getQuery(
+    QString("DELETE FROM %1 WHERE calibration_id = :id;")
+      .arg(table),
+    {{":id", calibration.id.value}});
+
+  if (!exec(query))
+    return rollback();
+
+  // Записываем новые данные.
+  if (calibration.kind == CalibrationKind::Table)
+  {
+    auto pointQuery = getQuery(R"(
+INSERT INTO calibration_point (
+  calibration_id,
+  `index`,
+  x,
+  y
+)
+VALUES (
+  :calibration_id,
+  :index,
+  :x,
+  :y
+);)");
+
+    for (std::size_t i = 0;
+         i < validated.points.size();
+         ++i)
+    {
+      const auto& point = validated.points[i];
+
+      pointQuery.bindValue(
+        ":calibration_id", calibration.id.value);
+      pointQuery.bindValue(
+        ":index", static_cast<uint>(i));
+      pointQuery.bindValue(":x", point.x);
+      pointQuery.bindValue(":y", point.y);
+
+      if (!exec(pointQuery))
+        return rollback();
+    }
+  }
+  else
+  {
+    auto coefficientQuery = getQuery(R"(
+INSERT INTO calibration_coefficient (
+  calibration_id,
+  `index`,
+  value
+)
+VALUES (
+  :calibration_id,
+  :index,
+  :value
+);)");
+
+    for (std::size_t i = 0;
+         i < validated.coefficients.size();
+         ++i)
+    {
+      coefficientQuery.bindValue(
+        ":calibration_id", calibration.id.value);
+      coefficientQuery.bindValue(
+        ":index", static_cast<uint>(i));
+      coefficientQuery.bindValue(
+        ":value", validated.coefficients[i]);
+
+      if (!exec(coefficientQuery))
+        return rollback();
+    }
+  }
+
+  if (!m_database.commit())
+  {
+    m_error = m_database.lastError();
+    m_database.rollback();
+    return false;
+  }
+
+  return true;
 }
 
 }

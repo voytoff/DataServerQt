@@ -578,3 +578,80 @@ void tst_configuration::test_loadSensors()
   QVERIFY(sensors.sensorTypeCount() > 0);
   QVERIFY(sensors.sensorCount() > 0);
 }
+
+void tst_configuration::test_createTableCalibration()
+{
+  using namespace qds;
+
+  auto db = get_db();
+  QVERIFY(db.isOpen());
+  QVERIFY(db.isValid());
+
+  ConfigurationRepository repository(db);
+  SensorRepository sr;
+
+  QVERIFY(repository.loadSensors(sr));
+
+  const auto sensor = sr.sensors()[0];
+
+  Calibration calibration;
+
+  // Указываем существующий датчик в тестовой БД.
+  calibration.sensorId = SensorId{sensor.id};
+  calibration.kind = CalibrationKind::Table;
+  calibration.name = "Test calibration";
+  calibration.description = "Created by Qt Test";
+
+  calibration.points = {
+    {0, 0.0, 0.0},
+    {1, 10.0, 20.0},
+    {2, 20.0, 50.0}
+  };
+
+  // Создание в MariaDB.
+  QVERIFY2(
+    repository.createCalibration(calibration),
+    qPrintable(repository.lastError().text()));
+
+  QVERIFY(calibration.id.value != 0);
+
+  qDebug() << "Created calibration ID:"
+           << calibration.id.value;
+
+  // Проверяем, что сегменты рассчитаны.
+  QCOMPARE(calibration.segments.size(), std::size_t{2});
+
+  // Проверяем вычисление.
+  double result = 0.0;
+
+  QVERIFY(calibration.apply(5.0, result));
+  QCOMPARE(result, 10.0);
+
+  QVERIFY(calibration.apply(15.0, result));
+  QCOMPARE(result, 35.0);
+
+  // Проверяем экстраполяцию.
+  QVERIFY(calibration.apply(-5.0, result));
+  QCOMPARE(result, -10.0);
+
+  QVERIFY(calibration.apply(30.0, result));
+  QCOMPARE(result, 80.0);
+
+  // Удаляем созданную тарировку.
+  QVERIFY2(
+    repository.removeCalibration(calibration.id),
+    qPrintable(repository.lastError().text()));
+
+  QSqlQuery query(db);
+
+  query.prepare(R"(
+SELECT COUNT(*)
+FROM calibration
+WHERE id = :id;)");
+
+  query.bindValue(":id", calibration.id.value);
+
+  QVERIFY(query.exec());
+  QVERIFY(query.next());
+  QCOMPARE(query.value(0).toInt(), 0);
+}

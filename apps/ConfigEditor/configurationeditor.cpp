@@ -715,6 +715,38 @@ ConfigurationEditor::ConfigurationEditor(
         tr("Ошибка изменения датчика"),
         message);
     });
+
+  // после удаления выбранного датчика нужно гарантировать,
+  // что панель свойств не продолжит отображать устаревшее состояние.
+  connect(
+    m_sensorModel,
+    &QAbstractItemModel::rowsRemoved,
+    this,
+    [this]()
+    {
+      m_sensorPropertiesModel->setSensor(
+        m_sensorsView->currentIndex());
+    });
+
+  // если выбранный датчик изменён через основную таблицу,
+  // нижняя панель должна обновляться без повторного выбора строки.
+  connect(
+    m_sensorModel,
+    &QAbstractItemModel::dataChanged,
+    this,
+    [this](const QModelIndex& topLeft,
+           const QModelIndex& bottomRight)
+    {
+      const QModelIndex current =
+        m_sensorsView->currentIndex();
+
+      if (!current.isValid() ||
+          current.row() < topLeft.row() ||
+          current.row() > bottomRight.row())
+        return;
+
+      m_sensorPropertiesModel->setSensor(current);
+    });
 }
 
 void ConfigurationEditor::updateChannelVisibility(

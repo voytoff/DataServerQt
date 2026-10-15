@@ -420,7 +420,6 @@ bool ConfigurationSignalModel::createSignal(
 
   signal.source = SignalSource{TagId{0}};
   signal.signalType = SignalTypeId{0};
-  //signal.calibrationMode = CalibrationMode::None;
   signal.archiveRate = ArchiveRate::Hz10;
 
   const int row =

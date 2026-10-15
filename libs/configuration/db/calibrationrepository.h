@@ -44,6 +44,14 @@ public:
 
   void clear() noexcept;
 
+  const Calibration* findBySensor(
+    SensorId sensorId,
+    CalibrationKind kind) const noexcept;
+
+  const Calibration* findBySensorType(
+    SensorTypeId sensorTypeId,
+    CalibrationKind kind) const noexcept;
+
 private:
 
   std::unordered_map<

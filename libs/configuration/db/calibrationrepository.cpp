@@ -99,4 +99,36 @@ void CalibrationRepository::clear() noexcept
   m_bySensorType.clear();
 }
 
+const Calibration* CalibrationRepository::findBySensor(
+  SensorId sensorId,
+  CalibrationKind kind) const noexcept
+{
+  const auto it = m_bySensor.find(sensorId);
+
+  if (it == m_bySensor.end())
+    return nullptr;
+
+  const auto calibrationIt = it->second.find(kind);
+
+  return calibrationIt != it->second.end()
+           ? &calibrationIt->second
+           : nullptr;
+}
+
+const Calibration* CalibrationRepository::findBySensorType(
+  SensorTypeId sensorTypeId,
+  CalibrationKind kind) const noexcept
+{
+  const auto it = m_bySensorType.find(sensorTypeId);
+
+  if (it == m_bySensorType.end())
+    return nullptr;
+
+  const auto calibrationIt = it->second.find(kind);
+
+  return calibrationIt != it->second.end()
+           ? &calibrationIt->second
+           : nullptr;
+}
+
 }
