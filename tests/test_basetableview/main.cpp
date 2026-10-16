@@ -12,7 +12,7 @@ int main(int argc, char* argv[])
 
   Calibration calibration;
 
-  calibration.kind = CalibrationKind::Polynomial;
+  calibration.kind = CalibrationKind::Table;
   calibration.name = "Тестовая тарировка";
   calibration.description = "Проверка редактора";
 

@@ -54,7 +54,26 @@ void CalibrationPlot::setCalibration(
   }
 
   if (m_plot->graphCount() > 0)
+  {
     m_plot->rescaleAxes();
+
+    QCPRange xRange = m_plot->xAxis->range();
+    QCPRange yRange = m_plot->yAxis->range();
+
+    if (!std::isfinite(xRange.lower) ||
+        !std::isfinite(xRange.upper) ||
+        xRange.size() <= 0.0)
+    {
+      m_plot->xAxis->setRange(-1.0, 1.0);
+    }
+
+    if (!std::isfinite(yRange.lower) ||
+        !std::isfinite(yRange.upper) ||
+        yRange.size() <= 0.0)
+    {
+      m_plot->yAxis->setRange(-1.0, 1.0);
+    }
+  }
 
   m_plot->replot();
 }
