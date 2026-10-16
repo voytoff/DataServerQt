@@ -31,6 +31,12 @@ private slots:
   void test_loadSensors();
 
   void test_createTableCalibration();
+  void test_updateTableCalibration();
+  void test_updateTableCalibrationRollback();
+
+  void test_createPolynomialCalibration();
+  void test_updatePolynomialCalibration();
+  void test_updateCalibrationImmutableFields();
 
 };
 

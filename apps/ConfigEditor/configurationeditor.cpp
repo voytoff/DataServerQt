@@ -403,9 +403,10 @@ ConfigurationEditor::ConfigurationEditor(
     m_treeModel,
     &QAbstractItemModel::dataChanged,
     this,
-    [this](const QModelIndex& topLeft,
-           const QModelIndex&,
-           const QList<int>&)
+    [this](
+      const QModelIndex& topLeft,
+      const QModelIndex&,
+      const QList<int>&)
     {
       const auto* data =
         m_treeModel->treeItemData(topLeft);
@@ -578,7 +579,7 @@ ConfigurationEditor::ConfigurationEditor(
         message);
     });
 
-  // ошибки изменения сигнала
+  // ошибки изменения свойств сигнала
   connect(
     m_signalPropertiesModel,
     &ConfigurationSignalPropertiesModel::operationFailed,
@@ -609,9 +610,9 @@ ConfigurationEditor::ConfigurationEditor(
 
       const ConfigurationId configuration{
         m_configurations->data(
-                          m_configurations->index(
-                            current.row(),
-                            idColumn)).toUInt()
+          m_configurations->index(
+            current.row(),
+            idColumn)).toUInt()
       };
 
       std::vector<TagSourceInfo> tagSources;
@@ -682,6 +683,8 @@ ConfigurationEditor::ConfigurationEditor(
     &SensorTypeModel::sensorTypesChanged,
     this,
     &ConfigurationEditor::updateSensorTypes);
+  // сразу загружаем в combobox типы датчиков
+  updateSensorTypes();
 
   // добавим обработку обновления при выборе строки датчика
   connect(

@@ -32,6 +32,9 @@ qt_add_executable(configeditor
     dlg/sensordialog.h dlg/sensordialog.cpp
     model/sensorpropertiesmodel.h model/sensorpropertiesmodel.cpp
     model/calibrationmodel.h model/calibrationmodel.cpp
+    model/calibrationtablemodel.h model/calibrationtablemodel.cpp
+    dlg/calibrationdialog.h dlg/calibrationdialog.cpp
+    plot/calibrationplot.h plot/calibrationplot.cpp
 )
 
 target_include_directories(configeditor
@@ -46,6 +49,7 @@ target_include_directories(configeditor
 target_link_libraries(configeditor
     PRIVATE
         Configuration
+        QCustomPlot
         Qt${QT_VERSION_MAJOR}::Core
         Qt${QT_VERSION_MAJOR}::Widgets
         Qt${QT_VERSION_MAJOR}::Sql

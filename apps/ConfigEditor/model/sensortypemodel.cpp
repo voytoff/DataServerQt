@@ -1,4 +1,3 @@
-
 #include "sensortypemodel.h"
 
 #include "db/configurationrepository.h"

@@ -30,6 +30,8 @@ add_subdirectory(libs/logger)
 
 enable_testing()
 add_subdirectory(tests)
+add_subdirectory(tests/test_basetableview)
 
 add_subdirectory(apps/dataserver)
 add_subdirectory(apps/configeditor)
+add_subdirectory(3rdparty/qcustomplot)

@@ -2,12 +2,11 @@
 #include "calibration.h"
 #include "db/configurationrepository.h"
 #include "db/sensorrepository.h"
-#include "formulacalculator.h"
-#include "parser/formulaparser.h"
 #include "qds/db.h"
 #include "systemconfiguration.h"
 #include "testsrv.h"
 #include <qtestcase.h>
+#include <stdint.h>
 
 tst_configuration::tst_configuration() { }
 tst_configuration::~tst_configuration() = default;
@@ -654,4 +653,667 @@ WHERE id = :id;)");
   QVERIFY(query.exec());
   QVERIFY(query.next());
   QCOMPARE(query.value(0).toInt(), 0);
+}
+
+void tst_configuration::test_updateTableCalibration()
+{
+  using namespace qds;
+
+  auto db = get_db();
+  QVERIFY(db.isOpen());
+  QVERIFY(db.isValid());
+
+  ConfigurationRepository repository(db);
+  SensorRepository sr;
+
+  QVERIFY(repository.loadSensors(sr));
+  QVERIFY(!sr.sensors().empty());
+
+  const auto sensor = sr.sensors()[0];
+
+  Calibration calibration;
+  calibration.sensorId = SensorId{sensor.id};
+  calibration.kind = CalibrationKind::Table;
+  calibration.name = "Test calibration";
+  calibration.description = "Before update";
+
+  calibration.points = {
+    {0, 0.0, 0.0},
+    {1, 10.0, 20.0},
+    {2, 20.0, 50.0}
+  };
+
+  // Создаём тарировку.
+  QVERIFY2(
+    repository.createCalibration(calibration),
+    qPrintable(repository.lastError().text()));
+
+  const CalibrationId id = calibration.id;
+
+  // Изменяем название, описание и точки.
+  calibration.name = "Updated calibration";
+  calibration.description = "After update";
+
+  calibration.points = {
+    {0, 0.0, 0.0},
+    {1, 10.0, 30.0},
+    {2, 20.0, 60.0},
+    {3, 30.0, 90.0}
+  };
+
+  // Обновляем тарировку в MariaDB.
+  QVERIFY2(
+    repository.updateCalibration(calibration),
+    qPrintable(repository.lastError().text()));
+
+  // Проверяем основные поля непосредственно в БД.
+  QSqlQuery query(db);
+
+  query.prepare(R"(
+SELECT sensor_id, sensor_type_id, kind, name, description
+FROM calibration
+WHERE id = :id;)");
+
+  query.bindValue(":id", id.value);
+
+  QVERIFY(query.exec());
+  QVERIFY(query.next());
+
+  QCOMPARE(query.value(0).toUInt(), sensor.id.value);
+  QVERIFY(query.value(1).isNull());
+  QCOMPARE(query.value(2).toInt(),
+           static_cast<int>(CalibrationKind::Table));
+  QCOMPARE(query.value(3).toString(), QString("Updated calibration"));
+  QCOMPARE(query.value(4).toString(), QString("After update"));
+
+  // Проверяем, что старые точки заменены новыми.
+  QSqlQuery pointsQuery(db);
+
+  pointsQuery.prepare(R"(
+SELECT `index`, x, y
+FROM calibration_point
+WHERE calibration_id = :id
+ORDER BY `index`;)");
+
+  pointsQuery.bindValue(":id", id.value);
+
+  QVERIFY(pointsQuery.exec());
+
+  const std::vector<CalibrationPoint> expected = {
+    {0, 0.0, 0.0},
+    {1, 10.0, 30.0},
+    {2, 20.0, 60.0},
+    {3, 30.0, 90.0}
+  };
+
+  std::size_t index = 0;
+
+  while (pointsQuery.next())
+  {
+    QVERIFY(index < expected.size());
+
+    const auto& point = expected[index];
+
+    QCOMPARE(pointsQuery.value(0).toUInt(), point.index);
+    QCOMPARE(pointsQuery.value(1).toDouble(), point.x);
+    QCOMPARE(pointsQuery.value(2).toDouble(), point.y);
+
+    ++index;
+  }
+
+  QCOMPARE(index, expected.size());
+
+  // Удаляем тестовую тарировку.
+  QVERIFY2(
+    repository.removeCalibration(id),
+    qPrintable(repository.lastError().text()));
+}
+
+void tst_configuration::test_updateTableCalibrationRollback()
+{
+  using namespace qds;
+
+  auto db = get_db();
+  QVERIFY(db.isOpen());
+  QVERIFY(db.isValid());
+
+  ConfigurationRepository repository(db);
+  SensorRepository sr;
+
+  QVERIFY(repository.loadSensors(sr));
+  QVERIFY(!sr.sensors().empty());
+
+  const auto sensor = sr.sensors()[0];
+
+  Calibration calibration;
+  calibration.sensorId = SensorId{sensor.id};
+  calibration.kind = CalibrationKind::Table;
+  calibration.name = "Test calibration";
+  calibration.description = "Before update";
+
+  calibration.points = {
+    {0, 0.0, 0.0},
+    {1, 10.0, 20.0},
+    {2, 20.0, 50.0}
+  };
+
+  // Создаём тарировку.
+  QVERIFY2(
+    repository.createCalibration(calibration),
+    qPrintable(repository.lastError().text()));
+
+  const CalibrationId id = calibration.id;
+
+  // Изменяем название, описание и точки.
+  calibration.name = "Updated calibration";
+  calibration.description = "After update";
+
+  calibration.points = {
+    {0, 0.0, 0.0},
+    {1, 10.0, 30.0},
+    {2, 20.0, 60.0},
+    {3, 30.0, 90.0},
+    {4, 30.0, 110.0}
+  };
+
+  // Обновляем тарировку в MariaDB.
+  QVERIFY2(
+    !repository.updateCalibration(calibration),
+    qPrintable(repository.lastError().text()));
+
+  // Проверяем основные поля непосредственно в БД.
+  QSqlQuery query(db);
+
+  query.prepare(R"(
+SELECT sensor_id, sensor_type_id, kind, name, description
+FROM calibration
+WHERE id = :id;)");
+
+  query.bindValue(":id", id.value);
+
+  QVERIFY(query.exec());
+  QVERIFY(query.next());
+
+  QCOMPARE(query.value(0).toUInt(), sensor.id.value);
+  QVERIFY(query.value(1).isNull());
+  QCOMPARE(query.value(2).toInt(),
+           static_cast<int>(CalibrationKind::Table));
+  QCOMPARE(query.value(3).toString(), QString("Test calibration"));
+  QCOMPARE(query.value(4).toString(), QString("Before update"));
+
+  // Проверяем, что старые точки не заменились новыми.
+  QSqlQuery pointsQuery(db);
+
+  pointsQuery.prepare(R"(
+SELECT `index`, x, y
+FROM calibration_point
+WHERE calibration_id = :id
+ORDER BY `index`;)");
+
+  pointsQuery.bindValue(":id", id.value);
+
+  QVERIFY(pointsQuery.exec());
+
+  const std::vector<CalibrationPoint> expected = {
+    {0, 0.0, 0.0},
+    {1, 10.0, 20.0},
+    {2, 20.0, 50.0}
+  };
+
+  std::size_t index = 0;
+
+  while (pointsQuery.next())
+  {
+    QVERIFY(index < expected.size());
+
+    const auto& point = expected[index];
+
+    QCOMPARE(pointsQuery.value(0).toUInt(), point.index);
+    QCOMPARE(pointsQuery.value(1).toDouble(), point.x);
+    QCOMPARE(pointsQuery.value(2).toDouble(), point.y);
+
+    ++index;
+  }
+
+  QCOMPARE(index, expected.size());
+
+  // Удаляем тестовую тарировку.
+  QVERIFY2(
+    repository.removeCalibration(id),
+    qPrintable(repository.lastError().text()));
+}
+
+void tst_configuration::test_createPolynomialCalibration()
+{
+  using namespace qds;
+
+  auto db = get_db();
+  QVERIFY(db.isOpen());
+  QVERIFY(db.isValid());
+
+  ConfigurationRepository repository(db);
+  SensorRepository sr;
+
+  QVERIFY(repository.loadSensors(sr));
+  QVERIFY(!sr.sensors().empty());
+
+  const auto sensor = sr.sensors()[0];
+
+  Calibration calibration;
+
+  calibration.sensorId = SensorId{sensor.id};
+  calibration.kind = CalibrationKind::Polynomial;
+  calibration.name = "Test polynomial calibration";
+  calibration.description = "Created by Qt Test";
+
+  // y = 2 + 3*x + 4*x*x
+  calibration.coefficients = {
+    2.0,
+    3.0,
+    4.0
+  };
+
+  // Создаём полиномиальную тарировку.
+  QVERIFY2(
+    repository.createCalibration(calibration),
+    qPrintable(repository.lastError().text()));
+
+  const CalibrationId id = calibration.id;
+
+  QVERIFY(id.value != 0);
+
+  qDebug() << "Created polynomial calibration ID:"
+           << id.value;
+
+  // Проверяем вычисление полинома.
+  double result = 0.0;
+
+  QVERIFY(calibration.apply(0.0, result));
+  QCOMPARE(result, 2.0);
+
+  QVERIFY(calibration.apply(1.0, result));
+  QCOMPARE(result, 9.0);
+
+  QVERIFY(calibration.apply(2.0, result));
+  QCOMPARE(result, 24.0);
+
+  QVERIFY(calibration.apply(-1.0, result));
+  QCOMPARE(result, 3.0);
+
+  // Проверяем основные поля в MariaDB.
+  QSqlQuery query(db);
+
+  query.prepare(R"(
+SELECT sensor_id, sensor_type_id, kind, name, description
+FROM calibration
+WHERE id = :id;)");
+
+  query.bindValue(":id", id.value);
+
+  QVERIFY(query.exec());
+  QVERIFY(query.next());
+
+  QCOMPARE(query.value(0).toUInt(), sensor.id.value);
+  QVERIFY(query.value(1).isNull());
+
+  QCOMPARE(
+    query.value(2).toInt(),
+    static_cast<int>(CalibrationKind::Polynomial));
+
+  QCOMPARE(
+    query.value(3).toString(),
+    QString("Test polynomial calibration"));
+
+  QCOMPARE(
+    query.value(4).toString(),
+    QString("Created by Qt Test"));
+
+  // Проверяем сохранённые коэффициенты.
+  QSqlQuery coefficientsQuery(db);
+
+  coefficientsQuery.prepare(R"(
+SELECT `index`, value
+FROM calibration_coefficient
+WHERE calibration_id = :id
+ORDER BY `index`;)");
+
+  coefficientsQuery.bindValue(":id", id.value);
+
+  QVERIFY(coefficientsQuery.exec());
+
+  const std::vector<double> expected = {
+    2.0,
+    3.0,
+    4.0
+  };
+
+  std::size_t index = 0;
+
+  while (coefficientsQuery.next())
+  {
+    QVERIFY(index < expected.size());
+
+    QCOMPARE(
+      coefficientsQuery.value(0).toUInt(),
+      static_cast<uint>(index));
+
+    QCOMPARE(
+      coefficientsQuery.value(1).toDouble(),
+      expected[index]);
+
+    ++index;
+  }
+
+  QCOMPARE(index, expected.size());
+
+  // У полиномиальной тарировки не должно быть точек.
+  QSqlQuery pointsQuery(db);
+
+  pointsQuery.prepare(R"(
+SELECT COUNT(*)
+FROM calibration_point
+WHERE calibration_id = :id;)");
+
+  pointsQuery.bindValue(":id", id.value);
+
+  QVERIFY(pointsQuery.exec());
+  QVERIFY(pointsQuery.next());
+
+  QCOMPARE(pointsQuery.value(0).toInt(), 0);
+
+  // Удаляем тестовую тарировку.
+  QVERIFY2(
+    repository.removeCalibration(id),
+    qPrintable(repository.lastError().text()));
+}
+
+void tst_configuration::test_updatePolynomialCalibration()
+{
+  using namespace qds;
+
+  auto db = get_db();
+  QVERIFY(db.isOpen());
+  QVERIFY(db.isValid());
+
+  ConfigurationRepository repository(db);
+  SensorRepository sr;
+
+  QVERIFY(repository.loadSensors(sr));
+  QVERIFY(!sr.sensors().empty());
+
+  const auto sensor = sr.sensors()[0];
+
+  Calibration calibration;
+
+  calibration.sensorId = SensorId{sensor.id};
+  calibration.kind = CalibrationKind::Polynomial;
+  calibration.name = "Test polynomial calibration";
+  calibration.description = "Created by Qt Test";
+
+  // y = 2 + 3*x + 4*x*x
+  calibration.coefficients = {
+    2.0,
+    3.0,
+    4.0
+  };
+
+  // Создаём полиномиальную тарировку.
+  QVERIFY2(
+    repository.createCalibration(calibration),
+    qPrintable(repository.lastError().text()));
+
+  const CalibrationId id = calibration.id;
+
+  QVERIFY(id.value != 0);
+
+  // Изменяем название, описание и коэффициенты.
+  calibration.name = "Updated calibration";
+  calibration.description = "After update";
+
+  calibration.coefficients = {
+    1.0,
+    2.0,
+    3.0,
+    4.0
+  };
+
+  // Обновляем тарировку в MariaDB.
+  QVERIFY2(
+    repository.updateCalibration(calibration),
+    qPrintable(repository.lastError().text()));
+
+  // y = 1 + 2*x + 3*x*x + 4*x*x*x
+
+  double result = 0.0;
+
+  QVERIFY(calibration.apply(0.0, result));
+  QCOMPARE(result, 1.0);
+
+  QVERIFY(calibration.apply(1.0, result));
+  QCOMPARE(result, 10.0);
+
+  QVERIFY(calibration.apply(2.0, result));
+  QCOMPARE(result, 49.0);
+
+  QVERIFY(calibration.apply(-1.0, result));
+  QCOMPARE(result, -2.0);
+
+  // Проверяем основные поля непосредственно в БД.
+  QSqlQuery query(db);
+
+  query.prepare(R"(
+SELECT sensor_id, sensor_type_id, kind, name, description
+FROM calibration
+WHERE id = :id;)");
+
+  query.bindValue(":id", id.value);
+
+  QVERIFY(query.exec());
+  QVERIFY(query.next());
+
+  QCOMPARE(query.value(0).toUInt(), sensor.id.value);
+  QVERIFY(query.value(1).isNull());
+  QCOMPARE(query.value(2).toInt(),
+           static_cast<int>(CalibrationKind::Polynomial));
+  QCOMPARE(query.value(3).toString(), QString("Updated calibration"));
+  QCOMPARE(query.value(4).toString(), QString("After update"));
+
+  // Проверяем, что старый полином заменился новым.
+  QSqlQuery pointsQuery(db);
+
+  pointsQuery.prepare(R"(
+SELECT `index`, value
+FROM calibration_coefficient
+WHERE calibration_id = :id
+ORDER BY `index`;)");
+
+  pointsQuery.bindValue(":id", id.value);
+
+  QVERIFY(pointsQuery.exec());
+
+  const std::vector<double> expected = {
+    1.0,
+    2.0,
+    3.0,
+    4.0
+  };
+
+  std::size_t index = 0;
+
+  while (pointsQuery.next())
+  {
+    QVERIFY(index < expected.size());
+
+    QCOMPARE(
+      pointsQuery.value(0).toUInt(),
+      static_cast<uint>(index));
+
+    QCOMPARE(
+      pointsQuery.value(1).toDouble(),
+      expected[index]);
+
+    ++index;
+  }
+
+  QCOMPARE(index, expected.size());
+
+  // Удаляем тестовую тарировку.
+  QVERIFY2(
+    repository.removeCalibration(id),
+    qPrintable(repository.lastError().text()));
+}
+
+void tst_configuration::test_updateCalibrationImmutableFields()
+{
+  using namespace qds;
+
+  auto db = get_db();
+  QVERIFY(db.isOpen());
+  QVERIFY(db.isValid());
+
+  ConfigurationRepository repository(db);
+  SensorRepository sr;
+
+  QVERIFY(repository.loadSensors(sr));
+  QVERIFY(!sr.sensors().empty());
+
+  const auto sensor = sr.sensors()[0];
+
+  Calibration calibration;
+
+  calibration.sensorId = SensorId{sensor.id};
+  calibration.kind = CalibrationKind::Polynomial;
+  calibration.name = "Test polynomial calibration";
+  calibration.description = "Created by Qt Test";
+
+  // y = 2 + 3*x + 4*x*x
+  calibration.coefficients = {
+    2.0,
+    3.0,
+    4.0
+  };
+
+  // Создаём полиномиальную тарировку.
+  QVERIFY2(
+    repository.createCalibration(calibration),
+    qPrintable(repository.lastError().text()));
+
+  const CalibrationId id = calibration.id;
+
+  QVERIFY(id.value != 0);
+
+  // Изменяем название, описание и коэффициенты.
+  calibration.name = "Updated calibration";
+  calibration.description = "After update";
+
+  // 1. меняем kind - вид тарировки
+  calibration.kind = CalibrationKind::Table;
+  calibration.points = {
+    {0, 0.0, 0.0},
+    {1, 10.0, 20.0}
+  };
+  // Пытаемся оновить тарировку в MariaDB.
+  QVERIFY2(
+    !repository.updateCalibration(calibration),
+    qPrintable(repository.lastError().text()));
+
+
+  calibration.kind = CalibrationKind::Polynomial;
+  calibration.points.clear();
+
+  // 2. меняем владельца
+  // - датчик
+  calibration.sensorId = SensorId{UINT32_MAX};
+  // Пытаемся оновить тарировку в MariaDB.
+  QVERIFY2(
+    !repository.updateCalibration(calibration),
+    qPrintable(repository.lastError().text()));
+
+  calibration.sensorId = SensorId{sensor.id};
+
+  // 3. два владельца
+  calibration.sensorTypeId = SensorTypeId{UINT32_MAX};
+  // Пытаемся оновить тарировку в MariaDB.
+  QVERIFY2(
+    !repository.updateCalibration(calibration),
+    qPrintable(repository.lastError().text()));
+
+  calibration.sensorId = SensorId{0};
+  // 4. тип датчика
+  // Пытаемся оновить тарировку в MariaDB.
+  QVERIFY2(
+    !repository.updateCalibration(calibration),
+    qPrintable(repository.lastError().text()));
+
+
+  // Проверяем основные поля в MariaDB.
+  QSqlQuery query(db);
+
+  query.prepare(R"(
+SELECT sensor_id, sensor_type_id, kind, name, description
+FROM calibration
+WHERE id = :id;)");
+
+  query.bindValue(":id", id.value);
+
+  QVERIFY(query.exec());
+  QVERIFY(query.next());
+
+  QCOMPARE(query.value(0).toUInt(), sensor.id.value);
+  QVERIFY(query.value(1).isNull());
+
+  QCOMPARE(
+    query.value(2).toInt(),
+    static_cast<int>(CalibrationKind::Polynomial));
+
+  QCOMPARE(
+    query.value(3).toString(),
+    QString("Test polynomial calibration"));
+
+  QCOMPARE(
+    query.value(4).toString(),
+    QString("Created by Qt Test"));
+
+  // Проверяем сохранённые коэффициенты.
+  QSqlQuery coefficientsQuery(db);
+
+  coefficientsQuery.prepare(R"(
+SELECT `index`, value
+FROM calibration_coefficient
+WHERE calibration_id = :id
+ORDER BY `index`;)");
+
+  coefficientsQuery.bindValue(":id", id.value);
+
+  QVERIFY(coefficientsQuery.exec());
+
+  const std::vector<double> expected = {
+    2.0,
+    3.0,
+    4.0
+  };
+
+  std::size_t index = 0;
+
+  while (coefficientsQuery.next())
+  {
+    QVERIFY(index < expected.size());
+
+    QCOMPARE(
+      coefficientsQuery.value(0).toUInt(),
+      static_cast<uint>(index));
+
+    QCOMPARE(
+      coefficientsQuery.value(1).toDouble(),
+      expected[index]);
+
+    ++index;
+  }
+
+  QCOMPARE(index, expected.size());
+
+  // Удаляем тестовую тарировку.
+  QVERIFY2(
+    repository.removeCalibration(id),
+    qPrintable(repository.lastError().text()));
 }
