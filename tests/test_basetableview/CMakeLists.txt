@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.20)
 
 project(test_basetableview LANGUAGES CXX)
 
+set(CMAKE_AUTOUIC ON)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -15,6 +17,7 @@ add_executable(test_basetableview
     ../../apps/configeditor/basetableview.h
     ../../apps/configeditor/dlg/calibrationdialog.cpp
     ../../apps/configeditor/dlg/calibrationdialog.h
+    ../../apps/configeditor/dlg/calibrationdialog.ui
     ../../apps/configeditor/model/calibrationtablemodel.cpp
     ../../apps/configeditor/model/calibrationtablemodel.h
     ../../apps/configeditor/plot/calibrationplot.cpp

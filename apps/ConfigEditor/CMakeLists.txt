@@ -3,6 +3,7 @@ project(configeditor VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS      Core Widgets Sql Svg)
@@ -33,7 +34,7 @@ qt_add_executable(configeditor
     model/sensorpropertiesmodel.h model/sensorpropertiesmodel.cpp
     model/calibrationmodel.h model/calibrationmodel.cpp
     model/calibrationtablemodel.h model/calibrationtablemodel.cpp
-    dlg/calibrationdialog.h dlg/calibrationdialog.cpp
+    dlg/calibrationdialog.h dlg/calibrationdialog.cpp dlg/calibrationdialog.ui
     plot/calibrationplot.h plot/calibrationplot.cpp
 )
 
@@ -44,6 +45,7 @@ target_include_directories(configeditor
     ${CMAKE_CURRENT_SOURCE_DIR}/model
     ${CMAKE_CURRENT_SOURCE_DIR}/delegate
     ${CMAKE_CURRENT_SOURCE_DIR}/dlg
+    ${CMAKE_CURRENT_SOURCE_DIR}/plot
 )
 
 target_link_libraries(configeditor

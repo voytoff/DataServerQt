@@ -1,20 +1,20 @@
 #include "calibrationdialog.h"
-#include "basetableview.h"
-#include "plot/calibrationplot.h"
 
-#include <QSplitter>
+#include "dlg/ui_calibrationdialog.h"
+
+#include <QAbstractItemView>
 #include <QDialogButtonBox>
 #include <QHeaderView>
-#include <QHBoxLayout>
-#include <QLabel>
+#include <QItemSelectionModel>
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QSplitter>
 #include <QTextEdit>
-#include <QVBoxLayout>
 #include <QTimer>
 
 #include <algorithm>
+#include <cmath>
 #include <functional>
 #include <vector>
 
@@ -25,140 +25,51 @@ CalibrationDialog::CalibrationDialog(
   const Calibration& calibration,
   QWidget* parent)
   : QDialog(parent)
+  , m_ui(std::make_unique<Ui::CalibrationDialog>())
 {
-  setWindowTitle(tr("Редактор тарировки"));
-  resize(1000, 600);
+  m_ui->setupUi(this);
 
+  setWindowFlag(Qt::WindowContextHelpButtonHint, false);
+  setWindowFlag(Qt::CustomizeWindowHint, true);
+  setWindowFlag(Qt::WindowTitleHint, true);
+  setWindowFlag(Qt::WindowCloseButtonHint, true);
+  setWindowFlag(Qt::WindowSystemMenuHint, false);
+
+  // Модель тарировки.
   m_model = new CalibrationTableModel(this);
   m_model->setCalibration(calibration);
 
-  m_nameEdit = new QLineEdit(this);
-  m_nameEdit->setText(calibration.name);
+  // Основные поля.
+  m_ui->nameEdit->setText(calibration.name);
 
-  m_descriptionEdit = new QTextEdit(this);
-  m_descriptionEdit->setPlainText(
+  m_ui->descriptionEdit->setPlainText(
     calibration.description);
-  m_descriptionEdit->setMaximumHeight(65);
 
-  m_view = new BaseTableView(150, this);
-  m_view->setModel(m_model);
-  m_view->setPasteEnabled(true);
-  m_view->setPasteInsertRowsEnabled(true);
+  // Таблица.
+  m_ui->tableView->setModel(m_model);
 
-  m_view->setSelectionBehavior(
+  m_ui->tableView->setPasteEnabled(true);
+  m_ui->tableView->setPasteInsertRowsEnabled(true);
+
+  m_ui->tableView->setSelectionBehavior(
     QAbstractItemView::SelectRows);
 
-  m_view->setSelectionMode(
+  m_ui->tableView->setSelectionMode(
     QAbstractItemView::ExtendedSelection);
 
-  m_view->horizontalHeader()->setStretchLastSection(true);
-
-  m_addButton = new QPushButton(
-    tr("Добавить строку"), this);
-
-  m_removeButton = new QPushButton(
-    tr("Удалить строки"), this);
-
-  auto* rowButtons = new QHBoxLayout;
-  rowButtons->addWidget(m_addButton);
-  rowButtons->addWidget(m_removeButton);
-  rowButtons->addStretch();
-
-
-  // Левая часть: таблица и кнопки.
-  auto* tableWidget = new QWidget(this);
-
-  auto* tableLayout = new QVBoxLayout(tableWidget);
-  tableLayout->setContentsMargins(0, 0, 0, 0);
-
-  tableLayout->addWidget(m_view);
-  tableLayout->addLayout(rowButtons);
-
-  // Правая часть: график.
-  m_plot = new CalibrationPlot(this);
+  m_ui->tableView->horizontalHeader()
+    ->setStretchLastSection(true);
 
   // Разделитель таблицы и графика.
-  auto* splitter = new QSplitter(
-    Qt::Horizontal, this);
+  m_ui->splitter->setStretchFactor(0, 1);
+  m_ui->splitter->setStretchFactor(1, 1);
+  m_ui->splitter->setSizes({250, 350});
 
-  splitter->addWidget(tableWidget);
-  splitter->addWidget(m_plot);
-
-  splitter->setStretchFactor(0, 1);
-  splitter->setStretchFactor(1, 2);
-
-  splitter->setSizes({350, 650});
-
-
-  m_buttons = new QDialogButtonBox(
-    QDialogButtonBox::Ok |
-      QDialogButtonBox::Cancel,
-    this);
-
-  auto* layout = new QVBoxLayout(this);
-  layout->setContentsMargins(10, 10, 10, 10);
-
-  layout->addWidget(new QLabel(tr("Название:"), this));
-  layout->addWidget(m_nameEdit);
-
-  layout->addWidget(new QLabel(tr("Описание:"), this));
-  layout->addWidget(m_descriptionEdit);
-
-  layout->addWidget(splitter, 1);
-  layout->addWidget(m_buttons);
-
+  // Отложенное обновление графика.
   m_plotTimer = new QTimer(this);
   m_plotTimer->setSingleShot(true);
   m_plotTimer->setInterval(0);
 
-  connect(
-    m_addButton,
-    &QPushButton::clicked,
-    this,
-    &CalibrationDialog::addRow);
-
-  connect(
-    m_removeButton,
-    &QPushButton::clicked,
-    this,
-    &CalibrationDialog::removeRows);
-
-  connect(
-    m_buttons,
-    &QDialogButtonBox::accepted,
-    this,
-    &CalibrationDialog::accept);
-
-  connect(
-    m_buttons,
-    &QDialogButtonBox::rejected,
-    this,
-    &QDialog::reject);
-
-
-  connect(
-    m_model,
-    &QAbstractItemModel::dataChanged,
-    m_plotTimer,
-    qOverload<>(&QTimer::start));
-
-  connect(
-    m_model,
-    &QAbstractItemModel::rowsInserted,
-    m_plotTimer,
-    qOverload<>(&QTimer::start));
-
-  connect(
-    m_model,
-    &QAbstractItemModel::rowsRemoved,
-    m_plotTimer,
-    qOverload<>(&QTimer::start));
-
-  connect(
-    m_model,
-    &QAbstractItemModel::modelReset,
-    m_plotTimer,
-    qOverload<>(&QTimer::start));
 
   connect(
     m_plotTimer,
@@ -166,17 +77,88 @@ CalibrationDialog::CalibrationDialog(
     this,
     &CalibrationDialog::updatePlot);
 
-  // Первоначальное построение графика.
+  // Изменение данных модели.
+  auto schedulePlotUpdate = [this]()
+  {
+    m_plotTimer->start();
+  };
+
+  connect(
+    m_model,
+    &QAbstractItemModel::dataChanged,
+    this,
+    schedulePlotUpdate);
+
+  connect(
+    m_model,
+    &QAbstractItemModel::rowsInserted,
+    this,
+    schedulePlotUpdate);
+
+  connect(
+    m_model,
+    &QAbstractItemModel::rowsRemoved,
+    this,
+    schedulePlotUpdate);
+
+  connect(
+    m_model,
+    &QAbstractItemModel::modelReset,
+    this,
+    schedulePlotUpdate);
+
+  // Кнопки управления строками.
+  connect(
+    m_ui->addButton,
+    &QPushButton::clicked,
+    this,
+    &CalibrationDialog::addRow);
+
+  connect(
+    m_ui->removeButton,
+    &QPushButton::clicked,
+    this,
+    &CalibrationDialog::removeRows);
+
+  // OK / Cancel.
+  connect(
+    m_ui->buttonBox,
+    &QDialogButtonBox::accepted,
+    this,
+    &CalibrationDialog::accept);
+
+  connect(
+    m_ui->buttonBox,
+    &QDialogButtonBox::rejected,
+    this,
+    &QDialog::reject);
+
   updatePlot();
+
+  const int column =
+    calibration.kind == CalibrationKind::Polynomial
+      ? 1
+      : 0;
+
+  if (m_model->rowCount() > 0)
+  {
+    m_ui->tableView->setCurrentIndex(
+      m_model->index(0, column));
+  }
+
+  m_ui->tableView->setFocus();
 }
+
+CalibrationDialog::~CalibrationDialog() = default;
 
 Calibration CalibrationDialog::calibration() const
 {
   Calibration result = m_model->calibration();
 
-  result.name = m_nameEdit->text().trimmed();
+  result.name = m_ui->nameEdit->text().trimmed();
+
   result.description =
-    m_descriptionEdit->toPlainText();
+    m_ui->descriptionEdit->toPlainText();
 
   return result;
 }
@@ -184,7 +166,7 @@ Calibration CalibrationDialog::calibration() const
 void CalibrationDialog::addRow()
 {
   const QModelIndex current =
-    m_view->currentIndex();
+    m_ui->tableView->currentIndex();
 
   const int row =
     current.isValid()
@@ -194,7 +176,7 @@ void CalibrationDialog::addRow()
   if (!m_model->insertRow(row))
     return;
 
-  m_view->selectRow(row);
+  m_ui->tableView->selectRow(row);
 
   const int column =
     m_model->calibration().kind ==
@@ -205,14 +187,15 @@ void CalibrationDialog::addRow()
   const QModelIndex index =
     m_model->index(row, column);
 
-  m_view->setCurrentIndex(index);
-  m_view->edit(index);
+  m_ui->tableView->setCurrentIndex(index);
+  m_ui->tableView->edit(index);
 }
 
 void CalibrationDialog::removeRows()
 {
   const auto selected =
-    m_view->selectionModel()->selectedRows();
+    m_ui->tableView->selectionModel()
+      ->selectedRows();
 
   if (selected.isEmpty())
     return;
@@ -234,7 +217,7 @@ void CalibrationDialog::removeRows()
 
 void CalibrationDialog::updatePlot()
 {
-  m_plot->setCalibration(
+  m_ui->plotWidget->setCalibration(
     m_model->calibration());
 }
 
@@ -249,7 +232,7 @@ void CalibrationDialog::accept()
       tr("Ошибка тарировки"),
       tr("Название тарировки не может быть пустым."));
 
-    m_nameEdit->setFocus();
+    m_ui->nameEdit->setFocus();
     return;
   }
 

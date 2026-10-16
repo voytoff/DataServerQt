@@ -75,6 +75,18 @@ void CalibrationPlot::setCalibration(
     }
   }
 
+  if (calibration.points.size() == 1)
+  {
+    const auto& point = calibration.points.front();
+
+    m_plot->xAxis->setRange(point.x - 1.0, point.x + 1.0);
+    m_plot->yAxis->setRange(point.y - 1.0, point.y + 1.0);
+  }
+  else
+  {
+    m_plot->rescaleAxes();
+  }
+
   m_plot->replot();
 }
 

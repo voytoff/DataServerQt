@@ -15,6 +15,9 @@ public:
     int columnWidth = 0,
     QWidget* parent = nullptr);
 
+  explicit BaseTableView(
+    QWidget* parent);
+
   ~BaseTableView() override = default;
 
   void setPasteEnabled(

@@ -5,16 +5,17 @@
 
 #include <QDialog>
 
-class QLineEdit;
-class QTextEdit;
-class QPushButton;
-class QDialogButtonBox;
+#include <memory>
+
+class QTimer;
+
+namespace Ui
+{
+class CalibrationDialog;
+}
 
 namespace qds
 {
-
-class BaseTableView;
-class CalibrationPlot;
 
 class CalibrationDialog final : public QDialog
 {
@@ -25,6 +26,8 @@ public:
     const Calibration& calibration,
     QWidget* parent = nullptr);
 
+  ~CalibrationDialog() override;
+
   Calibration calibration() const;
 
 private:
@@ -34,17 +37,9 @@ private:
   void accept() override;
 
 private:
+  std::unique_ptr<Ui::CalibrationDialog> m_ui;
+
   CalibrationTableModel* m_model = nullptr;
-  BaseTableView* m_view = nullptr;
-  CalibrationPlot* m_plot = nullptr;
-
-  QLineEdit* m_nameEdit = nullptr;
-  QTextEdit* m_descriptionEdit = nullptr;
-
-  QPushButton* m_addButton = nullptr;
-  QPushButton* m_removeButton = nullptr;
-  QDialogButtonBox* m_buttons = nullptr;
-
   QTimer* m_plotTimer = nullptr;
 };
 

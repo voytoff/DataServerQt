@@ -56,6 +56,11 @@ BaseTableView::BaseTableView(
   //  QHeaderView::ResizeToContents);
 }
 
+BaseTableView::BaseTableView(QWidget* parent)
+  : BaseTableView(0, parent)
+{
+}
+
 void BaseTableView::setPasteEnabled(
   bool enabled) noexcept
 {
