@@ -1,11 +1,14 @@
-#include <vector>
 #include "configurationrepository.h"
 
+#include <vector>
 #include <algorithm>
 #include <QSqlQuery>
 #include <QSqlError>
 #include <cmath>
 #include <utility>
+#include <algorithm>
+#include <ranges>
+
 
 namespace qds
 {
@@ -2179,6 +2182,150 @@ VALUES (
   }
 
   return true;
+}
+
+bool ConfigurationRepository::sensorCalibration(
+  SensorId sensorId,
+  Calibration& calibration)
+{
+  calibration = {};
+
+  auto query = getQuery(R"(
+SELECT
+  id,
+  sensor_id,
+  sensor_type_id,
+  kind,
+  name,
+  description
+FROM calibration
+WHERE sensor_id = :sensor_id;)",
+                        {{":sensor_id", sensorId.value}});
+
+  if (!exec(query))
+    return false;
+
+  if (!query.next())
+    return true;
+
+  calibration.id = CalibrationId{
+    query.value("id").toUInt()
+  };
+
+  calibration.sensorId = sensorId;
+
+  calibration.kind = static_cast<CalibrationKind>(
+    query.value("kind").toInt());
+
+  calibration.name = query.value("name").toString();
+  calibration.description =
+    query.value("description").toString();
+
+  // Загрузка точек и коэффициентов — общий метод.
+  return loadCalibrationData(calibration);
+}
+
+bool ConfigurationRepository::sensorTypeCalibration(
+  SensorTypeId sensorTypeId,
+  Calibration& calibration)
+{
+  calibration = {};
+
+  auto query = getQuery(R"(
+SELECT
+  id,
+  sensor_id,
+  sensor_type_id,
+  kind,
+  name,
+  description
+FROM calibration
+WHERE sensor_type_id = :sensor_type_id;)",
+                        {{":sensor_type_id", sensorTypeId.value}});
+
+  if (!exec(query))
+    return false;
+
+  if (!query.next())
+    return true;
+
+  calibration.id = CalibrationId{
+    query.value("id").toUInt()
+  };
+
+  calibration.sensorTypeId = sensorTypeId;
+
+  calibration.kind = static_cast<CalibrationKind>(
+    query.value("kind").toInt());
+
+  calibration.name = query.value("name").toString();
+  calibration.description =
+    query.value("description").toString();
+
+  return loadCalibrationData(calibration);
+}
+
+
+bool ConfigurationRepository::loadCalibrationData(
+  Calibration& calibration)
+{
+  if (calibration.kind == CalibrationKind::Table)
+  {
+    auto query = getQuery(R"(
+SELECT
+  `index`,
+  x,
+  y
+FROM calibration_point
+WHERE calibration_id = :id
+ORDER BY `index`;)",
+                          {{":id", calibration.id.value}});
+
+    if (!exec(query))
+      return false;
+
+    while (query.next())
+    {
+      calibration.points.push_back({
+        query.value("index").toUInt(),
+        query.value("x").toDouble(),
+        query.value("y").toDouble()
+      });
+    }
+
+    return calibration.buildSegments();
+  }
+
+  else if (calibration.kind == CalibrationKind::Polynomial)
+  {
+    auto query = getQuery(R"(
+SELECT
+  `index`,
+  value
+FROM calibration_coefficient
+WHERE calibration_id = :id
+ORDER BY `index`;)",
+                          {{":id", calibration.id.value}});
+
+    if (!exec(query))
+      return false;
+
+    while (query.next())
+    {
+      calibration.coefficients.push_back(
+        query.value("value").toDouble());
+    }
+
+    return !calibration.coefficients.empty() &&
+           std::ranges::all_of(
+             calibration.coefficients,
+             [](double value)
+             {
+               return std::isfinite(value);
+             });
+  }
+
+  return false;
 }
 
 }

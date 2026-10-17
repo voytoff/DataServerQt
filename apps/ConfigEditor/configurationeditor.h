@@ -40,10 +40,11 @@ private:
     const QModelIndex& moduleIndex);
 
   void createToolbar();
-
   void updateActions();
 
   void updateSensorTypes();
+
+  void editCalibration();
 
 private:
   BaseTableView* m_configurationsView = nullptr;
@@ -85,6 +86,7 @@ private:
   QAction* m_addAction = nullptr;
   QAction* m_removeAction = nullptr;
   QAction* m_testAction = nullptr;
+  QAction* m_calibrationAction = nullptr;
 
 signals:
   void statusMessage(

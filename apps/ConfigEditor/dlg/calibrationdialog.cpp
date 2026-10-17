@@ -28,13 +28,13 @@ CalibrationDialog::CalibrationDialog(
   , m_ui(std::make_unique<Ui::CalibrationDialog>())
 {
   m_ui->setupUi(this);
-
+/*
   setWindowFlag(Qt::WindowContextHelpButtonHint, false);
   setWindowFlag(Qt::CustomizeWindowHint, true);
   setWindowFlag(Qt::WindowTitleHint, true);
   setWindowFlag(Qt::WindowCloseButtonHint, true);
   setWindowFlag(Qt::WindowSystemMenuHint, false);
-
+*/
   // Модель тарировки.
   m_model = new CalibrationTableModel(this);
   m_model->setCalibration(calibration);

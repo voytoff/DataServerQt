@@ -4,7 +4,7 @@
 #include "calibrationrepository.h"
 #include "configmodule.h"
 #include "datatypes.h"
-#include "db/sensorrepository.h"
+#include "sensorrepository.h"
 #include "systemconfiguration.h"
 #include <QSqlDatabase>
 #include <QSqlQuery>
@@ -240,6 +240,14 @@ public:
   bool updateCalibration(
     const Calibration& calibration);
 
+  bool sensorCalibration(
+    SensorId sensorId,
+    Calibration& calibration);
+
+  bool sensorTypeCalibration(
+    SensorTypeId sensorTypeId,
+    Calibration& calibration);
+
 private:
   QSqlQuery getQuery(
     const QString &sql,
@@ -251,6 +259,9 @@ private:
 
   void setError(
     const QSqlQuery& query);
+
+  bool loadCalibrationData(
+    Calibration& calibration);
 
 private:
   QSqlDatabase m_database;

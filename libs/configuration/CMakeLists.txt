@@ -36,6 +36,7 @@ target_include_directories(Configuration
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../datatypes
+    ${CMAKE_CURRENT_SOURCE_DIR}/db
 )
 
 target_link_libraries(Configuration

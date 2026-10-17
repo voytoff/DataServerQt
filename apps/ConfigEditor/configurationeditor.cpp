@@ -1,9 +1,10 @@
 #include "configurationeditor.h"
-#include "delegate/basecomboboxdelegate.h"
-#include "delegate/configurationpropertiesdelegate.h"
-#include "delegate/configurationsignalpropertiesdelegate.h"
-#include "dlg/configurationsignaldialog.h"
+#include "basecomboboxdelegate.h"
+#include "configurationpropertiesdelegate.h"
+#include "configurationsignalpropertiesdelegate.h"
+#include "configurationsignaldialog.h"
 #include "sensordialog.h"
+#include "calibrationdialog.h"
 
 #include <QSplitter>
 #include <QTableView>
@@ -789,21 +790,31 @@ void ConfigurationEditor::createToolbar()
   m_toolBar = new QToolBar(this);
 
   m_toolBar->setIconSize(QSize(16, 16));
-  m_toolBar->setMovable(false);
+  //m_toolBar->setMovable(false);
   m_toolBar->setFloatable(false);
   m_toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+  m_toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
 
   m_addAction = m_toolBar->addAction(
-    style()->standardIcon(QStyle::SP_FileIcon),
+    QIcon(":/images/add.png"),
     tr("Добавить"));
 
   m_removeAction = m_toolBar->addAction(
-    style()->standardIcon(QStyle::SP_TrashIcon),
+    QIcon(":/images/del.png"),
     tr("Удалить"));
 
   m_toolBar->addSeparator();
 
+  m_calibrationAction = m_toolBar->addAction(
+    QIcon(":/images/calibration.png"),
+    tr("Тарировка..."));
+
+  m_calibrationAction->setEnabled(false);
+
+  m_toolBar->addSeparator();
+
   m_testAction = m_toolBar->addAction(
+    QIcon(":/images/test.png"),
     tr("Тест"));
 
   m_addAction->setEnabled(false);
@@ -993,6 +1004,12 @@ void ConfigurationEditor::createToolbar()
           current);
       }
     });
+
+  connect(
+    m_calibrationAction,
+    &QAction::triggered,
+    this,
+    &ConfigurationEditor::editCalibration);
 }
 
 void ConfigurationEditor::updateActions()
@@ -1030,6 +1047,10 @@ void ConfigurationEditor::updateActions()
     (sensorTypesTab && hasSensorType) ||
     (sensorsTab && hasSensor));
 
+  m_calibrationAction->setEnabled(
+    (sensorTypesTab && hasSensorType) ||
+    (sensorsTab && hasSensor));
+
 
   m_testAction->setEnabled(false);
 }
@@ -1054,6 +1075,183 @@ void ConfigurationEditor::updateSensorTypes()
 
   m_sensorTypeDelegate->setItems(
     std::move(items));
+}
+
+void ConfigurationEditor::editCalibration()
+{
+  Calibration calibration;
+
+  CalibrationKind kind = CalibrationKind::Table;
+  QString defaultName;
+
+  if (m_tabs->currentWidget() == m_sensorTypesView)
+  {
+    // типы датчиков
+    const auto* type =
+      m_sensorTypeModel->sensorType(
+        m_sensorTypesView->currentIndex());
+
+    if (!type)
+      return;
+
+    calibration.sensorTypeId = type->id;
+    kind = type->calibrationKind;
+
+    defaultName = QString::fromStdString(type->name);
+
+    if (!m_repository.sensorTypeCalibration(
+          type->id, calibration))
+    {
+      QMessageBox::warning(
+        this,
+        tr("Ошибка загрузки тарировки"),
+        m_repository.lastError().text());
+
+      return;
+    }
+
+    if (!calibration.id)
+      calibration.sensorTypeId = type->id;
+  }
+  else if (m_tabs->currentWidget() == m_sensorsSplitter)
+  {
+    const auto* sensor =
+      m_sensorModel->sensor(
+        m_sensorsView->currentIndex());
+
+    if (!sensor)
+      return;
+
+    if (sensor->calibrationMode ==
+        SensorCalibrationMode::ByType)
+    {
+      const auto& types =
+        m_sensorTypeModel->sensorTypes();
+
+      const auto it = std::find_if(
+        types.begin(),
+        types.end(),
+        [sensor](const SensorType& type)
+        {
+          return type.id == sensor->sensorTypeId;
+        });
+
+      if (it == types.end())
+      {
+        QMessageBox::warning(
+          this,
+          tr("Ошибка тарировки"),
+          tr("Не найден тип выбранного датчика."));
+
+        return;
+      }
+
+      kind = it->calibrationKind;
+      defaultName = QString::fromStdString(it->name);
+
+      if (!m_repository.sensorTypeCalibration(
+            it->id, calibration))
+      {
+        QMessageBox::warning(
+          this,
+          tr("Ошибка загрузки тарировки"),
+          m_repository.lastError().text());
+
+        return;
+      }
+
+      if (!calibration.id)
+        calibration.sensorTypeId = it->id;
+    }
+    else
+    {
+      kind = sensor->calibrationKind;
+      defaultName = QString::fromStdString(sensor->name);
+
+      if (!m_repository.sensorCalibration(
+            sensor->id, calibration))
+      {
+        QMessageBox::warning(
+          this,
+          tr("Ошибка загрузки тарировки"),
+          m_repository.lastError().text());
+
+        return;
+      }
+
+      if (!calibration.id)
+        calibration.sensorId = sensor->id;
+    }
+  }
+  else
+  {
+    return;
+  }
+
+  // Новая тарировка.
+  if (!calibration.id)
+  {
+    calibration.kind = kind;
+    calibration.name = defaultName;
+
+    if (kind == CalibrationKind::Table)
+    {
+      calibration.points = {
+        {0, 0.0, 0.0},
+        {1, 1.0, 1.0}
+      };
+    }
+    else if (kind == CalibrationKind::Polynomial)
+    {
+      calibration.coefficients = {0.0};
+    }
+  }
+  else if (calibration.kind != kind)
+  {
+    QMessageBox::warning(
+      this,
+      tr("Несовпадение вида тарировки"),
+      tr("Вид существующей тарировки не совпадает "
+         "с настройкой датчика или типа датчика.\n"
+         "Сначала необходимо согласовать эти настройки."));
+
+    return;
+  }
+
+  CalibrationDialog dialog(calibration, this);
+
+  dialog.setWindowTitle(
+    calibration.sensorTypeId
+      ? tr("Тарировка типа датчика")
+      : tr("Тарировка датчика"));
+
+  if (dialog.exec() != QDialog::Accepted)
+    return;
+
+  Calibration result = dialog.calibration();
+
+  const bool saved =
+    result.id
+      ? m_repository.updateCalibration(result)
+      : m_repository.createCalibration(result);
+
+  if (!saved)
+  {
+    const QSqlError error = m_repository.lastError();
+
+    QMessageBox::warning(
+      this,
+      tr("Ошибка сохранения тарировки"),
+      error.isValid()
+        ? error.text()
+        : tr("Не удалось сохранить тарировку."));
+
+    return;
+  }
+
+  emit statusMessage(
+    tr("Тарировка «%1» сохранена.")
+      .arg(result.name));
 }
 
 }
