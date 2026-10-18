@@ -13,7 +13,7 @@ const QString plugin = "QMARIADB";
 #endif
 const QString hostName = "127.0.0.1";
 const int hostPort = 3306;
-const QString databaseName = "dataserver";
+const QString databaseName = "dataserver_test";
 const QString userName = "root";
 const QString password = "1234";
 

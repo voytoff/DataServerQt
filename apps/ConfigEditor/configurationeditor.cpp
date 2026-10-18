@@ -150,9 +150,11 @@ ConfigurationEditor::ConfigurationEditor(
 
 
   m_tabs = new QTabWidget(this);
+  m_tabs->setIconSize(QSize(16, 16));
 
   m_tabs->addTab(
     right,
+    QIcon(":/images/model.png"),
     tr("Модули"));
 
   auto* signalsSplitter =
@@ -166,6 +168,7 @@ ConfigurationEditor::ConfigurationEditor(
 
   m_tabs->addTab(
     signalsSplitter,
+    QIcon(":/images/signal.png"),
     tr("Сигналы"));
 
   /// типы датчиков ========================================
@@ -218,6 +221,7 @@ ConfigurationEditor::ConfigurationEditor(
 
   m_tabs->addTab(
     m_sensorTypesView,
+    QIcon(":/images/sensortype.png"),
     tr("Типы датчиков"));
 
 
@@ -327,6 +331,7 @@ ConfigurationEditor::ConfigurationEditor(
 
   m_tabs->addTab(
     m_sensorsSplitter,
+    QIcon(":/images/sensor.png"),
     tr("Датчики"));
 
 

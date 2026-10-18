@@ -9,5 +9,9 @@
         <file>images/config.png</file>
         <file>images/addcfg.png</file>
         <file>images/removecfg.png</file>
+        <file>images/model.png</file>
+        <file>images/sensor.png</file>
+        <file>images/sensortype.png</file>
+        <file>images/signal.png</file>
     </qresource>
 </RCC>

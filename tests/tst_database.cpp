@@ -338,6 +338,7 @@ void tst_database::test_database_pipeline()
 
   SystemBuilder builder;
   SensorRepository sensors;
+  QVERIFY(repo.loadSensors(sensors));
 
   auto runtime =
     builder.build(
