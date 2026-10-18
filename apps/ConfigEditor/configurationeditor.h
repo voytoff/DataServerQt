@@ -22,6 +22,7 @@ class QSqlDatabase;
 class QToolBar;
 class QAction;
 class QSplitter;
+class QComboBox;
 
 namespace qds
 {
@@ -39,6 +40,8 @@ private:
   void updateChannelVisibility(
     const QModelIndex& moduleIndex);
 
+  ConfigurationId currentConfiguration() const;
+
   void createToolbar();
   void updateActions();
 
@@ -46,8 +49,14 @@ private:
 
   void editCalibration();
 
+  void editConfiguration();
+  void addConfiguration();
+  void removeConfiguration();
+
+  void configurationChanged();
+
 private:
-  BaseTableView* m_configurationsView = nullptr;
+  QComboBox* m_configurationCombo = nullptr;
   BaseTableView* m_tagsView = nullptr;
 
   QSqlTableModel* m_configurations = nullptr;
@@ -87,6 +96,9 @@ private:
   QAction* m_removeAction = nullptr;
   QAction* m_testAction = nullptr;
   QAction* m_calibrationAction = nullptr;
+  QAction* m_configurationPropertiesAction = nullptr;
+  QAction* m_configurationAddAction = nullptr;
+  QAction* m_configurationRemoveAction = nullptr;
 
 signals:
   void statusMessage(

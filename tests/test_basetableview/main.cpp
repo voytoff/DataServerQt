@@ -13,7 +13,6 @@ int main(int argc, char* argv[])
   Calibration calibration;
 
   calibration.kind = CalibrationKind::Polynomial;
-  calibration.name = "Тестовая тарировка";
   calibration.description = "Проверка редактора";
 
   if (calibration.kind == CalibrationKind::Table)
@@ -40,7 +39,6 @@ int main(int argc, char* argv[])
   if (calibration.kind == CalibrationKind::Table)
   {
     qDebug() << "Calibration:"
-             << result.name
              << result.description
              << "Points:" << result.points.size();
 
@@ -50,7 +48,6 @@ int main(int argc, char* argv[])
   else
   {
     qDebug() << "Calibration:"
-             << result.name
              << result.description
              << "Coefficients:" << result.coefficients.size();
 

@@ -373,6 +373,8 @@ bool ConfigurationTreeModel::setData(
       index,
       {Qt::CheckStateRole});
 
+    emit tagSourcesChanged();
+
     return true;
   }
 
@@ -437,6 +439,8 @@ bool ConfigurationTreeModel::setData(
       this->index(0, 0, index),
       this->index(count - 1, 0, index));
   }
+
+  emit tagSourcesChanged();
 
   return true;
 }

@@ -489,9 +489,7 @@ ORDER BY id;
 }
 
 std::optional<ConfigurationId> ConfigurationRepository::addConfiguration(
-  const QString& name,
-  const QString& description,
-  uint16_t udpPort)
+  const ConfigurationInfo& configuration)
 {
   auto query = getQuery(R"(
 INSERT INTO configuration
@@ -499,25 +497,112 @@ INSERT INTO configuration
 VALUES
   (:name, :description, :udp_port);)",
     {
-      {":name", name},
-      {":description", description},
-      {":udp_port", udpPort}
+      {":name", configuration.name},
+      {":description", configuration.description},
+      {":udp_port", configuration.udpPort}
     });
 
-  if (!query.exec()) {
-    setError(query);
-    return std::nullopt;
-  }
-
-  const QVariant value =
-    query.lastInsertId();
-
-  if (!value.isValid())
+  if (!exec(query))
     return std::nullopt;
 
-  return ConfigurationId{
-    value.toUInt()
+  const uint32_t id =
+    query.lastInsertId().toUInt();
+
+  if (id == 0)
+    return std::nullopt;
+
+  return ConfigurationId{id};
+}
+
+bool ConfigurationRepository::updateConfiguration(
+  const ConfigurationInfo& configuration)
+{
+  if (!configuration.id)
+    return false;
+
+  auto query = getQuery(R"(
+UPDATE configuration
+SET
+  name = :name,
+  description = :description,
+  udp_port = :udp_port
+WHERE id = :id;)",
+    {
+      {":id", configuration.id.value},
+      {":name", configuration.name},
+      {":description", configuration.description},
+      {":udp_port", configuration.udpPort}
+    });
+
+  if (!exec(query))
+    return false;
+
+  return query.numRowsAffected() == 1;
+}
+
+bool ConfigurationRepository::removeConfiguration(
+  ConfigurationId id)
+{
+  if (!id)
+    return false;
+
+  auto query = getQuery(R"(
+DELETE FROM configuration
+WHERE id = :id;)",
+    {
+      {":id", id.value}
+    });
+
+  if (!exec(query))
+    return false;
+
+  return query.numRowsAffected() == 1;
+}
+
+bool ConfigurationRepository::configuration(
+  ConfigurationId id,
+  ConfigurationInfo& configuration)
+{
+  if (!id)
+    return false;
+
+  auto query = getQuery(R"(
+SELECT
+  id,
+  name,
+  description,
+  udp_port
+FROM configuration
+WHERE id = :id;)",
+    {
+      {":id", id.value}
+    });
+
+  if (!exec(query))
+    return false;
+
+  if (!query.next())
+    return false;
+
+  ConfigurationInfo result;
+
+  result.id = ConfigurationId{
+    query.value("id").toUInt()
   };
+
+  result.name =
+    query.value("name").toString();
+
+  result.description =
+    query.value("description").toString();
+
+  result.udpPort =
+    static_cast<uint16_t>(
+      query.value("udp_port").toUInt());
+
+  configuration = std::move(result);
+
+  return true;
 }
 
 std::optional<CrateId> ConfigurationRepository::addCrate(
@@ -813,7 +898,6 @@ SELECT
   sensor_id,
   sensor_type_id,
   kind,
-  name,
   description
 FROM calibration
 ORDER BY id;)");
@@ -831,7 +915,6 @@ ORDER BY id;)");
     calibration.kind =
       static_cast<CalibrationKind>(query.value("kind").toInt());
 
-    calibration.name = query.value("name").toString();
     calibration.description = query.value("description").toString();
 
     // Ровно один владелец.
@@ -1557,10 +1640,12 @@ JOIN configuration_module cm
 JOIN module m
   ON m.id = cm.module_id
 WHERE ct.configuration_id = :configuration
+  AND ct.active = 1
+  AND cm.active = 1
 ORDER BY m.serial, ct.channel)",
-  {
-    {":configuration", configuration.value}
-  });
+    {
+      {":configuration", configuration.value}
+    });
 
   if (!exec(query))
     return false;
@@ -1569,12 +1654,14 @@ ORDER BY m.serial, ct.channel)",
   {
     TagSourceInfo info;
 
-    info.id.value = query.value("id").toUInt();
+    info.id.value =
+      query.value("id").toUInt();
 
-    info.name = QString("%1 (%2)")
-                  .arg(query.value("channel").toUInt())
-                  .arg(query.value("serial").toString())
-                  .toStdString();
+    info.name =
+      QString("%1 (%2)")
+        .arg(query.value("channel").toUInt())
+        .arg(query.value("serial").toString())
+        .toStdString();
 
     sources.push_back(std::move(info));
   }
@@ -1838,14 +1925,12 @@ INSERT INTO calibration (
   sensor_id,
   sensor_type_id,
   kind,
-  name,
   description
 )
 VALUES (
   :sensor_id,
   :sensor_type_id,
   :kind,
-  :name,
   :description
 );)");
 
@@ -1864,10 +1949,6 @@ VALUES (
   query.bindValue(
     ":kind",
     static_cast<int>(calibration.kind));
-
-  query.bindValue(
-    ":name",
-    calibration.name);
 
   query.bindValue(
     ":description",
@@ -2084,12 +2165,10 @@ FOR UPDATE;)",
   query = getQuery(R"(
 UPDATE calibration
 SET
-  name = :name,
   description = :description
 WHERE id = :id;)",
    {
      {":id", calibration.id.value},
-     {":name", calibration.name},
      {":description", calibration.description}
    });
 
@@ -2185,7 +2264,7 @@ VALUES (
 }
 
 bool ConfigurationRepository::sensorCalibration(
-  SensorId sensorId,
+  SensorId sensorId, CalibrationKind kind,
   Calibration& calibration)
 {
   calibration = {};
@@ -2196,12 +2275,14 @@ SELECT
   sensor_id,
   sensor_type_id,
   kind,
-  name,
   description
 FROM calibration
-WHERE sensor_id = :sensor_id;)",
-                        {{":sensor_id", sensorId.value}});
-
+WHERE sensor_id = :sensor_id
+  AND kind = :kind;)",
+    {
+      {":sensor_id", sensorId.value},
+      {":kind", static_cast<int>(kind)}
+    });
   if (!exec(query))
     return false;
 
@@ -2217,7 +2298,6 @@ WHERE sensor_id = :sensor_id;)",
   calibration.kind = static_cast<CalibrationKind>(
     query.value("kind").toInt());
 
-  calibration.name = query.value("name").toString();
   calibration.description =
     query.value("description").toString();
 
@@ -2227,6 +2307,7 @@ WHERE sensor_id = :sensor_id;)",
 
 bool ConfigurationRepository::sensorTypeCalibration(
   SensorTypeId sensorTypeId,
+  CalibrationKind kind,
   Calibration& calibration)
 {
   calibration = {};
@@ -2237,12 +2318,14 @@ SELECT
   sensor_id,
   sensor_type_id,
   kind,
-  name,
   description
 FROM calibration
-WHERE sensor_type_id = :sensor_type_id;)",
-                        {{":sensor_type_id", sensorTypeId.value}});
-
+WHERE sensor_type_id = :sensor_type_id
+  AND kind = :kind;)",
+    {
+      {":sensor_type_id", sensorTypeId.value},
+      {":kind", static_cast<int>(kind)}
+    });
   if (!exec(query))
     return false;
 
@@ -2258,7 +2341,6 @@ WHERE sensor_type_id = :sensor_type_id;)",
   calibration.kind = static_cast<CalibrationKind>(
     query.value("kind").toInt());
 
-  calibration.name = query.value("name").toString();
   calibration.description =
     query.value("description").toString();
 

@@ -36,6 +36,7 @@ qt_add_executable(configeditor
     model/calibrationtablemodel.h model/calibrationtablemodel.cpp
     dlg/calibrationdialog.h dlg/calibrationdialog.cpp dlg/calibrationdialog.ui
     plot/calibrationplot.h plot/calibrationplot.cpp
+    dlg/configurationdialog.h dlg/configurationdialog.cpp dlg/configurationdialog.ui
 )
 
 target_include_directories(configeditor

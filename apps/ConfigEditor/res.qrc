@@ -5,5 +5,9 @@
         <file>images/calibration.png</file>
         <file>images/del.png</file>
         <file>images/test.png</file>
+        <file>images/trash.png</file>
+        <file>images/config.png</file>
+        <file>images/addcfg.png</file>
+        <file>images/removecfg.png</file>
     </qresource>
 </RCC>

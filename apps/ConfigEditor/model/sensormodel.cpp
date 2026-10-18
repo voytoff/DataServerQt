@@ -1,10 +1,9 @@
-
+#include "configurationrepository.h"
+#include "sensorrepository.h"
 #include "sensormodel.h"
 
-#include "db/configurationrepository.h"
-#include "db/sensorrepository.h"
-
 #include <algorithm>
+#include <QColor>
 
 namespace qds
 {
@@ -73,13 +72,52 @@ QVariant SensorModel::data(
     return {};
   }
 
+  const Sensor& sensor = m_sensors[index.row()];
+
+  // Проверяем несовпадение видов тарировки
+  // только для режима "По типу".
+  if (index.column() == 4 &&
+      sensor.calibrationMode == SensorCalibrationMode::ByType)
+  {
+    const auto it = std::find_if(
+      m_sensorTypes.begin(),
+      m_sensorTypes.end(),
+      [&sensor](const SensorType& type)
+      {
+        return type.id == sensor.sensorTypeId;
+      });
+
+    if (it != m_sensorTypes.end() &&
+        sensor.calibrationKind != it->calibrationKind)
+    {
+      if (role == Qt::ForegroundRole)
+        return QColor(210, 140, 40);
+
+      else if (role == Qt::ToolTipRole)
+      {
+        const QString typeKind =
+          it->calibrationKind == CalibrationKind::Table
+            ? tr("табличная")
+            : tr("полиномиальная");
+
+        const QString sensorKind =
+          sensor.calibrationKind == CalibrationKind::Table
+            ? tr("табличная")
+            : tr("полиномиальная");
+
+        return tr(
+                 "Используется тарировка типа датчика: %1.\n"
+                 "Собственный вид тарировки датчика: %2.")
+          .arg(typeKind, sensorKind);
+      }
+    }
+  }
+
   if (role != Qt::DisplayRole &&
       role != Qt::EditRole)
   {
     return {};
   }
-
-  const Sensor& sensor = m_sensors[index.row()];
 
   switch (index.column())
   {
@@ -292,8 +330,7 @@ bool SensorModel::setData(
 
   emit dataChanged(
     this->index(index.row(), 1),
-    this->index(index.row(), 5),
-    {Qt::DisplayRole, Qt::EditRole});
+    this->index(index.row(), 5));
 
   return true;
 }
@@ -329,8 +366,7 @@ void SensorModel::setSensorTypes(
 
   emit dataChanged(
     index(0, 2),
-    index(rowCount() - 1, 2),
-    {Qt::DisplayRole, Qt::EditRole});
+    index(rowCount() - 1, 5));
 }
 
 bool SensorModel::createSensor(

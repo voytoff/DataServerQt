@@ -7,6 +7,7 @@
 #include <QStyleFactory>
 #include <QLibraryInfo>
 #include <QTranslator>
+//#include <QStyleHints>
 
 int main(int argc, char* argv[])
 {
@@ -48,6 +49,7 @@ int main(int argc, char* argv[])
     return 1;
   }
 
+  //QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Dark);
   qds::MainWindow window(database);
   window.show();
 

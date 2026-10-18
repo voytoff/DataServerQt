@@ -36,7 +36,6 @@ struct Calibration
 
   CalibrationKind kind = CalibrationKind::Table;
 
-  QString name;
   QString description;
 
   std::vector<CalibrationPoint> points;

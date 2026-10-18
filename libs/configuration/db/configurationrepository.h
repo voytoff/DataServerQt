@@ -3,6 +3,7 @@
 #include "availablemodule.h"
 #include "calibrationrepository.h"
 #include "configmodule.h"
+#include "configurationinfo.h"
 #include "datatypes.h"
 #include "sensorrepository.h"
 #include "systemconfiguration.h"
@@ -36,9 +37,20 @@ public:
 
   [[nodiscard]]
   std::optional<ConfigurationId> addConfiguration(
-    const QString& name,
-    const QString& description,
-    uint16_t udpPort);
+    const ConfigurationInfo& configuration);
+
+  [[nodiscard]]
+  bool updateConfiguration(
+    const ConfigurationInfo& configuration);
+
+  [[nodiscard]]
+  bool removeConfiguration(
+    ConfigurationId id);
+
+  [[nodiscard]]
+  bool configuration(
+    ConfigurationId id,
+    ConfigurationInfo& configuration);
 
   [[nodiscard]]
   std::optional<CrateId> addCrate(
@@ -242,10 +254,12 @@ public:
 
   bool sensorCalibration(
     SensorId sensorId,
+    CalibrationKind kind,
     Calibration& calibration);
 
   bool sensorTypeCalibration(
     SensorTypeId sensorTypeId,
+    CalibrationKind kind,
     Calibration& calibration);
 
 private:

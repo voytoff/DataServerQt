@@ -9,6 +9,7 @@
 #include <QKeySequence>
 #include <QStringList>
 #include <QVector>
+#include <QFrame>
 
 #include <algorithm>
 #include <utility>
@@ -21,6 +22,8 @@ BaseTableView::BaseTableView(
   QWidget *parent)
   : QTableView(parent)
 {
+  setFrameShape(
+    QFrame::NoFrame);
 
   setSelectionBehavior(
     QAbstractItemView::SelectRows);

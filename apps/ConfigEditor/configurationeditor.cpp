@@ -5,6 +5,7 @@
 #include "configurationsignaldialog.h"
 #include "sensordialog.h"
 #include "calibrationdialog.h"
+#include "configurationdialog.h"
 
 #include <QSplitter>
 #include <QTableView>
@@ -23,6 +24,9 @@
 #include <QStyle>
 #include <QInputDialog>
 #include <QLineEdit>
+#include <QComboBox>
+#include <QLabel>
+#include <QSignalBlocker>
 
 namespace qds
 {
@@ -33,19 +37,13 @@ ConfigurationEditor::ConfigurationEditor(
   : QWidget(parent)
   , m_repository(database)
 {
-  m_configurationsView =
-    new BaseTableView(0, this);
-
-  m_configurationsView->horizontalHeader()->setSectionResizeMode(
-    QHeaderView::ResizeToContents);
-
-  m_configurationsView->horizontalHeader()->setStretchLastSection(
-    true);
-
   m_configurationTree =
     new QTreeView(this);
 
   m_configurationTree->header()->hide();
+
+  m_configurationTree->setFrameShape(
+    QFrame::NoFrame);
 
   m_treeModel =
     new ConfigurationTreeModel(
@@ -332,20 +330,11 @@ ConfigurationEditor::ConfigurationEditor(
     tr("Датчики"));
 
 
-  /// splitter
-  auto* splitter =
-    new QSplitter(Qt::Horizontal, this);
-
-  splitter->addWidget(m_configurationsView);
-  splitter->addWidget(m_tabs);
-
-  splitter->setStretchFactor(0, 0);
-  splitter->setStretchFactor(1, 1);
-
+  /// layout
   auto* layout = new QVBoxLayout(this);
 
   layout->addWidget(m_toolBar);
-  layout->addWidget(splitter);
+  layout->addWidget(m_tabs);
 
   layout->setContentsMargins(0, 0, 0, 0);
   layout->setSpacing(0);
@@ -388,13 +377,12 @@ ConfigurationEditor::ConfigurationEditor(
     emit statusMessage(message);
   }
 
-  m_configurationsView->setModel(
-    m_configurations);
+  m_configurationCombo->setModel(m_configurations);
 
-  m_configurationsView->setColumnHidden(
-    0,
-    true);
+  m_configurationCombo->setModelColumn(
+    m_configurations->record().indexOf("name"));
 
+  m_configurationCombo->setCurrentIndex(-1);
   m_configurationTree->setModel(
     m_treeModel);
 
@@ -416,115 +404,17 @@ ConfigurationEditor::ConfigurationEditor(
         updateChannelVisibility(topLeft);
     });
 
-  const int idColumn =
-    m_configurations
-      ->record()
-      .indexOf("id");
-
-  // Изменение текущей конфигурации. TODO = Я бы сделал этот элемент небольшим
-  // глобальным QComboBox-ом прям в QToolbar-е...
+  /// обновление интерфейса после выбора конфигурации
   connect(
-    m_configurationsView->selectionModel(),
-    &QItemSelectionModel::currentRowChanged,
+    m_configurationCombo,
+    &QComboBox::currentIndexChanged,
     this,
-    [this, idColumn](
-      const QModelIndex& current,
-      const QModelIndex&)
+    [this](int)
     {
-      if (!current.isValid())
-      {
-        m_propertiesModel->setItem({});
-
-        m_signalModel->clear();
-
-        m_signalPropertiesModel->setTagSources({});
-        m_signalPropertiesDelegate->setTagSources({});
-
-        return;
-      }
-
-      const auto configurationId =
-        m_configurations
-          ->data(
-            m_configurations->index(
-              current.row(),
-              idColumn))
-          .toUInt();
-
-      const ConfigurationId configuration{
-        configurationId
-      };
-
-      m_propertiesModel->setItem({});
-
-      if (!m_treeModel->load(configuration))
-      {
-        const auto& error = m_repository.lastError();
-        const QString message = error.isValid() ? error.text() : "Failed to load configuration tree";
-
-        QMessageBox::warning(
-          this,
-          tr("Ошибка загрузки конфигурации"),
-          message);
-
-        return;
-      }
-
-      if (!m_signalModel->load(configuration))
-      {
-        const auto& error =
-          m_repository.lastError();
-
-        const QString message =
-          error.isValid()
-            ? error.text()
-            : tr("Не удалось загрузить сигналы");
-
-        QMessageBox::warning(
-          this,
-          tr("Ошибка загрузки сигналов"),
-          message);
-
-        return;
-      }
-
-      const int crateCount = m_treeModel->rowCount();
-      // Обновление после загрузки конфигурации
-      for (int crateRow = 0; crateRow < crateCount; ++crateRow)
-      {
-        const QModelIndex crateIndex =
-          m_treeModel->index(crateRow, 0);
-
-        const int moduleCount =
-          m_treeModel->rowCount(crateIndex);
-
-        for (int moduleRow = 0; moduleRow < moduleCount; ++moduleRow)
-        {
-          const QModelIndex moduleIndex =
-            m_treeModel->index(moduleRow, 0, crateIndex);
-
-          updateChannelVisibility(moduleIndex);
-        }
-      }
-
-      std::vector<TagSourceInfo> tagSources;
-
-      if (!m_repository.tagSources(configuration, tagSources))
-      {
-        QMessageBox::warning(
-          this,
-          tr("Ошибка загрузки источников"),
-          m_repository.lastError().text());
-
-        return;
-      }
-
-      m_signalPropertiesModel->setTagSources(tagSources);
-      m_signalPropertiesDelegate->setTagSources(std::move(tagSources));
-
-      emit statusMessage("Конфигурация загружена");
+      configurationChanged();
     });
 
+  /// обрабатываем событие выбора в дереве объектов
   connect(
     m_configurationTree->selectionModel(),
     &QItemSelectionModel::currentChanged,
@@ -536,7 +426,7 @@ ConfigurationEditor::ConfigurationEditor(
     });
 
   if (m_configurations->rowCount() > 0)
-    m_configurationsView->selectRow(0);
+    m_configurationCombo->setCurrentIndex(0);
 
   // обрабатываем событике изменения сигнала
   connect(
@@ -600,21 +490,11 @@ ConfigurationEditor::ConfigurationEditor(
     this,
     [this]()
     {
-      const QModelIndex current =
-        m_configurationsView->currentIndex();
+      const ConfigurationId configuration =
+        currentConfiguration();
 
-      if (!current.isValid())
+      if (!configuration)
         return;
-
-      const int idColumn =
-        m_configurations->record().indexOf("id");
-
-      const ConfigurationId configuration{
-        m_configurations->data(
-          m_configurations->index(
-            current.row(),
-            idColumn)).toUInt()
-      };
 
       std::vector<TagSourceInfo> tagSources;
 
@@ -785,12 +665,31 @@ void ConfigurationEditor::updateChannelVisibility(
   }
 }
 
+ConfigurationId ConfigurationEditor::currentConfiguration() const
+{
+  const int row = m_configurationCombo->currentIndex();
+
+  if (row < 0)
+    return {};
+
+  const int idColumn =
+    m_configurations->record().indexOf("id");
+
+  if (idColumn < 0)
+    return {};
+
+  return ConfigurationId{
+    m_configurations->data(
+      m_configurations->index(row, idColumn)).toUInt()
+  };
+}
+
 void ConfigurationEditor::createToolbar()
 {
   m_toolBar = new QToolBar(this);
 
   m_toolBar->setIconSize(QSize(16, 16));
-  //m_toolBar->setMovable(false);
+  m_toolBar->setMovable(false);
   m_toolBar->setFloatable(false);
   m_toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
   m_toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
@@ -800,7 +699,7 @@ void ConfigurationEditor::createToolbar()
     tr("Добавить"));
 
   m_removeAction = m_toolBar->addAction(
-    QIcon(":/images/del.png"),
+    QIcon(":/images/trash.png"),
     tr("Удалить"));
 
   m_toolBar->addSeparator();
@@ -820,6 +719,59 @@ void ConfigurationEditor::createToolbar()
   m_addAction->setEnabled(false);
   m_removeAction->setEnabled(false);
   m_testAction->setEnabled(false);
+  m_toolBar->addSeparator();
+
+  m_toolBar->addWidget(
+    new QLabel(tr("Эксперимент:"), m_toolBar));
+
+  /// ComboBox
+  m_configurationCombo =
+    new QComboBox(m_toolBar);
+
+  m_configurationCombo->setMinimumWidth(200);
+  m_configurationCombo->setSizeAdjustPolicy(
+    QComboBox::AdjustToMinimumContentsLengthWithIcon);
+
+  m_toolBar->addWidget(m_configurationCombo);
+
+  m_configurationPropertiesAction =
+    m_toolBar->addAction(
+      QIcon(":/images/config.png"),
+      tr("Свойства..."));
+
+  m_configurationPropertiesAction->setEnabled(false);
+
+  m_configurationAddAction =
+    m_toolBar->addAction(
+      QIcon(":/images/addcfg.png"),
+      tr("Новый эксперимент..."));
+
+  m_configurationRemoveAction =
+    m_toolBar->addAction(
+      QIcon(":/images/removecfg.png"),
+      tr("Удалить эксперимент"));
+
+  m_configurationRemoveAction->setEnabled(false);
+
+  m_toolBar->addSeparator();
+
+  connect(
+    m_configurationPropertiesAction,
+    &QAction::triggered,
+    this,
+    &ConfigurationEditor::editConfiguration);
+
+  connect(
+    m_configurationAddAction,
+    &QAction::triggered,
+    this,
+    &ConfigurationEditor::addConfiguration);
+
+  connect(
+    m_configurationRemoveAction,
+    &QAction::triggered,
+    this,
+    &ConfigurationEditor::removeConfiguration);
 
   connect(
     m_addAction,
@@ -893,7 +845,7 @@ void ConfigurationEditor::createToolbar()
         return;
       }
       else if (m_tabs->currentIndex() != 1 ||
-          !m_configurationsView->currentIndex().isValid())
+        !currentConfiguration())
       {
         return;
       }
@@ -1015,7 +967,7 @@ void ConfigurationEditor::createToolbar()
 void ConfigurationEditor::updateActions()
 {
   const bool hasConfiguration =
-    m_configurationsView->currentIndex().isValid();
+    bool(currentConfiguration());
 
   const bool signalsTab =
     m_tabs->currentIndex() == 1;
@@ -1050,6 +1002,12 @@ void ConfigurationEditor::updateActions()
   m_calibrationAction->setEnabled(
     (sensorTypesTab && hasSensorType) ||
     (sensorsTab && hasSensor));
+
+  m_configurationPropertiesAction->setEnabled(
+    hasConfiguration);
+
+  m_configurationRemoveAction->setEnabled(
+    bool(currentConfiguration()));
 
 
   m_testAction->setEnabled(false);
@@ -1100,7 +1058,9 @@ void ConfigurationEditor::editCalibration()
     defaultName = QString::fromStdString(type->name);
 
     if (!m_repository.sensorTypeCalibration(
-          type->id, calibration))
+          type->id,
+          kind,
+          calibration))
     {
       QMessageBox::warning(
         this,
@@ -1150,7 +1110,9 @@ void ConfigurationEditor::editCalibration()
       defaultName = QString::fromStdString(it->name);
 
       if (!m_repository.sensorTypeCalibration(
-            it->id, calibration))
+            it->id,
+            kind,
+            calibration))
       {
         QMessageBox::warning(
           this,
@@ -1169,7 +1131,9 @@ void ConfigurationEditor::editCalibration()
       defaultName = QString::fromStdString(sensor->name);
 
       if (!m_repository.sensorCalibration(
-            sensor->id, calibration))
+            sensor->id,
+            kind,
+            calibration))
       {
         QMessageBox::warning(
           this,
@@ -1192,7 +1156,6 @@ void ConfigurationEditor::editCalibration()
   if (!calibration.id)
   {
     calibration.kind = kind;
-    calibration.name = defaultName;
 
     if (kind == CalibrationKind::Table)
     {
@@ -1205,17 +1168,6 @@ void ConfigurationEditor::editCalibration()
     {
       calibration.coefficients = {0.0};
     }
-  }
-  else if (calibration.kind != kind)
-  {
-    QMessageBox::warning(
-      this,
-      tr("Несовпадение вида тарировки"),
-      tr("Вид существующей тарировки не совпадает "
-         "с настройкой датчика или типа датчика.\n"
-         "Сначала необходимо согласовать эти настройки."));
-
-    return;
   }
 
   CalibrationDialog dialog(calibration, this);
@@ -1250,8 +1202,336 @@ void ConfigurationEditor::editCalibration()
   }
 
   emit statusMessage(
-    tr("Тарировка «%1» сохранена.")
-      .arg(result.name));
+    tr("Тарировка сохранена."));
+}
+
+void ConfigurationEditor::editConfiguration()
+{
+  const ConfigurationId id =
+    currentConfiguration();
+
+  if (!id)
+    return;
+
+  ConfigurationInfo configuration;
+
+  if (!m_repository.configuration(
+        id, configuration))
+  {
+    const QSqlError error =
+      m_repository.lastError();
+
+    QMessageBox::warning(
+      this,
+      tr("Ошибка загрузки эксперимента"),
+      error.isValid()
+        ? error.text()
+        : tr("Не удалось загрузить эксперимент."));
+
+    return;
+  }
+
+  ConfigurationDialog dialog(this);
+
+  dialog.setWindowTitle(
+    tr("Свойства эксперимента"));
+
+  dialog.setConfiguration(configuration);
+
+  if (dialog.exec() != QDialog::Accepted)
+    return;
+
+  const ConfigurationInfo result =
+    dialog.configuration();
+
+  // Если пользователь ничего не изменил,
+  // повторная запись в базу не нужна.
+  if (result.name == configuration.name &&
+      result.description == configuration.description &&
+      result.udpPort == configuration.udpPort)
+  {
+    return;
+  }
+
+  if (!m_repository.updateConfiguration(result))
+  {
+    const QSqlError error =
+      m_repository.lastError();
+
+    QMessageBox::warning(
+      this,
+      tr("Ошибка сохранения эксперимента"),
+      error.isValid()
+        ? error.text()
+        : tr("Не удалось сохранить изменения."));
+
+    return;
+  }
+
+  {
+    const QSignalBlocker blocker(
+      m_configurationCombo);
+
+    // Обновляем модель списка экспериментов.
+    if (!m_configurations->select())
+    {
+      QMessageBox::warning(
+        this,
+        tr("Ошибка обновления списка экспериментов"),
+        m_configurations->lastError().text());
+
+      return;
+    }
+
+    // Восстанавливаем выбор по ID,
+    // а не по номеру строки.
+    const int idColumn =
+      m_configurations->record().indexOf("id");
+
+    for (int row = 0;
+         row < m_configurations->rowCount();
+         ++row)
+    {
+      const ConfigurationId rowId{
+        m_configurations->data(
+          m_configurations->index(row, idColumn)).toUInt()
+      };
+
+      if (rowId == id)
+      {
+        m_configurationCombo->setCurrentIndex(row);
+        break;
+      }
+    }
+  }
+
+  emit statusMessage(
+    tr("Свойства эксперимента сохранены."));
+}
+
+void ConfigurationEditor::addConfiguration()
+{
+  ConfigurationDialog dialog(this);
+
+  dialog.setWindowTitle(
+    tr("Новый эксперимент"));
+
+  dialog.setConfiguration(ConfigurationInfo{});
+
+  if (dialog.exec() != QDialog::Accepted)
+    return;
+
+  const ConfigurationInfo result =
+    dialog.configuration();
+
+  const auto id =
+    m_repository.addConfiguration(result);
+
+  if (!id)
+  {
+    const QSqlError error =
+      m_repository.lastError();
+
+    QMessageBox::warning(
+      this,
+      tr("Ошибка создания эксперимента"),
+      error.isValid()
+        ? error.text()
+        : tr("Не удалось создать эксперимент."));
+
+    return;
+  }
+
+  {
+    const QSignalBlocker blocker(
+      m_configurationCombo);
+
+    if (!m_configurations->select())
+    {
+      QMessageBox::warning(
+        this,
+        tr("Ошибка обновления списка экспериментов"),
+        m_configurations->lastError().text());
+
+      return;
+    }
+
+    const int idColumn =
+      m_configurations->record().indexOf("id");
+
+    for (int row = 0;
+         row < m_configurations->rowCount();
+         ++row)
+    {
+      const ConfigurationId rowId{
+        m_configurations->data(
+                          m_configurations->index(row, idColumn)).toUInt()
+      };
+
+      if (rowId == *id)
+      {
+        m_configurationCombo->setCurrentIndex(row);
+        break;
+      }
+    }
+  }
+
+  configurationChanged();
+
+  emit statusMessage(
+    tr("Новый эксперимент добавлен."));
+}
+
+void ConfigurationEditor::removeConfiguration()
+{
+  const ConfigurationId id =
+    currentConfiguration();
+
+  if (!id)
+    return;
+
+  const QString name =
+    m_configurationCombo->currentText();
+
+  const auto answer =
+    QMessageBox::question(
+      this,
+      tr("Удаление эксперимента"),
+      tr("Удалить эксперимент «%1»?\n\n"
+         "Все его модули, сигналы и параметры "
+         "будут удалены из конфигурации.")
+        .arg(name),
+      QMessageBox::Yes | QMessageBox::No,
+      QMessageBox::No);
+
+  if (answer != QMessageBox::Yes)
+    return;
+
+  if (!m_repository.removeConfiguration(id))
+  {
+    const QSqlError error =
+      m_repository.lastError();
+
+    QMessageBox::warning(
+      this,
+      tr("Ошибка удаления эксперимента"),
+      error.isValid()
+        ? error.text()
+        : tr("Не удалось удалить эксперимент."));
+
+    return;
+  }
+
+  {
+    const QSignalBlocker blocker(
+      m_configurationCombo);
+
+    if (!m_configurations->select())
+    {
+      QMessageBox::warning(
+        this,
+        tr("Ошибка обновления списка экспериментов"),
+        m_configurations->lastError().text());
+
+      return;
+    }
+  }
+
+  configurationChanged();
+
+  emit statusMessage(
+    tr("Эксперимент «%1» удалён.").arg(name));
+}
+
+void ConfigurationEditor::configurationChanged()
+{
+  const ConfigurationId configuration =
+    currentConfiguration();
+
+  if (!configuration)
+  {
+    m_propertiesModel->setItem({});
+
+    (void)m_treeModel->load(ConfigurationId{});
+    m_signalModel->clear();
+
+    m_signalPropertiesModel->setTagSources({});
+    m_signalPropertiesDelegate->setTagSources({});
+
+    updateActions();
+    return;
+  }
+
+  m_propertiesModel->setItem({});
+
+  if (!m_treeModel->load(configuration))
+  {
+    const auto& error = m_repository.lastError();
+    const QString message = error.isValid() ? error.text() : "Failed to load configuration tree";
+
+    QMessageBox::warning(
+      this,
+      tr("Ошибка загрузки конфигурации"),
+      message);
+
+    return;
+  }
+
+  if (!m_signalModel->load(configuration))
+  {
+    const auto& error =
+      m_repository.lastError();
+
+    const QString message =
+      error.isValid()
+        ? error.text()
+        : tr("Не удалось загрузить сигналы");
+
+    QMessageBox::warning(
+      this,
+      tr("Ошибка загрузки сигналов"),
+      message);
+
+    return;
+  }
+
+  const int crateCount = m_treeModel->rowCount();
+  // Обновление после загрузки конфигурации
+  for (int crateRow = 0; crateRow < crateCount; ++crateRow)
+  {
+    const QModelIndex crateIndex =
+      m_treeModel->index(crateRow, 0);
+
+    const int moduleCount =
+      m_treeModel->rowCount(crateIndex);
+
+    for (int moduleRow = 0; moduleRow < moduleCount; ++moduleRow)
+    {
+      const QModelIndex moduleIndex =
+        m_treeModel->index(moduleRow, 0, crateIndex);
+
+      updateChannelVisibility(moduleIndex);
+    }
+  }
+
+  std::vector<TagSourceInfo> tagSources;
+
+  if (!m_repository.tagSources(configuration, tagSources))
+  {
+    QMessageBox::warning(
+      this,
+      tr("Ошибка загрузки источников"),
+      m_repository.lastError().text());
+
+    return;
+  }
+
+  m_signalPropertiesModel->setTagSources(tagSources);
+  m_signalPropertiesDelegate->setTagSources(std::move(tagSources));
+
+  emit statusMessage("Конфигурация загружена");
+
+  updateActions();
 }
 
 }

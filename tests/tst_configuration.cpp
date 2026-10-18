@@ -598,7 +598,6 @@ void tst_configuration::test_createTableCalibration()
   // Указываем существующий датчик в тестовой БД.
   calibration.sensorId = SensorId{sensor.id};
   calibration.kind = CalibrationKind::Table;
-  calibration.name = "Test calibration";
   calibration.description = "Created by Qt Test";
 
   calibration.points = {
@@ -674,7 +673,6 @@ void tst_configuration::test_updateTableCalibration()
   Calibration calibration;
   calibration.sensorId = SensorId{sensor.id};
   calibration.kind = CalibrationKind::Table;
-  calibration.name = "Test calibration";
   calibration.description = "Before update";
 
   calibration.points = {
@@ -691,7 +689,6 @@ void tst_configuration::test_updateTableCalibration()
   const CalibrationId id = calibration.id;
 
   // Изменяем название, описание и точки.
-  calibration.name = "Updated calibration";
   calibration.description = "After update";
 
   calibration.points = {
@@ -788,7 +785,6 @@ void tst_configuration::test_updateTableCalibrationRollback()
   Calibration calibration;
   calibration.sensorId = SensorId{sensor.id};
   calibration.kind = CalibrationKind::Table;
-  calibration.name = "Test calibration";
   calibration.description = "Before update";
 
   calibration.points = {
@@ -805,7 +801,6 @@ void tst_configuration::test_updateTableCalibrationRollback()
   const CalibrationId id = calibration.id;
 
   // Изменяем название, описание и точки.
-  calibration.name = "Updated calibration";
   calibration.description = "After update";
 
   calibration.points = {
@@ -903,7 +898,6 @@ void tst_configuration::test_createPolynomialCalibration()
 
   calibration.sensorId = SensorId{sensor.id};
   calibration.kind = CalibrationKind::Polynomial;
-  calibration.name = "Test polynomial calibration";
   calibration.description = "Created by Qt Test";
 
   // y = 2 + 3*x + 4*x*x
@@ -1047,7 +1041,6 @@ void tst_configuration::test_updatePolynomialCalibration()
 
   calibration.sensorId = SensorId{sensor.id};
   calibration.kind = CalibrationKind::Polynomial;
-  calibration.name = "Test polynomial calibration";
   calibration.description = "Created by Qt Test";
 
   // y = 2 + 3*x + 4*x*x
@@ -1067,7 +1060,6 @@ void tst_configuration::test_updatePolynomialCalibration()
   QVERIFY(id.value != 0);
 
   // Изменяем название, описание и коэффициенты.
-  calibration.name = "Updated calibration";
   calibration.description = "After update";
 
   calibration.coefficients = {
@@ -1183,7 +1175,6 @@ void tst_configuration::test_updateCalibrationImmutableFields()
 
   calibration.sensorId = SensorId{sensor.id};
   calibration.kind = CalibrationKind::Polynomial;
-  calibration.name = "Test polynomial calibration";
   calibration.description = "Created by Qt Test";
 
   // y = 2 + 3*x + 4*x*x
@@ -1203,7 +1194,6 @@ void tst_configuration::test_updateCalibrationImmutableFields()
   QVERIFY(id.value != 0);
 
   // Изменяем название, описание и коэффициенты.
-  calibration.name = "Updated calibration";
   calibration.description = "After update";
 
   // 1. меняем kind - вид тарировки

@@ -40,8 +40,6 @@ CalibrationDialog::CalibrationDialog(
   m_model->setCalibration(calibration);
 
   // Основные поля.
-  m_ui->nameEdit->setText(calibration.name);
-
   m_ui->descriptionEdit->setPlainText(
     calibration.description);
 
@@ -155,8 +153,6 @@ Calibration CalibrationDialog::calibration() const
 {
   Calibration result = m_model->calibration();
 
-  result.name = m_ui->nameEdit->text().trimmed();
-
   result.description =
     m_ui->descriptionEdit->toPlainText();
 
@@ -224,17 +220,6 @@ void CalibrationDialog::updatePlot()
 void CalibrationDialog::accept()
 {
   Calibration result = calibration();
-
-  if (result.name.isEmpty())
-  {
-    QMessageBox::warning(
-      this,
-      tr("Ошибка тарировки"),
-      tr("Название тарировки не может быть пустым."));
-
-    m_ui->nameEdit->setFocus();
-    return;
-  }
 
   if (result.kind == CalibrationKind::Table)
   {
