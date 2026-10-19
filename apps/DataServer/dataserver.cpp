@@ -39,6 +39,7 @@ DataServer::DataServer(
     this,
     &DataServer::onTimer);
 
+  m_timer.setParent(this);
   m_timer.setInterval(EngineTimerIntervalMs);
 }
 
@@ -123,6 +124,8 @@ bool DataServer::start()
   m_running = true;
   m_timer.start();
 
+  emit started();
+
   return true;
 }
 
@@ -165,6 +168,9 @@ void DataServer::cleanup()
   m_subscriptions.clear();
 
   m_running = false;
+
+  if (wasRunning)
+    emit stopped();
 }
 
 void DataServer::onTimer()

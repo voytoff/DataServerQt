@@ -306,9 +306,9 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
         static_cast<double>(
           frameIndex * 10 + 1);
 
-      const double a = raw0;
-      const double b = raw1;
-      const double c = 2.0 * (a + b);
+      const double a = raw0 * 0.1;
+      const double b = raw1 - 20.0;
+      const double c = a + b;
 
       QCOMPARE(
         samples1[0],
@@ -353,7 +353,7 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
         static_cast<double>(
           frameIndex * 10);
 
-      const double a = raw0;
+      const double a = raw0 * 0.1;
 
       QCOMPARE(
         samples2[0],
@@ -490,7 +490,7 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
       static_cast<double>(
         frameIndex * 10);
 
-    const double a = raw0;
+    const double a = raw0 * 0.1;
 
     QCOMPARE(
       sample.values[0],
@@ -519,9 +519,9 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
       static_cast<double>(
         frameIndex * 10 + 1);
 
-    const double a = raw0;
-    const double b = raw1;
-    const double c = 2.0 * (a + b);
+    const double a = raw0 * 0.1;
+    const double b = raw1 - 20.0;
+    const double c = a + b;
 
     QCOMPARE(
       sample.values[0],

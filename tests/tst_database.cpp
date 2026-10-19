@@ -278,7 +278,7 @@ void tst_database::test_database_pipeline()
 {
   using namespace qds;
 
-  auto db = get_db();
+auto db = get_db();
 
   QVERIFY(db.isOpen());
   QVERIFY(db.isValid());
@@ -621,6 +621,10 @@ void tst_database::test_database_archive()
   SystemBuilder builder;
   SensorRepository sensors;
 
+  QVERIFY(
+    repo.loadSensors(
+      sensors));
+
   auto runtime =
     builder.build(
       cfg,
@@ -880,23 +884,11 @@ void tst_database::test_database_archive()
           signal.kind ==
           SignalKind::Calculated)
         {
-          double a;
-/*
-          QVERIFY(
-            runtime->calibrations
-              .calibrateBySensor()
-                sda->id,
-                raw0,
-                a));
+          const double a =
+            raw0 * 0.1;
 
-          double b;
-
-          QVERIFY(
-            runtime->calibrations
-              .addBySensorType()
-                sdb->signalType,
-                raw1,
-                b));
+          const double b =
+            raw1 - 20.0;
 
           const double c =
             a + b;
@@ -922,9 +914,8 @@ void tst_database::test_database_archive()
           else
           {
             QFAIL(
-              "Unexpected signal in archive");
+              "Unexpected calculated signal in archive");
           }
-*/
         }
       }
     }
@@ -1536,6 +1527,10 @@ void tst_database::test_publisher_raw_calculated()
 
   SystemBuilder builder;
   SensorRepository sensors;
+
+  QVERIFY(
+    repo.loadSensors(
+      sensors));
 
   auto runtime =
     builder.build(

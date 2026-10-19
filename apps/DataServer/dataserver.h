@@ -67,6 +67,10 @@ private:
   QTimer m_timer;
 
   bool m_running = false;
+
+signals:
+  void started();
+  void stopped();
 };
 
 }

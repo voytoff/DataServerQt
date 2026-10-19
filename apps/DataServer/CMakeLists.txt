@@ -6,8 +6,8 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Network)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Network)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS      Core Widgets Network Sql)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Network Sql)
 
 add_library(DataServerCore SHARED
     dataserver.h dataserver.cpp
@@ -31,6 +31,8 @@ target_link_libraries(DataServerCore
 
 add_executable(dataserver
     main.cpp
+    guilogger.h guilogger.cpp
+    mainwindow.h mainwindow.cpp
 )
 
 target_link_libraries(dataserver
@@ -43,13 +45,17 @@ target_link_libraries(dataserver
         UdpSender
         DataServerRuntime
         DataServerCore
+        DataArchive
     PRIVATE
       Qt${QT_VERSION_MAJOR}::Core
+      Qt${QT_VERSION_MAJOR}::Widgets
       Qt${QT_VERSION_MAJOR}::Network
+      Qt${QT_VERSION_MAJOR}::Sql
 )
 
 target_include_directories(dataserver
-    PRIVATE
-        "../../tests/qds"
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../tests/qds
 )
 

@@ -1,45 +1,242 @@
-#include "fakeschedulerclock.h"
+#include "archivedescriptionbuilder.h"
+#include "archivemanager.h"
+#include "configurationrepository.h"
 #include "lcarddatasource.h"
 #include "ltr11configurationbuilder.h"
 #include "ltr11module.h"
+#include "schedulerclock.h"
+#include "systemclock.h"
 #include "systemconfiguration.h"
 #include "dataserver.h"
-#include "testarchivewriter.h"
 #include "testdatastreamsource.h"
-#include "testpublisher.h"
 #include "udpsender.h"
 #include "logger.h"
 
 #include <QCoreApplication>
+#include <QCommandLineParser>
+#include <QFileInfo>
+#include <QSettings>
 
-static qds::SystemConfiguration createTestConfig_calculate(qds::ModuleType type = qds::ModuleType::Unknown)
+static bool get_db(
+  const QCoreApplication& app,
+  QSqlDatabase& database,
+  qds::ConfigurationId& configuration,
+  std::filesystem::path& archiveDirectory,
+  std::filesystem::path& logDirectory)
 {
-  using namespace qds;
-  SystemConfiguration cfg;
+  QCommandLineParser parser;
+  parser.setApplicationDescription(
+    "DataServer Configuration Editor");
 
-  ModuleInfo m{.id = {0}, .type = type};
-  cfg.addModule(m);
+  parser.addHelpOption();
 
-  cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}});
-  cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}});
+  QCommandLineOption configOption(
+    "config",
+    "Configuration INI file",
+    "file",
+    "dataserver.ini");
 
-  cfg.addSignalDefinition({.id = {0}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveRate = ArchiveRate::Hz1000});
-  cfg.addSignalDefinition({.id = {1}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveRate = ArchiveRate::Hz100});
+  parser.addOption(configOption);
+  parser.process(app);
 
-  cfg.addSignalDefinition({.id = {17}, .name = "A", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz100, .formula = "Raw0", .formulaId = {0}, .dependencies = {{0}}}); // Raw0
+  const QString configFile =
+    parser.value(configOption);
 
-  cfg.addSignalDefinition({.id = {4}, .name = "B", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .formula = "Raw1", .formulaId = {1}, .dependencies = {{1}}});  // Raw1
+  if (!QFileInfo::exists(configFile))
+  {
+    qCritical()
+      << "Configuration error"
+      << "Configuration file not found:\n"
+      << configFile;
 
-  cfg.addSignalDefinition({.id = {23}, .name = "C", .kind = SignalKind::Calculated, .archiveRate = ArchiveRate::Hz10, .formula = "A + B", .formulaId = {2}, .dependencies = {{17}, {4}}}); // A & B
+    return false;
+  }
 
-  return cfg;
+  QSettings settings(
+    configFile,
+    QSettings::IniFormat);
+
+  settings.beginGroup("Database");
+
+  const QString plugin =
+    settings.value(
+              "Plugin",
+              "QMARIADB").toString();
+
+  const QString host =
+    settings.value(
+              "Host",
+              "127.0.0.1").toString();
+
+  const int port =
+    settings.value(
+              "Port",
+              3306).toInt();
+
+  const QString databaseName =
+    settings.value(
+              "Name").toString();
+
+  const QString userName =
+    settings.value(
+              "User").toString();
+
+  const QString password =
+    settings.value(
+              "Password").toString();
+
+  settings.endGroup();
+
+  if (settings.status() != QSettings::NoError ||
+      databaseName.isEmpty() ||
+      userName.isEmpty() ||
+      port < 1 ||
+      port > 65535)
+  {
+    qCritical()
+      << "Configuration error"
+      << "Invalid database settings:\n"
+      << configFile;
+
+    return false;
+  }
+
+  settings.beginGroup("Server");
+
+  bool idOk = false;
+
+  const auto configurationId =
+    settings.value("ConfigurationId")
+      .toUInt(&idOk);
+
+  settings.endGroup();
+
+  if (!idOk || configurationId == 0)
+  {
+    qCritical() << "Invalid ConfigurationId";
+    return false;
+  }
+
+  settings.beginGroup("Archive");
+
+  const auto archive =
+    settings.value("Directory")
+      .toString();
+
+  settings.endGroup();
+
+  if (archive.isEmpty())
+  {
+    qCritical() << "Archive Directory error";
+    return false;
+  }
+
+  settings.beginGroup("Log");
+
+  const auto log =
+    settings.value("Directory")
+      .toString();
+
+  settings.endGroup();
+
+  if (log.isEmpty())
+  {
+    qCritical() << "Log Directory error";
+    return false;
+  }
+
+
+  QSqlDatabase db =
+    QSqlDatabase::addDatabase(plugin);
+
+  db.setHostName(host);
+  db.setPort(port);
+  db.setDatabaseName(databaseName);
+  db.setUserName(userName);
+  db.setPassword(password);
+
+  if (!db.open())
+  {
+    qCritical()
+      << "Database error"
+      << db.lastError().text();
+
+    return false;
+  }
+
+  database = std::move(db);
+
+  configuration = qds::ConfigurationId{configurationId};
+
+  archiveDirectory = std::filesystem::path(archive.toStdString());
+  if (!std::filesystem::is_directory(archiveDirectory))
+  {
+    qCritical() << "Archive Directory error";
+    return false;
+  }
+
+  logDirectory = std::filesystem::path(log.toStdString());
+  if (!std::filesystem::is_directory(logDirectory))
+  {
+    qCritical() << "Log Directory error";
+    return false;
+  }
+
+  return true;
 }
+
 
 int main(int argc, char *argv[]) {
   QCoreApplication app(argc, argv);
 
-  qds::SystemConfiguration cfg = createTestConfig_calculate(qds::ModuleType::Test);
-  qds::CalibrationRepository repository;
+  QSqlDatabase database;
+  qds::ConfigurationId configuration;
+  std::filesystem::path archivePath;
+  std::filesystem::path logPath;
+
+  if (!get_db(
+        app,
+        database,
+        configuration,
+        archivePath,
+        logPath))
+    return -1;
+
+  qds::SystemConfiguration cfg;
+  qds::SensorRepository sensors;
+  qds::CalibrationRepository calibrations;
+
+  qds::ConfigurationRepository repository(database);
+
+  if (!repository.load(configuration, cfg))
+    return 1;
+
+  if (!repository.loadSensors(sensors))
+    return 1;
+
+  if (!repository.loadCalibrations(cfg, calibrations))
+    return 1;
+
+  qds::SystemClock systemClock;
+  qds::SchedulerClock clock(systemClock);
+
+  qds::ArchiveDescriptionBuilder builder;
+  qds::ArchiveDescription description;
+
+  if (!builder.build(cfg, description))
+    return 1;
+
+  qds::SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  qds::ArchiveManager archive;
+
+  if (!archive.initialize(
+        archivePath,
+        description,
+        layout))
+    return 1;
+
 
   qds::DataStreamSourceFactory factory;
 
@@ -90,17 +287,14 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  qds::TestArchiveWriter archive;
-  qds::TestPublisher publisher;
-  qds::FakeSchedulerClock clock;
   qds::UdpSender sender;
-  qds::Logger logger(std::filesystem::current_path(), clock);
-  qds::SensorRepository sensors;
+
+  qds::Logger logger(logPath, clock);
 
   qds::DataServer server(
     cfg,
     sensors,
-    repository,
+    calibrations,
     factory,
     archive,
     clock,
@@ -108,7 +302,15 @@ int main(int argc, char *argv[]) {
     logger);
 
   if (!server.start())
-    return -1;
+  {
+    archive.close();
+    return 1;
+  }
 
-  return app.exec();
+  const int result = app.exec();
+
+  server.stop();
+  archive.close();
+
+  return result;
 }
