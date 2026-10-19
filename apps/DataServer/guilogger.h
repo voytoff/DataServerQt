@@ -9,13 +9,13 @@
 namespace qds
 {
 
-class GuiLogger : public QObject, public qds::ILogger
+class GuiLogger : public QObject, public ILogger
 {
   Q_OBJECT
 
 public:
   explicit GuiLogger(
-    qds::ILogger& fileLogger,
+    ILogger& fileLogger,
     QObject* parent = nullptr);
 
   bool debug(std::string_view message) override;
@@ -23,17 +23,18 @@ public:
   bool warning(std::string_view message) override;
   bool error(std::string_view message) override;
 
-signals:
-  void messageReceived(
-    qds::LogLevel level,
-    QString message);
-
 private:
-  bool write(
-    qds::LogLevel level,
+  void write(
+    LogLevel level,
     std::string_view message);
 
-  qds::ILogger& m_fileLogger;
+  ILogger& m_fileLogger;
+
+signals:
+  void messageReceived(
+    LogLevel level,
+    QString message);
+
 };
 
 }

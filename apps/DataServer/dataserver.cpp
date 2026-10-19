@@ -169,7 +169,7 @@ void DataServer::cleanup()
 
   m_running = false;
 
-  if (wasRunning)
+  //if (wasRunning)
     emit stopped();
 }
 

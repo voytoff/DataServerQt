@@ -4,7 +4,9 @@
 #include "lcarddatasource.h"
 #include "ltr11configurationbuilder.h"
 #include "ltr11module.h"
+#include "mainwindow.h"
 #include "schedulerclock.h"
+#include "servercontroller.h"
 #include "systemclock.h"
 #include "systemconfiguration.h"
 #include "dataserver.h"
@@ -12,10 +14,14 @@
 #include "udpsender.h"
 #include "logger.h"
 
-#include <QCoreApplication>
+#include <QApplication>
 #include <QCommandLineParser>
 #include <QFileInfo>
 #include <QSettings>
+#include <QTranslator>
+#include <QLibraryInfo>
+#include <QStyleFactory>
+
 
 static bool get_db(
   const QCoreApplication& app,
@@ -26,7 +32,7 @@ static bool get_db(
 {
   QCommandLineParser parser;
   parser.setApplicationDescription(
-    "DataServer Configuration Editor");
+    "DataServer Service");
 
   parser.addHelpOption();
 
@@ -164,10 +170,6 @@ static bool get_db(
     return false;
   }
 
-  database = std::move(db);
-
-  configuration = qds::ConfigurationId{configurationId};
-
   archiveDirectory = std::filesystem::path(archive.toStdString());
   if (!std::filesystem::is_directory(archiveDirectory))
   {
@@ -182,12 +184,41 @@ static bool get_db(
     return false;
   }
 
+  database = std::move(db);
+
+  configuration = qds::ConfigurationId{configurationId};
+
   return true;
 }
 
 
 int main(int argc, char *argv[]) {
-  QCoreApplication app(argc, argv);
+  QApplication app(argc, argv);
+
+  QTranslator qtTranslator;
+
+  const QString lang =
+    QLocale::system().name();
+
+  if (qtTranslator.load(
+        "qt_" + lang,
+        QLibraryInfo::path(
+          QLibraryInfo::TranslationsPath)))
+  {
+    app.installTranslator(&qtTranslator);
+  }
+
+  QTranslator myTranslator;
+
+  if (myTranslator.load(
+        "acdanalizer_" + lang,
+        ":/translations"))
+  {
+    app.installTranslator(&myTranslator);
+  }
+
+  app.setStyle(
+    QStyleFactory::create("windows11"));
 
   QSqlDatabase database;
   qds::ConfigurationId configuration;
@@ -201,6 +232,23 @@ int main(int argc, char *argv[]) {
         archivePath,
         logPath))
     return -1;
+
+  qds::ServerController controller(
+    database,
+    configuration,
+    archivePath,
+    logPath);
+
+  qds::MainWindow window(database, controller);
+
+  window.show();
+
+  const int result = app.exec();
+
+  controller.stop();
+
+  return result;
+
 
   qds::SystemConfiguration cfg;
   qds::SensorRepository sensors;
@@ -307,10 +355,4 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  const int result = app.exec();
-
-  server.stop();
-  archive.close();
-
-  return result;
 }
