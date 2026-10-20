@@ -43,6 +43,10 @@ public:
   [[nodiscard]]
   bool loadConfiguration();
 
+  [[nodiscard]]
+  std::optional<DataStreamSourceStatistics> statistics(
+    ModuleId id) const noexcept;
+
 private:
   bool registerDataSources();
   bool initializeArchive();

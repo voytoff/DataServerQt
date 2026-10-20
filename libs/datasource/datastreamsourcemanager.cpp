@@ -20,6 +20,9 @@ bool DataStreamSourceManager::initialize(
 
   std::vector<std::unique_ptr<IDataStreamSource>> sources;
 
+  std::vector<ModuleId> moduleIds;
+  moduleIds.reserve(configuration.modules().size());
+
   for (const auto& module : configuration.modules())
   {
     const auto type = module.type;
@@ -63,6 +66,7 @@ bool DataStreamSourceManager::initialize(
       return false;
     }
 
+    moduleIds.push_back(module.id);
     sources.push_back(std::move(source));
   }
 
@@ -128,6 +132,19 @@ bool DataStreamSourceManager::isRunning() const noexcept
 std::size_t DataStreamSourceManager::size() const noexcept
 {
   return m_sources.size();
+}
+
+std::optional<DataStreamSourceStatistics>
+DataStreamSourceManager::statistics(
+  ModuleId id) const noexcept
+{
+  for (std::size_t i = 0; i < m_moduleIds.size(); ++i)
+  {
+    if (m_moduleIds[i] == id)
+      return m_sources[i]->statistics();
+  }
+
+  return std::nullopt;
 }
 
 }

@@ -11,9 +11,11 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Sql Svg)
 
 set(CONFIGEDITOR_RESOURCE_FILES res.qrc)
 qt6_add_resources(CONFIGEDITOR_PROJECT_RESOURCES ${CONFIGEDITOR_RESOURCE_FILES})
+set(APP_ICON_RESOURCE_WINDOWS "appicon.rc")
 
 qt_add_executable(configeditor
     ${CONFIGEDITOR_PROJECT_RESOURCES}
+    ${APP_ICON_RESOURCE_WINDOWS}
     main.cpp
     treeitemdata.h
     mainwindow.h mainwindow.cpp

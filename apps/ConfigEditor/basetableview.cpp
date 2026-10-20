@@ -31,12 +31,15 @@ BaseTableView::BaseTableView(
   setSelectionMode(
     QAbstractItemView::SingleSelection);
 
+  setStyleSheet(
+    "QTableView::item {padding: 0 4px 0 4px;}");
+
   auto *vHeader = verticalHeader();
 
   vHeader->setSectionResizeMode(
     QHeaderView::Fixed);
 
-  vHeader->setDefaultSectionSize(26);
+  vHeader->setDefaultSectionSize(26);  
 
   vHeader->setVisible(false);
 

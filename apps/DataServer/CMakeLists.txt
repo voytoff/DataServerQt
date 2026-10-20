@@ -31,9 +31,11 @@ target_link_libraries(DataServerCore
 
 set(SERVER_RESOURCE_FILES res.qrc)
 qt6_add_resources(SERVER_PROJECT_RESOURCES ${SERVER_RESOURCE_FILES})
+set(APP_ICON_RESOURCE_WINDOWS "appicon.rc")
 
 add_executable(dataserver
     ${SERVER_PROJECT_RESOURCES}
+    ${APP_ICON_RESOURCE_WINDOWS}
     main.cpp
     guilogger.h guilogger.cpp
     mainwindow.h mainwindow.cpp

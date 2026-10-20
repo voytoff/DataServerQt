@@ -1,19 +1,20 @@
 #pragma once
 
-#include <QObject>
-#include <QTimer>
-
+#include "datastreamsourcestatistics.h"
 #include "packetdispatcher.h"
 #include "publisher.h"
 #include "runtimesystem.h"
 #include "subscriptionmanager.h"
 #include "systemconfiguration.h"
-
 #include "iarchivewriter.h"
 #include "ischedulerclock.h"
 #include "isender.h"
 #include "ilogger.h"
 #include "udpserver.h"
+
+#include <QObject>
+#include <QTimer>
+#include <optional>
 
 namespace qds
 {
@@ -40,6 +41,10 @@ public:
 
   [[nodiscard]]
   bool isRunning() const noexcept;
+
+  [[nodiscard]]
+  std::optional<DataStreamSourceStatistics> statistics(
+    ModuleId id) const noexcept;
 
 private:
   void onTimer();

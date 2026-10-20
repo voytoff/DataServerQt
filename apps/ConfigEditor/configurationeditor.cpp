@@ -698,6 +698,7 @@ void ConfigurationEditor::createToolbar()
   m_toolBar->setFloatable(false);
   m_toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
   m_toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
+  //m_toolBar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
 
   m_addAction = m_toolBar->addAction(
     QIcon(":/images/add.png"),

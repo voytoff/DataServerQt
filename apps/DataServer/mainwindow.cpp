@@ -13,6 +13,7 @@
 #include <QToolBar>
 #include <QStatusBar>
 #include <QSplitter>
+#include <QDateTime>
 
 namespace qds
 {
@@ -32,25 +33,11 @@ MainWindow::MainWindow(
 
   resize(1000, 650);
 
+  createToolbar();
+
   auto* splitter = new QSplitter(Qt::Vertical, this);
   splitter->setChildrenCollapsible(false);
   splitter->setHandleWidth(5);
-
-  auto* toolBar = addToolBar(tr("Управление"));
-
-  toolBar->setMovable(false);
-  toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-
-  m_startAction = toolBar->addAction(
-    tr("Запустить"));
-
-  m_stopAction = toolBar->addAction(
-    tr("Остановить"));
-
-  toolBar->addSeparator();
-
-  m_clearLogAction = toolBar->addAction(
-    tr("Очистить журнал"));
 
   m_statusLabel = new QLabel(tr("Остановлен"), this);
 
@@ -68,9 +55,18 @@ MainWindow::MainWindow(
   m_modulesTable = new QTableWidget(this);
   m_modulesTable->setFrameShape(QFrame::NoFrame);
 
-  m_modulesTable->setColumnCount(3);
-  m_modulesTable->setHorizontalHeaderLabels(
-    {"Модуль", "Тип", "Состояние"});
+  m_modulesTable->setStyleSheet(
+    "QTableWidget::item {padding: 0 8px 0 8px;}");
+
+  m_modulesTable->setColumnCount(6);
+  m_modulesTable->setHorizontalHeaderLabels({
+    "Модуль",
+    "Тип",
+    "Состояние",
+    "Блоков",
+    "Кадров",
+    "Последние данные"
+  });
 
   m_modulesTable->setSelectionBehavior(
     QAbstractItemView::SelectRows);
@@ -90,11 +86,11 @@ MainWindow::MainWindow(
   header->setSectionResizeMode(
     0, QHeaderView::Stretch);
 
-  header->setSectionResizeMode(
-    1, QHeaderView::ResizeToContents);
-
-  header->setSectionResizeMode(
-    2, QHeaderView::ResizeToContents);
+  for (int column = 1; column < 6; ++column)
+  {
+    header->setSectionResizeMode(
+      column, QHeaderView::ResizeToContents);
+  }
 
   m_modulesTable->setShowGrid(false);
 
@@ -114,25 +110,16 @@ MainWindow::MainWindow(
 
   setCentralWidget(splitter);
 
-  connect(
-    m_startAction,
-    &QAction::triggered,
-    this,
-    [this]()
-    {
-      if (!m_controller.start())
-        m_logView->appendPlainText(
-          tr("ERROR: Не удалось запустить сервер"));
-    });
+  m_statisticsTimer = new QTimer(this);
+  m_statisticsTimer->setInterval(500);
 
   connect(
-    m_stopAction,
-    &QAction::triggered,
+    m_statisticsTimer,
+    &QTimer::timeout,
     this,
-    [this]()
-    {
-      m_controller.stop();
-    });
+    &MainWindow::updateModuleStatistics);
+
+  m_statisticsTimer->start();
 
   connect(
     &m_controller,
@@ -194,6 +181,58 @@ MainWindow::MainWindow(
     m_controller.isRunning());
 }
 
+void MainWindow::createToolbar()
+{
+  auto* toolBar = addToolBar(tr("Управление"));
+  toolBar->setIconSize(QSize(16, 16));
+
+  toolBar->setMovable(false);
+  toolBar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+
+  m_startAction = toolBar->addAction(
+    QIcon(":/images/start.png"),
+    tr("Запустить"));
+
+  m_stopAction = toolBar->addAction(
+    QIcon(":/images/stop.png"),
+    tr("Остановить"));
+
+  toolBar->addSeparator();
+
+  m_clearLogAction = toolBar->addAction(
+    QIcon(":/images/clear.png"),
+    tr("Очистить журнал"));
+
+  connect(
+    m_startAction,
+    &QAction::triggered,
+    this,
+    [this]()
+    {
+      if (!m_controller.start())
+        m_logView->appendPlainText(
+          tr("ERROR: Не удалось запустить сервер"));
+    });
+
+  connect(
+    m_stopAction,
+    &QAction::triggered,
+    this,
+    [this]()
+    {
+      m_controller.stop();
+    });
+
+  connect(
+    m_clearLogAction,
+    &QAction::triggered,
+    this,
+    [this]()
+    {
+      m_logView->clear();
+    });
+}
+
 void MainWindow::updateModules()
 {
   const auto& modules =
@@ -224,6 +263,17 @@ void MainWindow::updateModules()
     m_modulesTable->setItem(row, 1, typeItem);
     m_modulesTable->setItem(row, 2, stateItem);
 
+    for (int column = 3; column < 6; ++column)
+    {
+      auto* item = new QTableWidgetItem("—");
+
+      if (column == 3 || column == 4)
+        item->setTextAlignment(
+          Qt::AlignRight | Qt::AlignVCenter);
+
+      m_modulesTable->setItem(row, column, item);
+    }
+
     ++row;
   }
 }
@@ -238,6 +288,52 @@ void MainWindow::updateServerState(
     running
       ? tr("Сервер работает")
       : tr("Сервер остановлен"));
+}
+
+void MainWindow::updateModuleStatistics()
+{
+  if (!m_controller.isRunning())
+    return;
+
+  for (int row = 0;
+       row < m_modulesTable->rowCount();
+       ++row)
+  {
+    const auto* moduleItem =
+      m_modulesTable->item(row, 0);
+
+    if (!moduleItem)
+      continue;
+
+    const ModuleId id{
+      moduleItem->data(Qt::UserRole).toUInt()
+    };
+
+    const auto statistics =
+      m_controller.statistics(id);
+
+    if (!statistics)
+      continue;
+
+    const auto& stats = *statistics;
+
+    m_modulesTable->item(row, 3)->setText(
+      QString::number(stats.blocksReceived));
+
+    m_modulesTable->item(row, 4)->setText(
+      QString::number(stats.framesReceived));
+
+    if (stats.lastTimestamp != 0)
+    {
+      const auto time =
+        QDateTime::fromMSecsSinceEpoch(
+          static_cast<qint64>(
+            stats.lastTimestamp / 1000));
+
+      m_modulesTable->item(row, 5)->setText(
+        time.toString("HH:mm:ss.zzz"));
+    }
+  }
 }
 
 }

@@ -148,6 +148,15 @@ bool DataServer::isRunning() const noexcept
   return m_running;
 }
 
+std::optional<DataStreamSourceStatistics>
+DataServer::statistics(ModuleId id) const noexcept
+{
+  if (!m_runtime)
+    return std::nullopt;
+
+  return m_runtime->dataSources.statistics(id);
+}
+
 void DataServer::cleanup()
 {
   m_timer.stop();

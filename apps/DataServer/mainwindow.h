@@ -6,6 +6,7 @@
 #include <QLabel>
 #include <QPlainTextEdit>
 #include <QTableWidget>
+#include <QTimer>
 
 class QLabel;
 class QPushButton;
@@ -28,8 +29,11 @@ public:
     QWidget* parent = nullptr);
 
 private:
+  void createToolbar();
   void updateModules();
   void updateServerState(bool running);
+
+  void updateModuleStatistics();
 
 private:
   ServerController& m_controller;
@@ -45,6 +49,7 @@ private:
 
   QPlainTextEdit* m_logEdit = nullptr;
 
+  QTimer* m_statisticsTimer = nullptr;
 };
 
 }

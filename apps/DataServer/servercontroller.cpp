@@ -82,6 +82,15 @@ bool ServerController::loadConfiguration()
   return true;
 }
 
+std::optional<DataStreamSourceStatistics>
+ServerController::statistics(ModuleId id) const noexcept
+{
+  if (!m_server)
+    return std::nullopt;
+
+  return m_server->statistics(id);
+}
+
 bool ServerController::registerDataSources()
 {
   if (!m_factory.registerType(
