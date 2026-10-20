@@ -959,6 +959,13 @@ inline qds::ModuleRuntimeConfiguration createModuleRuntimeConfiguration(ModuleTy
       }
     };
 
+  if (type == ModuleType::LTR11)
+  {
+    cfg.configuration.settings = {
+      {"mode" , 1} // для тестов 32 канала
+    };
+  }
+
   return cfg;
 }
 

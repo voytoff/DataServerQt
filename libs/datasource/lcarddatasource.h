@@ -6,6 +6,7 @@
 #include "idatastreameventsink.h"
 #include "idatastreamsource.h"
 #include "ilcardmodule.h"
+#include "ilogger.h"
 
 #include <atomic>
 #include <memory>
@@ -27,6 +28,7 @@ public:
     uint32_t channelCount,
     std::unique_ptr<ILCardModule> module,
     IClock& clock,
+    ILogger& logger,
     IDataBlockSink* blockSink = nullptr,
     IDataStreamEventSink* eventSink = nullptr);
 
@@ -39,6 +41,8 @@ public:
   bool isRunning() const noexcept override;
 
   bool acquire(std::span<double> values) override;
+
+  DataStreamSourceStatistics statistics() const noexcept override;
 
 private:
   void run() noexcept;
@@ -63,6 +67,12 @@ private:
 
   IDataBlockSink* m_blockSink = nullptr;
   IDataStreamEventSink* m_eventSink = nullptr;
+
+  std::atomic<uint64_t> m_blocksReceived{0};
+  std::atomic<uint64_t> m_framesReceived{0};
+  std::atomic<uint64_t> m_lastTimestamp{0};
+
+  ILogger& m_logger;
 };
 
 }

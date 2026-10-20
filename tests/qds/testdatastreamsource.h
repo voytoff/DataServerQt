@@ -41,6 +41,11 @@ public:
     return running;
   }
 
+  DataStreamSourceStatistics statistics() const noexcept override
+  {
+    return {};
+  }
+
   int32_t startCounts = 0;
   int32_t stopCounts = 0;
 

@@ -3605,6 +3605,7 @@ void tst_dataserver::test_dataServer_failModule()
   DataStreamSourceFactory factory;
   FakeDataBlockSink dataSink;
   FakeSchedulerClock clock;
+  Logger logger(getCurrentFolder(), clock);
 
   QVERIFY(
     factory.registerType(
@@ -3627,6 +3628,7 @@ void tst_dataserver::test_dataServer_failModule()
             3,
             std::move(module),
             clock,
+          logger,
             &dataSink);
       }));
 
@@ -3642,7 +3644,6 @@ void tst_dataserver::test_dataServer_failModule()
   UdpSender sender;
 
   CalibrationRepository cr;
-  Logger logger(getCurrentFolder(), clock);
   SensorRepository sensors;
 
   DataServer server(
@@ -3710,6 +3711,7 @@ void tst_dataserver::test_dataServer_restart_after_runtime_failure()
   DataStreamSourceFactory factory;
   FakeDataBlockSink dataSink;
   FakeSchedulerClock clock;
+  Logger logger(getCurrentFolder(), clock);
 
   QVERIFY(
     factory.registerType(
@@ -3731,6 +3733,7 @@ void tst_dataserver::test_dataServer_restart_after_runtime_failure()
           3,
           std::move(module),
           clock,
+          logger,
           &dataSink);
       }));
 
@@ -3746,7 +3749,6 @@ void tst_dataserver::test_dataServer_restart_after_runtime_failure()
   UdpSender sender;
 
   CalibrationRepository cr;
-  Logger logger(getCurrentFolder(), clock);
   SensorRepository sensors;
 
   DataServer server(

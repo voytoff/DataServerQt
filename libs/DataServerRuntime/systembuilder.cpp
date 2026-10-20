@@ -85,10 +85,11 @@ SystemBuilder::build(
   FormulaBuilder formulaBuilder;
 
   if (!formulaBuilder.build(
-      configuration,
-      runtime->layout,
-      runtime->formulas))
+        configuration,
+        runtime->layout,
+        runtime->formulas))
   {
+    logger.error("SystemBuilder: FormulaBuilder failed");
     return nullptr;
   }
 
@@ -98,16 +99,18 @@ SystemBuilder::build(
     runtime->formulas);
 
   if (!compiler.build(
-      runtime->calculationPlan))
+        runtime->calculationPlan))
   {
+    logger.error("SystemBuilder: CalculationCompiler failed");
     return nullptr;
   }
 
   if (!validateCalibrations(
-      runtime->calculationPlan,
-      sensors,
-      calibrations))
+        runtime->calculationPlan,
+        sensors,
+        calibrations))
   {
+    logger.error("SystemBuilder: Calibration validation failed");
     return nullptr;
   }
 
@@ -154,8 +157,10 @@ SystemBuilder::build(
         dataSourceFactory,
         clock,
         runtime->queue,
-        runtime->queue))
+        runtime->queue,
+        logger))
   {
+    logger.error("SystemBuilder: DataSources initialization failed");
     return nullptr;
   }
 

@@ -31,9 +31,6 @@ BaseTableView::BaseTableView(
   setSelectionMode(
     QAbstractItemView::SingleSelection);
 
-  //setAlternatingRowColors(true);
-  //setStyleSheet("QTableView::item {padding: 0 8px}");
-
   auto *vHeader = verticalHeader();
 
   vHeader->setSectionResizeMode(

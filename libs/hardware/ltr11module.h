@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ilcardmodule.h"
+#include "ilogger.h"
 #include "ltr11configuration.h"
 
 #include <memory>
@@ -13,7 +14,8 @@ class Ltr11Module final : public ILCardModule
 {
 public:
   explicit Ltr11Module(
-    const Ltr11Configuration& configuration);
+    const Ltr11Configuration& configuration,
+    ILogger &logger);
 
   ~Ltr11Module() noexcept override;
 

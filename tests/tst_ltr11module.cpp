@@ -10,6 +10,7 @@
 #include "ltr11configurationvalidator.h"
 #include "ltr11module.h"
 #include "signalmemory.h"
+#include "testlogger.h"
 #include "testsrv.h"
 
 #include <limits>
@@ -27,12 +28,17 @@ void tst_ltr11module::test_LCardDataSource_update_frequency()
     createModuleRuntimeConfiguration();
 
   Ltr11Configuration config;
+  TestLogger logger;
 
   Ltr11ConfigurationBuilder builder;
-  QVERIFY(builder.build(cfg, config));
+  QVERIFY(builder.build(cfg, config, logger));
+
+  QCOMPARE(
+    config.slot,
+    static_cast<int>(cfg.module.slot + 1));
 
   auto module =
-    std::make_unique<Ltr11Module>(config);
+    std::make_unique<Ltr11Module>(config, logger);
   FakeClock clock;
 
 
@@ -40,7 +46,8 @@ void tst_ltr11module::test_LCardDataSource_update_frequency()
     ModuleId{0},
     config.channels.size(),
     std::move(module),
-    clock);
+    clock,
+    logger);
 
   QVERIFY(!source.isRunning());
 
@@ -90,13 +97,18 @@ void tst_ltr11module::test_Ltr11Module_base()
   Ltr11Configuration config;
 
   Ltr11ConfigurationBuilder builder;
+  TestLogger logger;
 
-  QVERIFY(builder.build(cfg, config));
+  QVERIFY(builder.build(cfg, config, logger));
+
+  QCOMPARE(
+    config.slot,
+    static_cast<int>(cfg.module.slot + 1));
 
   RawMemory raw;
   raw.initialize(config.channels.size() * 10);
 
-  auto module = std::make_unique<Ltr11Module>(config);
+  auto module = std::make_unique<Ltr11Module>(config, logger);
   auto* ltr11 = module.get();
 
   QVERIFY(ltr11->start());
@@ -161,11 +173,15 @@ void tst_ltr11module::test_Ltr11Module_without_print()
   Ltr11Configuration config;
 
   Ltr11ConfigurationBuilder builder;
+  TestLogger logger;
 
-  QVERIFY(builder.build(cfg, config));
+  QVERIFY(builder.build(cfg, config, logger));
 
+  QCOMPARE(
+    config.slot,
+    static_cast<int>(cfg.module.slot + 1));
 
-  auto module = std::make_unique<Ltr11Module>(config);
+  auto module = std::make_unique<Ltr11Module>(config, logger);
   auto* ltr11 = module.get();
 
   RawMemory raw;
@@ -226,20 +242,26 @@ void tst_ltr11module::test_LCardDataSource_base()
   Ltr11Configuration config;
 
   Ltr11ConfigurationBuilder builder;
+  TestLogger logger;
 
-  QVERIFY(builder.build(cfg, config));
+  QVERIFY(builder.build(cfg, config, logger));
+
+  QCOMPARE(
+    config.slot,
+    static_cast<int>(cfg.module.slot + 1));
 
   RawMemory raw;
   raw.initialize(config.channels.size());
 
-  auto module = std::make_unique<Ltr11Module>(config);
+  auto module = std::make_unique<Ltr11Module>(config, logger);
   FakeClock clock;
 
   LCardDataSource source(
     ModuleId{0},
     config.channels.size(),
     std::move(module),
-    clock);
+    clock,
+    logger);
 
   QVERIFY(!source.isRunning());
 

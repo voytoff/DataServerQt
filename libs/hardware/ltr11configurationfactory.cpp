@@ -56,9 +56,9 @@ Ltr11ConfigurationFactory::create(
   if (!modeValue.isDouble())
     return std::nullopt;
 
-  const double mode = modeValue.toDouble();
+  const double mode = modeValue.toInt();
 
-  if (mode != 0.0 && mode != 1.0)
+  if (mode < 0 || mode > 2)
     return std::nullopt;
 
   Ltr11Configuration result{
@@ -81,7 +81,7 @@ Ltr11ConfigurationFactory::create(
   for (const auto& tag : configuration.tags)
   {
     if (tag.channel.value >= maxChannels)
-      continue;
+      return std::nullopt;
 
     const QJsonValue rangeValue =
       tag.settings.value("range");

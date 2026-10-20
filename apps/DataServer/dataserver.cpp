@@ -49,7 +49,10 @@ bool DataServer::start()
     return true;
 
   if (m_configuration.udpPort() == 0)
+  {
+    m_logger.error("Invalid UDP port");
     return false;
+  }
 
   SystemBuilder builder;
 
@@ -65,6 +68,7 @@ bool DataServer::start()
 
   if (!m_runtime)
   {
+    m_logger.error("SystemBuilder failed");
     cleanup();
     return false;
   }
@@ -90,6 +94,7 @@ bool DataServer::start()
         m_runtime->buffers,
         *m_publisher))
   {
+    m_logger.error("DataEngine initialization failed");
     cleanup();
     return false;
   }
@@ -98,18 +103,21 @@ bool DataServer::start()
 
   if (!m_runtime->streamWorker->start())
   {
+    m_logger.error("StreamWorker start failed");
     cleanup();
     return false;
   }
 
   if (!m_runtime->dataSources.start())
   {
+    m_logger.error("DataSources start failed");
     cleanup();
     return false;
   }
 
   if (!m_runtime->engine->start())
   {
+    m_logger.error("DataEngine start failed");
     cleanup();
     return false;
   }
@@ -117,6 +125,7 @@ bool DataServer::start()
   if (!m_udpServer->start(
         m_configuration.udpPort()))
   {
+    m_logger.error("UDP server start failed");
     cleanup();
     return false;
   }

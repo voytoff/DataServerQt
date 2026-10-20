@@ -4,7 +4,9 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <qdebug.h>
 #include <vector>
+#include <QStringDecoder>
 
 namespace qds
 {
@@ -21,7 +23,8 @@ class Ltr11Module::Impl
 {
 public:
   explicit Impl(
-    const Ltr11Configuration& configuration);
+    const Ltr11Configuration& configuration,
+    ILogger &logger);
 
   bool start() noexcept;
   void stop() noexcept;
@@ -34,6 +37,10 @@ private:
   bool configureConnection() noexcept;
   bool configureChannels() noexcept;
   bool configureFrequency() noexcept;
+
+  bool checkError(
+    int error,
+    std::string_view operation) noexcept;
 
 private:
   Ltr11Configuration m_configuration;
@@ -50,11 +57,16 @@ private:
   bool m_initialized = false;
   bool m_opened = false;
   bool m_started = false;
+
+  ILogger &m_logger;
 };
 
 Ltr11Module::Ltr11Module(
-  const Ltr11Configuration& configuration)
-  : m_impl(std::make_unique<Impl>(configuration))
+  const Ltr11Configuration& configuration,
+  ILogger &logger)
+  : m_impl(std::make_unique<Impl>(
+      configuration,
+      logger))
 {
 }
 
@@ -81,8 +93,10 @@ LCardReadResult Ltr11Module::readBlock(std::span<double> values) noexcept
 }
 
 Ltr11Module::Impl::Impl(
-  const Ltr11Configuration& configuration)
+  const Ltr11Configuration& configuration,
+  ILogger &logger)
   : m_configuration(configuration)
+  , m_logger(logger)
 {
   m_channelCount =
     m_configuration.channels.size();
@@ -184,7 +198,9 @@ bool Ltr11Module::Impl::start() noexcept
   /*
    * передаем настройки в модуль.
    */
-  if (LTR11_SetADC(&m_hltr11) != 0)
+  if (!checkError(
+        LTR11_SetADC(&m_hltr11),
+        "Не удалось передать настройки АЦП"))
   {
     LTR11_Close(&m_hltr11);
     m_opened = false;
@@ -196,7 +212,9 @@ bool Ltr11Module::Impl::start() noexcept
   /*
    * Start data acquisition.
    */
-  if (LTR11_Start(&m_hltr11) != 0)
+  if (!checkError(
+        LTR11_Start(&m_hltr11),
+        "Не удалось запустить сбор данных"))
   {
     LTR11_Close(&m_hltr11);
     m_opened = false;
@@ -330,7 +348,7 @@ bool Ltr11Module::Impl::configureConnection() noexcept
     m_configuration.crateSerial.c_str(),
     m_configuration.slot);
 
-  if (err != 0)
+  if (!checkError(err, "Не удалось открыть соединение с модулем"))
     return false;
 
   m_opened = true;
@@ -442,6 +460,39 @@ bool Ltr11Module::Impl::configureFrequency() noexcept
   m_frameRate = resultAdcFreq / static_cast<double>(m_channelCount);
 
   return true;
+}
+
+bool Ltr11Module::Impl::checkError(
+  int error,
+  std::string_view operation) noexcept
+{
+  if (error == LTR_OK)
+    return true;
+
+  try
+  {
+    const char* description =
+      LTR11_GetErrorString(error);
+
+    const QString errorText =
+      QString::fromLocal8Bit(
+        description ? description : "");
+
+    m_logger.error(
+      std::format(
+        "LTR11: {}, код={}, описание={}, слот={}, крейт={}",
+        operation,
+        error,
+        errorText.toUtf8().toStdString(),
+        m_configuration.slot,
+        m_configuration.crateSerial));
+  }
+  catch (...)
+  {
+    // Диагностика не должна завершать noexcept-метод.
+  }
+
+  return false;
 }
 
 } // namespace qds

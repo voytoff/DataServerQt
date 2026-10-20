@@ -3,6 +3,7 @@
 #include "moduletype.h"
 
 #include <cstdint>
+#include <QString>
 
 namespace qds
 {
@@ -17,5 +18,8 @@ struct ModuleTypeInfo
 [[nodiscard]]
 const ModuleTypeInfo* moduleTypeInfo(
   ModuleType type) noexcept;
+
+QString moduleTypeToString(
+  ModuleType type);
 
 }

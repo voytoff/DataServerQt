@@ -1770,12 +1770,14 @@ void tst_dataarchive::test_DataBlockQueue_firstFrameIndex()
 
   DataBlockQueue queue;
   FakeClock clock;
+  TestLogger logger;
 
   LCardDataSource source(
     ModuleId{0},
     3,
     std::move(module),
     clock,
+    logger,
     &queue);
 
   RawMemory raw;
@@ -1875,12 +1877,14 @@ void tst_dataarchive::test_DataBlockQueue_firstFrameIndex_two_blocks()
 
   DataBlockQueue queue;
   FakeClock clock;
+  TestLogger logger;
 
   LCardDataSource source(
     ModuleId{0},
     3,
     std::move(module),
     clock,
+    logger,
     &queue);
 
   RawMemory raw;
@@ -1926,12 +1930,14 @@ void tst_dataarchive::test_DataBlockQueue_firstFrameIndex_three_blocks()
 
   DataBlockQueue queue;
   FakeClock clock;
+  TestLogger logger;
 
   LCardDataSource source(
     ModuleId{0},
     3,
     std::move(module),
     clock,
+    logger,
     &queue);
 
   RawMemory raw;
@@ -2010,12 +2016,14 @@ void tst_dataarchive::test_DataStreamEventSink_base()
   FakeDataStreamEventSink sink;
 
   DataBlockQueue queue;
+  TestLogger logger;
 
   LCardDataSource source(
     ModuleId{777},
     3,
     std::move(module),
     clock,
+    logger,
     &queue,
     &sink);
 
@@ -2224,12 +2232,14 @@ void tst_dataarchive::test_LCardDataSource_stream_events()
   auto* fake = module.get();
 
   DataBlockQueue queue;
+  TestLogger logger;
 
   LCardDataSource source(
     ModuleId{777},
     3,
     std::move(module),
     clock,
+    logger,
     &queue,
     &queue);
 
@@ -3904,6 +3914,7 @@ void tst_dataarchive::test_LCardDataSource_to_archive()
     2,
     std::move(module),
     clock,
+    logger,
     &queue,
     &queue);
 
@@ -4063,6 +4074,7 @@ void tst_dataarchive::test_LCardDataSource_some_modules_to_archive()
     cfg.moduleChannelCount(ModuleId{0}),
     std::move(module0),
     clock,
+    logger,
     &queue,
     &queue);
 
@@ -4083,6 +4095,7 @@ void tst_dataarchive::test_LCardDataSource_some_modules_to_archive()
     cfg.moduleChannelCount(ModuleId{1}),
     std::move(module1),
     clock,
+    logger,
     &queue,
     &queue);
 
@@ -4103,6 +4116,7 @@ void tst_dataarchive::test_LCardDataSource_some_modules_to_archive()
     cfg.moduleChannelCount(ModuleId{2}),
     std::move(module2),
     clock,
+    logger,
     &queue,
     &queue);
 

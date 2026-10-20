@@ -37,6 +37,7 @@ add_library(DataSource SHARED
   idatastreamsource.h
   datastreamsourcefactory.h datastreamsourcefactory.cpp
   datastreamsourcemanager.h datastreamsourcemanager.cpp
+  datastreamsourcestatistics.h
 )
 
 target_include_directories(DataSource
@@ -51,6 +52,8 @@ target_link_libraries(DataSource
     Configuration
     Hardware
     SignalStorage
+  PRIVATE
+    Logger
   PUBLIC
     Qt${QT_VERSION_MAJOR}::Core
 )

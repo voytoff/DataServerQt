@@ -64,7 +64,7 @@ bool Ltr11ConfigurationValidator::validate(
     return false;
 
   return configuration.channelRate *
-           static_cast<double>(channels.size()) <= MaxAdcFrequency;
+    static_cast<double>(channels.size()) <= MaxAdcFrequency;
 }
 
 }

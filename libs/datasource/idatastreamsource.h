@@ -1,5 +1,6 @@
 #pragma once
 
+#include "datastreamsourcestatistics.h"
 namespace qds
 {
 
@@ -16,6 +17,8 @@ public:
 
   [[nodiscard]]
   virtual bool isRunning() const noexcept = 0;
+
+  virtual DataStreamSourceStatistics statistics() const noexcept = 0;
 };
 
 }

@@ -15,6 +15,7 @@
 #include "qds/testdatastreamsource.h"
 #include "smartblocklcardmodule.h"
 #include "testdatasource.h"
+#include "testlogger.h"
 #include "testsrv.h"
 #include <qtestcase.h>
 #include <qtestsupport_core.h>
@@ -950,8 +951,15 @@ void tst_datasource::test_dataStreamSourceManager()
   DataStreamSourceManager manager;
   FakeSchedulerClock clock;
   DataBlockQueue queue;
+  TestLogger logger;
 
-  QVERIFY(manager.initialize(cfg, factory, clock, queue, queue));
+  QVERIFY(manager.initialize(
+    cfg,
+    factory,
+    clock,
+    queue,
+    queue,
+    logger));
 
   QCOMPARE(
     manager.size(),
@@ -1018,8 +1026,15 @@ void tst_datasource::test_dataStreamSourceManager_startRollback()
   DataStreamSourceManager manager;
   FakeSchedulerClock clock;
   DataBlockQueue queue;
+  TestLogger logger;
 
-  QVERIFY(manager.initialize(cfg, factory, clock, queue, queue));
+  QVERIFY(manager.initialize(
+    cfg,
+    factory,
+    clock,
+    queue,
+    queue,
+    logger));
 
   QVERIFY(sourceOk);
   QVERIFY(sourceFail);
@@ -1057,8 +1072,15 @@ void tst_datasource::test_dataStreamSourceManager_reinitialize()
   DataStreamSourceManager manager;
   FakeSchedulerClock clock;
   DataBlockQueue queue;
+  TestLogger logger;
 
-  QVERIFY(manager.initialize(cfg, factory, clock, queue, queue));
+  QVERIFY(manager.initialize(
+    cfg,
+    factory,
+    clock,
+    queue,
+    queue,
+    logger));
 
   QCOMPARE(
     manager.size(),
@@ -1072,7 +1094,13 @@ void tst_datasource::test_dataStreamSourceManager_reinitialize()
 
   cfg = createTestConfig_calculate(ModuleType::Fake); // 1 модуль
 
-  QVERIFY(manager.initialize(cfg, factory, clock, queue, queue));
+  QVERIFY(manager.initialize(
+    cfg,
+    factory,
+    clock,
+    queue,
+    queue,
+    logger));
 
   QCOMPARE(
     manager.size(),
@@ -1121,8 +1149,15 @@ void tst_datasource::test_dataStreamSourceManager_initializeRollback()
   DataStreamSourceManager manager;
   FakeSchedulerClock clock;
   DataBlockQueue queue;
+  TestLogger logger;
 
-  QVERIFY(manager.initialize(cfg, factory, clock, queue, queue));
+  QVERIFY(manager.initialize(
+    cfg,
+    factory,
+    clock,
+    queue,
+    queue,
+    logger));
 
   QCOMPARE(
     manager.size(),
@@ -1135,7 +1170,13 @@ void tst_datasource::test_dataStreamSourceManager_initializeRollback()
       ModuleType::Fake,
       ModuleType::Unknown);
 
-  QVERIFY(!manager.initialize(cfg, factory, clock, queue, queue));
+  QVERIFY(!manager.initialize(
+    cfg,
+    factory,
+    clock,
+    queue,
+    queue,
+    logger));
 
   QCOMPARE(
     manager.size(),
@@ -1154,6 +1195,7 @@ void tst_datasource::test_dataStreamSourceManager_failModule()
 
   FakeDataBlockSink dataSink;
   FakeSchedulerClock clock;
+  TestLogger logger;
 
   QVERIFY(
     factory.registerType(
@@ -1178,6 +1220,7 @@ void tst_datasource::test_dataStreamSourceManager_failModule()
             3,
             std::move(module),
             clock,
+          logger,
             &dataSink);
 
         source = lcard.get();
@@ -1193,7 +1236,8 @@ void tst_datasource::test_dataStreamSourceManager_failModule()
     factory,
     clock,
     queue,
-    queue));
+    queue,
+    logger));
 
   QCOMPARE(
     manager.size(),
@@ -1258,6 +1302,7 @@ void tst_datasource::test_dataStreamSourceManager_restart_after_runtime_failure(
 
   FakeDataBlockSink dataSink;
   FakeSchedulerClock clock;
+  TestLogger logger;
 
   QVERIFY(
     factory.registerType(
@@ -1282,6 +1327,7 @@ void tst_datasource::test_dataStreamSourceManager_restart_after_runtime_failure(
             3,
             std::move(module),
             clock,
+          logger,
             &dataSink);
       }));
 
@@ -1293,7 +1339,8 @@ void tst_datasource::test_dataStreamSourceManager_restart_after_runtime_failure(
     factory,
     clock,
     queue,
-    queue));
+    queue,
+    logger));
 
   QVERIFY(!manager.isRunning());
 

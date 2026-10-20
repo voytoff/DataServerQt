@@ -38,8 +38,12 @@ public:
   [[nodiscard]]
   bool isRunning() const noexcept;
 
-private:
+  const SystemConfiguration& configuration() const noexcept;
+
+  [[nodiscard]]
   bool loadConfiguration();
+
+private:
   bool registerDataSources();
   bool initializeArchive();
 
@@ -68,6 +72,7 @@ private:
 
   bool m_sourcesRegistered = false;
 
+  bool m_configurationLoaded = false;
 
 signals:
   void started();

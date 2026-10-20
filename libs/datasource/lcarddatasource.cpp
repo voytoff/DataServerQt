@@ -11,6 +11,7 @@ LCardDataSource::LCardDataSource(
   uint32_t channelCount,
   std::unique_ptr<ILCardModule> module,
   IClock &clock,
+  ILogger &logger,
   IDataBlockSink *blockSink,
   IDataStreamEventSink *eventSink)
   : m_moduleId(moduleId)
@@ -18,6 +19,7 @@ LCardDataSource::LCardDataSource(
   , m_channelCount(channelCount)
   , m_values(channelCount, 0.0)
   , m_clock(clock)
+  , m_logger(logger)
   , m_blockSink(blockSink)
   , m_eventSink(eventSink)
 {
@@ -41,7 +43,12 @@ bool LCardDataSource::start() noexcept
     return true;
 
   if (!m_module)
+  {
+    m_logger.error("LCard: модуль не создан, id=" +
+      std::to_string(m_moduleId.value));
+
     return false;
+  }
 
   if (m_thread.joinable())
     m_thread.join();
@@ -59,7 +66,12 @@ bool LCardDataSource::start() noexcept
     m_clock.wallClockTime();
 
   if (!m_module->start())
+  {
+    m_logger.error("LCard: не удалось запустить модуль, id=" +
+      std::to_string(m_moduleId.value));
+
     return false;
+  }
 
   m_moduleStarted = true;
 
@@ -85,12 +97,28 @@ bool LCardDataSource::start() noexcept
         &LCardDataSource::run,
         this);
   }
+  catch (const std::exception& e)
+  {
+    m_running = false;
+    m_module->stop();
+    m_moduleStarted = false;
+
+    m_logger.error(
+      "LCard: ошибка создания потока модуля, id=" +
+      std::to_string(m_moduleId.value) +
+      ": " + e.what());
+
+    return false;
+  }
   catch (...)
   {
     m_running = false;
     m_module->stop();
-
     m_moduleStarted = false;
+
+    m_logger.error(
+      "LCard: неизвестная ошибка создания потока модуля, id=" +
+      std::to_string(m_moduleId.value));
 
     return false;
   }
@@ -138,6 +166,21 @@ bool LCardDataSource::acquire(
   return true;
 }
 
+DataStreamSourceStatistics
+LCardDataSource::statistics() const noexcept
+{
+  return {
+    .blocksReceived =
+    m_blocksReceived.load(std::memory_order_relaxed),
+
+    .framesReceived =
+    m_framesReceived.load(std::memory_order_relaxed),
+
+    .lastTimestamp =
+    m_lastTimestamp.load(std::memory_order_relaxed)
+  };
+}
+
 void LCardDataSource::run() noexcept
 {
   while (m_running.load(
@@ -146,9 +189,12 @@ void LCardDataSource::run() noexcept
     const LCardReadResult result =
       m_module->readBlock(m_work);
 
-    if (result.status ==
-        LCardReadStatus::Error)
+    if (result.status == LCardReadStatus::Error)
     {
+      m_logger.error(
+        "LCard: ошибка чтения данных модуля, id=" +
+        std::to_string(m_moduleId.value));
+
       break;
     }
 
@@ -207,6 +253,18 @@ void LCardDataSource::run() noexcept
         m_channelCount,
         m_values.data());
     }
+
+    m_blocksReceived.fetch_add(
+      1,
+      std::memory_order_relaxed);
+
+    m_framesReceived.fetch_add(
+      result.frameCount,
+      std::memory_order_relaxed);
+
+    m_lastTimestamp.store(
+      m_clock.wallClockTime().unixMicroseconds,
+      std::memory_order_relaxed);
   }
 
   m_running.store(

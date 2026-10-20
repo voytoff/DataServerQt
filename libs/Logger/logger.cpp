@@ -31,9 +31,11 @@ std::string formatTimeWithMs(int64_t micro_val) {
   std::tm gmt;
 
 #ifdef _WIN32
-  gmtime_s(&gmt, &tt);
+  localtime_s(&gmt, &tt);
+  //gmtime_s(&gmt, &tt);
 #else
-  gmtime_r(&tt, &gmt); // Для macOS (Xcode) и Linux
+  localtime_r(&tt, &gmt); // Для macOS (Xcode) и Linux
+  //gmtime_r(&tt, &gmt); // Для macOS (Xcode) и Linux
 #endif
 
   // 5. Форматируем дату до секунд
@@ -143,9 +145,11 @@ std::filesystem::path Logger::makeFileName(
   std::tm tm_time{};
 
 #ifdef _WIN32
-  gmtime_s(&tm_time, &seconds);
+  localtime_s(&tm_time, &seconds);
+  //gmtime_s(&tm_time, &seconds);
 #else
-  gmtime_r(&seconds, &tm_time);
+  localtime_r(&seconds, &tm_time);
+  //gmtime_r(&seconds, &tm_time);
 #endif
 
   char buffer[11];
@@ -153,7 +157,7 @@ std::filesystem::path Logger::makeFileName(
   std::strftime(
     buffer,
     sizeof(buffer),
-    "%Y-%m-%d",
+    "%Y%m%d",
     &tm_time);
 
   return m_directory / (std::string(buffer) + ".log");

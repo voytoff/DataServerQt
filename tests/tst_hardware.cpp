@@ -7,6 +7,7 @@
 #include "moduleruntimeconfiguration.h"
 #include "smartblocklcardmodule.h"
 #include "signalmemory.h"
+#include "testlogger.h"
 #include <QtCore/qtestsupport_core.h>
 #include <qtestcase.h>
 #include <QJsonObject>
@@ -124,12 +125,14 @@ void tst_hardware::test_lCardDataSource()
   auto* fake = module.get();
 
   FakeClock clock;
+  TestLogger logger;
 
   LCardDataSource source(
     ModuleId{0},
     3,
     std::move(module),
-    clock);
+    clock,
+    logger);
 
   RawMemory raw;
   raw.initialize(3);
@@ -205,12 +208,14 @@ void tst_hardware::test_lCardDataSource_data_integrity()
   auto* fake = module.get();
 
   FakeClock clock;
+  TestLogger logger;
 
   LCardDataSource source(
     ModuleId{0},
     3,
     std::move(module),
-    clock);
+    clock,
+    logger);
 
   RawMemory raw;
   raw.initialize(3);
@@ -275,8 +280,9 @@ void tst_hardware::test_ltr11configurationbuilder()
   };
 
   Ltr11ConfigurationBuilder builder;
+  TestLogger logger;
 
-  QVERIFY(builder.build(cfg, config));
+  QVERIFY(builder.build(cfg, config, logger));
 
   QCOMPARE(config.address, QHostAddress("127.0.0.1").toIPv4Address());
   QCOMPARE(config.channelRate, 1000);
@@ -304,7 +310,7 @@ void tst_hardware::test_ltr11configurationbuilder()
     );
   QCOMPARE(cfg.tags.size(), 3);
 
-  QVERIFY(!builder.build(cfg, config));
+  QVERIFY(!builder.build(cfg, config, logger));
 
   cfg.tags.pop_back();
 
@@ -313,7 +319,7 @@ void tst_hardware::test_ltr11configurationbuilder()
     );
   QCOMPARE(cfg.tags.size(), 3);
 
-  QVERIFY(!builder.build(cfg, config));
+  QVERIFY(!builder.build(cfg, config, logger));
 
   cfg.tags.pop_back();
 
@@ -321,7 +327,7 @@ void tst_hardware::test_ltr11configurationbuilder()
     {TagId{9}, ModuleId{0}, ChannelId{17}, true, QJsonDocument::fromJson(R"({})").object()}
     );
 
-  QVERIFY(!builder.build(cfg, config));
+  QVERIFY(!builder.build(cfg, config, logger));
 
   cfg.tags.pop_back();
 
@@ -330,7 +336,7 @@ void tst_hardware::test_ltr11configurationbuilder()
     );
   QCOMPARE(cfg.tags.size(), 3);
 
-  QVERIFY(!builder.build(cfg, config));
+  QVERIFY(!builder.build(cfg, config, logger));
 
   cfg.tags.pop_back();
 
@@ -339,7 +345,7 @@ void tst_hardware::test_ltr11configurationbuilder()
     );
   QCOMPARE(cfg.tags.size(), 3);
 
-  QVERIFY(!builder.build(cfg, config));
+  QVERIFY(!builder.build(cfg, config, logger));
 
   QCOMPARE(config.address, validConfiguration.address);
   QCOMPARE(config.channels.size(), validConfiguration.channels.size());
@@ -347,17 +353,17 @@ void tst_hardware::test_ltr11configurationbuilder()
 
   cfg.tags.pop_back();
   QCOMPARE(cfg.tags.size(), 2);
-  QVERIFY(builder.build(cfg, config));
+  QVERIFY(builder.build(cfg, config, logger));
 
 
   cfg.crate.host = "127.0.256.1";
-  QVERIFY(!builder.build(cfg, config));
+  QVERIFY(!builder.build(cfg, config, logger));
 
   cfg.crate.host = "";
-  QVERIFY(builder.build(cfg, config));
+  QVERIFY(builder.build(cfg, config, logger));
 
   cfg.tags.clear();
-  QVERIFY(!builder.build(cfg, config));
+  QVERIFY(!builder.build(cfg, config, logger));
 }
 
 void tst_hardware::test_acquire_returns_last_frame()
@@ -371,12 +377,14 @@ void tst_hardware::test_acquire_returns_last_frame()
     std::make_unique<SmartBlockLCardModule>(3, 4, 1);
 
   FakeClock clock;
+  TestLogger logger;
 
   LCardDataSource source(
     ModuleId{0},
     ChannelCount,
     std::move(module),
-    clock);
+    clock,
+    logger);
 
   QVERIFY(source.start());
   QVERIFY(source.isRunning());
@@ -406,12 +414,14 @@ void tst_hardware::test_lCardDataSource_fake_push_archive()
 
   FakeDataBlockSink dataSink;
   FakeClock clock;
+  TestLogger logger;
 
   LCardDataSource source(
     ModuleId{0},
     ChannelCount,
     std::move(module),
     clock,
+    logger,
     &dataSink);
 
   RawMemory raw;
@@ -459,12 +469,14 @@ void tst_hardware::test_LCardDataSource_runtime_failure()
 
   FakeDataBlockSink dataSink;
   FakeClock clock;
+  TestLogger logger;
 
   LCardDataSource source(
     ModuleId{0},
     ChannelCount,
     std::move(module),
     clock,
+    logger,
     &dataSink);
 
   RawMemory raw;
@@ -537,12 +549,14 @@ void tst_hardware::test_LCardDataSource_restart_after_runtime_failure()
 
   FakeDataBlockSink dataSink;
   FakeClock clock;
+  TestLogger logger;
 
   LCardDataSource source(
     ModuleId{0},
     ChannelCount,
     std::move(module),
     clock,
+    logger,
     &dataSink);
 
   QVERIFY(source.start());

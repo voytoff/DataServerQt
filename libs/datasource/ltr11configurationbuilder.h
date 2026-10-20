@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ilogger.h"
 #include "moduleruntimeconfiguration.h"
 #include "ltr11configuration.h"
 
@@ -11,7 +12,8 @@ class Ltr11ConfigurationBuilder
 public:
   bool build(
     const ModuleRuntimeConfiguration& moduleConfiguration,
-    Ltr11Configuration& configuration);
+    Ltr11Configuration& configuration,
+    ILogger &logger);
 };
 
 }

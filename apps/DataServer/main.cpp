@@ -23,7 +23,7 @@
 #include <QStyleFactory>
 
 
-static bool get_db(
+static bool getSettings(
   const QCoreApplication& app,
   QSqlDatabase& database,
   qds::ConfigurationId& configuration,
@@ -66,26 +66,26 @@ static bool get_db(
 
   const QString plugin =
     settings.value(
-              "Plugin",
-              "QMARIADB").toString();
+      "Plugin",
+      "QMARIADB").toString();
 
   const QString host =
     settings.value(
-              "Host",
-              "127.0.0.1").toString();
+      "Host",
+      "127.0.0.1").toString();
 
   const int port =
     settings.value(
-              "Port",
-              3306).toInt();
+      "Port",
+      3306).toInt();
 
   const QString databaseName =
     settings.value(
-              "Name").toString();
+      "Name").toString();
 
   const QString userName =
     settings.value(
-              "User").toString();
+      "User").toString();
 
   const QString password =
     settings.value(
@@ -225,7 +225,7 @@ int main(int argc, char *argv[]) {
   std::filesystem::path archivePath;
   std::filesystem::path logPath;
 
-  if (!get_db(
+  if (!getSettings(
         app,
         database,
         configuration,
@@ -285,6 +285,7 @@ int main(int argc, char *argv[]) {
         layout))
     return 1;
 
+  qds::Logger logger(logPath, clock);
 
   qds::DataStreamSourceFactory factory;
 
@@ -301,7 +302,7 @@ int main(int argc, char *argv[]) {
 
   if (!factory.registerType(
     qds::ModuleType::LTR11,
-    [](const qds::ModuleRuntimeConfiguration& cfg,
+    [&](const qds::ModuleRuntimeConfiguration& cfg,
        qds::IClock& clock,
        qds::IDataBlockSink& blockSink,
        qds::IDataStreamEventSink& eventSink)
@@ -312,14 +313,14 @@ int main(int argc, char *argv[]) {
 
       if (!builder.build(
             cfg,
-            configuration))
+            configuration, logger))
       {
         return nullptr;
       }
 
       auto module =
         std::make_unique<qds::Ltr11Module>(
-          configuration);
+          configuration, logger);
 
       return
         std::make_unique<qds::LCardDataSource>(
@@ -328,6 +329,7 @@ int main(int argc, char *argv[]) {
             configuration.channels.size()),
           std::move(module),
           clock,
+        logger,
           &blockSink,
           &eventSink);
         }))
@@ -336,8 +338,6 @@ int main(int argc, char *argv[]) {
   }
 
   qds::UdpSender sender;
-
-  qds::Logger logger(logPath, clock);
 
   qds::DataServer server(
     cfg,

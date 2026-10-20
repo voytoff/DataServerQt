@@ -32,6 +32,12 @@ public:
   [[nodiscard]]
   bool isRunning() const noexcept override;
 
+  DataStreamSourceStatistics statistics() const noexcept override
+  {
+    return {};
+  }
+
+
 private:
   void run() noexcept;
 
