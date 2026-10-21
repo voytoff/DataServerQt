@@ -9,11 +9,17 @@
 
 namespace qds
 {
-
+/*
+ * - Каждая подписка имеет собственный SubscriptionId и sequence.
+ * - Значения передаются в порядке subscription.signalIds.
+ * - Первый доступный кадр публикуется сразу.
+ * - Частота определяется через PublishRate и базовую частоту кадров.
+ * - При ошибке отправки sequence и расписание публикации не изменяются.
+ * - В timestamp передаётся frame.timestamp.value, а не wallTime.
+ */
 class Publisher : public IFramePublisher
 {
 public:
-
   Publisher(
     const SignalMemoryLayout& layout,
     SubscriptionManager& subscriptions,
