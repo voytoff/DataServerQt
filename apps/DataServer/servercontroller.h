@@ -38,14 +38,25 @@ public:
   [[nodiscard]]
   bool isRunning() const noexcept;
 
+  [[nodiscard]]
+  std::optional<bool> isRunning(
+    ModuleId id) const noexcept;
+
+  [[nodiscard]]
+  std::optional<DataStreamSourceStatistics> statistics(
+    ModuleId id) const noexcept;
+
+  [[nodiscard]]
+  std::optional<DataStreamSourceState> state(
+    ModuleId id) const noexcept;
+
   const SystemConfiguration& configuration() const noexcept;
 
   [[nodiscard]]
   bool loadConfiguration();
 
   [[nodiscard]]
-  std::optional<DataStreamSourceStatistics> statistics(
-    ModuleId id) const noexcept;
+  const std::filesystem::path& currentArchiveDirectory() const noexcept;
 
 private:
   bool registerDataSources();
@@ -57,6 +68,7 @@ private:
 
   std::filesystem::path m_archiveDirectory;
   std::filesystem::path m_logDirectory;
+  std::filesystem::path m_currentArchiveDirectory;
 
   SystemConfiguration m_configuration;
   SensorRepository m_sensors;
@@ -78,13 +90,20 @@ private:
 
   bool m_configurationLoaded = false;
 
+private slots:
+  void onDataServerStopped();
+
 signals:
   void started();
   void stopped();
 
   void logMessage(
-    LogLevel level,
+    qds::LogLevel level,
     QString message);
+
+  void moduleError(
+    qds::ModuleId id);
+
 };
 
 }

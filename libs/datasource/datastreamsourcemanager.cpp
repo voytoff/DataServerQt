@@ -71,6 +71,7 @@ bool DataStreamSourceManager::initialize(
   }
 
   m_sources = std::move(sources);
+  m_moduleIds = std::move(moduleIds);
   m_logger = &logger;
 
   return true;
@@ -129,22 +130,54 @@ bool DataStreamSourceManager::isRunning() const noexcept
   return true;
 }
 
+IDataStreamSource*
+DataStreamSourceManager::find(ModuleId id) const noexcept
+{
+  for (std::size_t i = 0; i < m_moduleIds.size(); ++i)
+  {
+    if (m_moduleIds[i] == id)
+      return m_sources[i].get();
+  }
+
+  return nullptr;
+}
+
+std::optional<bool>
+DataStreamSourceManager::isRunning(ModuleId id) const noexcept
+{
+  const auto* source = find(id);
+
+  if (!source)
+    return std::nullopt;
+
+  return source->isRunning();
+}
+
 std::size_t DataStreamSourceManager::size() const noexcept
 {
   return m_sources.size();
 }
 
 std::optional<DataStreamSourceStatistics>
-DataStreamSourceManager::statistics(
+DataStreamSourceManager::statistics(ModuleId id) const noexcept
+{
+  const auto* source = find(id);
+
+  if (!source)
+    return std::nullopt;
+
+  return source->statistics();
+}
+
+std::optional<DataStreamSourceState> DataStreamSourceManager::state(
   ModuleId id) const noexcept
 {
-  for (std::size_t i = 0; i < m_moduleIds.size(); ++i)
-  {
-    if (m_moduleIds[i] == id)
-      return m_sources[i]->statistics();
-  }
+  const auto* source = find(id);
 
-  return std::nullopt;
+  if (!source)
+    return std::nullopt;
+
+  return source->state();
 }
 
 }

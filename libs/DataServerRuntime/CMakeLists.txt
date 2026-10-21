@@ -20,7 +20,7 @@ target_link_libraries(DataServerRuntime
     Configuration
     Formulas
     SignalStorage
-    HardwareFactory
+    #HardwareFactory
     SignalProcessor
     Engine
 )

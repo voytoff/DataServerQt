@@ -37,6 +37,11 @@ public:
     return {};
   }
 
+  DataStreamSourceState state() const noexcept override
+  {
+    return {};
+  }
+
 
 private:
   void run() noexcept;

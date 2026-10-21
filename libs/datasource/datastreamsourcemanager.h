@@ -1,6 +1,7 @@
 #pragma once
 
 #include "datastreamsourcefactory.h"
+#include "datastreamsourcestate.h"
 #include "iclock.h"
 #include "ilogger.h"
 #include "systemconfiguration.h"
@@ -35,10 +36,27 @@ public:
   bool isRunning() const noexcept;
 
   [[nodiscard]]
+  IDataStreamSource* find(
+    ModuleId id) const noexcept;
+
+  /*
+   * true         — источник работает;
+   * false        — источник остановлен;
+   * std::nullopt — источник с таким идентификатором не найден.
+   */
+  [[nodiscard]]
+  std::optional<bool> isRunning(
+    ModuleId id) const noexcept;
+
+  [[nodiscard]]
   std::size_t size() const noexcept;
 
   [[nodiscard]]
   std::optional<DataStreamSourceStatistics> statistics(
+    ModuleId id) const noexcept;
+
+  [[nodiscard]]
+  std::optional<DataStreamSourceState> state(
     ModuleId id) const noexcept;
 
 private:

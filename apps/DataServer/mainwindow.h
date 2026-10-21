@@ -1,5 +1,6 @@
 #pragma once
 
+#include "datatypes.h"
 #include <QMainWindow>
 #include <QSqlDatabase>
 #include <QAction>
@@ -30,15 +31,22 @@ public:
 
 private:
   void createToolbar();
+  void createStatusbar(
+    const QString &databaseName);
+
   void updateModules();
   void updateServerState(bool running);
-
   void updateModuleStatistics();
+  void updateArchiveDirectory();
+
+  void setModuleError(
+    ModuleId id);
 
 private:
   ServerController& m_controller;
 
   QLabel* m_statusLabel = nullptr;
+  QLabel* m_archiveLabel = nullptr;
 
   QTableWidget* m_modulesTable = nullptr;
   QPlainTextEdit* m_logView = nullptr;

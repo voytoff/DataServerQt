@@ -20,6 +20,7 @@ DataServer::DataServer(
   const DataStreamSourceFactory& dataSourceFactory,
   IArchiveWriter& archive,
   ISchedulerClock& clock,
+  IClock &sourceClock,
   ISender& sender,
   ILogger& logger,
   QObject* parent)
@@ -30,6 +31,7 @@ DataServer::DataServer(
   , m_dataSourceFactory(dataSourceFactory)
   , m_archive(archive)
   , m_clock(clock)
+  , m_sourceClock(sourceClock)
   , m_sender(sender)
   , m_logger(logger)
 {
@@ -62,7 +64,7 @@ bool DataServer::start()
       m_dataSourceFactory,
       m_sensors,
       m_calibrations,
-      m_clock,
+      m_sourceClock,
       m_archive,
       m_logger);
 
@@ -148,6 +150,15 @@ bool DataServer::isRunning() const noexcept
   return m_running;
 }
 
+std::optional<bool> DataServer::isRunning(
+  ModuleId id) const noexcept
+{
+  if (!m_runtime)
+    return std::nullopt;
+
+  return m_runtime->dataSources.isRunning(id);
+}
+
 std::optional<DataStreamSourceStatistics>
 DataServer::statistics(ModuleId id) const noexcept
 {
@@ -157,8 +168,54 @@ DataServer::statistics(ModuleId id) const noexcept
   return m_runtime->dataSources.statistics(id);
 }
 
+std::optional<DataStreamSourceState> DataServer::state(
+  ModuleId id) const noexcept
+{
+  if (m_runtime)
+    return m_runtime->dataSources.state(id);
+
+  const auto it = m_lastModuleStates.find(id.value);
+
+  if (it == m_lastModuleStates.end())
+    return std::nullopt;
+
+  return it->second;
+}
+
+void DataServer::onTimer()
+{
+  if (!m_runtime || !m_runtime->engine)
+  {
+    m_logger.error(
+      "Отсутствует рабочая система DataServer");
+
+    stop();
+    return;
+  }
+
+  if (!m_runtime->dataSources.isRunning())
+  {
+    m_logger.error(
+      "Неожиданная остановка источника данных");
+
+    stop();
+    return;
+  }
+
+  if (!m_runtime->engine->process())
+  {
+    m_logger.error(
+      "Ошибка обработки данных DataEngine");
+
+    stop();
+    return;
+  }
+}
+
 void DataServer::cleanup()
 {
+  const bool wasRunning = m_running;
+
   m_timer.stop();
 
   if (m_udpServer)
@@ -177,6 +234,20 @@ void DataServer::cleanup()
       m_runtime->engine->stop();
   }
 
+  m_lastModuleStates.clear();
+
+  if (m_runtime)
+  {
+    for (const auto& module : m_configuration.modules())
+    {
+      const auto state =
+        m_runtime->dataSources.state(module.id);
+
+      if (state)
+        m_lastModuleStates[module.id.value] = *state;
+    }
+  }
+
   m_udpServer.reset();
   m_dispatcher.reset();
   m_publisher.reset();
@@ -187,32 +258,8 @@ void DataServer::cleanup()
 
   m_running = false;
 
-  //if (wasRunning)
+  if (wasRunning)
     emit stopped();
-}
-
-void DataServer::onTimer()
-{
-  if (!m_runtime || !m_runtime->engine)
-  {
-    stop();
-    return;
-  }
-
-  if (!m_runtime->dataSources.isRunning())
-  {
-    m_logger.error(
-      "Data stream source stopped unexpectedly");
-
-    stop();
-    return;
-  }
-
-  if (!m_runtime->engine->process())
-  {
-    stop();
-    return;
-  }
 }
 
 }

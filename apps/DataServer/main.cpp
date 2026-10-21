@@ -1,18 +1,5 @@
-#include "archivedescriptionbuilder.h"
-#include "archivemanager.h"
-#include "configurationrepository.h"
-#include "lcarddatasource.h"
-#include "ltr11configurationbuilder.h"
-#include "ltr11module.h"
 #include "mainwindow.h"
-#include "schedulerclock.h"
 #include "servercontroller.h"
-#include "systemclock.h"
-#include "systemconfiguration.h"
-#include "dataserver.h"
-#include "testdatastreamsource.h"
-#include "udpsender.h"
-#include "logger.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
@@ -21,7 +8,43 @@
 #include <QTranslator>
 #include <QLibraryInfo>
 #include <QStyleFactory>
+#include <QSqlError>
+#include <QMessageBox>
 
+static bool showError(
+  const QString& message)
+{
+  qCritical().noquote() << message;
+
+  QMessageBox::critical(
+    nullptr,
+    QObject::tr("DataServer — ошибка запуска"),
+    message);
+
+  return false;
+}
+
+static bool ensureDirectory(
+  const std::filesystem::path& directory)
+{
+  std::error_code ec;
+
+  std::filesystem::create_directories(
+    directory, ec);
+
+  if (ec)
+  {
+    return showError(
+      "Не удалось создать каталог:\n" +
+      QString::fromStdWString(
+        directory.wstring()) +
+      "\n\n" +
+      QString::fromStdString(
+        ec.message()));
+  }
+
+  return true;
+}
 
 static bool getSettings(
   const QCoreApplication& app,
@@ -50,12 +73,9 @@ static bool getSettings(
 
   if (!QFileInfo::exists(configFile))
   {
-    qCritical()
-      << "Configuration error"
-      << "Configuration file not found:\n"
-      << configFile;
-
-    return false;
+    return showError(
+      "Не найден файл конфигурации:\n" +
+      configFile);
   }
 
   QSettings settings(
@@ -119,8 +139,8 @@ static bool getSettings(
 
   if (!idOk || configurationId == 0)
   {
-    qCritical() << "Invalid ConfigurationId";
-    return false;
+    return showError(
+      "Некорректный ConfigurationId");
   }
 
   settings.beginGroup("Archive");
@@ -133,8 +153,8 @@ static bool getSettings(
 
   if (archive.isEmpty())
   {
-    qCritical() << "Archive Directory error";
-    return false;
+    return showError(
+      "Некорректный каталог архивирования");
   }
 
   settings.beginGroup("Log");
@@ -147,8 +167,8 @@ static bool getSettings(
 
   if (log.isEmpty())
   {
-    qCritical() << "Log Directory error";
-    return false;
+    return showError(
+      "Некорректный каталог логирования");
   }
 
 
@@ -163,30 +183,16 @@ static bool getSettings(
 
   if (!db.open())
   {
-    qCritical()
-      << "Database error"
-      << db.lastError().text();
-
-    return false;
+    return showError(
+      "Не удалось подключиться к базе данных:\n" +
+      db.lastError().text());
   }
 
   archiveDirectory = std::filesystem::path(archive.toStdString());
-  if (!std::filesystem::is_directory(archiveDirectory))
-  {
-    qCritical() << "Archive Directory error";
-    return false;
-  }
-
   logDirectory = std::filesystem::path(log.toStdString());
-  if (!std::filesystem::is_directory(logDirectory))
-  {
-    qCritical() << "Log Directory error";
-    return false;
-  }
+  configuration = qds::ConfigurationId{configurationId};
 
   database = std::move(db);
-
-  configuration = qds::ConfigurationId{configurationId};
 
   return true;
 }
@@ -211,7 +217,7 @@ int main(int argc, char *argv[]) {
   QTranslator myTranslator;
 
   if (myTranslator.load(
-        "acdanalizer_" + lang,
+        "dataserver_" + lang,
         ":/translations"))
   {
     app.installTranslator(&myTranslator);
@@ -231,7 +237,14 @@ int main(int argc, char *argv[]) {
         configuration,
         archivePath,
         logPath))
-    return -1;
+
+    return 1;
+
+  if (!ensureDirectory(archivePath) ||
+      !ensureDirectory(logPath))
+  {
+    return 1;
+  }
 
   qds::ServerController controller(
     database,
@@ -248,111 +261,4 @@ int main(int argc, char *argv[]) {
   controller.stop();
 
   return result;
-
-
-  qds::SystemConfiguration cfg;
-  qds::SensorRepository sensors;
-  qds::CalibrationRepository calibrations;
-
-  qds::ConfigurationRepository repository(database);
-
-  if (!repository.load(configuration, cfg))
-    return 1;
-
-  if (!repository.loadSensors(sensors))
-    return 1;
-
-  if (!repository.loadCalibrations(cfg, calibrations))
-    return 1;
-
-  qds::SystemClock systemClock;
-  qds::SchedulerClock clock(systemClock);
-
-  qds::ArchiveDescriptionBuilder builder;
-  qds::ArchiveDescription description;
-
-  if (!builder.build(cfg, description))
-    return 1;
-
-  qds::SignalMemoryLayout layout;
-  layout.build(cfg);
-
-  qds::ArchiveManager archive;
-
-  if (!archive.initialize(
-        archivePath,
-        description,
-        layout))
-    return 1;
-
-  qds::Logger logger(logPath, clock);
-
-  qds::DataStreamSourceFactory factory;
-
-  if (!factory.registerType(
-        qds::ModuleType::Test,
-        [](const qds::ModuleRuntimeConfiguration&,
-           qds::IClock&,
-           qds::IDataBlockSink&,
-           qds::IDataStreamEventSink&)
-        {
-          return std::make_unique<qds::TestDataStreamSource>();
-        }))
-    return -1;
-
-  if (!factory.registerType(
-    qds::ModuleType::LTR11,
-    [&](const qds::ModuleRuntimeConfiguration& cfg,
-       qds::IClock& clock,
-       qds::IDataBlockSink& blockSink,
-       qds::IDataStreamEventSink& eventSink)
-    -> std::unique_ptr<qds::IDataStreamSource>
-    {
-      qds::Ltr11Configuration configuration;
-      qds::Ltr11ConfigurationBuilder builder;
-
-      if (!builder.build(
-            cfg,
-            configuration, logger))
-      {
-        return nullptr;
-      }
-
-      auto module =
-        std::make_unique<qds::Ltr11Module>(
-          configuration, logger);
-
-      return
-        std::make_unique<qds::LCardDataSource>(
-          cfg.module.id,
-          static_cast<uint32_t>(
-            configuration.channels.size()),
-          std::move(module),
-          clock,
-        logger,
-          &blockSink,
-          &eventSink);
-        }))
-  {
-    return -1;
-  }
-
-  qds::UdpSender sender;
-
-  qds::DataServer server(
-    cfg,
-    sensors,
-    calibrations,
-    factory,
-    archive,
-    clock,
-    sender,
-    logger);
-
-  if (!server.start())
-  {
-    archive.close();
-    return 1;
-  }
-
 }

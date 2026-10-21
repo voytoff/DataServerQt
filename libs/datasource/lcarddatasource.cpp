@@ -90,6 +90,10 @@ bool LCardDataSource::start() noexcept
 
   m_running = true;
 
+  m_state.store(
+    DataStreamSourceState::Running,
+    std::memory_order_release);
+
   try
   {
     m_thread =
@@ -108,6 +112,10 @@ bool LCardDataSource::start() noexcept
       std::to_string(m_moduleId.value) +
       ": " + e.what());
 
+    m_state.store(
+      DataStreamSourceState::Error,
+      std::memory_order_release);
+
     return false;
   }
   catch (...)
@@ -119,6 +127,10 @@ bool LCardDataSource::start() noexcept
     m_logger.error(
       "LCard: неизвестная ошибка создания потока модуля, id=" +
       std::to_string(m_moduleId.value));
+
+    m_state.store(
+      DataStreamSourceState::Error,
+      std::memory_order_release);
 
     return false;
   }
@@ -139,6 +151,14 @@ void LCardDataSource::stop() noexcept
   {
     m_module->stop();
     m_moduleStarted = false;
+  }
+
+  if (m_state.load(std::memory_order_acquire) !=
+      DataStreamSourceState::Error)
+  {
+    m_state.store(
+      DataStreamSourceState::Stopped,
+      std::memory_order_release);
   }
 }
 
@@ -181,8 +201,17 @@ LCardDataSource::statistics() const noexcept
   };
 }
 
+DataStreamSourceState
+LCardDataSource::state() const noexcept
+{
+  return m_state.load(
+    std::memory_order_acquire);
+}
+
 void LCardDataSource::run() noexcept
 {
+  bool error = false;
+
   while (m_running.load(
     std::memory_order_acquire))
   {
@@ -195,22 +224,23 @@ void LCardDataSource::run() noexcept
         "LCard: ошибка чтения данных модуля, id=" +
         std::to_string(m_moduleId.value));
 
+      error = true;
       break;
     }
 
-    if (result.status ==
-        LCardReadStatus::NoData)
-    {
+    if (result.status == LCardReadStatus::NoData)
       continue;
-    }
 
-    if (result.frameCount == 0)
-      break;
-
-    if (
-      result.frameCount >
-      m_module->blockFrameCapacity())
+    if (result.frameCount == 0 ||
+        result.frameCount > m_module->blockFrameCapacity() ||
+        m_channelCount == 0 ||
+        result.frameCount > m_work.size() / m_channelCount)
     {
+      m_logger.error(
+        "LCard: некорректный блок данных модуля, id=" +
+        std::to_string(m_moduleId.value));
+
+      error = true;
       break;
     }
 
@@ -266,6 +296,12 @@ void LCardDataSource::run() noexcept
       m_clock.wallClockTime().unixMicroseconds,
       std::memory_order_relaxed);
   }
+
+  m_state.store(
+    error
+      ? DataStreamSourceState::Error
+      : DataStreamSourceState::Stopped,
+    std::memory_order_release);
 
   m_running.store(
     false,

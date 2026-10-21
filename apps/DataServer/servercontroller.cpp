@@ -1,6 +1,7 @@
 #include "servercontroller.h"
 
 #include "archivedescriptionbuilder.h"
+#include "archivedescriptionwriter.h"
 #include "configurationrepository.h"
 #include "lcarddatasource.h"
 #include "ltr11configurationbuilder.h"
@@ -91,6 +92,28 @@ ServerController::statistics(ModuleId id) const noexcept
   return m_server->statistics(id);
 }
 
+std::optional<DataStreamSourceState> ServerController::state(
+  ModuleId id) const noexcept
+{
+  if (!m_server)
+    return std::nullopt;
+
+  return m_server->state(id);
+}
+
+std::optional<bool> ServerController::isRunning(ModuleId id) const noexcept
+{
+  if (!m_server)
+    return std::nullopt;
+
+  return m_server->isRunning(id);
+}
+
+const std::filesystem::path &ServerController::currentArchiveDirectory() const noexcept
+{
+  return m_currentArchiveDirectory;
+}
+
 bool ServerController::registerDataSources()
 {
   if (!m_factory.registerType(
@@ -161,10 +184,67 @@ bool ServerController::initializeArchive()
   SignalMemoryLayout layout;
   layout.build(m_configuration);
 
-  return m_archive.initialize(
-    m_archiveDirectory,
-    description,
-    layout);
+  const QString timestamp =
+    QDateTime::currentDateTime().toString(
+      "yyyyMMdd_HHmmss");
+
+  const auto sessionDirectory =
+    m_archiveDirectory /
+    timestamp.toStdString();
+
+  std::error_code ec;
+
+  if (!std::filesystem::create_directories(
+        sessionDirectory, ec))
+  {
+    m_guiLogger.error(
+      "Не удалось создать каталог архива: " +
+      sessionDirectory.string());
+
+    return false;
+  }
+
+  if (!m_archive.initialize(
+        sessionDirectory,
+        description,
+        layout))
+  {
+    m_guiLogger.error(
+      "Не удалось инициализировать архив");
+
+    m_archive.close();
+    return false;
+  }
+
+  ArchiveDescriptionWriter writer;
+
+  if (!writer.write(
+        (sessionDirectory / "description.json").string(),
+        description))
+  {
+    m_guiLogger.error(
+      "Не удалось записать описание архива");
+
+    m_archive.close();
+    return false;
+  }
+
+  m_guiLogger.info(
+    "Создан архив: " +
+    sessionDirectory.string());
+
+  m_currentArchiveDirectory = sessionDirectory;
+
+  return true;
+}
+
+void ServerController::onDataServerStopped()
+{
+  m_archive.close();
+
+  m_guiLogger.info("Сервер остановлен");
+
+  emit stopped();
 }
 
 bool ServerController::start()
@@ -208,11 +288,57 @@ bool ServerController::start()
     m_factory,
     m_archive,
     m_clock,
+    m_systemClock,
     m_sender,
     m_guiLogger);
 
-  m_guiLogger.info("Starting DataServer");
+  m_guiLogger.info("Запуск сервера");
 
+
+  const QMetaObject* meta =
+    m_server->metaObject();
+
+  const int signalIndex =
+    meta->indexOfSignal("stopped()");
+
+  ///==============
+  m_guiLogger.info(
+    QString::fromLatin1(
+      m_server->metaObject()->className())
+      .toStdString());
+
+  m_guiLogger.info(
+    "DataServer: сигнал stopped(), индекс=" +
+    std::to_string(signalIndex));
+/*
+  const auto connection = connect(
+    m_server.get(),
+    &DataServer::stopped,
+    this,
+    [this]()
+    {
+      m_archive.close();
+
+      m_guiLogger.info("Сервер остановлен");
+
+      emit stopped();
+    },
+    Qt::DirectConnection);
+*/
+  const auto connection = QObject::connect(
+    m_server.get(),
+    SIGNAL(stopped()),
+    this,
+    SLOT(onDataServerStopped()));
+
+  if (!connection)
+  {
+    m_guiLogger.error(
+      "Не удалось подключить сигнал DataServer::stopped");
+
+    return false;
+  }
+  ///===================
   if (!m_server->start())
   {
     m_guiLogger.error("DataServer start failed");
@@ -235,15 +361,13 @@ void ServerController::stop()
   if (!m_server)
     return;
 
-  const bool wasRunning = m_server->isRunning();
+  if (m_server->isRunning())
+    m_guiLogger.info("Остановка сервера");
 
   m_server->stop();
   m_server.reset();
 
   m_archive.close();
-
-  if (wasRunning)
-    emit stopped();
 }
 
 bool ServerController::isRunning() const noexcept

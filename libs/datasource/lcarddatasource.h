@@ -1,5 +1,6 @@
 #pragma once
 
+#include "datastreamsourcestate.h"
 #include "iclock.h"
 #include "idatablocksink.h"
 #include "idatasource.h"
@@ -42,7 +43,11 @@ public:
 
   bool acquire(std::span<double> values) override;
 
+  [[nodiscard]]
   DataStreamSourceStatistics statistics() const noexcept override;
+
+  [[nodiscard]]
+  DataStreamSourceState state() const noexcept override;
 
 private:
   void run() noexcept;
@@ -71,6 +76,10 @@ private:
   std::atomic<uint64_t> m_blocksReceived{0};
   std::atomic<uint64_t> m_framesReceived{0};
   std::atomic<uint64_t> m_lastTimestamp{0};
+
+  std::atomic<DataStreamSourceState> m_state{
+    DataStreamSourceState::Stopped
+  };
 
   ILogger& m_logger;
 };

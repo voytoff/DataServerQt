@@ -96,6 +96,7 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
     factory,
     archive,
     clock,
+    clock,
     sender,
     logger);
 
@@ -1281,6 +1282,7 @@ void tst_dataserver::test_dataServer_failStart_moduleType()
     factory,
     archive,
     clock,
+    clock,
     sender,
     logger);
 
@@ -1324,6 +1326,7 @@ void tst_dataserver::test_dataServer_failSubscribe_invalidSignalId()
     cr,
     factory,
     archive,
+    clock,
     clock,
     sender,
     logger);
@@ -1446,6 +1449,7 @@ void tst_dataserver::test_dataServer_failSubscribe_duplicateSignalId()
     cr,
     factory,
     archive,
+    clock,
     clock,
     sender,
     logger);
@@ -1570,6 +1574,7 @@ void tst_dataserver::test_dataServer_failSubscribe_invalidRate()
     factory,
     archive,
     clock,
+    clock,
     sender,
     logger);
 
@@ -1692,6 +1697,7 @@ void tst_dataserver::test_dataServer_failSubscribe_emptyList()
     factory,
     archive,
     clock,
+    clock,
     sender,
     logger);
 
@@ -1803,6 +1809,7 @@ void tst_dataserver::test_dataServer_failSubscribe_tooManySignals()
     cr,
     factory,
     archive,
+    clock,
     clock,
     sender,
     logger);
@@ -1918,6 +1925,7 @@ void tst_dataserver::test_dataServer_unsubscribe_ok()
     cr,
     factory,
     archive,
+    clock,
     clock,
     sender,
     logger);
@@ -2139,6 +2147,7 @@ void tst_dataserver::test_dataServer_unsubscribe_invalidId()
     cr,
     factory,
     archive,
+    clock,
     clock,
     sender,
     logger);
@@ -2372,6 +2381,7 @@ void tst_dataserver::test_dataServer_start_stop()
     factory,
     archive,
     clock,
+    clock,
     sender,
     logger);
 
@@ -2512,6 +2522,7 @@ void tst_dataserver::test_dataServer_start_after_failed_start()
     factory,
     archive,
     clock,
+    clock,
     sender,
     logger);
 
@@ -2579,6 +2590,7 @@ void tst_dataserver::test_dataServer_failStart_invalidUdpPort()
     cr,
     factory,
     archive,
+    clock,
     clock,
     sender,
     logger);
@@ -2724,6 +2736,7 @@ void tst_dataserver::test_dataServer_subscriptionId_after_restart()
     cr,
     factory,
     archive,
+    clock,
     clock,
     sender,
     logger);
@@ -3097,6 +3110,7 @@ void tst_dataserver::test_dataServer_stop_on_dataSourceFailure()
     factory,
     archive,
     clock,
+    clock,
     sender,
     logger);
 
@@ -3248,6 +3262,7 @@ void tst_dataserver::test_dataServer_start_twice()
     factory,
     archive,
     clock,
+    clock,
     sender,
     logger);
 
@@ -3293,6 +3308,7 @@ void tst_dataserver::test_dataServer_stop_before_start()
     cr,
     factory,
     archive,
+    clock,
     clock,
     sender,
     logger);
@@ -3345,6 +3361,7 @@ void tst_dataserver::test_dataServer_udp_pipeline()
     cr,
     factory,
     archive,
+    clock,
     clock,
     sender,
     logger);
@@ -3653,6 +3670,7 @@ void tst_dataserver::test_dataServer_failModule()
     factory,
     archive,
     clock,
+    clock,
     sender,
     logger);
 
@@ -3757,6 +3775,7 @@ void tst_dataserver::test_dataServer_restart_after_runtime_failure()
     cr,
     factory,
     archive,
+    clock,
     clock,
     sender,
     logger);

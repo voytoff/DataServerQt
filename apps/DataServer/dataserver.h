@@ -15,6 +15,7 @@
 #include <QObject>
 #include <QTimer>
 #include <optional>
+#include <unordered_map>
 
 namespace qds
 {
@@ -32,6 +33,7 @@ public:
     const DataStreamSourceFactory& dataSourceFactory,
     IArchiveWriter& archive,
     ISchedulerClock& clock,
+    IClock& sourceClock,
     ISender& sender,
     ILogger& logger,
     QObject* parent = nullptr);
@@ -43,7 +45,15 @@ public:
   bool isRunning() const noexcept;
 
   [[nodiscard]]
+  std::optional<bool> isRunning(
+    ModuleId id) const noexcept;
+
+  [[nodiscard]]
   std::optional<DataStreamSourceStatistics> statistics(
+    ModuleId id) const noexcept;
+
+  [[nodiscard]]
+  std::optional<DataStreamSourceState> state(
     ModuleId id) const noexcept;
 
 private:
@@ -58,6 +68,7 @@ private:
 
   IArchiveWriter& m_archive;
   ISchedulerClock& m_clock;
+  IClock& m_sourceClock;
   ISender& m_sender;
   ILogger& m_logger;
 
@@ -69,6 +80,8 @@ private:
   std::unique_ptr<PacketDispatcher> m_dispatcher;
   std::unique_ptr<UdpServer> m_udpServer;
 
+  std::unordered_map<uint32_t, DataStreamSourceState> m_lastModuleStates;
+
   QTimer m_timer;
 
   bool m_running = false;
@@ -76,6 +89,7 @@ private:
 signals:
   void started();
   void stopped();
+
 };
 
 }

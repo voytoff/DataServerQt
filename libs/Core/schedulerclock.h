@@ -27,11 +27,13 @@ public:
   WallClockTime wallClockTime() const noexcept override;
 
 private:
-  FrameNumber m_frame;
-  Timestamp m_timestamp;
-  WallClockTime m_wallTime;
+private:
+  FrameNumber m_frame{};
+  Timestamp m_timestamp{};
+  WallClockTime m_wallTime{};
 
   IClock& m_clock;
+
 };
 
 }

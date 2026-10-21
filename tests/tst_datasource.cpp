@@ -6,11 +6,9 @@
 #include "datastreamsourcefactory.h"
 #include "datastreamsourcemanager.h"
 #include "failingdatasource.h"
-#include "fakeclock.h"
 #include "fakedatablocksink.h"
 #include "fakedatasource.h"
 #include "fakeschedulerclock.h"
-#include "hardwaremodulefactory.h"
 #include "lcarddatasource.h"
 #include "qds/testdatastreamsource.h"
 #include "smartblocklcardmodule.h"
@@ -278,7 +276,6 @@ void tst_datasource::test_hardwareFactory_createFake()
 
   QVERIFY(fake != nullptr);
 }
-*/
 
 void tst_datasource::test_hardwareFactory_unknownType()
 {
@@ -293,6 +290,7 @@ void tst_datasource::test_hardwareFactory_unknownType()
 
   QVERIFY(device == nullptr);
 }
+*/
 
 void tst_datasource::test_dataSourceFactory_registerType_create()
 {

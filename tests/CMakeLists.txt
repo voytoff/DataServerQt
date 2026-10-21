@@ -63,7 +63,7 @@ target_link_libraries(unit_tests
     DataSource
     Engine
     Hardware
-    HardwareFactory
+    #HardwareFactory
     DataArchive
     SignalStorage
     Logger

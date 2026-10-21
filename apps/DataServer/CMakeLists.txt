@@ -49,7 +49,7 @@ target_link_libraries(dataserver
         Formulas
         SignalStorage
         Engine
-        HardwareFactory
+        #HardwareFactory
         UdpSender
         DataServerRuntime
         DataServerCore

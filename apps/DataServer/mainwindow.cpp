@@ -14,6 +14,7 @@
 #include <QStatusBar>
 #include <QSplitter>
 #include <QDateTime>
+#include <QDir>
 
 namespace qds
 {
@@ -34,23 +35,12 @@ MainWindow::MainWindow(
   resize(1000, 650);
 
   createToolbar();
+  createStatusbar(
+    database.databaseName());
 
   auto* splitter = new QSplitter(Qt::Vertical, this);
   splitter->setChildrenCollapsible(false);
   splitter->setHandleWidth(5);
-
-  m_statusLabel = new QLabel(tr("Остановлен"), this);
-
-  auto* status = statusBar();
-
-  status->addWidget(m_statusLabel);
-
-  status->addPermanentWidget(
-    new QLabel(
-      database.databaseName(),
-      this));
-
-  status->setSizeGripEnabled(true);
 
   m_modulesTable = new QTableWidget(this);
   m_modulesTable->setFrameShape(QFrame::NoFrame);
@@ -111,7 +101,7 @@ MainWindow::MainWindow(
   setCentralWidget(splitter);
 
   m_statisticsTimer = new QTimer(this);
-  m_statisticsTimer->setInterval(500);
+  m_statisticsTimer->setInterval(1000);
 
   connect(
     m_statisticsTimer,
@@ -128,7 +118,8 @@ MainWindow::MainWindow(
     [this]()
     {
       updateServerState(true);
-
+      updateArchiveDirectory();
+/*
       for (int row = 0;
            row < m_modulesTable->rowCount();
            ++row)
@@ -136,6 +127,7 @@ MainWindow::MainWindow(
         if (auto* item = m_modulesTable->item(row, 2))
           item->setText(tr("Работает"));
       }
+*/
     });
 
   connect(
@@ -167,18 +159,23 @@ MainWindow::MainWindow(
     },
     Qt::QueuedConnection);
 
+  connect(
+    &m_controller,
+    &ServerController::moduleError,
+    this,
+    &MainWindow::setModuleError);
+
+
   if (m_controller.loadConfiguration())
-  {
     updateModules();
-  }
   else
-  {
     m_logView->appendPlainText(
       tr("ERROR: Не удалось загрузить конфигурацию"));
-  }
 
   updateServerState(
     m_controller.isRunning());
+
+  updateArchiveDirectory();
 }
 
 void MainWindow::createToolbar()
@@ -231,6 +228,29 @@ void MainWindow::createToolbar()
     {
       m_logView->clear();
     });
+}
+
+void MainWindow::createStatusbar(const QString& databaseName)
+{
+  auto* status = statusBar();
+
+  m_statusLabel = new QLabel(tr("Остановлен"), this);
+
+  status->addWidget(m_statusLabel);
+
+  status->setSizeGripEnabled(true);
+
+  m_archiveLabel = new QLabel(this);
+  m_archiveLabel->setTextInteractionFlags(
+    Qt::TextSelectableByMouse);
+
+  status->addPermanentWidget(
+    m_archiveLabel, 1);
+
+  status->addPermanentWidget(
+    new QLabel(
+      databaseName,
+      this));
 }
 
 void MainWindow::updateModules()
@@ -292,9 +312,6 @@ void MainWindow::updateServerState(
 
 void MainWindow::updateModuleStatistics()
 {
-  if (!m_controller.isRunning())
-    return;
-
   for (int row = 0;
        row < m_modulesTable->rowCount();
        ++row)
@@ -308,6 +325,48 @@ void MainWindow::updateModuleStatistics()
     const ModuleId id{
       moduleItem->data(Qt::UserRole).toUInt()
     };
+
+    const auto state =
+      m_controller.state(id);
+
+    if (state)
+    {
+      QString stateText;
+      QColor background;
+
+      switch (*state)
+      {
+      case DataStreamSourceState::Running:
+        stateText = tr("Работает");
+        break;
+
+      case DataStreamSourceState::Stopped:
+        stateText = tr("Остановлен");
+        break;
+
+      case DataStreamSourceState::Error:
+        stateText = tr("Ошибка");
+        background = QColor(255, 220, 220);
+        break;
+      }
+
+      m_modulesTable->item(row, 2)->setText(
+        stateText);
+
+      for (int column = 0;
+           column < m_modulesTable->columnCount();
+           ++column)
+      {
+        if (auto* item =
+            m_modulesTable->item(row, column))
+        {
+          item->setBackground(
+            background.isValid()
+              ? QBrush(background)
+              : QBrush());
+        }
+      }
+    }
 
     const auto statistics =
       m_controller.statistics(id);
@@ -331,8 +390,49 @@ void MainWindow::updateModuleStatistics()
             stats.lastTimestamp / 1000));
 
       m_modulesTable->item(row, 5)->setText(
-        time.toString("HH:mm:ss.zzz"));
+        time.toString("HH:mm:ss"));
     }
+  }
+}
+
+void MainWindow::updateArchiveDirectory()
+{
+  const auto& directory =
+    m_controller.currentArchiveDirectory();
+
+  const QString path =
+    QDir::toNativeSeparators(
+      QString::fromStdWString(
+        directory.wstring()));
+
+  m_archiveLabel->setText(path);
+  m_archiveLabel->setToolTip(path);
+}
+
+void MainWindow::setModuleError(ModuleId id)
+{
+  for (int row = 0;
+       row < m_modulesTable->rowCount();
+       ++row)
+  {
+    auto* item = m_modulesTable->item(row, 0);
+
+    if (!item ||
+        item->data(Qt::UserRole).toUInt() != id.value)
+      continue;
+
+    for (int column = 0;
+         column < m_modulesTable->columnCount();
+         ++column)
+    {
+      if (auto* cell = m_modulesTable->item(row, column))
+        cell->setBackground(QColor(255, 220, 220));
+    }
+
+    m_modulesTable->item(row, 2)->setText(
+      tr("Ошибка"));
+
+    break;
   }
 }
 

@@ -38,6 +38,9 @@ add_library(DataSource SHARED
   datastreamsourcefactory.h datastreamsourcefactory.cpp
   datastreamsourcemanager.h datastreamsourcemanager.cpp
   datastreamsourcestatistics.h
+
+
+  datastreamsourcestate.h
 )
 
 target_include_directories(DataSource
