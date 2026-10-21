@@ -29,6 +29,8 @@ add_subdirectory(libs/formulas)
 add_subdirectory(libs/dataserverruntime)
 add_subdirectory(libs/logger)
 add_subdirectory(libs/dataclient)
+add_subdirectory(libs/datawidgets)
+add_subdirectory(libs/datasettings)
 
 enable_testing()
 add_subdirectory(tests)

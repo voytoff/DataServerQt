@@ -34,6 +34,7 @@ private:
   void createStatusbar(
     const QString &databaseName);
 
+  void updateControls();
   void updateModules();
   void updateServerState(bool running);
   void updateModuleStatistics();

@@ -253,6 +253,21 @@ void MainWindow::createStatusbar(const QString& databaseName)
       this));
 }
 
+void MainWindow::updateControls()
+{
+  const bool running =
+    m_controller.isRunning();
+
+  //m_configurationSelector->setEnabled(
+  //  !running);
+
+  m_startAction->setEnabled(
+    !running);
+
+  m_stopAction->setEnabled(
+    running);
+}
+
 void MainWindow::updateModules()
 {
   const auto& modules =

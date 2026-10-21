@@ -1,3 +1,5 @@
+#include "applicationsettingsloader.h"
+#include "databaseconnection.h"
 #include "mainwindow.h"
 #include "servercontroller.h"
 
@@ -46,157 +48,6 @@ static bool ensureDirectory(
   return true;
 }
 
-static bool getSettings(
-  const QCoreApplication& app,
-  QSqlDatabase& database,
-  qds::ConfigurationId& configuration,
-  std::filesystem::path& archiveDirectory,
-  std::filesystem::path& logDirectory)
-{
-  QCommandLineParser parser;
-  parser.setApplicationDescription(
-    "DataServer Service");
-
-  parser.addHelpOption();
-
-  QCommandLineOption configOption(
-    "config",
-    "Configuration INI file",
-    "file",
-    "dataserver.ini");
-
-  parser.addOption(configOption);
-  parser.process(app);
-
-  const QString configFile =
-    parser.value(configOption);
-
-  if (!QFileInfo::exists(configFile))
-  {
-    return showError(
-      "Не найден файл конфигурации:\n" +
-      configFile);
-  }
-
-  QSettings settings(
-    configFile,
-    QSettings::IniFormat);
-
-  settings.beginGroup("Database");
-
-  const QString plugin =
-    settings.value(
-      "Plugin",
-      "QMARIADB").toString();
-
-  const QString host =
-    settings.value(
-      "Host",
-      "127.0.0.1").toString();
-
-  const int port =
-    settings.value(
-      "Port",
-      3306).toInt();
-
-  const QString databaseName =
-    settings.value(
-      "Name").toString();
-
-  const QString userName =
-    settings.value(
-      "User").toString();
-
-  const QString password =
-    settings.value(
-              "Password").toString();
-
-  settings.endGroup();
-
-  if (settings.status() != QSettings::NoError ||
-      databaseName.isEmpty() ||
-      userName.isEmpty() ||
-      port < 1 ||
-      port > 65535)
-  {
-    qCritical()
-      << "Configuration error"
-      << "Invalid database settings:\n"
-      << configFile;
-
-    return false;
-  }
-
-  settings.beginGroup("Server");
-
-  bool idOk = false;
-
-  const auto configurationId =
-    settings.value("ConfigurationId")
-      .toUInt(&idOk);
-
-  settings.endGroup();
-
-  if (!idOk || configurationId == 0)
-  {
-    return showError(
-      "Некорректный ConfigurationId");
-  }
-
-  settings.beginGroup("Archive");
-
-  const auto archive =
-    settings.value("Directory")
-      .toString();
-
-  settings.endGroup();
-
-  if (archive.isEmpty())
-  {
-    return showError(
-      "Некорректный каталог архивирования");
-  }
-
-  settings.beginGroup("Log");
-
-  const auto log =
-    settings.value("Directory")
-      .toString();
-
-  settings.endGroup();
-
-  if (log.isEmpty())
-  {
-    return showError(
-      "Некорректный каталог логирования");
-  }
-
-
-  QSqlDatabase db =
-    QSqlDatabase::addDatabase(plugin);
-
-  db.setHostName(host);
-  db.setPort(port);
-  db.setDatabaseName(databaseName);
-  db.setUserName(userName);
-  db.setPassword(password);
-
-  if (!db.open())
-  {
-    return showError(
-      "Не удалось подключиться к базе данных:\n" +
-      db.lastError().text());
-  }
-
-  archiveDirectory = std::filesystem::path(archive.toStdString());
-  logDirectory = std::filesystem::path(log.toStdString());
-  configuration = qds::ConfigurationId{configurationId};
-
-  database = std::move(db);
-
-  return true;
-}
-
 
 int main(int argc, char *argv[]) {
   QApplication app(argc, argv);
@@ -226,31 +77,40 @@ int main(int argc, char *argv[]) {
   app.setStyle(
     QStyleFactory::create("windows11"));
 
-  QSqlDatabase database;
-  qds::ConfigurationId configuration;
-  std::filesystem::path archivePath;
-  std::filesystem::path logPath;
+  qds::ApplicationSettings settings;
+  QString error;
 
-  if (!getSettings(
+  qds::ApplicationSettingsLoader loader;
+
+  if (!loader.load(
         app,
-        database,
-        configuration,
-        archivePath,
-        logPath))
+        settings,
+        error))
 
-    return 1;
+    return showError(error);
 
-  if (!ensureDirectory(archivePath) ||
-      !ensureDirectory(logPath))
+  if (!ensureDirectory(settings.archiveDirectory) ||
+      !ensureDirectory(settings.logDirectory))
   {
     return 1;
   }
 
+  QSqlDatabase database;
+  qds::DatabaseConnection connector;
+
+  if (!connector.open(
+        settings.database,
+        database,
+        error))
+  {
+    return showError(error);
+  }
+
   qds::ServerController controller(
     database,
-    configuration,
-    archivePath,
-    logPath);
+    settings.configurationId,
+    settings.archiveDirectory,
+    settings.logDirectory);
 
   qds::MainWindow window(database, controller);
 

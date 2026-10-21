@@ -1,0 +1,12 @@
+#ifndef DATAWIDGETS_EXPORT_H
+#define DATAWIDGETS_EXPORT_H
+
+#include <QtCore/qglobal.h>
+
+#if defined(DATAWIDGETS_LIBRARY)
+#define DATAWIDGETS_EXPORT Q_DECL_EXPORT
+#else
+#define DATAWIDGETS_EXPORT Q_DECL_IMPORT
+#endif
+
+#endif // DATAWIDGETS_EXPORT_H

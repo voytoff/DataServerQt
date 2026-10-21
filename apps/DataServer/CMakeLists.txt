@@ -49,11 +49,12 @@ target_link_libraries(dataserver
         Formulas
         SignalStorage
         Engine
-        #HardwareFactory
         UdpSender
         DataServerRuntime
         DataServerCore
         DataArchive
+        DataSettings
+        DataWidgets
     PRIVATE
       Qt${QT_VERSION_MAJOR}::Core
       Qt${QT_VERSION_MAJOR}::Widgets

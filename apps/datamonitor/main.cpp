@@ -138,7 +138,7 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  qds::MainWindow window(database);
+  qds::MainWindow window;
   window.show();
 
   return app.exec();

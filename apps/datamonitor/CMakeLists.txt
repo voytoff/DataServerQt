@@ -21,6 +21,8 @@ target_include_directories(datamonitor
 
 target_link_libraries(datamonitor
     PRIVATE
+        DataClient
+    PRIVATE
         Qt${QT_VERSION_MAJOR}::Core
         Qt${QT_VERSION_MAJOR}::Widgets
         Qt${QT_VERSION_MAJOR}::Sql
