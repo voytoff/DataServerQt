@@ -80,14 +80,15 @@ int main(int argc, char *argv[]) {
   qds::ApplicationSettings settings;
   QString error;
 
-  qds::ApplicationSettingsLoader loader;
-
-  if (!loader.load(
+  if (!qds::ApplicationSettingsLoader::load(
         app,
         settings,
-        error))
-
-    return showError(error);
+        error,
+        true))
+  {
+    showError(error);
+    return 1;
+  }
 
   if (!ensureDirectory(settings.archiveDirectory) ||
       !ensureDirectory(settings.logDirectory))
@@ -96,9 +97,8 @@ int main(int argc, char *argv[]) {
   }
 
   QSqlDatabase database;
-  qds::DatabaseConnection connector;
 
-  if (!connector.open(
+  if (!qds::DatabaseConnection::open(
         settings.database,
         database,
         error))
@@ -112,7 +112,10 @@ int main(int argc, char *argv[]) {
     settings.archiveDirectory,
     settings.logDirectory);
 
-  qds::MainWindow window(database, controller);
+  qds::MainWindow window(
+    database,
+    controller,
+    settings.configFile);
 
   window.show();
 

@@ -1,4 +1,5 @@
 #include "tst_configuration.h"
+#include "applicationsettingsloader.h"
 #include "calibration.h"
 #include "db/configurationrepository.h"
 #include "db/sensorrepository.h"
@@ -1306,4 +1307,60 @@ ORDER BY `index`;)");
   QVERIFY2(
     repository.removeCalibration(id),
     qPrintable(repository.lastError().text()));
+}
+
+#include <QTemporaryDir>
+#include <QSettings>
+#include <QFileInfo>
+
+void tst_configuration::test_applicationSettingsLoader_saveConfigurationId()
+{
+  using namespace qds;
+
+  QTemporaryDir directory;
+  QVERIFY(directory.isValid());
+
+  const QString fileName =
+    directory.filePath("test.ini");
+
+  const ConfigurationId id{100};
+
+  QVERIFY(
+    ApplicationSettingsLoader::saveConfigurationId(
+      fileName,
+      id,
+      "Server/ConfigurationId"));
+
+  QVERIFY(QFileInfo::exists(fileName));
+
+  QSettings settings(
+    fileName,
+    QSettings::IniFormat);
+
+  QCOMPARE(
+    settings.value("Server/ConfigurationId").toUInt(),
+    id.value);
+
+  QCOMPARE(
+    settings.status(),
+    QSettings::NoError);
+
+  QVERIFY(
+    ApplicationSettingsLoader::saveConfigurationId(
+      fileName,
+      ConfigurationId{200},
+      "Server/ConfigurationId"));
+
+  settings.sync();
+
+  QCOMPARE(
+    settings.value("Server/ConfigurationId").toUInt(),
+    200u);
+
+  QVERIFY(
+    !ApplicationSettingsLoader::saveConfigurationId(
+      fileName,
+      ConfigurationId{0},
+      "Server/ConfigurationId"));
+
 }

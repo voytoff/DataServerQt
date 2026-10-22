@@ -7,12 +7,16 @@ namespace qds
 
 MainWindow::MainWindow(
   const QSqlDatabase& database,
+  const QString &configFile,
+  ConfigurationId configurationId,
   QWidget* parent)
   : QMainWindow(parent)
 {
   m_editor =
     new ConfigurationEditor(
       database,
+      configFile,
+      configurationId,
       this);
 
   setCentralWidget(m_editor);

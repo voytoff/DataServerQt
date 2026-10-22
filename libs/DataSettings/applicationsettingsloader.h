@@ -15,7 +15,8 @@ public:
   static bool load(
     const QCoreApplication& app,
     ApplicationSettings& settings,
-    QString& error);
+    QString& error,
+    bool requireServerSettings = false);
 
   static bool saveConfigurationId(
     const QString& fileName,

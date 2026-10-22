@@ -23,6 +23,7 @@ class QToolBar;
 class QAction;
 class QSplitter;
 class QComboBox;
+class ConfigurationSelector;
 
 namespace qds
 {
@@ -34,6 +35,8 @@ class ConfigurationEditor final : public QWidget
 public:
   explicit ConfigurationEditor(
     const QSqlDatabase& database,
+    const QString& configFile,
+    ConfigurationId configurationId,
     QWidget* parent = nullptr);
 
 private:
@@ -42,7 +45,8 @@ private:
 
   ConfigurationId currentConfiguration() const;
 
-  void createToolbar();
+  void createToolbar(
+    const QSqlDatabase &database);
   void updateActions();
 
   void updateSensorTypes();
@@ -56,10 +60,10 @@ private:
   void configurationChanged();
 
 private:
-  QComboBox* m_configurationCombo = nullptr;
+  ConfigurationSelector* m_configurationCombo = nullptr;
   BaseTableView* m_tagsView = nullptr;
+  QString m_configFile;
 
-  QSqlTableModel* m_configurations = nullptr;
   QSqlRelationalTableModel* m_tags = nullptr;
 
   ConfigurationRepository m_repository;

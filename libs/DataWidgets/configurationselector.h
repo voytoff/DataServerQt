@@ -33,6 +33,7 @@ signals:
 
 private:
   QSqlTableModel* m_model = nullptr;
+  int m_idColumn = -1;
 };
 
 }

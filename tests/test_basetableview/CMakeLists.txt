@@ -13,8 +13,6 @@ qt_standard_project_setup()
 
 add_executable(test_basetableview
     main.cpp
-    ../../apps/configeditor/basetableview.cpp
-    ../../apps/configeditor/basetableview.h
     ../../apps/configeditor/dlg/calibrationdialog.cpp
     ../../apps/configeditor/dlg/calibrationdialog.h
     ../../apps/configeditor/dlg/calibrationdialog.ui
@@ -40,5 +38,6 @@ target_link_libraries(test_basetableview
   PRIVATE
     Configuration
     QCustomPlot
+    DataWidgets
     Qt6::Widgets
 )

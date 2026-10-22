@@ -25,7 +25,6 @@ qt_add_executable(configeditor
     model/configurationpropertiesmodel.h model/configurationpropertiesmodel.cpp
     delegate/configurationpropertiesdelegate.h delegate/configurationpropertiesdelegate.cpp
     model/configurationsignalmodel.h model/configurationsignalmodel.cpp
-    basetableview.h basetableview.cpp
     model/configurationsignalpropertiesmodel.h model/configurationsignalpropertiesmodel.cpp
     delegate/configurationsignalpropertiesdelegate.h delegate/configurationsignalpropertiesdelegate.cpp
     dlg/configurationsignaldialog.h dlg/configurationsignaldialog.cpp
@@ -54,6 +53,8 @@ target_include_directories(configeditor
 target_link_libraries(configeditor
     PRIVATE
         Configuration
+        DataSettings
+        DataWidgets
         QCustomPlot
         Qt${QT_VERSION_MAJOR}::Core
         Qt${QT_VERSION_MAJOR}::Widgets

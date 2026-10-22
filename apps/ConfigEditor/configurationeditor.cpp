@@ -1,3 +1,5 @@
+#include "configurationselector.h"
+#include "applicationsettingsloader.h"
 #include "configurationeditor.h"
 #include "basecomboboxdelegate.h"
 #include "configurationpropertiesdelegate.h"
@@ -33,9 +35,12 @@ namespace qds
 
 ConfigurationEditor::ConfigurationEditor(
   const QSqlDatabase& database,
+  const QString &configFile,
+  ConfigurationId configurationId,
   QWidget* parent)
   : QWidget(parent)
   , m_repository(database)
+  , m_configFile(configFile)
 {
   m_configurationTree =
     new QTreeView(this);
@@ -137,7 +142,7 @@ ConfigurationEditor::ConfigurationEditor(
 
   m_signalPropertiesView->setItemDelegateForColumn(1, m_signalPropertiesDelegate);
 
-  createToolbar();
+  createToolbar(database);
 
   auto* right =
     new QSplitter(Qt::Vertical, this);
@@ -344,49 +349,6 @@ ConfigurationEditor::ConfigurationEditor(
   layout->setContentsMargins(0, 0, 0, 0);
   layout->setSpacing(0);
 
-  m_configurations =
-    new QSqlTableModel(
-      this,
-      database);
-
-  m_configurations->setTable(
-    "configuration");
-
-  m_configurations->setEditStrategy(
-    QSqlTableModel::OnManualSubmit);
-
-  m_configurations->setHeaderData(
-    0,
-    Qt::Horizontal,
-    tr("ID"));
-
-  m_configurations->setHeaderData(
-    1,
-    Qt::Horizontal,
-    tr("Название"));
-
-  m_configurations->setHeaderData(
-    2,
-    Qt::Horizontal,
-    tr("Описание"));
-
-  m_configurations->setHeaderData(
-    3,
-    Qt::Horizontal,
-    tr("UDP порт"));
-
-  if (!m_configurations->select())
-  {
-    QString message = QString("Возникла ошибка при выборе конфигурации.\n%1")
-      .arg(m_configurations->lastError().text());
-    emit statusMessage(message);
-  }
-
-  m_configurationCombo->setModel(m_configurations);
-
-  m_configurationCombo->setModelColumn(
-    m_configurations->record().indexOf("name"));
-
   m_configurationCombo->setCurrentIndex(-1);
   m_configurationTree->setModel(
     m_treeModel);
@@ -400,13 +362,23 @@ ConfigurationEditor::ConfigurationEditor(
     [this](
       const QModelIndex& topLeft,
       const QModelIndex&,
-      const QList<int>&)
+      const QList<int>& roles)
     {
       const auto* data =
         m_treeModel->treeItemData(topLeft);
 
-      if (data && std::holds_alternative<ModuleItemData>(*data))
+      if (data &&
+          std::holds_alternative<ModuleItemData>(*data))
+      {
         updateChannelVisibility(topLeft);
+      }
+
+      if (roles.contains(Qt::CheckStateRole))
+      {
+        m_configurationTree->setCurrentIndex(topLeft);
+
+        m_propertiesModel->setItem(topLeft);
+      }
     });
 
   /// обновление интерфейса после выбора конфигурации
@@ -417,7 +389,31 @@ ConfigurationEditor::ConfigurationEditor(
     [this](int)
     {
       configurationChanged();
+
+      const ConfigurationId id =
+        m_configurationCombo->configurationId();
+
+      if (id && !ApplicationSettingsLoader::saveConfigurationId(
+            m_configFile,
+            id,
+            "Server/ConfigurationId"))
+      {
+        emit statusMessage(
+          tr("Не удалось сохранить выбранный эксперимент"));
+      }
     });
+
+  {
+    const QSignalBlocker blocker(m_configurationCombo);
+
+    if (!m_configurationCombo->setConfigurationId(configurationId))
+    {
+      if (m_configurationCombo->count() > 0)
+        m_configurationCombo->setCurrentIndex(0);
+    }
+  }
+
+  configurationChanged();
 
   /// обрабатываем событие выбора в дереве объектов
   connect(
@@ -429,9 +425,6 @@ ConfigurationEditor::ConfigurationEditor(
     {
       m_propertiesModel->setItem(current);
     });
-
-  if (m_configurations->rowCount() > 0)
-    m_configurationCombo->setCurrentIndex(0);
 
   // обрабатываем событике изменения сигнала
   connect(
@@ -672,24 +665,11 @@ void ConfigurationEditor::updateChannelVisibility(
 
 ConfigurationId ConfigurationEditor::currentConfiguration() const
 {
-  const int row = m_configurationCombo->currentIndex();
-
-  if (row < 0)
-    return {};
-
-  const int idColumn =
-    m_configurations->record().indexOf("id");
-
-  if (idColumn < 0)
-    return {};
-
-  return ConfigurationId{
-    m_configurations->data(
-      m_configurations->index(row, idColumn)).toUInt()
-  };
+  return m_configurationCombo->configurationId();
 }
 
-void ConfigurationEditor::createToolbar()
+void ConfigurationEditor::createToolbar(
+  const QSqlDatabase& database)
 {
   m_toolBar = new QToolBar(this);
 
@@ -732,11 +712,10 @@ void ConfigurationEditor::createToolbar()
 
   /// ComboBox
   m_configurationCombo =
-    new QComboBox(m_toolBar);
+    new ConfigurationSelector(
+      database, m_toolBar);
 
   m_configurationCombo->setMinimumWidth(200);
-  m_configurationCombo->setSizeAdjustPolicy(
-    QComboBox::AdjustToMinimumContentsLengthWithIcon);
 
   m_toolBar->addWidget(m_configurationCombo);
 
@@ -1219,7 +1198,7 @@ void ConfigurationEditor::editConfiguration()
   if (!id)
     return;
 
-  ConfigurationInfo configuration;
+  ConfigurationInfo configuration{};
 
   if (!m_repository.configuration(
         id, configuration))
@@ -1273,41 +1252,28 @@ void ConfigurationEditor::editConfiguration()
 
     return;
   }
-
+  //===
   {
-    const QSignalBlocker blocker(
-      m_configurationCombo);
+    const QSignalBlocker blocker(m_configurationCombo);
 
-    // Обновляем модель списка экспериментов.
-    if (!m_configurations->select())
+    if (!m_configurationCombo->reload())
     {
       QMessageBox::warning(
         this,
         tr("Ошибка обновления списка экспериментов"),
-        m_configurations->lastError().text());
+        tr("Не удалось обновить список экспериментов."));
 
       return;
     }
 
-    // Восстанавливаем выбор по ID,
-    // а не по номеру строки.
-    const int idColumn =
-      m_configurations->record().indexOf("id");
-
-    for (int row = 0;
-         row < m_configurations->rowCount();
-         ++row)
+    if (!m_configurationCombo->setConfigurationId(id))
     {
-      const ConfigurationId rowId{
-        m_configurations->data(
-          m_configurations->index(row, idColumn)).toUInt()
-      };
+      QMessageBox::warning(
+        this,
+        tr("Ошибка выбора эксперимента"),
+        tr("Не удалось восстановить выбранный эксперимент."));
 
-      if (rowId == id)
-      {
-        m_configurationCombo->setCurrentIndex(row);
-        break;
-      }
+      return;
     }
   }
 
@@ -1329,7 +1295,7 @@ void ConfigurationEditor::addConfiguration()
 
   const ConfigurationInfo result =
     dialog.configuration();
-
+  
   const auto id =
     m_repository.addConfiguration(result);
 
@@ -1347,38 +1313,28 @@ void ConfigurationEditor::addConfiguration()
 
     return;
   }
-
+  //=====
   {
-    const QSignalBlocker blocker(
-      m_configurationCombo);
+    const QSignalBlocker blocker(m_configurationCombo);
 
-    if (!m_configurations->select())
+    if (!m_configurationCombo->reload())
     {
       QMessageBox::warning(
         this,
         tr("Ошибка обновления списка экспериментов"),
-        m_configurations->lastError().text());
+        tr("Не удалось обновить список экспериментов."));
 
       return;
     }
 
-    const int idColumn =
-      m_configurations->record().indexOf("id");
-
-    for (int row = 0;
-         row < m_configurations->rowCount();
-         ++row)
+    if (!m_configurationCombo->setConfigurationId(*id))
     {
-      const ConfigurationId rowId{
-        m_configurations->data(
-                          m_configurations->index(row, idColumn)).toUInt()
-      };
+      QMessageBox::warning(
+        this,
+        tr("Ошибка выбора эксперимента"),
+        tr("Не удалось выбрать созданный эксперимент."));
 
-      if (rowId == *id)
-      {
-        m_configurationCombo->setCurrentIndex(row);
-        break;
-      }
+      return;
     }
   }
 
@@ -1427,20 +1383,22 @@ void ConfigurationEditor::removeConfiguration()
 
     return;
   }
-
+  //=====
   {
-    const QSignalBlocker blocker(
-      m_configurationCombo);
+    const QSignalBlocker blocker(m_configurationCombo);
 
-    if (!m_configurations->select())
+    if (!m_configurationCombo->reload())
     {
       QMessageBox::warning(
         this,
         tr("Ошибка обновления списка экспериментов"),
-        m_configurations->lastError().text());
+        tr("Не удалось обновить список экспериментов."));
 
       return;
     }
+
+    if (m_configurationCombo->count() > 0)
+      m_configurationCombo->setCurrentIndex(0);
   }
 
   configurationChanged();
@@ -1538,6 +1496,20 @@ void ConfigurationEditor::configurationChanged()
   emit statusMessage("Конфигурация загружена");
 
   updateActions();
+
+  const ConfigurationId id =
+    currentConfiguration();
+
+  if (id.value != 0)
+  {
+    if (!ApplicationSettingsLoader::saveConfigurationId(
+          m_configFile,
+          id))
+    {
+      emit statusMessage(
+        tr("Не удалось сохранить выбранный эксперимент."));
+    }
+  }
 }
 
 }

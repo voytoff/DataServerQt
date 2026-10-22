@@ -10,7 +10,7 @@ namespace qds
 class DATASETTINGS_EXPORT DatabaseConnection
 {
 public:
-  bool open(
+  static bool open(
     const DatabaseSettings& settings,
     QSqlDatabase& database,
     QString& error);

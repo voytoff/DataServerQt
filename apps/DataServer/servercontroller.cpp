@@ -44,6 +44,8 @@ bool ServerController::loadConfiguration()
   if (isRunning())
     return false;
 
+  m_configurationLoaded = false;
+
   m_guiLogger.info("Загрузка конфигурации");
 
   ConfigurationRepository repository(m_database);
@@ -194,8 +196,10 @@ bool ServerController::initializeArchive()
 
   std::error_code ec;
 
-  if (!std::filesystem::create_directories(
-        sessionDirectory, ec))
+  std::filesystem::create_directories(
+    sessionDirectory, ec);
+
+  if (ec)
   {
     m_guiLogger.error(
       "Не удалось создать каталог архива: " +
@@ -234,6 +238,44 @@ bool ServerController::initializeArchive()
     sessionDirectory.string());
 
   m_currentArchiveDirectory = sessionDirectory;
+
+  return true;
+}
+
+ConfigurationId ServerController::configurationId() const noexcept
+{
+  return m_configurationId;
+}
+
+bool ServerController::configurationLoaded() const noexcept
+{
+  return m_configurationLoaded;
+}
+
+bool ServerController::setConfigurationId(
+  ConfigurationId id)
+{
+  if (isRunning() || id.value == 0)
+    return false;
+
+  if (m_configurationId == id)
+    return true;
+
+  const ConfigurationId previousId =
+    m_configurationId;
+
+  const bool previousLoaded =
+    m_configurationLoaded;
+
+  m_configurationId = id;
+  m_configurationLoaded = false;
+
+  if (!loadConfiguration())
+  {
+    m_configurationId = previousId;
+    m_configurationLoaded = previousLoaded;
+    return false;
+  }
 
   return true;
 }

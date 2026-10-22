@@ -1,98 +1,33 @@
+#include "applicationsettingsloader.h"
+#include "databaseconnection.h"
 #include "mainwindow.h"
 
 #include <QApplication>
-#include <QCommandLineParser>
-#include <QFileInfo>
 #include <QLibraryInfo>
+#include <QLocale>
 #include <QMessageBox>
-#include <QSettings>
 #include <QSqlDatabase>
-#include <QSqlError>
 #include <QStyleFactory>
 #include <QTranslator>
+
+static bool showError(
+  const QString& message)
+{
+  qCritical().noquote() << message;
+
+  QMessageBox::critical(
+    nullptr,
+    QObject::tr("ConfigurationEditor — ошибка запуска"),
+    message);
+
+  return false;
+}
 
 int main(int argc, char* argv[])
 {
   QApplication app(argc, argv);
 
-  QCommandLineParser parser;
-  parser.setApplicationDescription(
-    "DataServer Configuration Editor");
-
-  parser.addHelpOption();
-
-  QCommandLineOption configOption(
-    "config",
-    "Configuration INI file",
-    "file",
-    "dataserver.ini");
-
-  parser.addOption(configOption);
-  parser.process(app);
-
-  const QString configFile =
-    parser.value(configOption);
-
-  if (!QFileInfo::exists(configFile))
-  {
-    QMessageBox::critical(
-      nullptr,
-      "Configuration error",
-      "Configuration file not found:\n" +
-        configFile);
-
-    return 1;
-  }
-
-  QSettings settings(
-    configFile,
-    QSettings::IniFormat);
-
-  settings.beginGroup("Database");
-
-  const QString plugin =
-    settings.value(
-              "Plugin",
-              "QMARIADB").toString();
-
-  const QString host =
-    settings.value(
-              "Host",
-              "127.0.0.1").toString();
-
-  const int port =
-    settings.value(
-              "Port",
-              3306).toInt();
-
-  const QString databaseName =
-    settings.value(
-              "Name").toString();
-
-  const QString userName =
-    settings.value(
-              "User").toString();
-
-  const QString password =
-    settings.value(
-              "Password").toString();
-
-  settings.endGroup();
-
-  if (settings.status() != QSettings::NoError ||
-      databaseName.isEmpty() ||
-      userName.isEmpty() ||
-      port < 1 ||
-      port > 65535)
-  {
-    QMessageBox::critical(
-      nullptr,
-      "Configuration error",
-      "Invalid database settings:\n" +
-        configFile);
-
-    return 1;
-  }
+  app.setApplicationName("ConfigurationEditor");
 
   QTranslator qtTranslator;
 
@@ -110,7 +45,7 @@ int main(int argc, char* argv[])
   QTranslator myTranslator;
 
   if (myTranslator.load(
-        "acdanalizer_" + lang,
+        "configeditor_" + lang,
         ":/translations"))
   {
     app.installTranslator(&myTranslator);
@@ -119,26 +54,34 @@ int main(int argc, char* argv[])
   app.setStyle(
     QStyleFactory::create("windows11"));
 
-  QSqlDatabase database =
-    QSqlDatabase::addDatabase(plugin);
+  qds::ApplicationSettings settings;
+  QString error;
 
-  database.setHostName(host);
-  database.setPort(port);
-  database.setDatabaseName(databaseName);
-  database.setUserName(userName);
-  database.setPassword(password);
-
-  if (!database.open())
+  if (!qds::ApplicationSettingsLoader::load(
+        app,
+        settings,
+        error))
   {
-    QMessageBox::critical(
-      nullptr,
-      "Database error",
-      database.lastError().text());
-
+    showError(error);
     return 1;
   }
 
-  qds::MainWindow window(database);
+  QSqlDatabase database;
+
+  if (!qds::DatabaseConnection::open(
+        settings.database,
+        database,
+        error))
+  {
+    showError(error);
+    return 1;
+  }
+
+  qds::MainWindow window(
+    database,
+    settings.configFile,
+    settings.configurationId);
+
   window.show();
 
   return app.exec();

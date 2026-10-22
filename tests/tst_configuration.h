@@ -38,5 +38,7 @@ private slots:
   void test_updatePolynomialCalibration();
   void test_updateCalibrationImmutableFields();
 
+  void test_applicationSettingsLoader_saveConfigurationId();
+
 };
 

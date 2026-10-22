@@ -13,6 +13,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(unit_tests
     main.cpp
+    qds/db.h
+    qds/udp.h
     tst_common.h tst_common.cpp
     tst_udpsender.h tst_udpsender.cpp
     tst_subscriptions.h tst_subscriptions.cpp
@@ -37,8 +39,6 @@ add_executable(unit_tests
     tst_database.h tst_database.cpp
     tst_logger.h tst_logger.cpp
     tst_ltr11module.h tst_ltr11module.cpp
-    qds/db.h
-    qds/udp.h
     qds/fakedatastreameventsink.h
     #qds/testarchiveframewriter.h
     qds/testpublisher.h
@@ -48,6 +48,13 @@ add_executable(unit_tests
     qds/nullarchivewriter.h
     qds/teststreamingdatasource.h qds/teststreamingdatasource.cpp
     tst_configeditor.h tst_configeditor.cpp
+    tst_dataclient.h tst_dataclient.cpp
+)
+
+target_include_directories(DataClient
+  PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/qds
 )
 
 target_link_libraries(unit_tests
@@ -63,10 +70,12 @@ target_link_libraries(unit_tests
     DataSource
     Engine
     Hardware
-    #HardwareFactory
     DataArchive
     SignalStorage
     Logger
+    DataSettings
+    DataWidgets
+    DataClient
   PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Test
@@ -75,5 +84,3 @@ target_link_libraries(unit_tests
 )
 
 add_test(NAME unit_tests COMMAND unit_tests)
-
-#add_subdirectory(test_basetableview)

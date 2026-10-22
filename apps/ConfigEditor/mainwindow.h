@@ -1,5 +1,6 @@
 #pragma once
 
+#include "datatypes.h"
 #include <QMainWindow>
 #include <qsqldatabase.h>
 
@@ -15,6 +16,8 @@ class MainWindow final : public QMainWindow
 public:
   explicit MainWindow(
     const QSqlDatabase& database,
+    const QString& configFile,
+    ConfigurationId configurationId,
     QWidget* parent = nullptr);
 
 private:

@@ -1,5 +1,4 @@
-#ifndef DATASETTINGS_GLOBAL_H
-#define DATASETTINGS_GLOBAL_H
+#pragma once
 
 #include <QtCore/qglobal.h>
 
@@ -9,4 +8,3 @@
 #define DATASETTINGS_EXPORT Q_DECL_IMPORT
 #endif
 
-#endif // DATASETTINGS_GLOBAL_H

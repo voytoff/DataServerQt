@@ -13,7 +13,8 @@ namespace qds
 bool ApplicationSettingsLoader::load(
   const QCoreApplication &app,
   ApplicationSettings &settings,
-  QString &error)
+  QString &error,
+  bool requireServerSettings)
 {
   error.clear();
 
@@ -82,48 +83,76 @@ bool ApplicationSettingsLoader::load(
     return false;
   }
 
+  // ConfigurationId читаем всегда, если он присутствует.
+
   s.beginGroup("Server");
 
   bool idOk = false;
 
   const auto configurationId =
-    s.value("ConfigurationId")
-      .toUInt(&idOk);
+    s.value("ConfigurationId").toUInt(&idOk);
 
   s.endGroup();
 
-  if (!idOk || configurationId == 0)
+  ApplicationSettings result;
+
+  result.configFile = configFile;
+  result.database = std::move(database);
+
+  if (idOk && configurationId != 0)
+  {
+    result.configurationId =
+      ConfigurationId{configurationId};
+  }
+  else
   {
     error = "Некорректный ConfigurationId";
     return false;
   }
 
-  s.beginGroup("Archive");
-
-  const auto archive =
-    s.value("Directory")
-      .toString();
-
-  s.endGroup();
-
-  if (archive.isEmpty())
+  if (requireServerSettings)
   {
-    error = "Некорректный каталог архивирования";
-    return false;
-  }
+    s.beginGroup("Archive");
 
-  s.beginGroup("Log");
+    const QString archive =
+      s.value("Directory").toString();
 
-  const auto log =
-    s.value("Directory")
-      .toString();
+    s.endGroup();
 
-  s.endGroup();
+    if (archive.isEmpty())
+    {
+      error = "Некорректный каталог архивирования";
+      return false;
+    }
 
-  if (log.isEmpty())
-  {
-    error = "Некорректный каталог логирования";
-    return false;
+    s.beginGroup("Log");
+
+    const QString log =
+      s.value("Directory").toString();
+
+    s.endGroup();
+
+    if (log.isEmpty())
+    {
+      error = "Некорректный каталог логирования";
+      return false;
+    }
+
+#ifdef Q_OS_WIN
+    result.archiveDirectory =
+      std::filesystem::path(archive.toStdWString());
+
+    result.logDirectory =
+      std::filesystem::path(log.toStdWString());
+#else
+    result.archiveDirectory =
+      std::filesystem::u8path(
+        archive.toUtf8().constData());
+
+    result.logDirectory =
+      std::filesystem::u8path(
+        log.toUtf8().constData());
+#endif
   }
 
   if (s.status() != QSettings::NoError)
@@ -135,13 +164,7 @@ bool ApplicationSettingsLoader::load(
     return false;
   }
 
-  settings = ApplicationSettings{
-    .configFile = configFile,
-    .database = std::move(database),
-    .configurationId = ConfigurationId{configurationId},
-    .archiveDirectory = std::filesystem::path(archive.toStdString()),
-    .logDirectory = std::filesystem::path(log.toStdString())
-  };
+  settings = std::move(result);
 
   return true;
 }

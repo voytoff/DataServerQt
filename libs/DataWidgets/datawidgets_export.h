@@ -1,5 +1,4 @@
-#ifndef DATAWIDGETS_EXPORT_H
-#define DATAWIDGETS_EXPORT_H
+#pragma once
 
 #include <QtCore/qglobal.h>
 
@@ -9,4 +8,3 @@
 #define DATAWIDGETS_EXPORT Q_DECL_IMPORT
 #endif
 
-#endif // DATAWIDGETS_EXPORT_H

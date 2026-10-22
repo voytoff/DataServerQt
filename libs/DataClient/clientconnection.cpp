@@ -2,7 +2,9 @@
 
 #include "packetreader.h"
 #include "packetwriter.h"
+
 #include "protocol/publishheader.h"
+#include "protocol/errorpackets.h"
 
 namespace qds
 {
@@ -25,6 +27,9 @@ bool ClientConnection::open(
 {
   close();
 
+  if (address.isNull() || port == 0)
+    return false;
+
   if (!m_socket.bind(
         QHostAddress::AnyIPv4,
         localPort))
@@ -41,16 +46,46 @@ bool ClientConnection::open(
   return true;
 }
 
+bool ClientConnection::isOpen() const noexcept
+{
+  return m_socket.state() ==
+           QAbstractSocket::BoundState &&
+         m_serverPort != 0;
+}
+
+SubscriptionId ClientConnection::subscriptionId() const noexcept
+{
+  return m_subscriptionId;
+}
+
+const std::vector<SignalId>&
+ClientConnection::signalIds() const noexcept
+{
+  return m_signals;
+}
+
 bool ClientConnection::subscribe(
   std::span<const SignalId> signalIds,
   PublishRate rate)
 {
-  if (signalIds.empty() ||
-      signalIds.size() > MaxSubscriptionSignals ||
-      m_serverPort == 0 ||
-      m_socket.state() !=
-        QAbstractSocket::BoundState)
+  if (!isOpen() ||
+      m_subscriptionPending ||
+      m_unsubscribePending ||
+      m_subscriptionId.value != 0 ||
+      signalIds.empty() ||
+      signalIds.size() > MaxSubscriptionSignals)
   {
+    return false;
+  }
+
+  switch (rate)
+  {
+  case PublishRate::Hz1:
+  case PublishRate::Hz10:
+  case PublishRate::Hz100:
+    break;
+
+  default:
     return false;
   }
 
@@ -71,7 +106,7 @@ bool ClientConnection::subscribe(
     signalIds.data(),
     signalIds.size());
 
-  const auto written =
+  const qint64 written =
     m_socket.writeDatagram(
       reinterpret_cast<const char*>(
         writer.data()),
@@ -93,6 +128,51 @@ bool ClientConnection::subscribe(
     signalIds.begin(),
     signalIds.end());
 
+  m_subscriptionPending = true;
+
+  return true;
+}
+
+bool ClientConnection::unsubscribe()
+{
+  if (!isOpen() ||
+      m_subscriptionId.value == 0 ||
+      m_subscriptionPending ||
+      m_unsubscribePending)
+  {
+    return false;
+  }
+
+  PacketWriter writer;
+
+  writer.begin(
+    PacketType::UnsubscribeRequest);
+
+  writer.write(
+    UnsubscribeRequest{
+      .id = m_subscriptionId
+    });
+
+  const qint64 written =
+    m_socket.writeDatagram(
+      reinterpret_cast<const char*>(
+        writer.data()),
+      static_cast<qint64>(
+        writer.size()),
+      m_serverAddress,
+      m_serverPort);
+
+  if (written !=
+      static_cast<qint64>(writer.size()))
+  {
+    emit errorOccurred(
+      m_socket.errorString());
+
+    return false;
+  }
+
+  m_unsubscribePending = true;
+
   return true;
 }
 
@@ -100,8 +180,16 @@ void ClientConnection::close()
 {
   m_socket.close();
 
+  m_serverAddress = {};
   m_serverPort = 0;
+
+  m_subscriptionId = {};
+
   m_pendingSignals.clear();
+  m_signals.clear();
+
+  m_subscriptionPending = false;
+  m_unsubscribePending = false;
 }
 
 void ClientConnection::onReadyRead()
@@ -129,7 +217,9 @@ void ClientConnection::onReadyRead()
 
     if (senderAddress != m_serverAddress ||
         senderPort != m_serverPort)
+    {
       continue;
+    }
 
     PacketReader reader;
 
@@ -149,18 +239,70 @@ void ClientConnection::onReadyRead()
       SubscribeResponse response{};
 
       if (!reader.read(response) ||
-          reader.remaining() != 0)
+          reader.remaining() != 0 ||
+          reader.trailingBytes() != 0)
+      {
+        break;
+      }
+
+      if (!m_subscriptionPending)
         break;
 
-      if (response.result == SubscribeResult::Ok)
+      m_subscriptionPending = false;
+
+      if (response.result != SubscribeResult::Ok)
       {
-        emit subscribed(response.id);
+        m_pendingSignals.clear();
+
+        emit errorOccurred(
+          tr("Сервер отклонил подписку, код: %1")
+            .arg(static_cast<int>(
+              response.result)));
+
+        break;
       }
-      else
+
+      m_subscriptionId = response.id;
+
+      m_signals =
+        std::move(m_pendingSignals);
+
+      m_pendingSignals.clear();
+
+      emit subscribed(response.id);
+
+      break;
+    }
+
+    case PacketType::UnsubscribeResponse:
+    {
+      UnsubscribeResponse response{};
+
+      if (!reader.read(response) ||
+          reader.remaining() != 0 ||
+          reader.trailingBytes() != 0)
+      {
+        break;
+      }
+
+      if (!m_unsubscribePending)
+        break;
+
+      m_unsubscribePending = false;
+
+      if (response.result !=
+          UnsubscribeResult::Ok)
       {
         emit errorOccurred(
-          tr("Сервер отклонил подписку"));
+          tr("Сервер отклонил отписку"));
+
+        break;
       }
+
+      m_subscriptionId = {};
+      m_signals.clear();
+
+      emit unsubscribed();
 
       break;
     }
@@ -172,9 +314,13 @@ void ClientConnection::onReadyRead()
       if (!reader.read(header))
         break;
 
-      if (header.valueCount >
-          MaxSubscriptionSignals)
+      if (m_subscriptionId.value == 0 ||
+          header.subscriptionId != m_subscriptionId ||
+          header.valueCount != m_signals.size() ||
+          header.valueCount > MaxSubscriptionSignals)
+      {
         break;
+      }
 
       std::vector<double> values(
         header.valueCount);
@@ -182,15 +328,40 @@ void ClientConnection::onReadyRead()
       if (!reader.readArray(
             values.data(),
             values.size()))
+      {
         break;
+      }
 
-      if (reader.remaining() != 0)
+      if (reader.remaining() != 0 ||
+          reader.trailingBytes() != 0)
+      {
         break;
+      }
 
       emit dataReceived(
         header.subscriptionId,
         header.timestamp,
         std::move(values));
+
+      break;
+    }
+
+    case PacketType::ErrorResponse:
+    {
+      ErrorResponse response{};
+
+      if (!reader.read(response) ||
+          reader.remaining() != 0 ||
+          reader.trailingBytes() != 0)
+      {
+        break;
+      }
+
+      emit errorOccurred(
+        tr("Ошибка протокола: %1, info=%2")
+          .arg(static_cast<int>(
+            response.code))
+          .arg(response.info));
 
       break;
     }

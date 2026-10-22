@@ -58,6 +58,14 @@ public:
   [[nodiscard]]
   const std::filesystem::path& currentArchiveDirectory() const noexcept;
 
+  ConfigurationId configurationId() const noexcept;
+
+  bool configurationLoaded() const noexcept;
+
+  [[nodiscard]]
+  bool setConfigurationId(
+    ConfigurationId id);
+
 private:
   bool registerDataSources();
   bool initializeArchive();

@@ -10,6 +10,12 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Network)
 
 add_library(DataClient SHARED
   clientconnection.h clientconnection.cpp
+  dataclient_global.h
+)
+
+target_compile_definitions(DataClient
+  PRIVATE
+    DATACLIENT_LIBRARY
 )
 
 target_include_directories(DataClient

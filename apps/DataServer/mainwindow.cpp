@@ -1,3 +1,4 @@
+#include "configurationselector.h"
 #include "mainwindow.h"
 #include "moduletypeinfo.h"
 #include "servercontroller.h"
@@ -22,9 +23,11 @@ namespace qds
 MainWindow::MainWindow(
   const QSqlDatabase& database,
   ServerController& controller,
+  const QString &configFile,
   QWidget* parent)
   : QMainWindow(parent)
   , m_controller(controller)
+  , m_configFile(configFile)
 {
   setWindowTitle(
     "DataServer [" + database.databaseName() + "]");
@@ -34,7 +37,7 @@ MainWindow::MainWindow(
 
   resize(1000, 650);
 
-  createToolbar();
+  createToolbar(database);
   createStatusbar(
     database.databaseName());
 
@@ -119,6 +122,7 @@ MainWindow::MainWindow(
     {
       updateServerState(true);
       updateArchiveDirectory();
+      updateControls();
 /*
       for (int row = 0;
            row < m_modulesTable->rowCount();
@@ -137,6 +141,7 @@ MainWindow::MainWindow(
     [this]()
     {
       updateServerState(false);
+      updateControls();
 
       for (int row = 0;
            row < m_modulesTable->rowCount();
@@ -178,13 +183,14 @@ MainWindow::MainWindow(
   updateArchiveDirectory();
 }
 
-void MainWindow::createToolbar()
+void MainWindow::createToolbar(
+  const QSqlDatabase& database)
 {
   auto* toolBar = addToolBar(tr("Управление"));
   toolBar->setIconSize(QSize(16, 16));
 
   toolBar->setMovable(false);
-  toolBar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+  toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 
   m_startAction = toolBar->addAction(
     QIcon(":/images/start.png"),
@@ -193,6 +199,26 @@ void MainWindow::createToolbar()
   m_stopAction = toolBar->addAction(
     QIcon(":/images/stop.png"),
     tr("Остановить"));
+
+  toolBar->addSeparator();
+
+  auto* configurationLabel =
+    new QLabel(tr("Эксперимент:"), this);
+
+  toolBar->addWidget(configurationLabel);
+
+  m_configurationSelector =
+    new ConfigurationSelector(database, this);
+
+  m_configurationSelector->setMinimumWidth(220);
+  m_configurationSelector->setSizePolicy(
+    QSizePolicy::Fixed,
+    QSizePolicy::Preferred);
+
+  toolBar->addWidget(m_configurationSelector);
+
+  m_configurationSelector->setConfigurationId(
+    m_controller.configurationId());
 
   toolBar->addSeparator();
 
@@ -228,6 +254,34 @@ void MainWindow::createToolbar()
     {
       m_logView->clear();
     });
+
+  connect(
+    m_configurationSelector,
+    &ConfigurationSelector::configurationChanged,
+    this,
+    [this](ConfigurationId id)
+    {
+      if (!m_controller.setConfigurationId(id))
+      {
+        m_configurationSelector->setConfigurationId(
+          m_controller.configurationId());
+
+        m_logView->appendPlainText(
+          tr("ERROR: Не удалось переключить эксперимент"));
+
+        return;
+      }
+
+      updateModules();
+
+      if (!ApplicationSettingsLoader::saveConfigurationId(
+            m_configFile,
+            id))
+      {
+        m_logView->appendPlainText(
+          tr("ERROR: Не удалось сохранить выбранный эксперимент"));
+      }
+    });
 }
 
 void MainWindow::createStatusbar(const QString& databaseName)
@@ -258,20 +312,22 @@ void MainWindow::updateControls()
   const bool running =
     m_controller.isRunning();
 
-  //m_configurationSelector->setEnabled(
-  //  !running);
+  m_configurationSelector->setEnabled(
+    !running);
 
   m_startAction->setEnabled(
-    !running);
+    !running && m_controller.configurationLoaded());
 
   m_stopAction->setEnabled(
     running);
 }
 
 void MainWindow::updateModules()
-{
+{  
   const auto& modules =
     m_controller.configuration().modules();
+
+  m_modulesTable->clearContents();
 
   m_modulesTable->setRowCount(
     static_cast<int>(modules.size()));
@@ -313,16 +369,14 @@ void MainWindow::updateModules()
   }
 }
 
-void MainWindow::updateServerState(
-  bool running)
+void MainWindow::updateServerState(bool running)
 {
-  m_startAction->setEnabled(!running);
-  m_stopAction->setEnabled(running);
-
   m_statusLabel->setText(
     running
       ? tr("Сервер работает")
       : tr("Сервер остановлен"));
+
+  updateControls();
 }
 
 void MainWindow::updateModuleStatistics()
