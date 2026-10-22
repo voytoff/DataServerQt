@@ -500,7 +500,7 @@ void tst_dataclient::unsubscribe()
     PublishRate::Hz10));
 }
 
-void tst_dataclient::subscribeRejected()
+void tst_dataclient::protocolError()
 {
   using namespace qds;
 
@@ -571,4 +571,255 @@ void tst_dataclient::subscribeRejected()
     arguments.at(0).value<QString>(),
     QString("Ошибка протокола: %1, info=0").arg(
       static_cast<int>(ErrorCode::InvalidRequest)));
+
+  QCOMPARE(client.subscriptionId(), SubscriptionId{});
+  QVERIFY(client.signalIds().empty());
+
+  // После отказа клиент должен разрешать новую подписку.
+  QVERIFY(client.subscribe(
+    signalIds,
+    PublishRate::Hz10));
+}
+
+void tst_dataclient::subscribeRejected()
+{
+  using namespace qds;
+
+  QUdpSocket server;
+
+  QVERIFY(server.bind(QHostAddress::LocalHost, 0));
+
+  ClientConnection client;
+
+  QVERIFY(client.open(
+    QHostAddress::LocalHost,
+    server.localPort()));
+
+  const std::array<SignalId, 3> signalIds = {
+    SignalId{1},
+    SignalId{2},
+    SignalId{3}
+  };
+
+  QSignalSpy errorSpy(
+    &client,
+    &ClientConnection::errorOccurred);
+
+  QVERIFY(errorSpy.isValid());
+
+  QVERIFY(client.subscribe(
+    signalIds,
+    PublishRate::Hz100));
+
+  // Получаем запрос подписки.
+  QTRY_VERIFY_WITH_TIMEOUT(
+    server.hasPendingDatagrams(), 1000);
+
+  QByteArray request;
+  request.resize(server.pendingDatagramSize());
+
+  QHostAddress clientAddress;
+  quint16 clientPort = 0;
+
+  QVERIFY(server.readDatagram(
+            request.data(),
+            request.size(),
+            &clientAddress,
+            &clientPort) > 0);
+
+  // Возвращаем ошибку.
+  PacketWriter writer;
+
+  writer.begin(PacketType::SubscribeResponse);
+
+  writer.write(SubscribeResponse{
+    .result = SubscribeResult::InvalidSignal,
+    .id = {}
+  });
+
+  QCOMPARE(
+    server.writeDatagram(
+      reinterpret_cast<const char*>(writer.data()),
+      static_cast<qint64>(writer.size()),
+      clientAddress,
+      clientPort),
+    static_cast<qint64>(writer.size()));
+
+  // Проверяем полученные данные.
+  QTRY_COMPARE_WITH_TIMEOUT(
+    errorSpy.count(), 1, 1000);
+
+  const auto arguments = errorSpy.takeFirst();
+
+  QCOMPARE(
+    arguments.at(0).value<QString>(),
+    QString("Сервер отклонил подписку, код: %1").arg(
+      static_cast<int>(SubscribeResult::InvalidSignal)));
+
+  QCOMPARE(client.subscriptionId(), SubscriptionId{});
+  QVERIFY(client.signalIds().empty());
+
+  // После отказа клиент должен разрешать новую подписку.
+  QVERIFY(client.subscribe(
+    signalIds,
+    PublishRate::Hz10));
+}
+
+void tst_dataclient::subscribeTimeout()
+{
+  using namespace qds;
+
+  QUdpSocket server;
+
+  QVERIFY(server.bind(
+    QHostAddress::LocalHost, 0));
+
+  ClientConnection client;
+
+  QVERIFY(client.open(
+    QHostAddress::LocalHost,
+    server.localPort()));
+
+  const std::array<SignalId, 2> signalIds = {
+    SignalId{1},
+    SignalId{2}
+  };
+
+  QSignalSpy errorSpy(
+    &client,
+    &ClientConnection::errorOccurred);
+
+  QVERIFY(errorSpy.isValid());
+
+  QVERIFY(client.subscribe(
+    signalIds,
+    PublishRate::Hz10));
+
+  // Сервер намеренно не отвечает.
+  QTRY_VERIFY_WITH_TIMEOUT(
+    server.hasPendingDatagrams(), 1000);
+
+  QTRY_COMPARE_WITH_TIMEOUT(
+    errorSpy.count(), 1, 2000);
+
+  QCOMPARE(
+    errorSpy.takeFirst().at(0).toString(),
+    QString("Превышено время ожидания подтверждения подписки"));
+
+  QCOMPARE(
+    client.subscriptionId(),
+    SubscriptionId{});
+
+  QVERIFY(client.signalIds().empty());
+
+  // После тайм-аута можно повторить запрос.
+  QVERIFY(client.subscribe(
+    signalIds,
+    PublishRate::Hz10));
+}
+
+void tst_dataclient::unsubscribeTimeout()
+{
+  using namespace qds;
+
+  QUdpSocket server;
+
+  QVERIFY(server.bind(QHostAddress::LocalHost, 0));
+
+  ClientConnection client;
+
+  QVERIFY(client.open(
+    QHostAddress::LocalHost,
+    server.localPort()));
+
+  const std::array<SignalId, 2> signalIds = {
+    SignalId{1},
+    SignalId{2}
+  };
+
+  QSignalSpy errorSpy(
+    &client,
+    &ClientConnection::errorOccurred);
+
+  QVERIFY(errorSpy.isValid());
+
+  QVERIFY(client.subscribe(
+    signalIds,
+    PublishRate::Hz10));
+
+  // Получаем запрос подписки.
+  QTRY_VERIFY_WITH_TIMEOUT(
+    server.hasPendingDatagrams(), 1000);
+
+  QByteArray request;
+  request.resize(server.pendingDatagramSize());
+
+  QHostAddress clientAddress;
+  quint16 clientPort = 0;
+
+  QVERIFY(server.readDatagram(
+            request.data(),
+            request.size(),
+            &clientAddress,
+            &clientPort) > 0);
+
+  // Подтверждаем подписку.
+  const SubscriptionId subscriptionId{7};
+
+  PacketWriter writer;
+
+  writer.begin(PacketType::SubscribeResponse);
+  writer.write(SubscribeResponse{
+    .result = SubscribeResult::Ok,
+    .id = subscriptionId
+  });
+
+  QCOMPARE(
+    server.writeDatagram(
+      reinterpret_cast<const char*>(writer.data()),
+      static_cast<qint64>(writer.size()),
+      clientAddress,
+      clientPort),
+    static_cast<qint64>(writer.size()));
+
+  QTRY_COMPARE_WITH_TIMEOUT(
+    client.subscriptionId(),
+    subscriptionId,
+    1000);
+
+  // Отправляем запрос отписки.
+  QVERIFY(client.unsubscribe());
+
+  QTRY_VERIFY_WITH_TIMEOUT(
+    server.hasPendingDatagrams(), 1000);
+
+  request.resize(server.pendingDatagramSize());
+
+  QVERIFY(server.readDatagram(
+            request.data(),
+            request.size(),
+            &clientAddress,
+            &clientPort) > 0);
+
+  // Сервер намеренно не отвечает на отписку.
+  QTRY_COMPARE_WITH_TIMEOUT(
+    errorSpy.count(), 1, 2000);
+
+  QCOMPARE(
+    errorSpy.takeFirst().at(0).toString(),
+    QString("Превышено время ожидания подтверждения отписки"));
+
+  // Подписка локально сохраняется.
+  QCOMPARE(
+    client.subscriptionId(),
+    subscriptionId);
+
+  QCOMPARE(
+    client.signalIds(),
+    std::vector<SignalId>(
+      signalIds.begin(),
+      signalIds.end()));
+
+  // После тайм-аута разрешается повторная отписка.
+  QVERIFY(client.unsubscribe());
 }

@@ -26,6 +26,7 @@ struct SignalTypeIdTag {};
 struct ConfigurationIdTag {};
 struct SensorTypeIdTag{};
 struct SensorIdTag{};
+struct RequestIdTag{};
 
 using SignalId =
   StrongId<SignalIdTag>;
@@ -58,6 +59,9 @@ using SensorTypeId =
 
 using SensorId =
   StrongId<SensorIdTag>;
+
+using RequestId =
+  StrongId<RequestIdTag>;
 
 
 struct SignalTypeInfo

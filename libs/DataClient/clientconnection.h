@@ -1,12 +1,12 @@
 #pragma once
 
 #include "datatypes.h"
-#include "protocol/subscriptionpackets.h"
 #include "dataclient_global.h"
 
 #include <QObject>
 #include <QHostAddress>
 #include <QUdpSocket>
+#include <QTimer>
 
 #include <cstdint>
 #include <span>
@@ -42,6 +42,27 @@ public:
 
   const std::vector<SignalId>& signalIds() const noexcept;
 
+private:
+  void onReadyRead();
+  void onRequestTimeout();
+
+private:
+  static constexpr int RequestTimeoutMs = 1000;
+
+  QUdpSocket m_socket;
+  QTimer m_requestTimer;
+
+  QHostAddress m_serverAddress;
+  quint16 m_serverPort = 0;
+
+  SubscriptionId m_subscriptionId{};
+
+  std::vector<SignalId> m_pendingSignals;
+  std::vector<SignalId> m_signals;
+
+  bool m_subscriptionPending = false;
+  bool m_unsubscribePending = false;
+
 signals:
   void subscribed(qds::SubscriptionId id);
 
@@ -54,21 +75,6 @@ signals:
 
   void errorOccurred(QString message);
 
-private:
-  void onReadyRead();
-
-  QUdpSocket m_socket;
-
-  QHostAddress m_serverAddress;
-  quint16 m_serverPort = 0;
-
-  SubscriptionId m_subscriptionId{};
-
-  std::vector<SignalId> m_pendingSignals;
-  std::vector<SignalId> m_signals;
-
-  bool m_subscriptionPending = false;
-  bool m_unsubscribePending = false;
 };
 
 }

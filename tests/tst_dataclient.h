@@ -16,9 +16,15 @@ private slots:
   void subscribeResponse();
   /** приём пакета LiveData и проверка массива double, времени измерения и SubscriptionId */
    void liveData();
-
+  /** отмена подписки и повторная подписка. */
   void unsubscribe();
+   /** обработка ошибки протокола и восстановление состояния. */
+  void protocolError();
+  /** отказ сервера в подписке и возможность повторного запроса. */
   void subscribeRejected();
+
+  void subscribeTimeout();
+  void unsubscribeTimeout();
 
 };
 

@@ -5,6 +5,7 @@
 
 #include "protocol/publishheader.h"
 #include "protocol/errorpackets.h"
+#include "subscriptionpackets.h"
 
 namespace qds
 {
@@ -18,6 +19,14 @@ ClientConnection::ClientConnection(
     &QUdpSocket::readyRead,
     this,
     &ClientConnection::onReadyRead);
+
+  m_requestTimer.setSingleShot(true);
+
+  connect(
+    &m_requestTimer,
+    &QTimer::timeout,
+    this,
+    &ClientConnection::onRequestTimeout);
 }
 
 bool ClientConnection::open(
@@ -130,6 +139,8 @@ bool ClientConnection::subscribe(
 
   m_subscriptionPending = true;
 
+  m_requestTimer.start(RequestTimeoutMs);
+
   return true;
 }
 
@@ -173,11 +184,15 @@ bool ClientConnection::unsubscribe()
 
   m_unsubscribePending = true;
 
+  m_requestTimer.start(RequestTimeoutMs);
+
   return true;
 }
 
 void ClientConnection::close()
 {
+  m_requestTimer.stop();
+
   m_socket.close();
 
   m_serverAddress = {};
@@ -248,6 +263,7 @@ void ClientConnection::onReadyRead()
       if (!m_subscriptionPending)
         break;
 
+      m_requestTimer.stop();
       m_subscriptionPending = false;
 
       if (response.result != SubscribeResult::Ok)
@@ -285,10 +301,11 @@ void ClientConnection::onReadyRead()
         break;
       }
 
-      if (!m_unsubscribePending)
+      if (!m_subscriptionPending)
         break;
 
-      m_unsubscribePending = false;
+      m_requestTimer.stop();
+      m_subscriptionPending = false;
 
       if (response.result !=
           UnsubscribeResult::Ok)
@@ -357,10 +374,23 @@ void ClientConnection::onReadyRead()
         break;
       }
 
+      if (m_subscriptionPending)
+      {
+        m_requestTimer.stop();
+
+        m_subscriptionPending = false;
+        m_pendingSignals.clear();
+      }
+      else if (m_unsubscribePending)
+      {
+        m_requestTimer.stop();
+
+        m_unsubscribePending = false;
+      }
+
       emit errorOccurred(
         tr("Ошибка протокола: %1, info=%2")
-          .arg(static_cast<int>(
-            response.code))
+          .arg(static_cast<int>(response.code))
           .arg(response.info));
 
       break;
@@ -369,6 +399,28 @@ void ClientConnection::onReadyRead()
     default:
       break;
     }
+  }
+}
+
+void ClientConnection::onRequestTimeout()
+{
+  if (m_subscriptionPending)
+  {
+    m_subscriptionPending = false;
+    m_pendingSignals.clear();
+
+    emit errorOccurred(
+      tr("Превышено время ожидания подтверждения подписки"));
+
+    return;
+  }
+
+  if (m_unsubscribePending)
+  {
+    m_unsubscribePending = false;
+
+    emit errorOccurred(
+      tr("Превышено время ожидания подтверждения отписки"));
   }
 }
 

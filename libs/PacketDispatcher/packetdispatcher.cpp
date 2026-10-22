@@ -177,11 +177,21 @@ bool PacketDispatcher::processUnsubscribe(PacketReader &reader, const Endpoint &
 
   if (!sub)
   {
-    sendUnsubscribeResponse(endpoint, UnsubscribeResult::InvalidId);
+    sendUnsubscribeResponse(
+      endpoint,
+      UnsubscribeResult::InvalidId);
+
     return false;
   }
 
-  /// m_scheduler.removeSubscription(req.id);
+  if (sub->endpoint != endpoint)
+  {
+    sendUnsubscribeResponse(
+      endpoint,
+      UnsubscribeResult::InvalidId);
+
+    return false;
+  }
 
   if (!m_subscriptions.remove(req.id))
     return false;
