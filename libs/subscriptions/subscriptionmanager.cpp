@@ -5,13 +5,17 @@
 namespace qds
 {
 
-SubscriptionId SubscriptionManager::add(const Subscription& subscription)
+SubscriptionId SubscriptionManager::add(
+  const Subscription& subscription)
 {
   m_subscriptions.push_back(subscription);
 
-  m_subscriptions.back().id = nextId();
+  auto& sub = m_subscriptions.back();
 
-  return m_subscriptions.back().id;
+  sub.id = nextId();
+  sub.expiresAt = Clock::now() + SubscriptionTtl;
+
+  return sub.id;
 }
 
 bool SubscriptionManager::remove(SubscriptionId id)
@@ -66,6 +70,39 @@ bool SubscriptionManager::empty() const
 std::size_t SubscriptionManager::size() const
 {
   return m_subscriptions.size();
+}
+
+bool SubscriptionManager::renew(SubscriptionId id)
+{
+  Subscription* sub = find(id);
+
+  if (!sub)
+    return false;
+
+  const auto now = Clock::now();
+
+  if (sub->expiresAt <= now)
+    return false;
+
+  sub->expiresAt = now + SubscriptionTtl;
+
+  return true;
+}
+
+std::size_t SubscriptionManager::removeExpired()
+{
+  const auto now = Clock::now();
+
+  const auto oldSize = m_subscriptions.size();
+
+  std::erase_if(
+    m_subscriptions,
+    [now](const Subscription& sub)
+    {
+      return sub.expiresAt <= now;
+    });
+
+  return oldSize - m_subscriptions.size();
 }
 
 SubscriptionId SubscriptionManager::nextId()

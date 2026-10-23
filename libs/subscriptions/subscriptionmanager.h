@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <memory>
 #include <vector>
+#include <chrono>
 
 #include "subscription.h"
 
@@ -40,9 +41,15 @@ public:
   [[nodiscard]]
   std::size_t size() const;
 
-private:
-  uint32_t m_nextId = 1;
-  std::vector<Subscription> m_subscriptions;
+  using Clock = std::chrono::steady_clock;
+
+  static constexpr auto SubscriptionTtl =
+    std::chrono::seconds{30};
+
+  [[nodiscard]]
+  bool renew(SubscriptionId id);
+
+  std::size_t removeExpired();
 
 private:
   SubscriptionId nextId();
@@ -62,6 +69,10 @@ private:
              ? nullptr
              : std::addressof(*it);
   }
+
+private:
+  uint32_t m_nextId = 1;
+  std::vector<Subscription> m_subscriptions;
 };
 
 } // namespace qds

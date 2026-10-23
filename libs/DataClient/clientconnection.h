@@ -45,6 +45,9 @@ public:
 private:
   void onReadyRead();
   void onRequestTimeout();
+  RequestId nextRequestId() noexcept;
+
+  bool sendPendingPacket();
 
 private:
   static constexpr int RequestTimeoutMs = 1000;
@@ -62,6 +65,14 @@ private:
 
   bool m_subscriptionPending = false;
   bool m_unsubscribePending = false;
+
+  RequestId m_nextRequestId{1};
+  RequestId m_pendingRequestId{};
+
+  static constexpr int MaxRequestRetries = 3;
+
+  std::vector<std::byte> m_pendingPacket;
+  int m_retryCount = 0;
 
 signals:
   void subscribed(qds::SubscriptionId id);

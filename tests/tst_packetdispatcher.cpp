@@ -8,6 +8,393 @@
 tst_packetdispatcher::tst_packetdispatcher() { }
 tst_packetdispatcher::~tst_packetdispatcher() = default;
 
+void tst_packetdispatcher::duplicateRequest()
+{
+  using namespace qds;
+  // создаем конфигурацию
+  SystemConfiguration cfg = createTestConfig_calculate();
+
+  TestSrv srv(cfg);
+
+  QVERIFY(srv.server.start(srv.server.port()));
+  QVERIFY(srv.server.isRunning());
+
+  // Создаём клиент
+  QUdpSocket client;
+
+  QVERIFY(
+    client.bind(QHostAddress::LocalHost, 0));
+
+  // Формируем запрос SubscribeListRequest
+  PacketWriter writer;
+  writer.begin(PacketType::SubscribeListRequest);
+
+  // Формируем запрос на подписку
+  constexpr SignalId signalIds[] { {17}, {23} };
+
+  SubscribeListRequest req;
+  req.requestId = RequestId{42};
+  req.rate = PublishRate::Hz10;
+  req.signalCount = std::size(signalIds);
+
+  writer.write(req);
+  writer.writeArray(signalIds, std::size(signalIds));
+
+  // Отправляем 1 запрос
+  QCOMPARE(
+    client.writeDatagram(
+      reinterpret_cast<const char*>(writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      srv.server.port()),
+    qint64(writer.size()));
+
+  // Получаем первый ответ и игнорируем его
+  QTRY_VERIFY_WITH_TIMEOUT(client.hasPendingDatagrams(), 2000);
+
+  QByteArray data;
+  data.resize(client.pendingDatagramSize());
+  client.readDatagram(data.data(), data.size());
+
+  PacketReader reader;
+
+  reader.append(
+    reinterpret_cast<const std::byte*>(data.constData()),
+    data.size());
+
+  // Проверяем
+  QVERIFY(reader.nextPacket());
+  QCOMPARE(reader.packetType(), PacketType::SubscribeResponse);
+
+  SubscribeResponse response;
+  QVERIFY(reader.read(response));
+
+  QVERIFY(reader.remaining() == 0u);
+  QCOMPARE(reader.trailingBytes(), 0u);
+
+  QCOMPARE(response.requestId, req.requestId);
+  QCOMPARE(response.result, SubscribeResult::Ok);
+  QVERIFY(response.id == SubscriptionId{1});
+
+  // Проверяем, что создана одна подписка
+  QCOMPARE(srv.manager.size(), 1u);
+
+
+  // Повторяем тот же запрос с тем же RequestId
+  QCOMPARE(
+    client.writeDatagram(
+      reinterpret_cast<const char*>(writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      srv.server.port()),
+    qint64(writer.size()));
+
+  // Получаем повторный ответ
+  QTRY_VERIFY_WITH_TIMEOUT(client.hasPendingDatagrams(), 2000);
+
+  data.resize(client.pendingDatagramSize());
+  client.readDatagram(data.data(), data.size());
+
+  reader.clear();
+
+  reader.append(
+    reinterpret_cast<const std::byte*>(data.constData()),
+    data.size());
+
+  // Проверяем
+  QVERIFY(reader.nextPacket());
+  QCOMPARE(reader.packetType(), PacketType::SubscribeResponse);
+
+  QVERIFY(reader.read(response));
+
+  QVERIFY(reader.remaining() == 0u);
+  QCOMPARE(reader.trailingBytes(), 0u);
+
+  QCOMPARE(response.requestId, req.requestId);
+  QCOMPARE(response.result, SubscribeResult::Ok);
+  QVERIFY(response.id == SubscriptionId{1});
+
+  QCOMPARE(srv.manager.size(), 1u);
+
+  QCOMPARE(srv.manager.subscriptions()[0].id, SubscriptionId{1});
+}
+
+void tst_packetdispatcher::duplicateUnrequest()
+{
+  using namespace qds;
+  // создаем конфигурацию
+  SystemConfiguration cfg = createTestConfig_calculate();
+
+  TestSrv srv(cfg);
+
+  QVERIFY(srv.server.start(srv.server.port()));
+  QVERIFY(srv.server.isRunning());
+
+  // Создаём клиент
+  QUdpSocket client;
+
+  QVERIFY(
+    client.bind(QHostAddress::LocalHost, 0));
+
+  // Формируем запрос SubscribeListRequest
+  PacketWriter writer;
+  writer.begin(PacketType::SubscribeListRequest);
+
+  // Формируем запрос на подписку
+  constexpr SignalId signalIds[] { {17}, {23} };
+
+  SubscribeListRequest req;
+  req.requestId = RequestId{41};
+  req.rate = PublishRate::Hz10;
+  req.signalCount = std::size(signalIds);
+
+  writer.write(req);
+  writer.writeArray(signalIds, std::size(signalIds));
+
+  // Отправляем запрос
+  QCOMPARE(
+    client.writeDatagram(
+      reinterpret_cast<const char*>(writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      srv.server.port()),
+    qint64(writer.size()));
+
+  // Получаем и проверяем ответ
+  QTRY_VERIFY_WITH_TIMEOUT(client.hasPendingDatagrams(), 2000);
+
+  QByteArray data;
+  data.resize(client.pendingDatagramSize());
+  client.readDatagram(data.data(), data.size());
+
+  PacketReader reader;
+
+  reader.append(
+    reinterpret_cast<const std::byte*>(data.constData()),
+    data.size());
+
+  // Проверяем
+  QVERIFY(reader.nextPacket());
+  QCOMPARE(reader.packetType(), PacketType::SubscribeResponse);
+
+  SubscribeResponse response;
+  QVERIFY(reader.read(response));
+
+  QVERIFY(reader.remaining() == 0u);
+  QCOMPARE(reader.trailingBytes(), 0u);
+
+  QCOMPARE(response.requestId, req.requestId);
+  QCOMPARE(response.result, SubscribeResult::Ok);
+  QVERIFY(response.id == SubscriptionId{1});
+
+  // Проверяем, что создана одна подписка
+  QCOMPARE(srv.manager.size(), 1u);
+
+
+  UnsubscribeRequest reqUnsubscribe{};
+  reqUnsubscribe.requestId = RequestId{42};
+  reqUnsubscribe.id = response.id;
+
+  writer.begin(PacketType::UnsubscribeRequest);
+  writer.write(reqUnsubscribe);
+
+  // Отправляем
+  QCOMPARE(
+    client.writeDatagram(
+      reinterpret_cast<const char*>(writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      srv.server.port()),
+    qint64(writer.size()));
+
+  QTRY_VERIFY_WITH_TIMEOUT(client.hasPendingDatagrams(), 2000);
+
+  data.resize(client.pendingDatagramSize());
+  client.readDatagram(data.data(), data.size());
+
+  reader.clear();
+  reader.append(
+    reinterpret_cast<const std::byte*>(data.constData()),
+    data.size());
+
+  QVERIFY(reader.nextPacket());
+
+  QCOMPARE(reader.packetType(), PacketType::UnsubscribeResponse);
+
+  UnsubscribeResponse response2;
+  QVERIFY(reader.read(response2));
+
+  QVERIFY(reader.remaining() == 0u);
+
+  QCOMPARE(response2.requestId, reqUnsubscribe.requestId);
+  QCOMPARE(response2.result, UnsubscribeResult::Ok);
+
+  // проверим отсутствие подписок
+  QCOMPARE(srv.manager.size(), 0u);
+
+
+  // Второй запрос
+  writer.begin(PacketType::UnsubscribeRequest);
+  writer.write(reqUnsubscribe);
+
+  // Отправляем второй раз
+  QCOMPARE(
+    client.writeDatagram(
+      reinterpret_cast<const char*>(writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      srv.server.port()),
+    qint64(writer.size()));
+
+  QTRY_VERIFY_WITH_TIMEOUT(client.hasPendingDatagrams(), 2000);
+
+  data.resize(client.pendingDatagramSize());
+  client.readDatagram(data.data(), data.size());
+
+  reader.clear();
+  reader.append(
+    reinterpret_cast<const std::byte*>(data.constData()),
+    data.size());
+
+  QVERIFY(reader.nextPacket());
+
+  QCOMPARE(reader.packetType(), PacketType::UnsubscribeResponse);
+
+  QVERIFY(reader.read(response2));
+
+  QVERIFY(reader.remaining() == 0u);
+
+  QCOMPARE(response2.requestId, reqUnsubscribe.requestId);
+  QCOMPARE(response2.result, UnsubscribeResult::Ok);
+
+  // проверим отсутствие подписок
+  QCOMPARE(srv.manager.size(), 0u);
+}
+
+void tst_packetdispatcher::duplicateRequestMismatch()
+{
+  using namespace qds;
+  // создаем конфигурацию
+  SystemConfiguration cfg = createTestConfig_calculate();
+
+  TestSrv srv(cfg);
+
+  QVERIFY(srv.server.start(srv.server.port()));
+  QVERIFY(srv.server.isRunning());
+
+  // Создаём клиент
+  QUdpSocket client;
+
+  QVERIFY(
+    client.bind(QHostAddress::LocalHost, 0));
+
+  // Формируем запрос SubscribeListRequest
+  PacketWriter writer;
+  writer.begin(PacketType::SubscribeListRequest);
+
+  // Формируем 1-й запрос на подписку
+  constexpr SignalId signals1[] { {17}, {23} };
+
+  SubscribeListRequest req;
+  req.requestId = RequestId{42};
+  req.rate = PublishRate::Hz10;
+  req.signalCount = std::size(signals1);
+
+  writer.write(req);
+  writer.writeArray(signals1, std::size(signals1));
+
+  // Отправляем 1 запрос
+  QCOMPARE(
+    client.writeDatagram(
+      reinterpret_cast<const char*>(writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      srv.server.port()),
+    qint64(writer.size()));
+
+  // Получаем ответ
+  QTRY_VERIFY_WITH_TIMEOUT(client.hasPendingDatagrams(), 2000);
+
+  QByteArray data;
+  data.resize(client.pendingDatagramSize());
+  client.readDatagram(data.data(), data.size());
+
+  PacketReader reader;
+
+  reader.append(
+    reinterpret_cast<const std::byte*>(data.constData()),
+    data.size());
+
+  // Проверяем
+  QVERIFY(reader.nextPacket());
+  QCOMPARE(reader.packetType(), PacketType::SubscribeResponse);
+
+  SubscribeResponse response;
+  QVERIFY(reader.read(response));
+
+  QVERIFY(reader.remaining() == 0u);
+  QCOMPARE(reader.trailingBytes(), 0u);
+
+  QCOMPARE(response.requestId, req.requestId);
+  QCOMPARE(response.result, SubscribeResult::Ok);
+  QVERIFY(response.id == SubscriptionId{1});
+
+  // Проверяем, что создана одна подписка
+  QCOMPARE(srv.manager.size(), 1u);
+
+
+  // Повторяем запрос с тем же RequestId, но другой по составу сигналов
+  // Формируем 2-й запрос на подписку
+  constexpr SignalId signals2[] { {17}, {4} };
+
+  req.rate = PublishRate::Hz100;
+  req.signalCount = std::size(signals2);
+
+  writer.clear();
+
+  writer.begin(PacketType::SubscribeListRequest);
+  writer.write(req);
+  writer.writeArray(signals2, std::size(signals2));
+
+  // Отправляем 1 запрос
+  QCOMPARE(
+    client.writeDatagram(
+      reinterpret_cast<const char*>(writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      srv.server.port()),
+    qint64(writer.size()));
+
+  // Получаем ответ
+  QTRY_VERIFY_WITH_TIMEOUT(client.hasPendingDatagrams(), 2000);
+
+  data.resize(client.pendingDatagramSize());
+  client.readDatagram(data.data(), data.size());
+
+  reader.clear();
+  reader.append(
+    reinterpret_cast<const std::byte*>(data.constData()),
+    data.size());
+
+  // Проверяем
+  QVERIFY(reader.nextPacket());
+  QCOMPARE(reader.packetType(), PacketType::ErrorResponse);
+
+  ErrorResponse error;
+  QVERIFY(reader.read(error));
+
+  QCOMPARE(error.code, ErrorCode::InvalidRequest);
+
+  QCOMPARE(srv.manager.size(), 1u);
+
+  const auto sub = srv.manager.subscriptions()[0];
+
+  QCOMPARE(sub.signalIds.size(), 2u);
+  QCOMPARE(sub.rate, PublishRate::Hz10);
+  QCOMPARE(sub.signalIds[0], SignalId{17});
+  QCOMPARE(sub.signalIds[1], SignalId{23});
+}
+
 void tst_packetdispatcher::tst_packetdispatcher_validSignal()
 {
   using namespace qds;
@@ -33,6 +420,7 @@ void tst_packetdispatcher::tst_packetdispatcher_validSignal()
   constexpr SignalId signalIds[] { {17}, {23} };
 
   SubscribeListRequest req;
+  req.requestId = RequestId{42};
   req.rate = PublishRate::Hz10;
   req.signalCount = std::size(signalIds);
 
@@ -75,6 +463,7 @@ void tst_packetdispatcher::tst_packetdispatcher_validSignal()
 
   QVERIFY(reader.remaining() == 0u);
 
+  QCOMPARE(response.requestId, req.requestId);
   QCOMPARE(response.result, SubscribeResult::Ok);
   QVERIFY(response.id == SubscriptionId{1});
 
@@ -110,6 +499,7 @@ void tst_packetdispatcher::tst_packetdispatcher_invalidSignal()
   constexpr SignalId signalIds[] { {17}, {24} }; // 24 - не существует
 
   SubscribeListRequest req;
+  req.requestId = RequestId{42};
   req.rate = PublishRate::Hz10;
   req.signalCount = std::size(signalIds);
 
@@ -152,6 +542,7 @@ void tst_packetdispatcher::tst_packetdispatcher_invalidSignal()
 
   QVERIFY(reader.remaining() == 0u);
 
+  QCOMPARE(response.requestId, req.requestId);
   QCOMPARE(response.result, SubscribeResult::InvalidSignal);
   QVERIFY(response.id == SubscriptionId{0});
 
@@ -187,6 +578,7 @@ void tst_packetdispatcher::tst_packetdispatcher_duplicateSignal()
   constexpr SignalId signalIds[] { {4}, {17}, {4} }; // 4 - 2 раза
 
   SubscribeListRequest req;
+  req.requestId = RequestId{42};
   req.rate = PublishRate::Hz10;
   req.signalCount = std::size(signalIds);
 
@@ -229,6 +621,7 @@ void tst_packetdispatcher::tst_packetdispatcher_duplicateSignal()
 
   QVERIFY(reader.remaining() == 0u);
 
+  QCOMPARE(response.requestId, req.requestId);
   QCOMPARE(response.result, SubscribeResult::DuplicateSignal);
   QVERIFY(response.id == SubscriptionId{0});
 
@@ -262,6 +655,7 @@ void tst_packetdispatcher::tst_packetdispatcher_emptyList()
 
   // Формируем запрос на подписку
   SubscribeListRequest req;
+  req.requestId = RequestId{42};
   req.rate = PublishRate::Hz10;
   req.signalCount = 0;
 
@@ -303,6 +697,7 @@ void tst_packetdispatcher::tst_packetdispatcher_emptyList()
 
   QVERIFY(reader.remaining() == 0u);
 
+  QCOMPARE(response.requestId, req.requestId);
   QCOMPARE(response.result, SubscribeResult::EmptyList);
   QVERIFY(response.id == SubscriptionId{0});
 
@@ -336,6 +731,7 @@ void tst_packetdispatcher::tst_packetdispatcher_tooManySignals()
 
   // Формируем запрос на подписку
   SubscribeListRequest req;
+  req.requestId = RequestId{42};
   req.rate = PublishRate::Hz10;
   req.signalCount = MaxSubscriptionSignals + 1;
 
@@ -377,6 +773,7 @@ void tst_packetdispatcher::tst_packetdispatcher_tooManySignals()
 
   QVERIFY(reader.remaining() == 0u);
 
+  QCOMPARE(response.requestId, req.requestId);
   QCOMPARE(response.result, SubscribeResult::TooManySignals);
   QVERIFY(response.id == SubscriptionId{0});
 
@@ -412,6 +809,7 @@ void tst_packetdispatcher::tst_packetdispatcher_invalidRate()
   constexpr SignalId signalIds[] { {17}, {23} };
 
   SubscribeListRequest req;
+  req.requestId = RequestId{42};
   req.rate = static_cast<PublishRate>(0xFF);
   req.signalCount = std::size(signalIds);
 
@@ -454,6 +852,7 @@ void tst_packetdispatcher::tst_packetdispatcher_invalidRate()
 
   QVERIFY(reader.remaining() == 0u);
 
+  QCOMPARE(response.requestId, req.requestId);
   QCOMPARE(response.result, SubscribeResult::InvalidRate);
   QVERIFY(response.id == SubscriptionId{0});
 
@@ -489,6 +888,7 @@ void tst_packetdispatcher::tst_packetdispatcher_unsubscribe()
   constexpr SignalId signalIds[] { {17}, {23} };
 
   SubscribeListRequest req;
+  req.requestId = RequestId{42};
   req.rate = PublishRate::Hz10;
   req.signalCount = std::size(signalIds);
 
@@ -531,6 +931,7 @@ void tst_packetdispatcher::tst_packetdispatcher_unsubscribe()
 
   QVERIFY(reader.remaining() == 0u);
 
+  QCOMPARE(response.requestId, req.requestId);
   QCOMPARE(response.result, SubscribeResult::Ok);
   QVERIFY(response.id == SubscriptionId{1});
 
@@ -538,7 +939,8 @@ void tst_packetdispatcher::tst_packetdispatcher_unsubscribe()
   QCOMPARE(srv.manager.size(), 1u);
 
 
-  UnsubscribeRequest req2;
+  UnsubscribeRequest req2{};
+  req2.requestId = RequestId{43};
   req2.id = response.id;
 
   writer.begin(PacketType::UnsubscribeRequest);
@@ -575,6 +977,7 @@ void tst_packetdispatcher::tst_packetdispatcher_unsubscribe()
 
   QVERIFY(reader.remaining() == 0u);
 
+  QCOMPARE(response2.requestId, req2.requestId);
   QCOMPARE(response2.result, UnsubscribeResult::Ok);
 
   // проверим отсутствие подписок
@@ -609,6 +1012,7 @@ void tst_packetdispatcher::tst_packetdispatcher_unsubscribeinvalidId()
   constexpr SignalId signalIds[] { {17}, {23} };
 
   SubscribeListRequest req;
+  req.requestId = RequestId{42};
   req.rate = PublishRate::Hz10;
   req.signalCount = std::size(signalIds);
 
@@ -651,6 +1055,7 @@ void tst_packetdispatcher::tst_packetdispatcher_unsubscribeinvalidId()
 
   QVERIFY(reader.remaining() == 0u);
 
+  QCOMPARE(response.requestId, req.requestId);
   QCOMPARE(response.result, SubscribeResult::Ok);
   QVERIFY(response.id == SubscriptionId{1});
 
@@ -659,6 +1064,7 @@ void tst_packetdispatcher::tst_packetdispatcher_unsubscribeinvalidId()
 
 
   UnsubscribeRequest req2;
+  req2.requestId = RequestId{43};
   req2.id = SubscriptionId{777};
 
   writer.begin(PacketType::UnsubscribeRequest);
@@ -695,6 +1101,7 @@ void tst_packetdispatcher::tst_packetdispatcher_unsubscribeinvalidId()
 
   QVERIFY(reader.remaining() == 0u);
 
+  QCOMPARE(response2.requestId, req2.requestId);
   QCOMPARE(response2.result, UnsubscribeResult::InvalidId);
 
   // проверим отсутствие подписок
@@ -852,6 +1259,7 @@ void tst_packetdispatcher::tst_packetdispatcher_subscribeWithoutPayload()
   writer.begin(PacketType::SubscribeListRequest);
 
   SubscribeListRequest req;
+  req.requestId = RequestId{42};
   req.rate = PublishRate::Hz10;
   req.signalCount = 2;
 
@@ -930,6 +1338,7 @@ void tst_packetdispatcher::tst_packetdispatcher_subscribeExtraData()
   constexpr SignalId signalIds[] { {17}, {23} };
 
   SubscribeListRequest req;
+  req.requestId = RequestId{42};
   req.rate = PublishRate::Hz10;
   req.signalCount = std::size(signalIds);
 
@@ -1135,6 +1544,7 @@ void tst_packetdispatcher::tst_packetdispatcher_invalidSignalCount()
   constexpr SignalId signalIds[] { {17}, {4} };
 
   SubscribeListRequest req;
+  req.requestId = RequestId{42};
   req.rate = PublishRate::Hz10;
   req.signalCount = 3;
 
@@ -1206,6 +1616,7 @@ void tst_packetdispatcher::tst_packetdispatcher_subscriptionIdReuse()
   constexpr SignalId signalIds[] { {17}, {23} };
 
   SubscribeListRequest req;
+  req.requestId = RequestId{1};
   req.rate = PublishRate::Hz10;
   req.signalCount = std::size(signalIds);
 
@@ -1248,6 +1659,7 @@ void tst_packetdispatcher::tst_packetdispatcher_subscriptionIdReuse()
 
   QVERIFY(reader.remaining() == 0u);
 
+  QCOMPARE(response.requestId, req.requestId);
   QCOMPARE(response.result, SubscribeResult::Ok);
   QVERIFY(response.id == SubscriptionId{1});
 
@@ -1256,6 +1668,7 @@ void tst_packetdispatcher::tst_packetdispatcher_subscriptionIdReuse()
 
 
   UnsubscribeRequest req2;
+  req2.requestId = {2};
   req2.id = response.id;
 
   writer.begin(PacketType::UnsubscribeRequest);
@@ -1292,6 +1705,7 @@ void tst_packetdispatcher::tst_packetdispatcher_subscriptionIdReuse()
 
   QVERIFY(reader.remaining() == 0u);
 
+  QCOMPARE(response2.requestId, req2.requestId);
   QCOMPARE(response2.result, UnsubscribeResult::Ok);
 
   // проверим отсутствие подписок
@@ -1308,6 +1722,7 @@ void tst_packetdispatcher::tst_packetdispatcher_subscriptionIdReuse()
   // Формируем запрос на подписку
   constexpr SignalId signalIds2[] { SignalId{4}, SignalId{23}, SignalId{17} };
 
+  req.requestId = RequestId{3};
   req.rate = PublishRate::Hz100;
   req.signalCount = std::size(signalIds2);
 
@@ -1347,13 +1762,15 @@ void tst_packetdispatcher::tst_packetdispatcher_subscriptionIdReuse()
 
   QVERIFY(reader.remaining() == 0u);
 
-  QCOMPARE(response.result, SubscribeResult::Ok);
+  QCOMPARE(response2.requestId, req2.requestId);
+  QCOMPARE(response2.result, UnsubscribeResult::Ok);
   QVERIFY(response.id == SubscriptionId{2});
 
   // проверим наличие подписок
   QCOMPARE(srv.manager.size(), 1u);
 
 
+  req2.requestId = RequestId{4};
   req2.id = response.id;
 
   writer.begin(PacketType::UnsubscribeRequest);
@@ -1389,6 +1806,7 @@ void tst_packetdispatcher::tst_packetdispatcher_subscriptionIdReuse()
 
   QVERIFY(reader.remaining() == 0u);
 
+  QCOMPARE(response2.requestId, req2.requestId);
   QCOMPARE(response2.result, UnsubscribeResult::Ok);
 
   // проверим отсутствие подписок
@@ -1405,6 +1823,7 @@ void tst_packetdispatcher::tst_packetdispatcher_subscriptionIdReuse()
   // Формируем запрос на подписку
   constexpr SignalId signalIds3[] { SignalId{4} };
 
+  req.requestId = RequestId{5};
   req.rate = PublishRate::Hz1;
   req.signalCount = std::size(signalIds3);
 
@@ -1444,6 +1863,7 @@ void tst_packetdispatcher::tst_packetdispatcher_subscriptionIdReuse()
 
   QVERIFY(reader.remaining() == 0u);
 
+  QCOMPARE(response.requestId, req.requestId);
   QCOMPARE(response.result, SubscribeResult::Ok);
   QVERIFY(response.id == SubscriptionId{3});
 
@@ -1451,6 +1871,7 @@ void tst_packetdispatcher::tst_packetdispatcher_subscriptionIdReuse()
   QCOMPARE(srv.manager.size(), 1u);
 
 
+  req2.requestId = RequestId{6};
   req2.id = response.id;
 
   writer.begin(PacketType::UnsubscribeRequest);
@@ -1486,6 +1907,7 @@ void tst_packetdispatcher::tst_packetdispatcher_subscriptionIdReuse()
 
   QVERIFY(reader.remaining() == 0u);
 
+  QCOMPARE(response2.requestId, req2.requestId);
   QCOMPARE(response2.result, UnsubscribeResult::Ok);
 
   // проверим отсутствие подписок
@@ -1521,6 +1943,7 @@ void tst_packetdispatcher::tst_packetdispatcher_unsubscribeExtraData()
   constexpr SignalId signalIds[] { {17}, {23} };
 
   SubscribeListRequest req;
+  req.requestId = RequestId{42};
   req.rate = PublishRate::Hz10;
   req.signalCount = std::size(signalIds);
 
@@ -1563,6 +1986,7 @@ void tst_packetdispatcher::tst_packetdispatcher_unsubscribeExtraData()
 
   QVERIFY(reader.remaining() == 0u);
 
+  QCOMPARE(response.requestId, req.requestId);
   QCOMPARE(response.result, SubscribeResult::Ok);
   QVERIFY(response.id == SubscriptionId{1});
 

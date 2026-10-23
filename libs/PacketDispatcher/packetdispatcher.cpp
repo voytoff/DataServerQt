@@ -31,23 +31,77 @@ bool PacketDispatcher::dispatch(
     return false;
   }
 
-  switch(reader.packetType())
+  const PacketType type = reader.packetType();
+
+  if (type == PacketType::SubscribeListRequest ||
+      type == PacketType::UnsubscribeRequest)
   {
-  case PacketType::SubscribeListRequest:
-    return processSubscribeList(reader, sender);
+    RequestId requestId{};
 
-  case PacketType::UnsubscribeRequest:
-    return processUnsubscribe(reader, sender);
+    if (type == PacketType::SubscribeListRequest)
+    {
+      SubscribeListRequest req{};
+      if (reader.read(req))
+        requestId = req.requestId;
+    }
+    else
+    {
+      UnsubscribeRequest req{};
+      if (reader.read(req))
+        requestId = req.requestId;
+    }
 
-  case PacketType::Ping:
-    return processPing(reader, sender);
+    if (requestId.value != 0)
+    {
+      bool handled = false;
+
+      const bool result = tryCachedResponse(
+        sender, type, requestId, packet, handled);
+
+      if (handled)
+        return result;
+
+      m_activeRequest = ActiveRequest{
+        .endpoint = sender,
+        .type = type,
+        .requestId = requestId,
+        .data = std::vector<std::byte>(
+          packet.begin(), packet.end())
+      };
+    }
   }
 
-  sendErrorResponse(
-    sender,
-    ErrorCode::UnsupportedPacket);
+  // Обработчики должны получить reader с начала payload
+  reader.clear();
+  reader.append(packet);
 
-  return false;
+  if (!reader.nextPacket())
+    return false;
+
+  bool result = false;
+
+  switch (reader.packetType())
+  {
+  case PacketType::SubscribeListRequest:
+    result = processSubscribeList(reader, sender);
+    break;
+
+  case PacketType::UnsubscribeRequest:
+    result = processUnsubscribe(reader, sender);
+    break;
+
+  case PacketType::Ping:
+    result = processPing(reader, sender);
+    break;
+
+  default:
+    result = sendErrorResponse(
+      sender, ErrorCode::UnsupportedPacket);
+    break;
+  }
+
+  m_activeRequest.reset();
+  return result;
 }
 
 bool PacketDispatcher::sendErrorResponse(
@@ -64,7 +118,9 @@ bool PacketDispatcher::sendErrorResponse(
     });
 }
 
-bool PacketDispatcher::processSubscribeList(PacketReader &reader, const Endpoint &endpoint)
+bool PacketDispatcher::processSubscribeList(
+  PacketReader &reader,
+  const Endpoint &endpoint)
 {
   // 1. Разбор пакета
   SubscribeListRequest req;
@@ -75,6 +131,7 @@ bool PacketDispatcher::processSubscribeList(PacketReader &reader, const Endpoint
   if (req.signalCount == 0) {
     sendSubscribeResponse(
       endpoint,
+      req.requestId,
       SubscribeResult::EmptyList);
 
     return false;
@@ -83,6 +140,7 @@ bool PacketDispatcher::processSubscribeList(PacketReader &reader, const Endpoint
   if (req.signalCount > MaxSubscriptionSignals) {
     sendSubscribeResponse(
       endpoint,
+      req.requestId,
       SubscribeResult::TooManySignals);
 
     return false;
@@ -98,6 +156,7 @@ bool PacketDispatcher::processSubscribeList(PacketReader &reader, const Endpoint
   default:
     sendSubscribeResponse(
       endpoint,
+      req.requestId,
       SubscribeResult::InvalidRate);
     return false;
   }
@@ -128,6 +187,7 @@ bool PacketDispatcher::processSubscribeList(PacketReader &reader, const Endpoint
     {
       sendSubscribeResponse(
         endpoint,
+        req.requestId,
         SubscribeResult::InvalidSignal);
 
       return false;
@@ -143,6 +203,7 @@ bool PacketDispatcher::processSubscribeList(PacketReader &reader, const Endpoint
       {
         sendSubscribeResponse(
           endpoint,
+          req.requestId,
           SubscribeResult::DuplicateSignal);
 
         return false;
@@ -160,6 +221,7 @@ bool PacketDispatcher::processSubscribeList(PacketReader &reader, const Endpoint
   // 5. Ответ клиенту
   return sendSubscribeResponse(
     endpoint,
+    req.requestId,
     SubscribeResult::Ok,
     id);
 }
@@ -179,6 +241,7 @@ bool PacketDispatcher::processUnsubscribe(PacketReader &reader, const Endpoint &
   {
     sendUnsubscribeResponse(
       endpoint,
+      req.requestId,
       UnsubscribeResult::InvalidId);
 
     return false;
@@ -188,6 +251,7 @@ bool PacketDispatcher::processUnsubscribe(PacketReader &reader, const Endpoint &
   {
     sendUnsubscribeResponse(
       endpoint,
+      req.requestId,
       UnsubscribeResult::InvalidId);
 
     return false;
@@ -196,7 +260,10 @@ bool PacketDispatcher::processUnsubscribe(PacketReader &reader, const Endpoint &
   if (!m_subscriptions.remove(req.id))
     return false;
 
-  return sendUnsubscribeResponse(endpoint, UnsubscribeResult::Ok);
+  return sendUnsubscribeResponse(
+    endpoint,
+    req.requestId,
+    UnsubscribeResult::Ok);
 }
 
 bool PacketDispatcher::processPing(
@@ -209,23 +276,32 @@ bool PacketDispatcher::processPing(
   return reply(endpoint, PacketType::Pong);
 }
 
-bool PacketDispatcher::sendSubscribeResponse(const Endpoint &endpoint, SubscribeResult result, SubscriptionId id)
+bool PacketDispatcher::sendSubscribeResponse(
+  const Endpoint& endpoint,
+  RequestId requestId,
+  SubscribeResult result,
+  SubscriptionId id)
 {
   return reply(
     endpoint,
     PacketType::SubscribeResponse,
     SubscribeResponse{
+      .requestId = requestId,
       .result = result,
       .id = id
-   });
+    });
 }
 
-bool PacketDispatcher::sendUnsubscribeResponse(const Endpoint &endpoint, UnsubscribeResult result)
+bool PacketDispatcher::sendUnsubscribeResponse(
+  const Endpoint &endpoint,
+  RequestId requestId,
+  UnsubscribeResult result)
 {
   return reply(
     endpoint,
     PacketType::UnsubscribeResponse,
     UnsubscribeResponse{
+      .requestId = requestId,
       .result = result,
     });
 }
@@ -258,6 +334,84 @@ SubscriptionId PacketDispatcher::createSubscription(
     signalIds.end());
 
   return m_subscriptions.add(subscription);
+}
+
+void PacketDispatcher::cleanupResponseCache()
+{
+  const auto now = std::chrono::steady_clock::now();
+
+  while (!m_responseCache.empty())
+  {
+    const auto& entry = m_responseCache.front();
+
+    if (now - entry.timestamp < CacheLifetime)
+      break;
+
+    m_responseCache.pop_front();
+  }
+}
+
+bool PacketDispatcher::tryCachedResponse(
+  const Endpoint& endpoint,
+  PacketType type,
+  RequestId requestId,
+  std::span<const std::byte> request,
+  bool& handled)
+{
+  handled = false;
+
+  cleanupResponseCache();
+
+  for (const auto& entry : m_responseCache)
+  {
+    if (entry.endpoint != endpoint ||
+        entry.type != type ||
+        entry.requestId != requestId)
+      continue;
+
+    handled = true;
+
+    if (entry.request.size() != request.size() ||
+        !std::equal(
+          entry.request.begin(),
+          entry.request.end(),
+          request.begin()))
+    {
+      sendErrorResponse(
+        endpoint,
+        ErrorCode::InvalidRequest);
+
+      return false;
+    }
+
+    return m_sender.send(endpoint, entry.response);
+  }
+
+  return false;
+}
+
+void PacketDispatcher::saveResponse(
+  std::span<const std::byte> response)
+{
+  if (!m_activeRequest)
+    return;
+
+  cleanupResponseCache();
+
+  if (m_responseCache.size() >= MaxCachedResponses)
+    m_responseCache.pop_front();
+
+  const auto& req = *m_activeRequest;
+
+  m_responseCache.push_back(CachedResponse{
+    .endpoint = req.endpoint,
+    .type = req.type,
+    .requestId = req.requestId,
+    .request = req.data,
+    .response = std::vector<std::byte>(
+      response.begin(), response.end()),
+    .timestamp = std::chrono::steady_clock::now()
+  });
 }
 
 }

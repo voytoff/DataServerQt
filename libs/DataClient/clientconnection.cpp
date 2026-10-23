@@ -6,6 +6,7 @@
 #include "protocol/publishheader.h"
 #include "protocol/errorpackets.h"
 #include "subscriptionpackets.h"
+#include <qdebug.h>
 
 namespace qds
 {
@@ -99,12 +100,14 @@ bool ClientConnection::subscribe(
   }
 
   PacketWriter writer;
+  const RequestId requestId = nextRequestId();
 
   writer.begin(
     PacketType::SubscribeListRequest);
 
   writer.write(
     SubscribeListRequest{
+      .requestId = requestId,
       .rate = rate,
       .signalCount =
       static_cast<uint32_t>(
@@ -115,21 +118,17 @@ bool ClientConnection::subscribe(
     signalIds.data(),
     signalIds.size());
 
-  const qint64 written =
-    m_socket.writeDatagram(
-      reinterpret_cast<const char*>(
-        writer.data()),
-      static_cast<qint64>(
-        writer.size()),
-      m_serverAddress,
-      m_serverPort);
+  m_pendingPacket.assign(
+    writer.span().begin(),
+    writer.span().end());
 
-  if (written !=
-      static_cast<qint64>(writer.size()))
+  m_retryCount = 0;
+
+  if (!sendPendingPacket())
   {
-    emit errorOccurred(
-      m_socket.errorString());
+    m_pendingPacket.clear();
 
+    emit errorOccurred(m_socket.errorString());
     return false;
   }
 
@@ -137,6 +136,7 @@ bool ClientConnection::subscribe(
     signalIds.begin(),
     signalIds.end());
 
+  m_pendingRequestId = requestId;
   m_subscriptionPending = true;
 
   m_requestTimer.start(RequestTimeoutMs);
@@ -155,33 +155,32 @@ bool ClientConnection::unsubscribe()
   }
 
   PacketWriter writer;
+  const RequestId requestId = nextRequestId();
 
   writer.begin(
     PacketType::UnsubscribeRequest);
 
   writer.write(
     UnsubscribeRequest{
+      .requestId = requestId,
       .id = m_subscriptionId
     });
 
-  const qint64 written =
-    m_socket.writeDatagram(
-      reinterpret_cast<const char*>(
-        writer.data()),
-      static_cast<qint64>(
-        writer.size()),
-      m_serverAddress,
-      m_serverPort);
+  m_pendingPacket.assign(
+    writer.span().begin(),
+    writer.span().end());
 
-  if (written !=
-      static_cast<qint64>(writer.size()))
+  m_retryCount = 0;
+
+  if (!sendPendingPacket())
   {
-    emit errorOccurred(
-      m_socket.errorString());
+    m_pendingPacket.clear();
 
+    emit errorOccurred(m_socket.errorString());
     return false;
   }
 
+  m_pendingRequestId = requestId;
   m_unsubscribePending = true;
 
   m_requestTimer.start(RequestTimeoutMs);
@@ -203,8 +202,12 @@ void ClientConnection::close()
   m_pendingSignals.clear();
   m_signals.clear();
 
+  m_pendingRequestId = {};
   m_subscriptionPending = false;
   m_unsubscribePending = false;
+
+  m_pendingPacket.clear();
+  m_retryCount = 0;
 }
 
 void ClientConnection::onReadyRead()
@@ -260,11 +263,18 @@ void ClientConnection::onReadyRead()
         break;
       }
 
-      if (!m_subscriptionPending)
+      if (!m_subscriptionPending ||
+          response.requestId != m_pendingRequestId)
+      {
         break;
+      }
 
       m_requestTimer.stop();
+      m_pendingRequestId = {};
       m_subscriptionPending = false;
+
+      m_pendingPacket.clear();
+      m_retryCount = 0;
 
       if (response.result != SubscribeResult::Ok)
       {
@@ -301,11 +311,18 @@ void ClientConnection::onReadyRead()
         break;
       }
 
-      if (!m_subscriptionPending)
+      if (!m_unsubscribePending ||
+          response.requestId != m_pendingRequestId)
+      {
         break;
+      }
 
       m_requestTimer.stop();
-      m_subscriptionPending = false;
+      m_pendingRequestId = {};
+      m_unsubscribePending = false;
+
+      m_pendingPacket.clear();
+      m_retryCount = 0;
 
       if (response.result !=
           UnsubscribeResult::Ok)
@@ -374,6 +391,8 @@ void ClientConnection::onReadyRead()
         break;
       }
 
+      m_pendingRequestId = {};
+
       if (m_subscriptionPending)
       {
         m_requestTimer.stop();
@@ -387,6 +406,9 @@ void ClientConnection::onReadyRead()
 
         m_unsubscribePending = false;
       }
+
+      m_pendingPacket.clear();
+      m_retryCount = 0;
 
       emit errorOccurred(
         tr("Ошибка протокола: %1, info=%2")
@@ -404,6 +426,42 @@ void ClientConnection::onReadyRead()
 
 void ClientConnection::onRequestTimeout()
 {
+  if (!m_subscriptionPending &&
+      !m_unsubscribePending)
+  {
+    return;
+  }
+
+  if (m_retryCount < MaxRequestRetries)
+  {
+    ++m_retryCount;
+
+    if (sendPendingPacket())
+    {
+      m_requestTimer.start(RequestTimeoutMs);
+      return;
+    }
+
+    // Ошибка отправки — прекращаем повторы
+    const QString error = m_socket.errorString();
+
+    m_requestTimer.stop();
+    m_pendingRequestId = {};
+    m_pendingPacket.clear();
+    m_retryCount = 0;
+
+    m_subscriptionPending = false;
+    m_unsubscribePending = false;
+    m_pendingSignals.clear();
+
+    emit errorOccurred(error);
+    return;
+  }
+
+  m_pendingRequestId = {};
+  m_pendingPacket.clear();
+  m_retryCount = 0;
+
   if (m_subscriptionPending)
   {
     m_subscriptionPending = false;
@@ -422,6 +480,33 @@ void ClientConnection::onRequestTimeout()
     emit errorOccurred(
       tr("Превышено время ожидания подтверждения отписки"));
   }
+}
+
+RequestId ClientConnection::nextRequestId() noexcept
+{
+  if (m_nextRequestId.value == 0)
+    m_nextRequestId.value = 1;
+
+  return {m_nextRequestId.value++};
+}
+
+bool ClientConnection::sendPendingPacket()
+{
+  if (!isOpen() || m_pendingPacket.empty())
+    return false;
+
+  const qint64 written =
+    m_socket.writeDatagram(
+      reinterpret_cast<const char*>(
+        m_pendingPacket.data()),
+      static_cast<qint64>(
+        m_pendingPacket.size()),
+      m_serverAddress,
+      m_serverPort);
+
+  return written ==
+         static_cast<qint64>(
+           m_pendingPacket.size());
 }
 
 }

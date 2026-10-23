@@ -26,5 +26,10 @@ private slots:
   void subscribeTimeout();
   void unsubscribeTimeout();
 
+  void subscribeRetry();
+  void unsubscribeRetry();
+
+  void subscriptionTtl();
+
 };
 

@@ -12,6 +12,10 @@ public:
 private:
 
 private slots:
+  void duplicateRequest();
+  void duplicateUnrequest();
+  void duplicateRequestMismatch();
+
   void tst_packetdispatcher_validSignal();
   void tst_packetdispatcher_invalidSignal();
   void tst_packetdispatcher_duplicateSignal();

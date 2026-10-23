@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <chrono>
 
 #include "datatypes.h"
 #include "endpoint.h"
@@ -21,6 +22,8 @@ struct Subscription
 
   FrameNumber nextPublishFrame;
   bool publishStarted = false;
+
+  std::chrono::steady_clock::time_point expiresAt{};
 };
 
 }

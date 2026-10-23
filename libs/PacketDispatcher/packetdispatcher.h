@@ -7,7 +7,11 @@
 #include "protocol/subscriptionpackets.h"
 #include "subscriptionmanager.h"
 #include "systemconfiguration.h"
+
 #include <concepts>
+#include <chrono>
+#include <deque>
+#include <vector>
 
 namespace qds
 {
@@ -55,11 +59,12 @@ private:
 
   bool sendSubscribeResponse(
     const Endpoint& endpoint,
+    RequestId requestId,
     SubscribeResult result,
     SubscriptionId id = {});
 
   bool sendUnsubscribeResponse(
-    const Endpoint& endpoint,
+    const Endpoint& endpoint, RequestId requestId,
     UnsubscribeResult result);
 
 
@@ -98,6 +103,12 @@ private:
     m_writer.begin(type);
     m_writer.write(packet);
 
+    if (type == PacketType::SubscribeResponse ||
+        type == PacketType::UnsubscribeResponse)
+    {
+      saveResponse(m_writer.span());
+    }
+
     return m_sender.send(endpoint, m_writer.span());
   }
 
@@ -127,6 +138,46 @@ private:
       endpoint,
       m_writer.span());
   }
+
+private:
+  struct CachedResponse
+  {
+    Endpoint endpoint;
+    PacketType type;
+    RequestId requestId;
+
+    std::vector<std::byte> request;
+    std::vector<std::byte> response;
+
+    std::chrono::steady_clock::time_point timestamp;
+  };
+
+  static constexpr std::size_t MaxCachedResponses = 1024;
+  static constexpr auto CacheLifetime = std::chrono::seconds(10);
+
+  std::deque<CachedResponse> m_responseCache;
+
+  struct ActiveRequest
+  {
+    Endpoint endpoint;
+    PacketType type;
+    RequestId requestId;
+    std::vector<std::byte> data;
+  };
+
+  std::optional<ActiveRequest> m_activeRequest;
+
+  void cleanupResponseCache();
+
+  bool tryCachedResponse(
+    const Endpoint& endpoint,
+    PacketType type,
+    RequestId requestId,
+    std::span<const std::byte> request,
+    bool& handled);
+
+  void saveResponse(
+    std::span<const std::byte> response);
 
 private:
   const SystemConfiguration& m_configuration;
