@@ -6,7 +6,6 @@
 #include "protocol/subscriptionpackets.h"
 #include "packetwriter.h"
 #include "protocol/publishheader.h"
-#include "subscriptionmanager.h"
 
 #include <QSignalSpy>
 
@@ -15,7 +14,6 @@
 #include <QHostAddress>
 
 #include <array>
-#include <chrono>
 
 tst_dataclient::tst_dataclient() = default;
 tst_dataclient::~tst_dataclient() = default;
@@ -1329,48 +1327,4 @@ void tst_dataclient::unsubscribeRetry()
   QVERIFY(client.subscribe(
     signalIds,
     PublishRate::Hz10));
-}
-
-void tst_dataclient::subscriptionTtl()
-{
-  using namespace qds;
-
-  SubscriptionManager manager;
-
-  Subscription subscription{};
-
-  const SubscriptionId id = manager.add(subscription);
-
-  auto* sub = manager.find(id);
-
-  QVERIFY(sub != nullptr);
-
-  // Проверяем, что TTL установлен.
-  QVERIFY(
-    sub->expiresAt >
-    SubscriptionManager::Clock::now());
-
-  // Проверяем продление.
-  const auto oldExpiration = sub->expiresAt;
-
-  QVERIFY(manager.renew(id));
-
-  sub = manager.find(id);
-
-  QVERIFY(sub != nullptr);
-
-  QVERIFY(sub->expiresAt >= oldExpiration);
-
-  // Имитируем истечение TTL.
-  sub->expiresAt =
-    SubscriptionManager::Clock::now() -
-    std::chrono::seconds{1};
-
-  QCOMPARE(manager.removeExpired(), std::size_t{1});
-
-  QVERIFY(manager.find(id) == nullptr);
-  QVERIFY(manager.empty());
-
-  // Удалённую подписку продлить нельзя.
-  QVERIFY(!manager.renew(id));
 }

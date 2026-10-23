@@ -28,6 +28,14 @@ ClientConnection::ClientConnection(
     &QTimer::timeout,
     this,
     &ClientConnection::onRequestTimeout);
+
+  m_renewTimer.setInterval(RenewIntervalMs);
+
+  connect(
+    &m_renewTimer,
+    &QTimer::timeout,
+    this,
+    &ClientConnection::sendSubscriptionRenew);
 }
 
 bool ClientConnection::open(
@@ -191,6 +199,7 @@ bool ClientConnection::unsubscribe()
 void ClientConnection::close()
 {
   m_requestTimer.stop();
+  m_renewTimer.stop();
 
   m_socket.close();
 
@@ -287,13 +296,12 @@ void ClientConnection::onReadyRead()
 
         break;
       }
-
+      
       m_subscriptionId = response.id;
-
-      m_signals =
-        std::move(m_pendingSignals);
-
+      m_signals = std::move(m_pendingSignals);
       m_pendingSignals.clear();
+
+      m_renewTimer.start();
 
       emit subscribed(response.id);
 
@@ -332,6 +340,8 @@ void ClientConnection::onReadyRead()
 
         break;
       }
+
+      m_renewTimer.stop();
 
       m_subscriptionId = {};
       m_signals.clear();
@@ -507,6 +517,29 @@ bool ClientConnection::sendPendingPacket()
   return written ==
          static_cast<qint64>(
            m_pendingPacket.size());
+}
+
+void ClientConnection::sendSubscriptionRenew()
+{
+  if (!isOpen() ||
+      m_subscriptionId.value == 0)
+  {
+    return;
+  }
+
+  PacketWriter writer;
+
+  writer.begin(PacketType::SubscriptionRenewRequest);
+
+  writer.write(SubscriptionRenewRequest{
+    .id = m_subscriptionId
+  });
+
+  m_socket.writeDatagram(
+    reinterpret_cast<const char*>(writer.data()),
+    static_cast<qint64>(writer.size()),
+    m_serverAddress,
+    m_serverPort);
 }
 
 }

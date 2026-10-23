@@ -11,6 +11,7 @@
 #include "isender.h"
 #include "ilogger.h"
 #include "udpserver.h"
+#include "udpsender.h"
 
 #include <QObject>
 #include <QTimer>
@@ -56,10 +57,16 @@ public:
   std::optional<DataStreamSourceState> state(
     ModuleId id) const noexcept;
 
+  [[nodiscard]]
+  std::size_t subscriptionCount() const noexcept;
+
 private:
   void onTimer();
   void cleanup();
 
+  void cleanupExpiredSubscriptions();
+
+private:
   SystemConfiguration m_configuration;
   SensorRepository m_sensors;
   CalibrationRepository m_calibrations;
@@ -82,9 +89,13 @@ private:
 
   std::unordered_map<uint32_t, DataStreamSourceState> m_lastModuleStates;
 
-  QTimer m_timer;
+  QTimer m_timer; // основной таймер рабочего цикла
 
   bool m_running = false;
+
+  // данные очистки подписок
+  static constexpr int SubscriptionCleanupIntervalMs = 5000;
+  QTimer m_subscriptionCleanupTimer;
 
 signals:
   void started();

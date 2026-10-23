@@ -5,8 +5,10 @@
 namespace qds
 {
 
-UdpSender::UdpSender()
+void UdpSender::setSocket(
+  QUdpSocket* socket) noexcept
 {
+  m_activeSocket = socket ? socket : &m_socket;
 }
 
 bool UdpSender::send(
@@ -23,7 +25,7 @@ bool UdpSender::send(
     return false;
 
   const qint64 sent =
-    m_socket.writeDatagram(
+    m_activeSocket->writeDatagram(
       reinterpret_cast<const char*>(data.data()),
       static_cast<qint64>(data.size()),
       address,

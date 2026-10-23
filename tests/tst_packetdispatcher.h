@@ -38,4 +38,8 @@ private slots:
   void tst_packetdispatcher_subscriptionIdReuse();
   void tst_packetdispatcher_unsubscribeExtraData();
 
+  void subscriptionTtl();
+  void subscriptionRenew();
+  void subscriptionAutoRenew();
+
 };

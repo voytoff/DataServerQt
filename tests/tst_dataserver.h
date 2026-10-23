@@ -49,5 +49,6 @@ private slots:
   void test_dataServer_failModule();
   void test_dataServer_restart_after_runtime_failure();
 
+  void subscriptionAutoCleanup();
 };
 

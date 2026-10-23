@@ -29,7 +29,5 @@ private slots:
   void subscribeRetry();
   void unsubscribeRetry();
 
-  void subscriptionTtl();
-
 };
 

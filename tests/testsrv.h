@@ -31,11 +31,14 @@ class TestSrv : public QObject
 {
   Q_OBJECT
 public:
-  explicit TestSrv(const SystemConfiguration& cfg, bool udp = true,  QObject *parent = nullptr);
+  explicit TestSrv(
+    const SystemConfiguration& cfg,
+    bool udp = true,
+    QObject *parent = nullptr);
 
   SubscriptionManager manager;
   SignalMemoryLayout layout;
-  SubscriptionManager subscriptions;
+  //SubscriptionManager subscriptions;
   UdpSender sender;
   TestPublisherSender testSender;
 

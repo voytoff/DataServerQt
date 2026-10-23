@@ -49,8 +49,13 @@ private:
 
   bool sendPendingPacket();
 
+  void sendSubscriptionRenew();
+
 private:
   static constexpr int RequestTimeoutMs = 1000;
+  static constexpr int RenewIntervalMs = 10000;
+
+  QTimer m_renewTimer;
 
   QUdpSocket m_socket;
   QTimer m_requestTimer;

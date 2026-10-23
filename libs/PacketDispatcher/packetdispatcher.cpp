@@ -90,9 +90,14 @@ bool PacketDispatcher::dispatch(
     result = processUnsubscribe(reader, sender);
     break;
 
+  case PacketType::SubscriptionRenewRequest:
+    result = processSubscriptionRenew(reader, sender);
+    break;
+
   case PacketType::Ping:
     result = processPing(reader, sender);
     break;
+
 
   default:
     result = sendErrorResponse(
@@ -264,6 +269,31 @@ bool PacketDispatcher::processUnsubscribe(PacketReader &reader, const Endpoint &
     endpoint,
     req.requestId,
     UnsubscribeResult::Ok);
+}
+
+bool PacketDispatcher::processSubscriptionRenew(
+  PacketReader& reader,
+  const Endpoint& sender)
+{
+  SubscriptionRenewRequest request{};
+
+  if (!reader.read(request) ||
+      reader.remaining() != 0 ||
+      reader.trailingBytes() != 0)
+  {
+    return false;
+  }
+
+  Subscription* subscription =
+    m_subscriptions.find(request.id);
+
+  if (!subscription)
+    return false;
+
+  if (subscription->endpoint != sender)
+    return false;
+
+  return m_subscriptions.renew(request.id);
 }
 
 bool PacketDispatcher::processPing(

@@ -26,7 +26,7 @@ bool ApplicationSettingsLoader::load(
 
   QCommandLineOption configOption(
     "config",
-    "Configuration INI file",
+    "DataMonitor INI file",
     "file",
     "dataserver.ini");
 

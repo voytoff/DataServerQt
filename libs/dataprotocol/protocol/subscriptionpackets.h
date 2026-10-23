@@ -50,4 +50,9 @@ struct UnsubscribeResponse
   UnsubscribeResult result;
 };
 
+struct SubscriptionRenewRequest
+{
+  SubscriptionId id;
+};
+
 }

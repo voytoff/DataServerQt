@@ -53,6 +53,10 @@ private:
     PacketReader& reader,
     const Endpoint& endpoint);
 
+  bool processSubscriptionRenew(
+    PacketReader& reader,
+    const Endpoint& sender);
+
   bool processPing(
     PacketReader& reader,
     const Endpoint& endpoint);

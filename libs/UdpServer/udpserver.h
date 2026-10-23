@@ -26,6 +26,8 @@ public:
   uint16_t port() const noexcept;
   bool isRunning() const noexcept;
 
+  QUdpSocket* socket() noexcept;
+
 private slots:
   // Приём датаграмм
   void onReadyRead();

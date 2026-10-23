@@ -1,7 +1,9 @@
 #include "tst_packetdispatcher.h"
+#include "clientconnection.h"
 #include "testsrv.h"
 #include <QtCore/qtestsupport_core.h>
 #include <QtTest/qtestcase.h>
+#include <qsignalspy.h>
 
 #include "systemconfiguration.h"
 
@@ -2045,3 +2047,215 @@ void tst_packetdispatcher::tst_packetdispatcher_unsubscribeExtraData()
   QVERIFY(!srv.server.isRunning());
 }
 
+
+void tst_packetdispatcher::subscriptionTtl()
+{
+  using namespace qds;
+
+  SubscriptionManager manager;
+
+  Subscription subscription{};
+
+  const SubscriptionId id = manager.add(subscription);
+
+  auto* sub = manager.find(id);
+
+  QVERIFY(sub != nullptr);
+
+  // Проверяем, что TTL установлен.
+  QVERIFY(
+    sub->expiresAt >
+    SubscriptionManager::Clock::now());
+
+  // Проверяем продление.
+  const auto oldExpiration = sub->expiresAt;
+
+  QVERIFY(manager.renew(id));
+
+  sub = manager.find(id);
+
+  QVERIFY(sub != nullptr);
+
+  QVERIFY(sub->expiresAt >= oldExpiration);
+
+  // Имитируем истечение TTL.
+  sub->expiresAt =
+    SubscriptionManager::Clock::now() -
+    std::chrono::seconds{1};
+
+  QCOMPARE(manager.removeExpired(), std::size_t{1});
+
+  QVERIFY(manager.find(id) == nullptr);
+  QVERIFY(manager.empty());
+
+  // Удалённую подписку продлить нельзя.
+  QVERIFY(!manager.renew(id));
+}
+
+void tst_packetdispatcher::subscriptionRenew()
+{
+  using namespace qds;
+  // создаем конфигурацию
+  SystemConfiguration cfg = createTestConfig_calculate();
+
+  TestSrv srv(cfg);
+
+  QVERIFY(srv.server.start(srv.server.port()));
+  QVERIFY(srv.server.isRunning());
+
+  // Создаём клиент
+  QUdpSocket client;
+
+  QVERIFY(
+    client.bind(QHostAddress::LocalHost, 0));
+
+  // Формируем запрос на подписку
+  constexpr SignalId signalIds[] { {17} };
+
+  SubscribeListRequest req;
+  req.requestId = RequestId{1};
+  req.rate = PublishRate::Hz10;
+  req.signalCount = std::size(signalIds);
+
+  // Формируем запрос SubscribeListRequest
+  PacketWriter writer;
+
+  writer.begin(PacketType::SubscribeListRequest);
+  writer.write(req);
+  writer.writeArray(signalIds, std::size(signalIds));
+
+  // Отправляем
+  QCOMPARE(
+    client.writeDatagram(
+      reinterpret_cast<const char*>(writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      srv.server.port()),
+    qint64(writer.size()));
+
+  // Ждём ответ
+  QTRY_VERIFY_WITH_TIMEOUT(
+    client.hasPendingDatagrams(),
+    2000);
+
+  QByteArray data;
+  data.resize(client.pendingDatagramSize());
+
+  client.readDatagram(data.data(), data.size());
+
+  PacketReader reader;
+
+  reader.append(
+    reinterpret_cast<const std::byte*>(data.constData()),
+    data.size());
+
+  // Проверяем
+  QVERIFY(reader.nextPacket());
+  QCOMPARE(reader.packetType(), PacketType::SubscribeResponse);
+
+  SubscribeResponse response;
+  QVERIFY(reader.read(response));
+  QCOMPARE(response.result, SubscribeResult::Ok);
+  QVERIFY(response.id.value != 0);
+
+  QVERIFY(reader.remaining() == 0u);
+
+  // проверим наличие подписок
+  QCOMPARE(srv.manager.size(), 1u);
+
+  SubscriptionRenewRequest req2{
+    .id = response.id
+  };
+
+  auto* sub = srv.manager.find(response.id);
+  QVERIFY(sub != nullptr);
+
+  sub->expiresAt =
+    SubscriptionManager::Clock::now() +
+    std::chrono::seconds{5};
+
+  writer.clear();
+
+  writer.begin(PacketType::SubscriptionRenewRequest);
+  writer.write(req2);
+
+  QCOMPARE(
+    client.writeDatagram(
+      reinterpret_cast<const char*>(writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      srv.server.port()),
+    qint64(writer.size()));
+
+  // Ждём обработки продления
+  QTRY_VERIFY_WITH_TIMEOUT(
+    sub->expiresAt >
+      SubscriptionManager::Clock::now() +
+        std::chrono::seconds{20},
+    2000);
+}
+
+void tst_packetdispatcher::subscriptionAutoRenew()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_calculate();
+
+  TestSrv srv(cfg);
+
+  QVERIFY(srv.server.start(srv.server.port()));
+  QVERIFY(srv.server.isRunning());
+
+  ClientConnection client;
+
+  QVERIFY(client.open(
+    QHostAddress::LocalHost,
+    srv.server.port()));
+
+  QSignalSpy subscribedSpy(
+    &client,
+    &ClientConnection::subscribed);
+
+  QVERIFY(subscribedSpy.isValid());
+
+  QSignalSpy errorSpy(
+    &client,
+    &ClientConnection::errorOccurred);
+
+  QVERIFY(errorSpy.isValid());
+
+  const std::array<SignalId, 1> signalIds = {
+    SignalId{17}
+  };
+
+  QVERIFY(client.subscribe(
+    signalIds,
+    PublishRate::Hz10));
+
+  QTRY_COMPARE_WITH_TIMEOUT(
+    subscribedSpy.count(),
+    1,
+    2000);
+
+  const SubscriptionId id =
+    client.subscriptionId();
+
+  QVERIFY(id.value != 0);
+
+  auto* sub = srv.manager.find(id);
+
+  QVERIFY(sub != nullptr);
+
+  // Запоминаем первоначальный срок окончания.
+  const auto initialExpiration = sub->expiresAt;
+
+  // Ожидаем автоматическое продление.
+  QTRY_VERIFY_WITH_TIMEOUT(
+    srv.manager.find(id) != nullptr &&
+      srv.manager.find(id)->expiresAt >
+        initialExpiration,
+    15000);
+
+  QCOMPARE(srv.manager.size(), std::size_t{1});
+}

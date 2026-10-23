@@ -9,20 +9,21 @@ enum class PacketType : uint8_t
 {
   Invalid = 0,
 
-  SubscribeListRequest  = 2,
-  UnsubscribeRequest    = 3,
-  SnapshotRequest       = 4,
+  SubscribeListRequest      = 2,
+  UnsubscribeRequest        = 3,
+  SnapshotRequest           = 4,
+  SubscriptionRenewRequest  = 5,
 
-  SubscribeResponse     = 20,
-  SnapshotResponse      = 21,
-  UnsubscribeResponse   = 22,
+  SubscribeResponse         = 20,
+  SnapshotResponse          = 21,
+  UnsubscribeResponse       = 22,
 
-  Ping                  = 30,
-  Pong                  = 31,
+  Ping                      = 30,
+  Pong                      = 31,
 
-  ErrorResponse         = 40,
+  ErrorResponse             = 40,
 
-  LiveData              = 100
+  LiveData                  = 100
 };
 
 }

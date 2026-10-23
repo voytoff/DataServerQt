@@ -37,6 +37,11 @@ bool UdpServer::isRunning() const noexcept {
   return m_socket.state() == QAbstractSocket::BoundState;
 }
 
+QUdpSocket* UdpServer::socket() noexcept
+{
+  return &m_socket;
+}
+
 void UdpServer::onReadyRead()
 {
   while(m_socket.hasPendingDatagrams())

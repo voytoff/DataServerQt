@@ -3,6 +3,7 @@
 #include "archivedescriptionwriter.h"
 #include "archivemanager.h"
 #include "archivereader.h"
+#include "clientconnection.h"
 #include "db/configurationrepository.h"
 #include "fakedatablocksink.h"
 #include "lcarddatasource.h"
@@ -3811,4 +3812,138 @@ void tst_dataserver::test_dataServer_restart_after_runtime_failure()
 
   server.stop();
   QVERIFY(!server.isRunning());
+}
+
+void tst_dataserver::subscriptionAutoCleanup()
+{
+  using namespace qds;
+  auto db = get_db();
+  QVERIFY(db.isOpen());
+  QVERIFY(db.isValid());
+
+  ConfigurationRepository repository(db);
+
+  SystemConfiguration cfg;
+  QVERIFY(repository.load(ConfigurationId{1}, cfg));
+
+  SensorRepository sensors;
+  QVERIFY(repository.loadSensors(sensors));
+
+  CalibrationRepository calibrations;
+  QVERIFY(repository.loadCalibrations(cfg, calibrations));
+
+  DataStreamSourceFactory factory;
+
+  QVERIFY(factory.registerType(
+    ModuleType::LTR11,
+    [](const ModuleRuntimeConfiguration& configuration,
+       IClock&,
+       IDataBlockSink& blockSink,
+       IDataStreamEventSink& eventSink)
+    {
+      return std::make_unique<TestStreamingDataSource>(
+        configuration,
+        blockSink,
+        eventSink);
+    }));
+
+  ArchiveDescriptionBuilder builder;
+  ArchiveDescription description;
+  QVERIFY(builder.build(cfg, description));
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  auto directory = getCurrentFolder();
+
+  ArchiveManager archive;
+  QVERIFY(archive.initialize(directory, description, layout));
+
+  UdpSender sender;
+  FakeSchedulerClock clock(2, 3);
+  Logger logger(getCurrentFolder(), clock);
+
+  DataServer ds(
+    cfg,
+    sensors,
+    calibrations,
+    factory,
+    archive,
+    clock,
+    clock,
+    sender,
+    logger);
+
+  QVERIFY(ds.start());
+
+  // Создаём клиент
+  QUdpSocket client;
+
+  QVERIFY(
+    client.bind(QHostAddress::LocalHost, 0));
+
+  // Формируем запрос SubscribeListRequest
+  PacketWriter writer;
+  writer.begin(PacketType::SubscribeListRequest);
+
+  // Формируем запрос на подписку
+  SignalId id = cfg.signalDefinitions()[0].id;
+  SignalId signalIds[] { id };
+
+  SubscribeListRequest req;
+  req.requestId = RequestId{42};
+  req.rate = PublishRate::Hz10;
+  req.signalCount = std::size(signalIds);
+
+  writer.write(req);
+  writer.writeArray(signalIds, std::size(signalIds));
+
+  // Отправляем 1 запрос
+  QCOMPARE(
+    client.writeDatagram(
+      reinterpret_cast<const char*>(writer.data()),
+      writer.size(),
+      QHostAddress::LocalHost,
+      cfg.udpPort()),
+    qint64(writer.size()));
+
+  // Получаем первый ответ
+  QTRY_VERIFY_WITH_TIMEOUT(client.hasPendingDatagrams(), 2000);
+
+  QByteArray data;
+  data.resize(client.pendingDatagramSize());
+  client.readDatagram(data.data(), data.size());
+
+  PacketReader reader;
+
+  reader.append(
+    reinterpret_cast<const std::byte*>(data.constData()),
+    data.size());
+
+  // Проверяем
+  QVERIFY(reader.nextPacket());
+  QCOMPARE(reader.packetType(), PacketType::SubscribeResponse);
+
+  SubscribeResponse response;
+  QVERIFY(reader.read(response));
+
+  QVERIFY(reader.remaining() == 0u);
+
+  QCOMPARE(response.requestId, req.requestId);
+  QCOMPARE(response.result, SubscribeResult::Ok);
+  QVERIFY(response.id == SubscriptionId{1});
+
+  // Подписка существует
+  QCOMPARE(ds.subscriptionCount(), 1u);
+
+  // Клиент не отправляет SubscriptionRenewRequest.
+  // Ожидаем истечения TTL и автоматической очистки.
+  QTRY_COMPARE_WITH_TIMEOUT(
+    ds.subscriptionCount(),
+    std::size_t{0},
+    37000);
+
+  QCOMPARE(ds.subscriptionCount(), 0u);
+
+  ds.stop();
 }

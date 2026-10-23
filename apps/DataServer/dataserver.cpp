@@ -1,6 +1,7 @@
 #include "dataserver.h"
 #include "systembuilder.h"
 #include "packetdispatcher.h"
+#include "udpsender.h"
 
 namespace qds
 {
@@ -21,7 +22,7 @@ DataServer::DataServer(
   IArchiveWriter& archive,
   ISchedulerClock& clock,
   IClock &sourceClock,
-  ISender& sender,
+  ISender &sender,
   ILogger& logger,
   QObject* parent)
   : QObject(parent)
@@ -43,6 +44,16 @@ DataServer::DataServer(
 
   m_timer.setParent(this);
   m_timer.setInterval(EngineTimerIntervalMs);
+
+  m_subscriptionCleanupTimer.setParent(this);
+  m_subscriptionCleanupTimer.setInterval(
+    SubscriptionCleanupIntervalMs);
+
+  connect(
+    &m_subscriptionCleanupTimer,
+    &QTimer::timeout,
+    this,
+    &DataServer::cleanupExpiredSubscriptions);
 }
 
 bool DataServer::start()
@@ -92,6 +103,15 @@ bool DataServer::start()
     std::make_unique<UdpServer>(
       *m_dispatcher);
 
+  m_udpServer =
+    std::make_unique<UdpServer>(
+      *m_dispatcher);
+
+  if (auto* udpSender = dynamic_cast<UdpSender*>(&m_sender))
+  {
+    udpSender->setSocket(m_udpServer->socket());
+  }
+
   if (!m_runtime->engine->initialize(
         m_runtime->buffers,
         *m_publisher))
@@ -133,7 +153,9 @@ bool DataServer::start()
   }
 
   m_running = true;
+
   m_timer.start();
+  m_subscriptionCleanupTimer.start();
 
   emit started();
 
@@ -182,6 +204,11 @@ std::optional<DataStreamSourceState> DataServer::state(
   return it->second;
 }
 
+std::size_t DataServer::subscriptionCount() const noexcept
+{
+  return m_subscriptions.size();
+}
+
 void DataServer::onTimer()
 {
   if (!m_runtime || !m_runtime->engine)
@@ -217,6 +244,7 @@ void DataServer::cleanup()
   const bool wasRunning = m_running;
 
   m_timer.stop();
+  m_subscriptionCleanupTimer.stop();
 
   if (m_udpServer)
     m_udpServer->stop();
@@ -248,6 +276,11 @@ void DataServer::cleanup()
     }
   }
 
+  if (auto* udpSender = dynamic_cast<UdpSender*>(&m_sender))
+  {
+    udpSender->setSocket(nullptr);
+  }
+
   m_udpServer.reset();
   m_dispatcher.reset();
   m_publisher.reset();
@@ -260,6 +293,11 @@ void DataServer::cleanup()
 
   if (wasRunning)
     emit stopped();
+}
+
+void DataServer::cleanupExpiredSubscriptions()
+{
+  m_subscriptions.removeExpired();
 }
 
 }
