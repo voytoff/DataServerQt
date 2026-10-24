@@ -9,48 +9,6 @@ SignalSelectionModel::SignalSelectionModel(
 {
 }
 
-void SignalSelectionModel::setConfiguration(
-  const SystemConfiguration& configuration)
-{
-  beginResetModel();
-
-  m_signals = configuration.signalDefinitions();
-  m_selected.clear();
-
-  endResetModel();
-}
-
-void SignalSelectionModel::setSelectedSignals(
-  const std::vector<SignalId>& ids)
-{
-  m_selected.clear();
-
-  for (SignalId id : ids)
-    m_selected.insert(id);
-
-  if (!m_signals.empty())
-  {
-    emit dataChanged(
-      index(0, 0),
-      index(rowCount() - 1, 0),
-      {Qt::CheckStateRole});
-  }
-}
-
-std::vector<SignalId>
-SignalSelectionModel::selectedSignals() const
-{
-  std::vector<SignalId> result;
-
-  for (const auto& signal : m_signals)
-  {
-    if (m_selected.contains(signal.id))
-      result.push_back(signal.id);
-  }
-
-  return result;
-}
-
 int SignalSelectionModel::rowCount(
   const QModelIndex& parent) const
 {
@@ -154,6 +112,48 @@ bool SignalSelectionModel::setData(
     idx, idx, {Qt::CheckStateRole});
 
   return true;
+}
+
+void SignalSelectionModel::setSelectedSignals(
+  const std::vector<SignalId>& ids)
+{
+  m_selected.clear();
+
+  for (SignalId id : ids)
+    m_selected.insert(id);
+
+  if (!m_signals.empty())
+  {
+    emit dataChanged(
+      index(0, 0),
+      index(rowCount() - 1, 0),
+      {Qt::CheckStateRole});
+  }
+}
+
+std::vector<SignalId>
+SignalSelectionModel::selectedSignals() const
+{
+  std::vector<SignalId> result;
+
+  for (const auto& signal : m_signals)
+  {
+    if (m_selected.contains(signal.id))
+      result.push_back(signal.id);
+  }
+
+  return result;
+}
+
+void SignalSelectionModel::setSignals(
+  const std::vector<SignalDefinition>& signalIds)
+{
+  beginResetModel();
+
+  m_signals = signalIds;
+  m_selected.clear();
+
+  endResetModel();
 }
 
 }

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "datatypes.h"
-#include "applicationsettingsloader.h"
 
 #include <QMainWindow>
 #include <QSqlDatabase>

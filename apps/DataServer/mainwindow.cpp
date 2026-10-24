@@ -1,3 +1,4 @@
+#include "applicationsettingsloader.h"
 #include "configurationselector.h"
 #include "mainwindow.h"
 #include "moduletypeinfo.h"

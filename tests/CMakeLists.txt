@@ -5,7 +5,7 @@ set(CMAKE_AUTOMOC ON)
 
 enable_testing()
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Test Core Network Sql)
+find_package(QT NAMES Qt6 REQUIRED COMPONENTS Test Core Network Sql)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Test Core Network Sql)
 
 set(CMAKE_CXX_STANDARD 23)

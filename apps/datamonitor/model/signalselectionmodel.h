@@ -1,11 +1,12 @@
 #pragma once
 
 #include "datatypes.h"
-#include "systemconfiguration.h"
+#include "signaldefinition.h"
 
 #include <QAbstractTableModel>
 #include <unordered_set>
 #include <vector>
+#include <strongidhash.h>
 
 namespace qds
 {
@@ -17,14 +18,6 @@ class SignalSelectionModel : public QAbstractTableModel
 public:
   explicit SignalSelectionModel(
     QObject* parent = nullptr);
-
-  void setConfiguration(
-    const SystemConfiguration& configuration);
-
-  void setSelectedSignals(
-    const std::vector<SignalId>& ids);
-
-  std::vector<SignalId> selectedSignals() const;
 
   int rowCount(
     const QModelIndex& parent = {}) const override;
@@ -48,6 +41,15 @@ public:
     const QModelIndex& index,
     const QVariant& value,
     int role = Qt::EditRole) override;
+
+public:
+  void setSelectedSignals(
+    const std::vector<SignalId>& ids);
+
+  std::vector<SignalId> selectedSignals() const;
+
+  void setSignals(
+    const std::vector<SignalDefinition>& signalIds);
 
 private:
   std::vector<SignalDefinition> m_signals;

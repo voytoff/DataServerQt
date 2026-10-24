@@ -40,8 +40,18 @@ add_executable(dataserver
     guilogger.h guilogger.cpp
     mainwindow.h mainwindow.cpp
     servercontroller.h servercontroller.cpp
-    res.qrc
 )
+
+if(WIN32)
+  add_custom_command(
+    TARGET dataserver
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      $<TARGET_RUNTIME_DLLS:dataserver>
+      $<TARGET_FILE_DIR:dataserver>
+    COMMAND_EXPAND_LISTS
+  )
+endif()
 
 target_link_libraries(dataserver
     PRIVATE

@@ -47,16 +47,9 @@ BaseTableView::BaseTableView(
 
   hHeader->setSectionResizeMode(
     QHeaderView::Interactive);
-  //  QHeaderView::Stretch);
 
   if (columnWidth > 0)
     hHeader->setDefaultSectionSize(columnWidth);
-
-  // продолжает последнюю колонку до границы
-  //hHeader->setStretchLastSection(true);
-
-  //hHeader->setSectionResizeMode(
-  //  QHeaderView::ResizeToContents);
 }
 
 BaseTableView::BaseTableView(QWidget* parent)
