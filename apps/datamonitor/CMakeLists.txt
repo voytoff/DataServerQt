@@ -6,8 +6,8 @@ set(CMAKE_AUTOMOC ON)
 #set(CMAKE_AUTOUIC ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 REQUIRED COMPONENTS           Core Widgets Network Sql)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS  Core Widgets Network Sql)
+find_package(QT NAMES Qt6 REQUIRED COMPONENTS           Core Widgets Network Sql Svg)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS  Core Widgets Network Sql Svg)
 
 set(DATAMONITOR_RESOURCE_FILES res.qrc)
 qt6_add_resources(DATAMONITOR_PROJECT_RESOURCES ${DATAMONITOR_RESOURCE_FILES})
@@ -21,8 +21,7 @@ qt_add_executable(datamonitor
   model/signalselectionmodel.h model/signalselectionmodel.cpp
   monitorsettingsloader.h monitorsettingsloader.cpp
 )
-
-if(WIN32)
+#[[if(WIN32)
 
   get_target_property(
     QT_QMAKE_EXECUTABLE
@@ -38,7 +37,8 @@ if(WIN32)
 
   find_program(
     WINDEPLOYQT_EXECUTABLE
-    NAMES windeployqt
+   +
+   +*NAMES windeployqt
     HINTS "${QT_BIN_DIR}"
     REQUIRED
   )
@@ -60,7 +60,7 @@ if(WIN32)
   )
 
 endif()
-
+]]
 target_include_directories(datamonitor
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -70,6 +70,7 @@ target_include_directories(datamonitor
 target_link_libraries(datamonitor
   PRIVATE
     Configuration
+    DataProtocol
     DataClient
     DataSettings
     DataWidgets
@@ -77,4 +78,5 @@ target_link_libraries(datamonitor
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Network
     Qt${QT_VERSION_MAJOR}::Sql
+    Qt${QT_VERSION_MAJOR}::Svg
 )

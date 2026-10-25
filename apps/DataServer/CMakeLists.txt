@@ -41,7 +41,7 @@ add_executable(dataserver
     mainwindow.h mainwindow.cpp
     servercontroller.h servercontroller.cpp
 )
-
+#[[
 if(WIN32)
   add_custom_command(
     TARGET dataserver
@@ -52,7 +52,7 @@ if(WIN32)
     COMMAND_EXPAND_LISTS
   )
 endif()
-
+]]
 target_link_libraries(dataserver
     PRIVATE
         Configuration

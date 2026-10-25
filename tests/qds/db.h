@@ -45,6 +45,8 @@ cmake --install .
  */
 inline QSqlDatabase get_db()
 {
+  qDebug() << QSqlDatabase::drivers();
+
   assert(QSqlDatabase::isDriverAvailable(plugin));
 
   if (!QSqlDatabase::contains(connectionName))

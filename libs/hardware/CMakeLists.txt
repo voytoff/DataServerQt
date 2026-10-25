@@ -13,13 +13,9 @@ add_library(Hardware SHARED
 
     lcardmodule.h lcardmodule.cpp
 
-    fakelcardmodule.h fakelcardmodule.cpp
-
     ltr11module.h ltr11module.cpp
     ltr11configuration.h
 
-    smartblocklcardmodule.cpp
-    smartblocklcardmodule.h
     lcardreadresult.h
     ltr11configurationvalidator.h ltr11configurationvalidator.cpp
     ltr11configurationfactory.h ltr11configurationfactory.cpp

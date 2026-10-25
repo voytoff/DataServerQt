@@ -8,7 +8,6 @@ add_library(Logger SHARED
   loglevel.h
   logger.cpp logger.h
   ilogger.h
-  testlogger.h testlogger.cpp
 )
 
 target_include_directories(Logger

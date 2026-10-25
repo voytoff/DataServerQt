@@ -42,6 +42,15 @@ private:
   void stopMonitoring();
   void updateControls();
 
+  enum class MonitorState
+  {
+    Stopped,
+    Subscribing,
+    Running,
+    Unsubscribing
+  };
+  void setMonitorState(MonitorState state);
+
 private:
   ClientConnection* m_client = nullptr;
 
@@ -59,6 +68,9 @@ private:
   QToolBar* m_toolBar = nullptr;
 
   QAction* m_monitorAction = nullptr;
+
+  MonitorState m_monitorState = MonitorState::Stopped;
+
 };
 
 }

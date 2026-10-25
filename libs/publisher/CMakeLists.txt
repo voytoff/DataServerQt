@@ -10,7 +10,6 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
 add_library(Publisher SHARED
   publisher.cpp publisher.h
   iframepublisher.h
-  nullframepublisher.h nullframepublisher.cpp
 )
 
 target_include_directories(Publisher

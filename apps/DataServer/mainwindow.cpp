@@ -211,7 +211,7 @@ void MainWindow::createToolbar(
   m_configurationSelector =
     new ConfigurationSelector(database, this);
 
-  m_configurationSelector->setMinimumWidth(220);
+  m_configurationSelector->setMinimumWidth(200);
   m_configurationSelector->setSizePolicy(
     QSizePolicy::Fixed,
     QSizePolicy::Preferred);

@@ -1,0 +1,97 @@
+<project>
+    <shortName>configeditor</shortName>
+    <fullName>Config Editor</fullName>
+    <version>1.0</version>
+    <componentList>
+        <component name="default">
+            <description>Default Component</description>
+            <canBeEdited>1</canBeEdited>
+            <selected>1</selected>
+            <show>1</show>
+            <folderList>
+                <folder destination="${installdir}" name="programfiles">
+                    <description>Program Files</description>
+                    <platforms>all</platforms>
+                    <shortcutList>
+                        <shortcut>
+                            <comment>Uninstall</comment>
+                            <exec>${installdir}/${uninstallerName}</exec>
+                            <icon></icon>
+                            <name>Uninstall ${product_fullname}</name>
+                            <path>${installdir}</path>
+                            <platforms>all</platforms>
+                            <runAsAdmin>0</runAsAdmin>
+                            <runInTerminal>0</runInTerminal>
+                            <windowsExec>${installdir}/${uninstallerName}.exe</windowsExec>
+                            <windowsExecArgs></windowsExecArgs>
+                            <windowsIcon></windowsIcon>
+                            <windowsPath>${installdir}</windowsPath>
+                        </shortcut>
+                    </shortcutList>
+                </folder>
+                <folder destination="${installdir}" name="programfileslinux">
+                    <description>Program Files</description>
+                    <platforms>linux</platforms>
+                </folder>
+                <folder destination="${installdir}" name="programfileslinux64">
+                    <description>Program Files</description>
+                    <platforms>linux-x64</platforms>
+                </folder>
+                <folder destination="${installdir}" name="programfileswindows">
+                    <description>Program Files</description>
+                    <platforms>windows</platforms>
+                </folder>
+                <folder destination="${installdir}" name="programfileswindows64">
+                    <description>Program Files</description>
+                    <platforms>windows-x64</platforms>
+                    <distributionFileList>
+                        <distributionFile>
+                            <origin>D:/Qt/DataServerQt/build/Desktop_Qt_6_11_1_MinGW_64_bit_Debug/apps/ConfigEditor/ConfigEditor.exe</origin>
+                        </distributionFile>
+                    </distributionFileList>
+                </folder>
+                <folder destination="${installdir}" name="programfileswindowsarm64">
+                    <description>Program Files</description>
+                    <platforms>windows-arm64</platforms>
+                </folder>
+                <folder destination="${installdir}" name="programfilesosx">
+                    <description>Program Files</description>
+                    <platforms>osx</platforms>
+                </folder>
+            </folderList>
+            <startMenuShortcutList>
+                <startMenuShortcut>
+                    <comment>Uninstall ${product_fullname}</comment>
+                    <name>Uninstall ${product_fullname}</name>
+                    <runAsAdmin>0</runAsAdmin>
+                    <runInTerminal>0</runInTerminal>
+                    <windowsExec>${installdir}/${uninstallerName}.exe</windowsExec>
+                    <windowsExecArgs></windowsExecArgs>
+                    <windowsIcon></windowsIcon>
+                    <windowsPath>${installdir}/</windowsPath>
+                </startMenuShortcut>
+            </startMenuShortcutList>
+        </component>
+    </componentList>
+    <addQtMode>1</addQtMode>
+    <enableRollback>1</enableRollback>
+    <enableTimestamp>1</enableTimestamp>
+    <outputDirectory>D:\Дистрибутивы\publish\configeditor</outputDirectory>
+    <vendor>NIIHM</vendor>
+    <parameterList>
+        <directoryParameter>
+            <name>installdir</name>
+            <description>Installer.Parameter.installdir.description</description>
+            <explanation>Installer.Parameter.installdir.explanation</explanation>
+            <value></value>
+            <default>${platform_install_prefix}/${product_shortname}-${product_version}</default>
+            <allowEmptyValue>0</allowEmptyValue>
+            <ask>yes</ask>
+            <cliOptionName>prefix</cliOptionName>
+            <mustBeWritable>yes</mustBeWritable>
+            <mustExist>0</mustExist>
+            <width>40</width>
+        </directoryParameter>
+    </parameterList>
+</project>
+

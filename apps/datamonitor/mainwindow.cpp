@@ -164,20 +164,24 @@ MainWindow::MainWindow(
 void MainWindow::createToolbar()
 {
   m_toolBar = addToolBar(tr("Основная"));
+  m_toolBar->setIconSize(QSize(16, 16));
 
   m_toolBar->setMovable(false);
 
   m_configurationSelector =
     new ConfigurationSelector(m_database, this);
 
-  m_configurationSelector->setMinimumWidth(220);
+  m_configurationSelector->setMinimumWidth(200);
 
   m_configurationSelector->setSizePolicy(
     QSizePolicy::Fixed,
     QSizePolicy::Preferred);
 
   m_monitorAction = m_toolBar->addAction(
+    QIcon(":/images/eue.png"),
     tr("Мониторинг"));
+
+  m_toolBar->addSeparator();
 
   m_monitorAction->setCheckable(true);
   m_monitorAction->setChecked(false);
@@ -196,12 +200,9 @@ void MainWindow::createToolbar()
     this,
     [this](bool checked)
     {
-      if (checked)
-      {
+      if (checked) {
         startMonitoring();
-      }
-      else
-      {
+      } else {
         stopMonitoring();
       }
     });}
@@ -234,6 +235,8 @@ void MainWindow::createClient()
     this,
     [this](SubscriptionId id)
     {
+      setMonitorState(MonitorState::Running);
+
       statusBar()->showMessage(
         tr("Подписка активна: %1").arg(id.value));
     });
@@ -244,8 +247,11 @@ void MainWindow::createClient()
     this,
     [this]()
     {
+      setMonitorState(MonitorState::Stopped);
+
       statusBar()->showMessage(
-        tr("Подписка отменена"));
+        tr("Подписка отменена"),
+        5000);
     });
 
   connect(
@@ -255,9 +261,20 @@ void MainWindow::createClient()
     [this](const QString& message)
     {
       qWarning().noquote() << message;
+
+      if (m_monitorState == MonitorState::Subscribing)
+      {
+        setMonitorState(MonitorState::Stopped);
+      }
+      else if (m_monitorState == MonitorState::Unsubscribing)
+      {
+        // Отмена не подтверждена.
+        // Подписка может продолжать существовать.
+        setMonitorState(MonitorState::Running);
+      }
+
       statusBar()->showMessage(message);
     });
-
 }
 
 bool MainWindow::loadConfiguration(
@@ -328,6 +345,9 @@ bool MainWindow::openConnection()
 
 void MainWindow::startMonitoring()
 {
+  if (m_monitorState != MonitorState::Stopped)
+    return;
+
   const auto signalIds =
     m_signalModel->selectedSignals();
 
@@ -361,16 +381,17 @@ void MainWindow::startMonitoring()
         signalIds,
         PublishRate::Hz10))
   {
+    setMonitorState(MonitorState::Stopped);
+
     QMessageBox::warning(
       this,
       tr("DataMonitor"),
       tr("Не удалось отправить запрос подписки."));
 
-    QSignalBlocker blocker(m_monitorAction);
-    m_monitorAction->setChecked(false);
-
     return;
   }
+
+  setMonitorState(MonitorState::Subscribing);
 
   statusBar()->showMessage(
     tr("Ожидание подтверждения подписки..."));
@@ -380,35 +401,52 @@ void MainWindow::startMonitoring()
 
 void MainWindow::stopMonitoring()
 {
+  if (m_monitorState != MonitorState::Running)
+    return;
+
   if (!m_client->unsubscribe())
   {
-    QMessageBox::warning(
-      this,
-      tr("DataMonitor"),
-      tr("Не удалось отправить запрос отмены подписки."));
+    statusBar()->showMessage(
+      tr("Не удалось отправить запрос отмены подписки"));
 
-    QSignalBlocker blocker(m_monitorAction);
-    m_monitorAction->setChecked(true);
-
+    setMonitorState(MonitorState::Running);
     return;
   }
 
+  setMonitorState(MonitorState::Unsubscribing);
+
   statusBar()->showMessage(
     tr("Ожидание отмены подписки..."));
-
-  updateControls();
 }
 
 void MainWindow::updateControls()
 {
-  const bool monitoring =
-    m_monitorAction->isChecked();
+  const bool stopped =
+    m_monitorState == MonitorState::Stopped;
 
-  m_configurationSelector->setEnabled(
-    !monitoring);
+  const bool pending =
+    m_monitorState == MonitorState::Subscribing ||
+    m_monitorState == MonitorState::Unsubscribing;
 
-  m_signalView->setEnabled(
-    !monitoring);
+  m_monitorAction->setEnabled(!pending);
+
+  m_configurationSelector->setEnabled(stopped);
+
+  m_signalView->setEnabled(stopped);
+}
+
+void MainWindow::setMonitorState(
+  MonitorState state)
+{
+  m_monitorState = state;
+
+  QSignalBlocker blocker(m_monitorAction);
+
+  m_monitorAction->setChecked(
+    state == MonitorState::Running ||
+    state == MonitorState::Unsubscribing);
+
+  updateControls();
 }
 
 }

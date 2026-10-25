@@ -10,10 +10,8 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
 add_library(Core SHARED
     iclock.h
     systemclock.h systemclock.cpp
-    fakeclock.h fakeclock.cpp
     schedulerclock.h schedulerclock.cpp
     ischedulerclock.h
-    fakeschedulerclock.h fakeschedulerclock.cpp
 )
 
 target_include_directories(Core

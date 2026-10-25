@@ -39,7 +39,7 @@ qt_add_executable(configeditor
     plot/calibrationplot.h plot/calibrationplot.cpp
     dlg/configurationdialog.h dlg/configurationdialog.cpp dlg/configurationdialog.ui
 )
-
+#[[
 if(WIN32)
   add_custom_command(
     TARGET configeditor
@@ -50,7 +50,7 @@ if(WIN32)
     COMMAND_EXPAND_LISTS
   )
 endif()
-
+]]
 target_include_directories(configeditor
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
