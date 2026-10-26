@@ -39,18 +39,47 @@ qt_add_executable(configeditor
     plot/calibrationplot.h plot/calibrationplot.cpp
     dlg/configurationdialog.h dlg/configurationdialog.cpp dlg/configurationdialog.ui
 )
-#[[
+
 if(WIN32)
+
+  get_target_property(
+    QT_QMAKE_EXECUTABLE
+    Qt6::qmake
+    IMPORTED_LOCATION
+  )
+
+  get_filename_component(
+    QT_BIN_DIR
+    "${QT_QMAKE_EXECUTABLE}"
+    DIRECTORY
+  )
+
+  find_program(
+    WINDEPLOYQT_EXECUTABLE
+   +
+   +*NAMES windeployqt
+    HINTS "${QT_BIN_DIR}"
+    REQUIRED
+  )
+
   add_custom_command(
     TARGET configeditor
     POST_BUILD
+
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
       $<TARGET_RUNTIME_DLLS:configeditor>
       $<TARGET_FILE_DIR:configeditor>
+
+    COMMAND "${WINDEPLOYQT_EXECUTABLE}"
+      --dir "$<TARGET_FILE_DIR:configeditor>"
+      "$<TARGET_FILE:configeditor>"
+
     COMMAND_EXPAND_LISTS
+    VERBATIM
   )
+
 endif()
-]]
+
 target_include_directories(configeditor
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}

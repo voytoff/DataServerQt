@@ -21,7 +21,8 @@ qt_add_executable(datamonitor
   model/signalselectionmodel.h model/signalselectionmodel.cpp
   monitorsettingsloader.h monitorsettingsloader.cpp
 )
-#[[if(WIN32)
+#[[
+if(WIN32)
 
   get_target_property(
     QT_QMAKE_EXECUTABLE

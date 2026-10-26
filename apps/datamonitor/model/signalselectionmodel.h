@@ -7,6 +7,8 @@
 #include <unordered_set>
 #include <vector>
 #include <strongidhash.h>
+#include <unordered_map>
+#include <span>
 
 namespace qds
 {
@@ -51,9 +53,17 @@ public:
   void setSignals(
     const std::vector<SignalDefinition>& signalIds);
 
+  void updateValues(
+    std::span<const SignalId> ids,
+    std::span<const double> values);
+
+  void clearValues();
+
 private:
   std::vector<SignalDefinition> m_signals;
   std::unordered_set<SignalId> m_selected;
+
+  std::unordered_map<SignalId, double> m_values;
 };
 
 }

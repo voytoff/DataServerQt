@@ -36,6 +36,25 @@ ClientConnection::ClientConnection(
     &QTimer::timeout,
     this,
     &ClientConnection::sendSubscriptionRenew);
+
+
+  m_dataTimer.setSingleShot(true);
+  m_dataTimer.setInterval(DataTimeoutMs);
+
+  connect(
+    &m_dataTimer,
+    &QTimer::timeout,
+    this,
+    &ClientConnection::onDataTimeout);
+
+  m_reconnectTimer.setSingleShot(true);
+  m_reconnectTimer.setInterval(ReconnectIntervalMs);
+
+  connect(
+    &m_reconnectTimer,
+    &QTimer::timeout,
+    this,
+    &ClientConnection::onReconnectTimeout);
 }
 
 bool ClientConnection::open(
@@ -80,6 +99,19 @@ const std::vector<SignalId>&
 ClientConnection::signalIds() const noexcept
 {
   return m_signals;
+}
+
+void ClientConnection::cancelRecovery()
+{
+  if (!m_reconnecting)
+    return;
+
+  close();
+}
+
+bool ClientConnection::isRecovering() const noexcept
+{
+  return m_reconnecting;
 }
 
 bool ClientConnection::subscribe(
@@ -147,6 +179,8 @@ bool ClientConnection::subscribe(
   m_pendingRequestId = requestId;
   m_subscriptionPending = true;
 
+  m_rate = rate;
+
   m_requestTimer.start(RequestTimeoutMs);
 
   return true;
@@ -200,6 +234,10 @@ void ClientConnection::close()
 {
   m_requestTimer.stop();
   m_renewTimer.stop();
+  m_dataTimer.stop();
+
+  m_reconnectTimer.stop();
+  m_reconnecting = false;
 
   m_socket.close();
 
@@ -289,10 +327,14 @@ void ClientConnection::onReadyRead()
       {
         m_pendingSignals.clear();
 
-        emit errorOccurred(
+        const QString message =
           tr("Сервер отклонил подписку, код: %1")
-            .arg(static_cast<int>(
-              response.result)));
+            .arg(static_cast<int>(response.result));
+
+        if (m_reconnecting)
+          failRecovery();
+
+        emit errorOccurred(message);
 
         break;
       }
@@ -301,7 +343,15 @@ void ClientConnection::onReadyRead()
       m_signals = std::move(m_pendingSignals);
       m_pendingSignals.clear();
 
+      stopRecovery();
+
       m_renewTimer.start();
+      m_dataTimer.start();
+
+      emit subscribed(response.id);
+
+      m_renewTimer.start();
+      m_dataTimer.start();
 
       emit subscribed(response.id);
 
@@ -342,6 +392,7 @@ void ClientConnection::onReadyRead()
       }
 
       m_renewTimer.stop();
+      m_dataTimer.stop();
 
       m_subscriptionId = {};
       m_signals.clear();
@@ -382,6 +433,8 @@ void ClientConnection::onReadyRead()
         break;
       }
 
+      m_dataTimer.start();
+
       emit dataReceived(
         header.subscriptionId,
         header.timestamp,
@@ -398,6 +451,36 @@ void ClientConnection::onReadyRead()
           reader.remaining() != 0 ||
           reader.trailingBytes() != 0)
       {
+        break;
+      }
+
+      if (m_reconnecting)
+      {
+        if (response.code == ErrorCode::InvalidState ||
+            response.code == ErrorCode::InternalError)
+        {
+          m_requestTimer.stop();
+
+          m_pendingRequestId = {};
+          m_subscriptionPending = false;
+          m_pendingSignals.clear();
+          m_pendingPacket.clear();
+          m_retryCount = 0;
+
+          m_reconnectTimer.start();
+
+          break;
+        }
+
+        const QString message =
+          tr("Ошибка протокола при восстановлении: %1, info=%2")
+            .arg(static_cast<int>(response.code))
+            .arg(response.info);
+
+        failRecovery();
+
+        emit errorOccurred(message);
+
         break;
       }
 
@@ -452,7 +535,7 @@ void ClientConnection::onRequestTimeout()
       return;
     }
 
-    // Ошибка отправки — прекращаем повторы
+    // Ошибка отправки — прекращаем текущую попытку.
     const QString error = m_socket.errorString();
 
     m_requestTimer.stop();
@@ -463,6 +546,12 @@ void ClientConnection::onRequestTimeout()
     m_subscriptionPending = false;
     m_unsubscribePending = false;
     m_pendingSignals.clear();
+
+    if (m_reconnecting)
+    {
+      m_reconnectTimer.start();
+      return;
+    }
 
     emit errorOccurred(error);
     return;
@@ -476,6 +565,12 @@ void ClientConnection::onRequestTimeout()
   {
     m_subscriptionPending = false;
     m_pendingSignals.clear();
+
+    if (m_reconnecting)
+    {
+      m_reconnectTimer.start();
+      return;
+    }
 
     emit errorOccurred(
       tr("Превышено время ожидания подтверждения подписки"));
@@ -540,6 +635,63 @@ void ClientConnection::sendSubscriptionRenew()
     static_cast<qint64>(writer.size()),
     m_serverAddress,
     m_serverPort);
+}
+
+void ClientConnection::onDataTimeout()
+{
+  if (m_subscriptionId.value == 0)
+    return;
+
+  emit dataTimeout();
+
+  startRecovery();
+}
+
+void ClientConnection::onReconnectTimeout()
+{
+  if (!m_reconnecting ||
+      !isOpen() ||
+      m_subscriptionPending ||
+      m_unsubscribePending ||
+      m_subscriptionId.value != 0)
+  {
+    return;
+  }
+
+  if (!subscribe(m_signals, m_rate))
+    m_reconnectTimer.start();
+}
+
+void ClientConnection::startRecovery()
+{
+  if (m_reconnecting ||
+      m_subscriptionId.value == 0)
+    return;
+
+  m_reconnecting = true;
+
+  m_renewTimer.stop();
+  m_dataTimer.stop();
+
+  m_subscriptionId = {};
+
+  m_reconnectTimer.start();
+
+  emit recoveryStarted();
+}
+
+void ClientConnection::stopRecovery()
+{
+  m_reconnectTimer.stop();
+  m_reconnecting = false;
+}
+
+void ClientConnection::failRecovery()
+{
+  if (!m_reconnecting)
+    return;
+
+  close();
 }
 
 }

@@ -42,6 +42,9 @@ public:
 
   const std::vector<SignalId>& signalIds() const noexcept;
 
+  void cancelRecovery();
+  bool isRecovering() const noexcept;
+
 private:
   void onReadyRead();
   void onRequestTimeout();
@@ -51,10 +54,16 @@ private:
 
   void sendSubscriptionRenew();
 
+  void onDataTimeout();
+  void onReconnectTimeout();
+  void startRecovery();
+  void stopRecovery();
+  void failRecovery();
+
 private:
+  // TTL
   static constexpr int RequestTimeoutMs = 1000;
   static constexpr int RenewIntervalMs = 10000;
-
   QTimer m_renewTimer;
 
   QUdpSocket m_socket;
@@ -79,6 +88,16 @@ private:
   std::vector<std::byte> m_pendingPacket;
   int m_retryCount = 0;
 
+  // таймаут определения потери данных от сервера
+  static constexpr int DataTimeoutMs = 3000;
+  QTimer m_dataTimer;
+
+  // переподключение подписки после потери сервера
+  static constexpr int ReconnectIntervalMs = 5000;
+  QTimer m_reconnectTimer;
+  PublishRate m_rate = PublishRate::Hz10;
+  bool m_reconnecting = false;
+
 signals:
   void subscribed(qds::SubscriptionId id);
 
@@ -90,6 +109,9 @@ signals:
     std::vector<double> values);
 
   void errorOccurred(QString message);
+
+  void dataTimeout();
+  void recoveryStarted();
 
 };
 

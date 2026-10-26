@@ -49,6 +49,7 @@ private:
     Running,
     Unsubscribing
   };
+
   void setMonitorState(MonitorState state);
 
 private:

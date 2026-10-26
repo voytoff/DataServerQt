@@ -41,18 +41,43 @@ add_executable(dataserver
     mainwindow.h mainwindow.cpp
     servercontroller.h servercontroller.cpp
 )
-#[[
-if(WIN32)
-  add_custom_command(
-    TARGET dataserver
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-      $<TARGET_RUNTIME_DLLS:dataserver>
-      $<TARGET_FILE_DIR:dataserver>
-    COMMAND_EXPAND_LISTS
-  )
-endif()
-]]
+
+get_target_property(
+  QT_QMAKE_EXECUTABLE
+  Qt6::qmake
+  IMPORTED_LOCATION
+)
+
+get_filename_component(
+  QT_BIN_DIR
+  "${QT_QMAKE_EXECUTABLE}"
+  DIRECTORY
+)
+
+find_program(
+  WINDEPLOYQT_EXECUTABLE
+ +
+ +*NAMES windeployqt
+  HINTS "${QT_BIN_DIR}"
+  REQUIRED
+)
+
+add_custom_command(
+  TARGET dataserver
+  POST_BUILD
+
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    $<TARGET_RUNTIME_DLLS:dataserver>
+    $<TARGET_FILE_DIR:dataserver>
+
+  COMMAND "${WINDEPLOYQT_EXECUTABLE}"
+    --dir "$<TARGET_FILE_DIR:dataserver>"
+    "$<TARGET_FILE:dataserver>"
+
+  COMMAND_EXPAND_LISTS
+  VERBATIM
+)
+
 target_link_libraries(dataserver
     PRIVATE
         Configuration

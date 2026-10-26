@@ -4,6 +4,7 @@
 #include <vector>
 #include <ranges>
 #include <algorithm>
+#include <QColor>
 
 namespace qds
 {
@@ -18,7 +19,7 @@ ConfigurationTreeModel::ConfigurationTreeModel(
 
 bool ConfigurationTreeModel::load(
   ConfigurationId configuration)
-{
+{  
   std::vector<CrateInfo> crates;
   std::vector<ModuleInfo> modules;
   std::vector<ConfigModule> configModules;
@@ -35,6 +36,25 @@ bool ConfigurationTreeModel::load(
   {
     return false;
   }
+
+  std::vector<SignalDefinition> definitions;
+
+  if (!m_repository.signalDefinitions(
+        configuration,
+        definitions))
+  {
+    // нет определения сигналов
+    return false;
+  }
+
+  std::unordered_set<uint32_t> rawSignalTags;
+
+  for (const auto& signal : definitions)
+  {
+    if (signal.kind == SignalKind::Raw)
+      rawSignalTags.insert(signal.source.tag.value);
+  }
+
 
   auto root =
     std::make_unique<TreeItem>(
@@ -137,6 +157,7 @@ bool ConfigurationTreeModel::load(
   beginResetModel();
 
   m_configuration = configuration;
+  m_rawSignalTags = std::move(rawSignalTags);
   m_root = std::move(root);
 
   endResetModel();
@@ -234,8 +255,12 @@ QVariant ConfigurationTreeModel::data(
   if (!index.isValid())
     return {};
 
-  if (role != Qt::DisplayRole && role != Qt::CheckStateRole)
+  if (role != Qt::DisplayRole &&
+      role != Qt::CheckStateRole &&
+      role != Qt::ForegroundRole)
+  {
     return {};
+  }
 
   const auto* item =
     static_cast<TreeItem*>(
@@ -264,12 +289,25 @@ QVariant ConfigurationTreeModel::data(
   }
 
   else if (const auto* channel =
-    std::get_if<ChannelItemData>(&itemData))
+           std::get_if<ChannelItemData>(&itemData))
   {
     if (role == Qt::DisplayRole)
       return channel->channel.value;
-    else if (role == Qt::CheckStateRole)
-      return channel->active ? Qt::Checked : Qt::Unchecked;
+
+    if (role == Qt::CheckStateRole)
+      return channel->active
+               ? Qt::Checked
+               : Qt::Unchecked;
+
+    if (role == Qt::ForegroundRole)
+    {
+      if (channel->active &&
+          (!channel->tag ||
+           !hasRawSignal(*channel->tag)))
+      {
+        return QColor(Qt::red);
+      }
+    }
   }
 
   return {};
@@ -367,11 +405,14 @@ bool ConfigurationTreeModel::setData(
     }
 
     channel->active = active;
-
+    
     emit dataChanged(
       index,
       index,
-      {Qt::CheckStateRole});
+      {
+        Qt::CheckStateRole,
+        Qt::ForegroundRole
+      });
 
     emit tagSourcesChanged();
 
@@ -575,6 +616,12 @@ bool ConfigurationTreeModel::updateChannelSettings(
   emit dataChanged(index, index);
 
   return true;
+}
+
+bool ConfigurationTreeModel::hasRawSignal(
+  TagId tag) const noexcept
+{
+  return m_rawSignalTags.contains(tag.value);
 }
 
 }

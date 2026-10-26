@@ -66,6 +66,11 @@ MainWindow::MainWindow(
   header->setSectionResizeMode(
     2, QHeaderView::Stretch);
 
+  header->setSectionResizeMode(
+    3, QHeaderView::Fixed);
+
+  header->resizeSection(3, 150);
+
   setCentralWidget(m_signalView);
 
   // Создаём клиент до открытия соединения.
@@ -181,8 +186,6 @@ void MainWindow::createToolbar()
     QIcon(":/images/eue.png"),
     tr("Мониторинг"));
 
-  m_toolBar->addSeparator();
-
   m_monitorAction->setCheckable(true);
   m_monitorAction->setChecked(false);
 
@@ -205,7 +208,8 @@ void MainWindow::createToolbar()
       } else {
         stopMonitoring();
       }
-    });}
+    });
+}
 
 void MainWindow::createClient()
 {
@@ -248,10 +252,43 @@ void MainWindow::createClient()
     [this]()
     {
       setMonitorState(MonitorState::Stopped);
+      m_signalModel->clearValues();
 
       statusBar()->showMessage(
-        tr("Подписка отменена"),
-        5000);
+        tr("Подписка отменена"));
+    });
+
+  connect(
+    m_client,
+    &ClientConnection::dataReceived,
+    this,
+    [this](
+      SubscriptionId id,
+      uint64_t timestamp,
+      std::vector<double> values)
+    {
+      Q_UNUSED(timestamp);
+
+      if (id != m_client->subscriptionId())
+        return;
+
+      const auto& ids = m_client->signalIds();
+
+      m_signalModel->updateValues(
+        ids,
+        values);
+    });
+
+  connect(
+    m_client,
+    &ClientConnection::dataTimeout,
+    this,
+    [this]()
+    {
+      m_signalModel->clearValues();
+
+      statusBar()->showMessage(
+        tr("Нет данных от DataServer"));
     });
 
   connect(
@@ -260,11 +297,18 @@ void MainWindow::createClient()
     this,
     [this](const QString& message)
     {
+      // - При обычной ошибке первоначальной подписки состояние Subscribing переводится в Stopped.
+      // - При постоянной ошибке восстановления failRecovery() закрывает соединение, поэтому !m_client->isOpen() будет true.
+      // - При временных ошибках восстановления errorOccurred() не вызывается, мониторинг остаётся включённым.
+      // - При ошибке отписки сохраняется прежнее поведение.
       qWarning().noquote() << message;
 
-      if (m_monitorState == MonitorState::Subscribing)
+      if (m_monitorState == MonitorState::Subscribing ||
+          (m_monitorState == MonitorState::Running &&
+           !m_client->isOpen()))
       {
         setMonitorState(MonitorState::Stopped);
+        m_signalModel->clearValues();
       }
       else if (m_monitorState == MonitorState::Unsubscribing)
       {
@@ -364,15 +408,15 @@ void MainWindow::startMonitoring()
     return;
   }
 
-  if (!m_client->isOpen())
+  if (!m_client->isOpen() &&
+      !m_client->open(m_serverAddress, m_serverPort))
   {
+    setMonitorState(MonitorState::Stopped);
+
     QMessageBox::warning(
       this,
       tr("DataMonitor"),
-      tr("UDP-сокет не открыт."));
-
-    QSignalBlocker blocker(m_monitorAction);
-    m_monitorAction->setChecked(false);
+      tr("Не удалось открыть UDP-сокет."));
 
     return;
   }
@@ -401,6 +445,20 @@ void MainWindow::startMonitoring()
 
 void MainWindow::stopMonitoring()
 {
+  if (m_client->isRecovering())
+  {
+    m_client->cancelRecovery();
+
+    m_signalModel->clearValues();
+
+    setMonitorState(MonitorState::Stopped);
+
+    statusBar()->showMessage(
+      tr("Мониторинг остановлен"));
+
+    return;
+  }
+
   if (m_monitorState != MonitorState::Running)
     return;
 

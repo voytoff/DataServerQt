@@ -124,15 +124,6 @@ MainWindow::MainWindow(
       updateServerState(true);
       updateArchiveDirectory();
       updateControls();
-/*
-      for (int row = 0;
-           row < m_modulesTable->rowCount();
-           ++row)
-      {
-        if (auto* item = m_modulesTable->item(row, 2))
-          item->setText(tr("Работает"));
-      }
-*/
     });
 
   connect(

@@ -4,6 +4,7 @@
 #include "treeitem.h"
 #include <QObject>
 #include <QAbstractItemModel>
+#include <unordered_set>
 
 namespace qds
 {
@@ -63,11 +64,16 @@ public:
     const QJsonObject& settings);
 
 private:
-  ConfigurationRepository& m_repository;
+  bool hasRawSignal(
+    TagId tag) const noexcept;
 
+private:
+  ConfigurationRepository& m_repository;
   ConfigurationId m_configuration;
 
   std::unique_ptr<TreeItem> m_root;
+
+  std::unordered_set<uint32_t> m_rawSignalTags;
 
 signals:
   void operationFailed(

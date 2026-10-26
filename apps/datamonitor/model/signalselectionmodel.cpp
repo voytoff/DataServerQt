@@ -20,7 +20,7 @@ int SignalSelectionModel::rowCount(
 int SignalSelectionModel::columnCount(
   const QModelIndex& parent) const
 {
-  return parent.isValid() ? 0 : 3;
+  return parent.isValid() ? 0 : 4;
 }
 
 QVariant SignalSelectionModel::data(
@@ -51,6 +51,16 @@ QVariant SignalSelectionModel::data(
 
     case 2:
       return QString::fromStdString(signal.name);
+    case 3:
+    {
+      const auto it = m_values.find(signal.id);
+
+      if (it == m_values.end())
+        return {};
+
+      return QString::number(
+        it->second, 'g', 6);
+    }
     }
   }
 
@@ -71,6 +81,7 @@ QVariant SignalSelectionModel::headerData(
   case 0: return tr("Выбор");
   case 1: return tr("ID");
   case 2: return tr("Сигнал");
+  case 3: return tr("Значение");
   }
 
   return {};
@@ -152,8 +163,44 @@ void SignalSelectionModel::setSignals(
 
   m_signals = signalIds;
   m_selected.clear();
+  m_values.clear();
 
   endResetModel();
+}
+
+void SignalSelectionModel::updateValues(
+  std::span<const SignalId> ids,
+  std::span<const double> values)
+{
+  if (ids.size() != values.size())
+    return;
+
+  for (std::size_t i = 0; i < ids.size(); ++i)
+    m_values[ids[i]] = values[i];
+
+  if (!m_signals.empty())
+  {
+    emit dataChanged(
+      index(0, 3),
+      index(rowCount() - 1, 3),
+      {Qt::DisplayRole});
+  }
+}
+
+void SignalSelectionModel::clearValues()
+{
+  if (m_values.empty())
+    return;
+
+  m_values.clear();
+
+  if (!m_signals.empty())
+  {
+    emit dataChanged(
+      index(0, 3),
+      index(rowCount() - 1, 3),
+      {Qt::DisplayRole});
+  }
 }
 
 }
