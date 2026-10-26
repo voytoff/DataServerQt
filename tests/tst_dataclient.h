@@ -36,5 +36,8 @@ private slots:
   void recoveryTemporaryError_data();
   void recoveryTemporaryError();
 
+  void invalidSubscriptionResponse();
+  void invalidUnsubscribeResponse();
+  void invalidLiveDataSubscription();
 };
 
