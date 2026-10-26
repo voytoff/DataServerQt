@@ -2,6 +2,9 @@
 
 #include <cstdint>
 
+namespace qds
+{
+
 enum class ErrorCode : uint8_t
 {
   InvalidPacket     = 1, // поврежден PacketHeader
@@ -17,3 +20,5 @@ struct ErrorResponse
   ErrorCode code;
   uint32_t info = 0;
 };
+
+}

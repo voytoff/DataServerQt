@@ -31,15 +31,15 @@ int main(int argc, char *argv[])
   int rc = 0;
 
   {
+    tst_dataclient tc;
+    rc |= QTest::qExec(&tc, argc, argv);
+  }
+  {
     tst_dataserver tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
   {
     tst_packetdispatcher tc;
-    rc |= QTest::qExec(&tc, argc, argv);
-  }
-  {
-    tst_dataclient tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
   {

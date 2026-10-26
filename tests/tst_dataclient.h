@@ -29,5 +29,12 @@ private slots:
   void subscribeRetry();
   void unsubscribeRetry();
 
+  void dataTimeout();
+  void autoRecovery();
+  void cancelRecovery();
+  void recoveryRejected();
+  void recoveryTemporaryError_data();
+  void recoveryTemporaryError();
+
 };
 

@@ -227,6 +227,8 @@ bool ClientConnection::unsubscribe()
 
   m_requestTimer.start(RequestTimeoutMs);
 
+  m_dataTimer.stop();
+
   return true;
 }
 
@@ -259,7 +261,8 @@ void ClientConnection::close()
 
 void ClientConnection::onReadyRead()
 {
-  while (m_socket.hasPendingDatagrams())
+  while (m_socket.state() == QAbstractSocket::BoundState &&
+         m_socket.hasPendingDatagrams())
   {
     QByteArray datagram;
 
@@ -344,11 +347,6 @@ void ClientConnection::onReadyRead()
       m_pendingSignals.clear();
 
       stopRecovery();
-
-      m_renewTimer.start();
-      m_dataTimer.start();
-
-      emit subscribed(response.id);
 
       m_renewTimer.start();
       m_dataTimer.start();
@@ -582,6 +580,8 @@ void ClientConnection::onRequestTimeout()
   {
     m_unsubscribePending = false;
 
+    m_dataTimer.start();
+
     emit errorOccurred(
       tr("Превышено время ожидания подтверждения отписки"));
   }
@@ -639,8 +639,11 @@ void ClientConnection::sendSubscriptionRenew()
 
 void ClientConnection::onDataTimeout()
 {
-  if (m_subscriptionId.value == 0)
+  if (m_subscriptionId.value == 0 ||
+      m_unsubscribePending)
+  {
     return;
+  }
 
   emit dataTimeout();
 
