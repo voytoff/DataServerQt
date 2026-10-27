@@ -8,12 +8,13 @@
 #include <QMainWindow>
 #include <QSqlDatabase>
 #include <QString>
-#include <QChart>
-#include <QChartView>
-#include <QSplitter>
 
 class QSplitter;
 class QComboBox;
+class QAction;
+class QComboBox;
+class QSplitter;
+class QToolBar;
 
 namespace qds
 {
@@ -39,9 +40,6 @@ private:
 
   bool loadConfiguration(
     ConfigurationId id);
-
-  void connectToServer();
-  void updateSubscription();
 
   bool openConnection();
 

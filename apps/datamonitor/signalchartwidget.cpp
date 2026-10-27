@@ -1,5 +1,7 @@
 #include "signalchartwidget.h"
 
+#include <QGuiApplication>
+#include <QStyleHints>
 #include <QChart>
 #include <QChartView>
 #include <QLineSeries>
@@ -21,11 +23,29 @@
 namespace qds
 {
 
+namespace
+{
+
+void updateChartTheme(QChart *chart) {
+  // Получаем текущую схему (Qt::ColorScheme::Dark или Qt::ColorScheme::Light)
+  Qt::ColorScheme currentScheme = QGuiApplication::styleHints()->colorScheme();
+
+  if (currentScheme == Qt::ColorScheme::Dark) {
+    chart->setTheme(QChart::ChartThemeDark); // Включаем темную тему
+  } else {
+    chart->setTheme(QChart::ChartThemeLight); // Включаем светлую тему (или ChartThemeQt)
+  }
+}
+
+}
+
 SignalChartWidget::SignalChartWidget(
   QWidget* parent)
   : QWidget(parent)
 {
   m_chart = new QChart();
+
+  updateChartTheme(m_chart);
 
   m_chart->setTitle(
     tr("Мониторинг сигналов"));
@@ -54,19 +74,6 @@ SignalChartWidget::SignalChartWidget(
   layout->setSpacing(0);
 
   layout->addWidget(m_chartView);
-
-  connect(
-    m_intervalCombo,
-    &QComboBox::currentIndexChanged,
-    this,
-    [this](int index)
-    {
-      if (index < 0)
-        return;
-
-      setWindowSeconds(
-        m_intervalCombo->itemData(index).toInt());
-    });
 
   m_refreshTimer.setInterval(RefreshIntervalMs);
 
@@ -338,16 +345,6 @@ void SignalChartWidget::setWindowSeconds(
 
   m_windowSeconds = seconds;
 
-  const int index =
-    m_intervalCombo->findData(seconds);
-
-  if (index >= 0)
-  {
-    QSignalBlocker blocker(m_intervalCombo);
-
-    m_intervalCombo->setCurrentIndex(index);
-  }
-
   if (m_hasFirstTimestamp)
   {
     refreshChart();
@@ -394,7 +391,12 @@ SignalChartWidget::hiddenSignals() const
 void SignalChartWidget::setYAxisMode(
   YAxisMode mode)
 {
+  if (m_yAxisMode == mode)
+    return;
 
+  m_yAxisMode = mode;
+
+  updateAxisVisibility();
 }
 
 void SignalChartWidget::updateSeriesVisibility()

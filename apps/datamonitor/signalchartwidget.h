@@ -6,7 +6,6 @@
 #include <QString>
 #include <QTimer>
 #include <QPointF>
-#include <QGuiApplication>
 
 #include <cstdint>
 #include <span>
@@ -18,7 +17,6 @@ class QChart;
 class QChartView;
 class QLineSeries;
 class QValueAxis;
-class QComboBox;
 
 namespace qds
 {
@@ -59,7 +57,6 @@ public:
   void setYAxisMode(
     YAxisMode mode);
 
-
 private:
   void updateAxes(double currentTime);
   void setupLegend();
@@ -73,8 +70,6 @@ private:
   QChartView* m_chartView = nullptr;
 
   QValueAxis* m_axisX = nullptr;
-
-  QComboBox* m_intervalCombo = nullptr;
 
   std::vector<QLineSeries*> m_series;
 

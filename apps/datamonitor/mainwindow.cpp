@@ -266,12 +266,6 @@ void MainWindow::createToolbar()
     static_cast<int>(
       SignalChartWidget::YAxisMode::Multiple));
 
-  m_yAxisModeCombo->setCurrentIndex(
-    m_yAxisModeCombo->findData(
-      static_cast<int>(
-        //m_signalChart->yAxisMode()
-        0)));
-
   m_toolBar->addWidget(m_yAxisModeCombo);
 
   connect(
