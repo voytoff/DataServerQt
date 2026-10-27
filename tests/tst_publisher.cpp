@@ -1377,3 +1377,134 @@ void tst_publisher::test_publish_failSubscription()
     failedSubscription->nextPublishFrame,
     FrameNumber{0});
 }
+
+void tst_publisher::test_publish_sequenceWraparound()
+{
+  using namespace qds;
+
+  SystemConfiguration cfg =
+    createTestConfig_calculate();
+
+  SignalMemoryLayout layout;
+  layout.build(cfg);
+
+  TestPublisherSender sender;
+  SubscriptionManager subscriptions;
+
+  Subscription sub{
+    .endpoint = {
+      .address = "127.0.0.1",
+      .port = 5000
+    },
+    .rate = PublishRate::Hz100,
+    .signalIds = {
+      SignalId{17}
+    }
+  };
+
+  const SubscriptionId id =
+    subscriptions.add(sub);
+
+  QVERIFY(id.value != 0);
+
+  auto* subscription =
+    subscriptions.find(id);
+
+  QVERIFY(subscription != nullptr);
+
+  // Устанавливаем sequence перед переполнением.
+  subscription->sequence = UINT32_MAX - 1;
+
+  Publisher publisher(
+    layout,
+    subscriptions,
+    sender,
+    1000);
+
+  Frame frame;
+  frame.initialize(layout);
+
+  frame.calculated().setValue(
+    0,
+    123.0);
+
+  const std::array<uint32_t, 3> expected = {
+    UINT32_MAX,
+    1,
+    2
+  };
+
+  PacketReader reader;
+
+  for (std::size_t i = 0; i < expected.size(); ++i)
+  {
+    frame.number =
+      FrameNumber{static_cast<uint64_t>(i * 10)};
+
+    frame.timestamp =
+      Timestamp{static_cast<uint64_t>(i * 100)};
+
+    publisher.publish(frame);
+
+    QCOMPARE(
+      sender.sendCount,
+      static_cast<std::size_t>(i + 1));
+
+    QCOMPARE(
+      subscription->sequence,
+      expected[i]);
+
+    reader.clear();
+
+    const auto& packet =
+      sender.m_packets[i];
+
+    reader.append(
+      packet.data(),
+      packet.size());
+
+    QVERIFY(reader.nextPacket());
+
+    QCOMPARE(
+      reader.packetType(),
+      PacketType::LiveData);
+
+    PublishHeader header{};
+
+    QVERIFY(reader.read(header));
+
+    QCOMPARE(
+      header.subscriptionId,
+      id);
+
+    QCOMPARE(
+      header.sequence,
+      expected[i]);
+
+    QCOMPARE(
+      header.timestamp,
+      static_cast<uint64_t>(i * 100));
+
+    QCOMPARE(
+      header.valueCount,
+      uint32_t{1});
+
+    double value = 0.0;
+
+    QVERIFY(reader.read(value));
+
+    QCOMPARE(value, 123.0);
+
+    QCOMPARE(
+      reader.remaining(),
+      std::size_t{0});
+
+    QCOMPARE(
+      reader.trailingBytes(),
+      std::size_t{0});
+  }
+
+  QCOMPARE(
+    sender.m_packets.size(),
+    expected.size());
+}

@@ -11,6 +11,21 @@
 namespace qds
 {
 
+namespace
+{
+
+bool isNewerSequence(
+  uint32_t sequence,
+  uint32_t previous) noexcept
+{
+  const uint32_t difference = sequence - previous;
+
+  return difference != 0 &&
+         difference < (uint32_t{1} << 31);
+}
+
+}
+
 ClientConnection::ClientConnection(
   QObject* parent)
   : QObject(parent)
@@ -346,6 +361,9 @@ void ClientConnection::onReadyRead()
       m_signals = std::move(m_pendingSignals);
       m_pendingSignals.clear();
 
+      // Новая подписка — новая последовательность пакетов.
+      resetSequence();
+      // останавливаем восстановление подписки
       stopRecovery();
 
       m_renewTimer.start();
@@ -430,6 +448,23 @@ void ClientConnection::onReadyRead()
       {
         break;
       }
+
+      // Нулевой номер пакета недопустим.
+      if (header.sequence == 0)
+        break;
+
+      // Игнорируем повторные и устаревшие пакеты.
+      if (m_hasLastSequence &&
+          !isNewerSequence(
+            header.sequence,
+            m_lastSequence))
+      {
+        break;
+      }
+
+      // Запоминаем последний принятый номер.
+      m_lastSequence = header.sequence;
+      m_hasLastSequence = true;
 
       m_dataTimer.start();
 
@@ -695,6 +730,12 @@ void ClientConnection::failRecovery()
     return;
 
   close();
+}
+
+void ClientConnection::resetSequence() noexcept
+{
+  m_lastSequence = 0;
+  m_hasLastSequence = false;
 }
 
 }

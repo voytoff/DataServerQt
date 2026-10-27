@@ -39,5 +39,10 @@ private slots:
   void invalidSubscriptionResponse();
   void invalidUnsubscribeResponse();
   void invalidLiveDataSubscription();
+
+  void duplicateLiveData();
+  void sequenceWraparound();
+  void sequenceResetAfterResubscribe();
+
 };
 

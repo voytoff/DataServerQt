@@ -103,10 +103,6 @@ bool DataServer::start()
     std::make_unique<UdpServer>(
       *m_dispatcher);
 
-  m_udpServer =
-    std::make_unique<UdpServer>(
-      *m_dispatcher);
-
   if (auto* udpSender = dynamic_cast<UdpSender*>(&m_sender))
   {
     udpSender->setSocket(m_udpServer->socket());

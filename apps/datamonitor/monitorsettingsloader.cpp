@@ -80,4 +80,137 @@ bool MonitorSettingsLoader::saveSignals(
   return settings.status() == QSettings::NoError;
 }
 
+int MonitorSettingsLoader::loadChartInterval(
+  const QString& fileName,
+  ConfigurationId configurationId)
+{
+  QSettings settings(
+    fileName,
+    QSettings::IniFormat);
+
+  const QString key =
+    QString("MonitorChart/%1")
+      .arg(configurationId.value);
+
+  const int seconds =
+    settings.value(key, 10).toInt();
+
+  switch (seconds)
+  {
+  case 5:
+  case 10:
+  case 30:
+  case 60:
+    return seconds;
+
+  default:
+    return 10;
+  }
+}
+
+bool MonitorSettingsLoader::saveChartInterval(
+  const QString& fileName,
+  ConfigurationId configurationId,
+  int seconds)
+{
+  if (configurationId.value == 0)
+    return false;
+
+  switch (seconds)
+  {
+  case 5:
+  case 10:
+  case 30:
+  case 60:
+    break;
+
+  default:
+    return false;
+  }
+
+  QSettings settings(
+    fileName,
+    QSettings::IniFormat);
+
+  const QString key =
+    QString("MonitorChart/%1")
+      .arg(configurationId.value);
+
+  settings.setValue(key, seconds);
+  settings.sync();
+
+  return settings.status() == QSettings::NoError;
+}
+
+std::vector<SignalId>
+MonitorSettingsLoader::loadHiddenChartSignals(
+  const QString& fileName,
+  ConfigurationId configurationId)
+{
+  QSettings settings(
+    fileName,
+    QSettings::IniFormat);
+
+  const QString key =
+    QString("MonitorChartHidden/%1")
+      .arg(configurationId.value);
+
+  const QString text =
+    settings.value(key).toString();
+
+  std::vector<SignalId> result;
+
+  if (text.isEmpty())
+    return result;
+
+  const QStringList values =
+    text.split(',', Qt::SkipEmptyParts);
+
+  for (const QString& value : values)
+  {
+    bool ok = false;
+
+    const uint32_t id =
+      value.trimmed().toUInt(&ok);
+
+    if (ok && id != 0)
+      result.push_back(SignalId{id});
+  }
+
+  return result;
+}
+
+bool MonitorSettingsLoader::saveHiddenChartSignals(
+  const QString& fileName,
+  ConfigurationId configurationId,
+  const std::vector<SignalId>& signalIds)
+{
+  if (configurationId.value == 0)
+    return false;
+
+  QSettings settings(
+    fileName,
+    QSettings::IniFormat);
+
+  const QString key =
+    QString("MonitorChartHidden/%1")
+      .arg(configurationId.value);
+
+  QStringList values;
+
+  for (SignalId id : signalIds)
+  {
+    values.append(
+      QString::number(id.value));
+  }
+
+  settings.setValue(
+    key,
+    values.join(','));
+
+  settings.sync();
+
+  return settings.status() == QSettings::NoError;
+}
+
 }

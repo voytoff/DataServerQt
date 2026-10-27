@@ -8,12 +8,18 @@
 #include <QMainWindow>
 #include <QSqlDatabase>
 #include <QString>
+#include <QChart>
+#include <QChartView>
+#include <QSplitter>
+
+class QSplitter;
 
 namespace qds
 {
 
 class BaseTableView;
 class ConfigurationSelector;
+class SignalChartWidget;
 
 class MainWindow : public QMainWindow
 {
@@ -72,6 +78,8 @@ private:
 
   MonitorState m_monitorState = MonitorState::Stopped;
 
+  QSplitter* m_splitter = nullptr;
+  SignalChartWidget* m_signalChart = nullptr;
 };
 
 }

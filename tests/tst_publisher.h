@@ -28,4 +28,6 @@ private slots:
   void test_publish_subscriptionRateNotDivisor();
 
   void test_publish_failSubscription();
+
+  void test_publish_sequenceWraparound();
 };

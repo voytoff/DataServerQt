@@ -17,12 +17,15 @@ public:
 
   void nextTick() noexcept override;
 
+  // Номер кадра
   [[nodiscard]]
   FrameNumber frameNumber() const noexcept override;
 
+  // Микросекунды
   [[nodiscard]]
   Timestamp timestamp() const noexcept override;
 
+  // Микросекунды от Unix epoch
   [[nodiscard]]
   WallClockTime wallClockTime() const noexcept override;
 

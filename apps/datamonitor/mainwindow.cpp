@@ -5,6 +5,7 @@
 #include "configurationrepository.h"
 #include "configurationselector.h"
 #include "monitorsettingsloader.h"
+#include "signalchartwidget.h"
 
 #include <QSignalBlocker>
 #include <QHeaderView>
@@ -15,6 +16,7 @@
 #include <QSettings>
 #include <QStatusBar>
 #include <QDebug>
+#include <QSplitter>
 
 namespace qds
 {
@@ -71,7 +73,32 @@ MainWindow::MainWindow(
 
   header->resizeSection(3, 150);
 
-  setCentralWidget(m_signalView);
+
+  // Таблица и график.
+  m_splitter = new QSplitter(
+    Qt::Vertical,
+    this);
+
+  m_splitter->setChildrenCollapsible(false);
+  m_splitter->setHandleWidth(5);
+
+  m_splitter->addWidget(m_signalView);
+
+  m_signalChart =
+    new SignalChartWidget(m_splitter);
+
+  m_splitter->addWidget(m_signalChart);
+
+  // Начальные размеры панелей.
+  m_splitter->setSizes({
+    250,
+    400
+  });
+
+  m_splitter->setChildrenCollapsible(false);
+
+  setCentralWidget(m_splitter);
+
 
   // Создаём клиент до открытия соединения.
   createClient();
@@ -239,6 +266,17 @@ void MainWindow::createClient()
     this,
     [this](SubscriptionId id)
     {
+      const auto& ids = m_client->signalIds();
+
+      std::vector<QString> names;
+      names.reserve(ids.size());
+
+      for (SignalId signalId : ids)
+        names.push_back(
+          m_signalModel->signalName(signalId));
+
+      m_signalChart->setSignals(ids, names);
+
       setMonitorState(MonitorState::Running);
 
       statusBar()->showMessage(
@@ -253,6 +291,7 @@ void MainWindow::createClient()
     {
       setMonitorState(MonitorState::Stopped);
       m_signalModel->clearValues();
+      m_signalChart->clear();
 
       statusBar()->showMessage(
         tr("Подписка отменена"));
@@ -267,8 +306,6 @@ void MainWindow::createClient()
       uint64_t timestamp,
       std::vector<double> values)
     {
-      Q_UNUSED(timestamp);
-
       if (id != m_client->subscriptionId())
         return;
 
@@ -276,6 +313,10 @@ void MainWindow::createClient()
 
       m_signalModel->updateValues(
         ids,
+        values);
+
+      m_signalChart->appendData(
+        timestamp,
         values);
     });
 
@@ -286,6 +327,8 @@ void MainWindow::createClient()
     [this]()
     {
       m_signalModel->clearValues();
+      // при dataTimeout лучше очищать только точки, сохраняя серии, а при новой подписке setSignals() создаст их заново.
+      m_signalChart->clear();
 
       statusBar()->showMessage(
         tr("Нет данных от DataServer"));
@@ -309,6 +352,7 @@ void MainWindow::createClient()
       {
         setMonitorState(MonitorState::Stopped);
         m_signalModel->clearValues();
+        m_signalChart->clear();
       }
       else if (m_monitorState == MonitorState::Unsubscribing)
       {
@@ -319,6 +363,39 @@ void MainWindow::createClient()
 
       statusBar()->showMessage(message);
     });
+
+  connect(
+    m_signalChart,
+    &SignalChartWidget::windowSecondsChanged,
+    this,
+    [this](int seconds)
+    {
+      if (!MonitorSettingsLoader::saveChartInterval(
+            m_configFile,
+            m_configurationId,
+            seconds))
+      {
+        qWarning()
+        << "Не удалось сохранить интервал графика";
+      }
+    });
+
+  connect(
+    m_signalChart,
+    &SignalChartWidget::hiddenSignalsChanged,
+    this,
+    [this]()
+    {
+      if (!MonitorSettingsLoader::saveHiddenChartSignals(
+            m_configFile,
+            m_configurationId,
+            m_signalChart->hiddenSignals()))
+      {
+        qWarning()
+        << "Не удалось сохранить видимость линий графика";
+      }
+    });
+
 }
 
 bool MainWindow::loadConfiguration(
@@ -340,6 +417,34 @@ bool MainWindow::loadConfiguration(
   m_serverPort = info.udpPort;
 
   m_signalModel->setSignals(signalIds);
+
+  m_signalChart->setSignals(
+    std::span<const SignalId>{},
+    std::vector<QString>{});
+
+  const int chartInterval =
+    MonitorSettingsLoader::loadChartInterval(
+      m_configFile,
+      id);
+
+  {
+    QSignalBlocker blocker(m_signalChart);
+
+    m_signalChart->setWindowSeconds(
+      chartInterval);
+  }
+
+  const auto hiddenSignals =
+    MonitorSettingsLoader::loadHiddenChartSignals(
+      m_configFile,
+      id);
+
+  {
+    QSignalBlocker blocker(m_signalChart);
+
+    m_signalChart->setHiddenSignals(
+      hiddenSignals);
+  }
 
   const auto selected =
     MonitorSettingsLoader::loadSignals(
@@ -450,6 +555,7 @@ void MainWindow::stopMonitoring()
     m_client->cancelRecovery();
 
     m_signalModel->clearValues();
+    m_signalChart->clear();
 
     setMonitorState(MonitorState::Stopped);
 

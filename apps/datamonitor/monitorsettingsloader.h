@@ -19,6 +19,24 @@ public:
     const QString& fileName,
     ConfigurationId configurationId,
     const std::vector<SignalId>& signalIds);
+
+  static int loadChartInterval(
+    const QString& fileName,
+    ConfigurationId configurationId);
+
+  static bool saveChartInterval(
+    const QString& fileName,
+    ConfigurationId configurationId,
+    int seconds);
+
+  static std::vector<SignalId> loadHiddenChartSignals(
+    const QString& fileName,
+    ConfigurationId configurationId);
+
+  static bool saveHiddenChartSignals(
+    const QString& fileName,
+    ConfigurationId configurationId,
+    const std::vector<SignalId>& signalIds);
 };
 
 }

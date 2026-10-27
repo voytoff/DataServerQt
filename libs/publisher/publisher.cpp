@@ -51,9 +51,12 @@ bool Publisher::publishSubscription(
     subscription.id;
 
   // Следующий sequence.
-  // Увеличим его только после успешной отправки.
+  // Нулевое значение зарезервировано.
   header.sequence =
-    subscription.sequence + 1;
+    subscription.sequence + uint32_t{1};
+
+  if (header.sequence == 0)
+    header.sequence = 1;
 
   header.timestamp =
     frame.timestamp.value;

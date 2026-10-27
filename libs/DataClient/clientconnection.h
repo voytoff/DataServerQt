@@ -60,6 +60,8 @@ private:
   void stopRecovery();
   void failRecovery();
 
+  void resetSequence() noexcept;
+
 private:
   // TTL
   static constexpr int RequestTimeoutMs = 1000;
@@ -97,6 +99,10 @@ private:
   QTimer m_reconnectTimer;
   PublishRate m_rate = PublishRate::Hz10;
   bool m_reconnecting = false;
+
+  // контроль последовательности пакетов данных
+  uint32_t m_lastSequence = 0;
+  bool m_hasLastSequence = false;
 
 signals:
   void subscribed(qds::SubscriptionId id);

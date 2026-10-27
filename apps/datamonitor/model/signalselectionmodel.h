@@ -48,6 +48,8 @@ public:
   void setSelectedSignals(
     const std::vector<SignalId>& ids);
 
+  QString signalName(SignalId id) const;
+
   std::vector<SignalId> selectedSignals() const;
 
   void setSignals(

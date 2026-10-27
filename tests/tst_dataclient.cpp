@@ -14,6 +14,7 @@
 #include <QHostAddress>
 
 #include <array>
+#include <vector>
 
 
 namespace
@@ -122,6 +123,39 @@ qint64 sendUnsubscribeResponse(
     .requestId = requestId,
     .result = result
   });
+
+  return server.writeDatagram(
+    reinterpret_cast<const char*>(writer.data()),
+    static_cast<qint64>(writer.size()),
+    clientAddress,
+    clientPort);
+}
+
+// Отправляем LiveData с заданным sequence.
+qint64 sendData(
+  QUdpSocket& server,
+  const QHostAddress& clientAddress,
+  quint16 clientPort,
+  uint32_t sequence,
+  qds::SubscriptionId subscriptionId,
+  std::span<const double> values)
+{
+  using namespace qds;
+
+  PacketWriter writer;
+
+  writer.begin(PacketType::LiveData);
+
+  writer.write(PublishHeader{
+    .subscriptionId = subscriptionId,
+    .sequence = sequence,
+    .timestamp = uint64_t{1000000} + sequence,
+    .valueCount = static_cast<uint32_t>(values.size())
+  });
+
+  writer.writeArray(
+    values.data(),
+    values.size());
 
   return server.writeDatagram(
     reinterpret_cast<const char*>(writer.data()),
@@ -585,7 +619,6 @@ void tst_dataclient::unsubscribe()
   QCOMPARE(reader.remaining(), std::size_t{0});
   QCOMPARE(reader.trailingBytes(), std::size_t{0});
 
-  // Подтверждаем отмену подписки.
   // Подтверждаем отмену подписки.
   QVERIFY(
     sendUnsubscribeResponse(
@@ -1476,6 +1509,30 @@ void tst_dataclient::autoRecovery()
   QCOMPARE(
     client.subscriptionId(),
     subscriptionId);
+
+  // Получаем данные первой подписки,
+  // чтобы установить состояние sequence.
+  const std::array<double, 2> initialValues = {
+    10.0, 20.0
+  };
+
+  for (uint32_t sequence = 1; sequence <= 3; ++sequence)
+  {
+    QVERIFY(sendData(
+              server,
+              clientAddress,
+              clientPort,
+              sequence,
+              subscriptionId,
+              initialValues) > 0);
+
+    QTRY_COMPARE_WITH_TIMEOUT(
+      dataSpy.count(),
+      static_cast<int>(sequence),
+      1000);
+  }
+
+  dataSpy.clear();
 
   // Сервер больше не отправляет LiveData.
   // Ожидаем обнаружение потери данных.
@@ -2568,5 +2625,696 @@ void tst_dataclient::invalidLiveDataSubscription()
     QCOMPARE(
       receivedValues[i],
       values[i]);
+  }
+}
+
+void tst_dataclient::duplicateLiveData()
+{
+  using namespace qds;
+
+  QUdpSocket server;
+
+  QVERIFY(server.bind(
+    QHostAddress::LocalHost,
+    0));
+
+  ClientConnection client;
+
+  QVERIFY(client.open(
+    QHostAddress::LocalHost,
+    server.localPort()));
+
+  QSignalSpy dataSpy(
+    &client,
+    &ClientConnection::dataReceived);
+
+  QVERIFY(dataSpy.isValid());
+
+  const std::array<SignalId, 2> signalIds = {
+    SignalId{1},
+    SignalId{2}
+  };
+
+  QVERIFY(client.subscribe(
+    signalIds,
+    PublishRate::Hz10));
+
+  // Получаем запрос подписки.
+  QTRY_VERIFY_WITH_TIMEOUT(
+    server.hasPendingDatagrams(),
+    1000);
+
+  QHostAddress clientAddress;
+  quint16 clientPort = 0;
+
+  PacketReader reader;
+
+  QVERIFY(
+    receivePacket(
+      server,
+      reader,
+      clientAddress,
+      clientPort));
+
+  QCOMPARE(
+    reader.packetType(),
+    PacketType::SubscribeListRequest);
+
+  SubscribeListRequest request{};
+
+  QVERIFY(reader.read(request));
+
+  // Подтверждаем подписку.
+  const SubscriptionId subscriptionId{42};
+
+  QVERIFY(
+    sendSubscribeResponse(
+      server,
+      clientAddress,
+      clientPort,
+      request.requestId,
+      subscriptionId) > 0);
+
+  QTRY_COMPARE_WITH_TIMEOUT(
+    client.subscriptionId(),
+    subscriptionId,
+    1000);
+
+  const std::array<double, 2> values = {
+    12.5, 25.0
+  };
+
+  // Первый пакет.
+  QVERIFY(sendData(
+            server,
+            clientAddress,
+            clientPort,
+            1,
+            subscriptionId,
+            values) > 0);
+
+  QTRY_COMPARE_WITH_TIMEOUT(
+    dataSpy.count(), 1, 1000);
+
+  // Следующий пакет.
+  QVERIFY(sendData(
+            server,
+            clientAddress,
+            clientPort,
+            2,
+            subscriptionId,
+            values) > 0);
+
+  QTRY_COMPARE_WITH_TIMEOUT(
+    dataSpy.count(), 2, 1000);
+
+  // Дубликат sequence == 2.
+  QVERIFY(sendData(
+            server,
+            clientAddress,
+            clientPort,
+            2,
+            subscriptionId,
+            values) > 0);
+
+  QTest::qWait(100);
+
+  QCOMPARE(dataSpy.count(), 2);
+
+  // Пропускаем sequence == 3.
+  QVERIFY(sendData(
+            server,
+            clientAddress,
+            clientPort,
+            4,
+            subscriptionId,
+            values) > 0);
+
+  QTRY_COMPARE_WITH_TIMEOUT(
+    dataSpy.count(), 3, 1000);
+
+  // Устаревший пакет sequence == 3.
+  QVERIFY(sendData(
+            server,
+            clientAddress,
+            clientPort,
+            3,
+            subscriptionId,
+            values) > 0);
+
+  QTest::qWait(100);
+
+  QCOMPARE(dataSpy.count(), 3);
+
+  // Следующий актуальный пакет.
+  QVERIFY(sendData(
+            server,
+            clientAddress,
+            clientPort,
+            5,
+            subscriptionId,
+            values) > 0);
+
+  QTRY_COMPARE_WITH_TIMEOUT(
+    dataSpy.count(), 4, 1000);
+
+  // Проверяем последовательность принятых данных.
+  const std::array<uint32_t, 4> expected = {
+    1, 2, 4, 5
+  };
+
+  QCOMPARE(
+    dataSpy.count(),
+    static_cast<qsizetype>(expected.size()));
+
+  for (std::size_t i = 0; i < expected.size(); ++i)
+  {
+    const auto arguments = dataSpy.at(
+      static_cast<qsizetype>(i));
+
+    QCOMPARE(
+      arguments.at(0).value<SubscriptionId>(),
+      subscriptionId);
+
+    QCOMPARE(
+      arguments.at(1).value<uint64_t>(),
+      uint64_t{1000000} + expected[i]);
+
+    const auto receivedValues =
+      arguments.at(2).value<std::vector<double>>();
+
+    QCOMPARE(
+      receivedValues.size(),
+      values.size());
+
+    for (std::size_t j = 0; j < values.size(); ++j)
+    {
+      QCOMPARE(
+        receivedValues[j],
+        values[j]);
+    }
+  }
+}
+
+void tst_dataclient::sequenceWraparound()
+{
+  using namespace qds;
+
+  QUdpSocket server;
+
+  QVERIFY(server.bind(
+    QHostAddress::LocalHost,
+    0));
+
+  ClientConnection client;
+
+  QVERIFY(client.open(
+    QHostAddress::LocalHost,
+    server.localPort()));
+
+  QSignalSpy dataSpy(
+    &client,
+    &ClientConnection::dataReceived);
+
+  QVERIFY(dataSpy.isValid());
+
+  const std::array<SignalId, 2> signalIds = {
+    SignalId{1},
+    SignalId{2}
+  };
+
+  QVERIFY(client.subscribe(
+    signalIds,
+    PublishRate::Hz10));
+
+  // Получаем запрос подписки.
+  QTRY_VERIFY_WITH_TIMEOUT(
+    server.hasPendingDatagrams(),
+    1000);
+
+  QHostAddress clientAddress;
+  quint16 clientPort = 0;
+
+  PacketReader reader;
+
+  QVERIFY(
+    receivePacket(
+      server,
+      reader,
+      clientAddress,
+      clientPort));
+
+  QCOMPARE(
+    reader.packetType(),
+    PacketType::SubscribeListRequest);
+
+  SubscribeListRequest request{};
+
+  QVERIFY(reader.read(request));
+
+  // Подтверждаем подписку.
+  const SubscriptionId subscriptionId{43};
+
+  QVERIFY(
+    sendSubscribeResponse(
+      server,
+      clientAddress,
+      clientPort,
+      request.requestId,
+      subscriptionId) > 0);
+
+  QTRY_COMPARE_WITH_TIMEOUT(
+    client.subscriptionId(),
+    subscriptionId,
+    1000);
+
+  const std::array<double, 2> values = {
+    12.5, 25.0
+  };
+
+  // Первый пакет.
+  QVERIFY(sendData(
+            server,
+            clientAddress,
+            clientPort,
+            UINT32_MAX - 1,
+            subscriptionId,
+            values) > 0);
+
+  QTRY_COMPARE_WITH_TIMEOUT(
+    dataSpy.count(), 1, 1000);
+
+  // Следующий пакет.
+  QVERIFY(sendData(
+            server,
+            clientAddress,
+            clientPort,
+            UINT32_MAX,
+            subscriptionId,
+            values) > 0);
+
+  QTRY_COMPARE_WITH_TIMEOUT(
+    dataSpy.count(), 2, 1000);
+
+  // sequence = 1 после переполнения.
+  QVERIFY(sendData(
+            server,
+            clientAddress,
+            clientPort,
+            1,
+            subscriptionId,
+            values) > 0);
+
+  QTRY_COMPARE_WITH_TIMEOUT(
+    dataSpy.count(), 3, 1000);
+
+  // повторяем старый sequence
+  QVERIFY(sendData(
+            server,
+            clientAddress,
+            clientPort,
+            UINT32_MAX,
+            subscriptionId,
+            values) > 0);
+
+  QTest::qWait(100);
+
+  QCOMPARE(dataSpy.count(), 3);
+
+  // недопустимый sequence == 0
+  QVERIFY(sendData(
+            server,
+            clientAddress,
+            clientPort,
+            0,
+            subscriptionId,
+            values) > 0);
+
+  QTest::qWait(100);
+
+  QCOMPARE(dataSpy.count(), 3);
+
+  // Следующий актуальный пакет.
+  QVERIFY(sendData(
+            server,
+            clientAddress,
+            clientPort,
+            2,
+            subscriptionId,
+            values) > 0);
+
+  QTRY_COMPARE_WITH_TIMEOUT(
+    dataSpy.count(), 4, 1000);
+
+  // Проверяем последовательность принятых данных.
+  const std::array<uint32_t, 4> expected = {
+    UINT32_MAX - 1, UINT32_MAX, 1, 2
+  };
+
+  QCOMPARE(
+    dataSpy.count(),
+    static_cast<qsizetype>(expected.size()));
+
+  for (std::size_t i = 0; i < expected.size(); ++i)
+  {
+    const auto arguments = dataSpy.at(
+      static_cast<qsizetype>(i));
+
+    QCOMPARE(
+      arguments.at(0).value<SubscriptionId>(),
+      subscriptionId);
+
+    QCOMPARE(
+      arguments.at(1).value<uint64_t>(),
+      uint64_t{1000000} + expected[i]);
+
+    const auto receivedValues =
+      arguments.at(2).value<std::vector<double>>();
+
+    QCOMPARE(
+      receivedValues.size(),
+      values.size());
+
+    for (std::size_t j = 0; j < values.size(); ++j)
+    {
+      QCOMPARE(
+        receivedValues[j],
+        values[j]);
+    }
+  }
+}
+
+void tst_dataclient::sequenceResetAfterResubscribe()
+{
+  using namespace qds;
+
+  QUdpSocket server;
+
+  QVERIFY(server.bind(
+    QHostAddress::LocalHost,
+    0));
+
+  ClientConnection client;
+
+  QVERIFY(client.open(
+    QHostAddress::LocalHost,
+    server.localPort()));
+
+  QSignalSpy dataSpy(
+    &client,
+    &ClientConnection::dataReceived);
+
+  QSignalSpy unsubscribedSpy(
+    &client,
+    &ClientConnection::unsubscribed);
+
+  QVERIFY(dataSpy.isValid());
+  QVERIFY(unsubscribedSpy.isValid());
+
+  const std::array<SignalId, 2> signalIds = {
+    SignalId{1},
+    SignalId{2}
+  };
+
+  QVERIFY(client.subscribe(
+    signalIds,
+    PublishRate::Hz10));
+
+  // Получаем запрос подписки.
+  QTRY_VERIFY_WITH_TIMEOUT(
+    server.hasPendingDatagrams(),
+    1000);
+
+  QHostAddress clientAddress;
+  quint16 clientPort = 0;
+
+  PacketReader reader;
+
+  QVERIFY(
+    receivePacket(
+      server,
+      reader,
+      clientAddress,
+      clientPort));
+
+  QCOMPARE(
+    reader.packetType(),
+    PacketType::SubscribeListRequest);
+
+  SubscribeListRequest request{};
+
+  QVERIFY(reader.read(request));
+
+  // Подтверждаем подписку.
+  const SubscriptionId subscriptionId{43};
+
+  QVERIFY(
+    sendSubscribeResponse(
+      server,
+      clientAddress,
+      clientPort,
+      request.requestId,
+      subscriptionId) > 0);
+
+  QTRY_COMPARE_WITH_TIMEOUT(
+    client.subscriptionId(),
+    subscriptionId,
+    1000);
+
+  const std::array<double, 2> values = {
+    12.5, 25.0
+  };
+
+  // Первый пакет.
+  QVERIFY(sendData(
+            server,
+            clientAddress,
+            clientPort,
+            1,
+            subscriptionId,
+            values) > 0);
+
+  QTRY_COMPARE_WITH_TIMEOUT(
+    dataSpy.count(), 1, 1000);
+
+  // Следующий пакет.
+  QVERIFY(sendData(
+            server,
+            clientAddress,
+            clientPort,
+            2,
+            subscriptionId,
+            values) > 0);
+
+  QTRY_COMPARE_WITH_TIMEOUT(
+    dataSpy.count(), 2, 1000);
+
+  // Третий пакет первой подписки.
+  QVERIFY(sendData(
+            server,
+            clientAddress,
+            clientPort,
+            3,
+            subscriptionId,
+            values) > 0);
+
+  QTRY_COMPARE_WITH_TIMEOUT(
+    dataSpy.count(), 3, 1000);
+
+  // Проверяем последовательность принятых данных.
+  const std::array<uint32_t, 3> expected = {
+    1, 2, 3
+  };
+
+  QCOMPARE(
+    dataSpy.count(),
+    static_cast<qsizetype>(expected.size()));
+
+  for (std::size_t i = 0; i < expected.size(); ++i)
+  {
+    const auto arguments = dataSpy.at(
+      static_cast<qsizetype>(i));
+
+    QCOMPARE(
+      arguments.at(0).value<SubscriptionId>(),
+      subscriptionId);
+
+    QCOMPARE(
+      arguments.at(1).value<uint64_t>(),
+      uint64_t{1000000} + expected[i]);
+
+    const auto receivedValues =
+      arguments.at(2).value<std::vector<double>>();
+
+    QCOMPARE(
+      receivedValues.size(),
+      values.size());
+
+    for (std::size_t j = 0; j < values.size(); ++j)
+    {
+      QCOMPARE(
+        receivedValues[j],
+        values[j]);
+    }
+  }
+
+  QVERIFY(client.unsubscribe());
+
+  // Получаем запрос отмены подписки.
+  QTRY_VERIFY_WITH_TIMEOUT(
+    server.hasPendingDatagrams(), 1000);
+
+  QVERIFY(
+    receivePacket(
+      server,
+      reader,
+      clientAddress,
+      clientPort));
+
+  QCOMPARE(
+    reader.packetType(),
+    PacketType::UnsubscribeRequest);
+
+  UnsubscribeRequest unsubscribeRequest{};
+
+  QVERIFY(reader.read(unsubscribeRequest));
+
+  QCOMPARE(
+    unsubscribeRequest.id,
+    subscriptionId);
+
+  const RequestId unsubscribeRequestId =
+    unsubscribeRequest.requestId;
+
+  QVERIFY(unsubscribeRequestId.value != 0);
+
+  QCOMPARE(reader.remaining(), std::size_t{0});
+  QCOMPARE(reader.trailingBytes(), std::size_t{0});
+
+  // Подтверждаем отмену подписки.
+  QVERIFY(
+    sendUnsubscribeResponse(
+      server,
+      clientAddress,
+      clientPort,
+      unsubscribeRequestId) > 0);
+
+  QTRY_COMPARE_WITH_TIMEOUT(
+    unsubscribedSpy.count(), 1, 1000);
+
+
+  QVERIFY(client.subscribe(
+    signalIds,
+    PublishRate::Hz1));
+
+  // Получаем запрос подписки.
+  QTRY_VERIFY_WITH_TIMEOUT(
+    server.hasPendingDatagrams(),
+    1000);
+
+  reader.clear();
+
+  QVERIFY(
+    receivePacket(
+      server,
+      reader,
+      clientAddress,
+      clientPort));
+
+  QCOMPARE(
+    reader.packetType(),
+    PacketType::SubscribeListRequest);
+
+  QVERIFY(reader.read(request));
+
+  // Подтверждаем подписку.
+  const SubscriptionId secondSubscriptionId{44};
+
+  QVERIFY(
+    sendSubscribeResponse(
+      server,
+      clientAddress,
+      clientPort,
+      request.requestId,
+      secondSubscriptionId) > 0);
+
+  QTRY_COMPARE_WITH_TIMEOUT(
+    client.subscriptionId(),
+    secondSubscriptionId,
+    1000);
+
+  dataSpy.clear();
+
+  // Первый пакет.
+  QVERIFY(sendData(
+            server,
+            clientAddress,
+            clientPort,
+            1,
+            secondSubscriptionId,
+            values) > 0);
+
+  QTRY_COMPARE_WITH_TIMEOUT(
+    dataSpy.count(), 1, 1000);
+
+  // Следующий пакет.
+  QVERIFY(sendData(
+            server,
+            clientAddress,
+            clientPort,
+            2,
+            secondSubscriptionId,
+            values) > 0);
+
+  QTRY_COMPARE_WITH_TIMEOUT(
+    dataSpy.count(), 2, 1000);
+
+  // Пакет от предыдущей подписки.
+  QVERIFY(sendData(
+            server,
+            clientAddress,
+            clientPort,
+            4,
+            subscriptionId,
+            values) > 0);
+
+  QTest::qWait(100);
+
+  QCOMPARE(dataSpy.count(), 2);
+
+  const std::array<uint32_t, 2> secondExpected = {
+    1, 2
+  };
+
+  QCOMPARE(
+    dataSpy.count(),
+    static_cast<qsizetype>(secondExpected.size()));
+
+  for (std::size_t i = 0; i < secondExpected.size(); ++i)
+  {
+    const auto arguments = dataSpy.at(
+      static_cast<qsizetype>(i));
+
+    QCOMPARE(
+      arguments.at(0).value<SubscriptionId>(),
+      secondSubscriptionId);
+
+    QCOMPARE(
+      arguments.at(1).value<uint64_t>(),
+      uint64_t{1000000} + secondExpected[i]);
+
+    const auto receivedValues =
+      arguments.at(2).value<std::vector<double>>();
+
+    QCOMPARE(
+      receivedValues.size(),
+      values.size());
+
+    for (std::size_t j = 0; j < values.size(); ++j)
+    {
+      QCOMPARE(
+        receivedValues[j],
+        values[j]);
+    }
   }
 }

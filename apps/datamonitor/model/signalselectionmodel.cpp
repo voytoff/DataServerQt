@@ -142,6 +142,18 @@ void SignalSelectionModel::setSelectedSignals(
   }
 }
 
+QString SignalSelectionModel::signalName(
+  SignalId id) const
+{
+  for (const auto& signal : m_signals)
+  {
+    if (signal.id == id)
+      return QString::fromStdString(signal.name);
+  }
+
+  return QString::number(id.value);
+}
+
 std::vector<SignalId>
 SignalSelectionModel::selectedSignals() const
 {

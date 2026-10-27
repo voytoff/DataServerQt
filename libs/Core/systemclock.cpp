@@ -17,7 +17,7 @@ Timestamp SystemClock::timestamp() const noexcept
   };
 }
 
-
+// храним время в микросекундах
 WallClockTime SystemClock::wallClockTime() const noexcept
 {
   using namespace std::chrono;

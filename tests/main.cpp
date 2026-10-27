@@ -35,6 +35,10 @@ int main(int argc, char *argv[])
     rc |= QTest::qExec(&tc, argc, argv);
   }
   {
+    tst_publisher tc;
+    rc |= QTest::qExec(&tc, argc, argv);
+  }
+  {
     tst_dataserver tc;
     rc |= QTest::qExec(&tc, argc, argv);
   }
