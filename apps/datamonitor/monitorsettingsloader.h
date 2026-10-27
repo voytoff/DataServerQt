@@ -37,6 +37,15 @@ public:
     const QString& fileName,
     ConfigurationId configurationId,
     const std::vector<SignalId>& signalIds);
+
+  static int loadChartYAxisMode(
+    const QString& fileName,
+    ConfigurationId id);
+
+  static bool saveChartYAxisMode(
+    const QString& fileName,
+    ConfigurationId id,
+    int mode);
 };
 
 }

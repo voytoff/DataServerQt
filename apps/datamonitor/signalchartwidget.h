@@ -27,13 +27,6 @@ class SignalChartWidget : public QWidget
 {
   Q_OBJECT
 
-  enum class YAxisMode
-  {
-    Single,
-    Multiple
-  };
-
-
 public:
   explicit SignalChartWidget(
     QWidget* parent = nullptr);
@@ -56,6 +49,16 @@ public:
     std::span<const SignalId> ids);
 
   std::vector<SignalId> hiddenSignals() const;
+
+  enum class YAxisMode
+  {
+    Single,
+    Multiple
+  };
+
+  void setYAxisMode(
+    YAxisMode mode);
+
 
 private:
   void updateAxes(double currentTime);

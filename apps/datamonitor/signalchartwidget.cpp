@@ -48,42 +48,11 @@ SignalChartWidget::SignalChartWidget(
   m_chartView->setRenderHint(
     QPainter::Antialiasing);
 
-
   auto* layout = new QVBoxLayout(this);
 
   layout->setContentsMargins(0, 0, 0, 0);
   layout->setSpacing(0);
 
-  // Панель управления графиком.
-  auto* controls = new QHBoxLayout();
-
-  controls->setContentsMargins(8, 4, 8, 0);
-
-  controls->addStretch();
-
-  controls->addWidget(
-    new QLabel(tr("Интервал:"), this));
-
-  m_intervalCombo = new QComboBox(this);
-
-  m_intervalCombo->addItem(
-    tr("5 с"), 5);
-
-  m_intervalCombo->addItem(
-    tr("10 с"), 10);
-
-  m_intervalCombo->addItem(
-    tr("30 с"), 30);
-
-  m_intervalCombo->addItem(
-    tr("60 с"), 60);
-
-  m_intervalCombo->setCurrentIndex(
-    m_intervalCombo->findData(m_windowSeconds));
-
-  controls->addWidget(m_intervalCombo);
-
-  layout->addLayout(controls);
   layout->addWidget(m_chartView);
 
   connect(
@@ -420,6 +389,12 @@ SignalChartWidget::hiddenSignals() const
     result.push_back(id);
 
   return result;
+}
+
+void SignalChartWidget::setYAxisMode(
+  YAxisMode mode)
+{
+
 }
 
 void SignalChartWidget::updateSeriesVisibility()

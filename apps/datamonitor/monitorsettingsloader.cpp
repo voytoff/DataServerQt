@@ -213,4 +213,37 @@ bool MonitorSettingsLoader::saveHiddenChartSignals(
   return settings.status() == QSettings::NoError;
 }
 
+int MonitorSettingsLoader::loadChartYAxisMode(
+  const QString& fileName,
+  ConfigurationId id)
+{
+  QSettings settings(
+    fileName,
+    QSettings::IniFormat);
+
+  const int mode = settings.value(
+                             QString("MonitorChartYAxis/%1").arg(id.value),
+                             0).toInt();
+
+  return mode == 1 ? 1 : 0;
+}
+
+bool MonitorSettingsLoader::saveChartYAxisMode(
+  const QString& fileName,
+  ConfigurationId id,
+  int mode)
+{
+  QSettings settings(
+    fileName,
+    QSettings::IniFormat);
+
+  settings.setValue(
+    QString("MonitorChartYAxis/%1").arg(id.value),
+    mode);
+
+  settings.sync();
+
+  return settings.status() == QSettings::NoError;
+}
+
 }

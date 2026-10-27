@@ -227,6 +227,53 @@ void MainWindow::createToolbar()
   m_toolBar->addWidget(
     m_configurationSelector);
 
+  auto* spacer = new QWidget(m_toolBar);
+
+  spacer->setSizePolicy(
+    QSizePolicy::Expanding,
+    QSizePolicy::Preferred);
+
+  m_toolBar->addWidget(spacer);
+
+  m_toolBar->addWidget(
+    new QLabel(tr("Интервал:"), m_toolBar));
+
+  m_chartIntervalCombo = new QComboBox(this);
+
+  for (int seconds : {5, 10, 30, 60})
+  {
+    m_chartIntervalCombo->addItem(
+      tr("%1 с").arg(seconds),
+      seconds);
+  }
+
+  m_toolBar->addWidget(m_chartIntervalCombo);
+
+  m_toolBar->addSeparator();
+
+  m_toolBar->addWidget(
+    new QLabel(tr("Ось Y:"), this));
+
+  m_yAxisModeCombo = new QComboBox(this);
+
+  m_yAxisModeCombo->addItem(
+    tr("Одна"),
+    static_cast<int>(
+      SignalChartWidget::YAxisMode::Single));
+
+  m_yAxisModeCombo->addItem(
+    tr("Несколько"),
+    static_cast<int>(
+      SignalChartWidget::YAxisMode::Multiple));
+
+  m_yAxisModeCombo->setCurrentIndex(
+    m_yAxisModeCombo->findData(
+      static_cast<int>(
+        //m_signalChart->yAxisMode()
+        0)));
+
+  m_toolBar->addWidget(m_yAxisModeCombo);
+
   connect(
     m_monitorAction,
     &QAction::toggled,
@@ -237,6 +284,45 @@ void MainWindow::createToolbar()
         startMonitoring();
       } else {
         stopMonitoring();
+      }
+    });
+
+  connect(
+    m_chartIntervalCombo,
+    &QComboBox::currentIndexChanged,
+    this,
+    [this](int index)
+    {
+      if (index < 0)
+        return;
+
+      m_signalChart->setWindowSeconds(
+        m_chartIntervalCombo->itemData(index).toInt());
+    });
+
+  connect(
+    m_yAxisModeCombo,
+    &QComboBox::currentIndexChanged,
+    this,
+    [this](int index)
+    {
+      if (index < 0)
+        return;
+
+      const int mode =
+        m_yAxisModeCombo->itemData(index).toInt();
+
+      m_signalChart->setYAxisMode(
+        static_cast<SignalChartWidget::YAxisMode>(
+          mode));
+
+      if (!MonitorSettingsLoader::saveChartYAxisMode(
+            m_configFile,
+            m_configurationId,
+            mode))
+      {
+        statusBar()->showMessage(
+          tr("Не удалось сохранить режим осей Y"));
       }
     });
 }
@@ -432,6 +518,35 @@ bool MainWindow::loadConfiguration(
     m_signalChart->setWindowSeconds(
       chartInterval);
   }
+
+  {
+    QSignalBlocker blocker(m_chartIntervalCombo);
+
+    const int index =
+      m_chartIntervalCombo->findData(chartInterval);
+
+    if (index >= 0)
+      m_chartIntervalCombo->setCurrentIndex(index);
+  }
+
+  const int axisMode =
+    MonitorSettingsLoader::loadChartYAxisMode(
+      m_configFile,
+      id);
+
+  {
+    QSignalBlocker blocker(m_yAxisModeCombo);
+
+    const int index =
+      m_yAxisModeCombo->findData(axisMode);
+
+    if (index >= 0)
+      m_yAxisModeCombo->setCurrentIndex(index);
+  }
+
+  m_signalChart->setYAxisMode(
+    static_cast<SignalChartWidget::YAxisMode>(
+      axisMode));
 
   const auto hiddenSignals =
     MonitorSettingsLoader::loadHiddenChartSignals(

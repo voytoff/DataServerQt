@@ -13,6 +13,7 @@
 #include <QSplitter>
 
 class QSplitter;
+class QComboBox;
 
 namespace qds
 {
@@ -81,6 +82,10 @@ private:
 
   QSplitter* m_splitter = nullptr;
   SignalChartWidget* m_signalChart = nullptr;
+
+  QComboBox* m_chartIntervalCombo = nullptr;
+  QComboBox* m_yAxisModeCombo = nullptr;
+
 };
 
 }
