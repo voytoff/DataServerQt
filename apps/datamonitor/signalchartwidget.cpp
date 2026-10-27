@@ -33,30 +33,20 @@ SignalChartWidget::SignalChartWidget(
   m_chart->legend()->setVisible(true);
 
   m_axisX = new QValueAxis(m_chart);
-  m_axisY = new QValueAxis(m_chart);
 
   m_axisX->setTitleText(tr("Время, с"));
   m_axisX->setLabelFormat("%.1f");
   m_axisX->setRange(0.0, m_windowSeconds);
 
-  m_axisY->setTitleText(tr("Значение"));
-  m_axisY->setLabelFormat("%.4g");
-  m_axisY->setRange(-1.0, 1.0);
-
   m_chart->addAxis(
     m_axisX,
     Qt::AlignBottom);
-
-  m_chart->addAxis(
-    m_axisY,
-    Qt::AlignLeft);
 
   m_chartView =
     new QChartView(m_chart, this);
 
   m_chartView->setRenderHint(
     QPainter::Antialiasing);
-
 
 
   auto* layout = new QVBoxLayout(this);
@@ -108,6 +98,16 @@ SignalChartWidget::SignalChartWidget(
       setWindowSeconds(
         m_intervalCombo->itemData(index).toInt());
     });
+
+  m_refreshTimer.setInterval(RefreshIntervalMs);
+
+  connect(
+    &m_refreshTimer,
+    &QTimer::timeout,
+    this,
+    &SignalChartWidget::refreshChart);
+
+  m_refreshTimer.start();
 }
 
 void SignalChartWidget::setSignals(
@@ -123,6 +123,18 @@ void SignalChartWidget::setSignals(
   }
 
   m_series.clear();
+
+  for (auto* axis : m_axesY)
+  {
+    m_chart->removeAxis(axis);
+    delete axis;
+  }
+
+  m_axesY.clear();
+  m_signalIds.clear();
+  m_pendingPoints.clear();
+
+  m_activeAxisIndex = 0;
 
   if (ids.size() != names.size())
     return;
@@ -141,11 +153,24 @@ void SignalChartWidget::setSignals(
 
     m_chart->addSeries(series);
 
+    auto* axisY = new QValueAxis(m_chart);
+
+    axisY->setTitleText(names[i]);
+    axisY->setLabelFormat("%.4g");
+    axisY->setRange(-1.0, 1.0);
+
+    m_chart->addAxis(
+      axisY,
+      Qt::AlignLeft);
+
     series->attachAxis(m_axisX);
-    series->attachAxis(m_axisY);
+    series->attachAxis(axisY);
 
     m_series.push_back(series);
+    m_axesY.push_back(axisY);
   }
+
+  m_pendingPoints.resize(m_series.size());
 
   setupLegend();
   updateSeriesVisibility();
@@ -180,37 +205,15 @@ void SignalChartWidget::appendData(
       timestamp - m_firstTimestamp) /
     1'000'000.0;
 
-  const double minimumTime =
-    std::max(
-      0.0,
-      currentTime - m_windowSeconds);
-
   for (std::size_t i = 0; i < values.size(); ++i)
   {
-    auto* series = m_series[i];
+    if (!std::isfinite(values[i]))
+      continue;
 
-    if (std::isfinite(values[i]))
-      series->append(currentTime, values[i]);
-
-    const auto& points = series->points();
-
-    qsizetype removeCount = 0;
-
-    while (removeCount < points.size() &&
-           points[removeCount].x() < minimumTime)
-    {
-      ++removeCount;
-    }
-
-    if (removeCount > 0)
-    {
-      series->removePoints(
-        0,
-        removeCount);
-    }
+    m_pendingPoints[i].emplace_back(
+      currentTime,
+      values[i]);
   }
-
-  updateAxes(currentTime);
 }
 
 void SignalChartWidget::updateAxes(
@@ -228,18 +231,18 @@ void SignalChartWidget::updateAxes(
     minimumTime,
     maximumTime);
 
-  double minimumValue =
-    std::numeric_limits<double>::max();
-
-  double maximumValue =
-    std::numeric_limits<double>::lowest();
-
-  bool hasValues = false;
-
-  for (const auto* series : m_series)
+  for (std::size_t i = 0; i < m_series.size(); ++i)
   {
-    if (!series->isVisible())
-      continue;
+    const auto* series = m_series[i];
+    auto* axisY = m_axesY[i];
+
+    double minimumValue =
+      std::numeric_limits<double>::max();
+
+    double maximumValue =
+      std::numeric_limits<double>::lowest();
+
+    bool hasValues = false;
 
     for (const QPointF& point : series->points())
     {
@@ -251,29 +254,29 @@ void SignalChartWidget::updateAxes(
 
       hasValues = true;
     }
+
+    if (!hasValues)
+    {
+      axisY->setRange(-1.0, 1.0);
+      continue;
+    }
+
+    double range =
+      maximumValue - minimumValue;
+
+    if (range <= 0.0)
+    {
+      range = std::max(
+        std::abs(maximumValue) * 0.1,
+        1.0);
+    }
+
+    const double margin = range * 0.1;
+
+    axisY->setRange(
+      minimumValue - margin,
+      maximumValue + margin);
   }
-
-  if (!hasValues)
-  {
-    m_axisY->setRange(-1.0, 1.0);
-    return;
-  }
-
-  double range =
-    maximumValue - minimumValue;
-
-  if (range <= 0.0)
-  {
-    range = std::max(
-      std::abs(maximumValue) * 0.1,
-      1.0);
-  }
-
-  const double margin = range * 0.1;
-
-  m_axisY->setRange(
-    minimumValue - margin,
-    maximumValue + margin);
 }
 
 void SignalChartWidget::setupLegend()
@@ -303,6 +306,21 @@ void SignalChartWidget::setupLegend()
 
         const SignalId id = m_signalIds[index];
 
+        // Ctrl + щелчок: переключение активной оси Y.
+        if (QGuiApplication::keyboardModifiers() &
+            Qt::ControlModifier)
+        {
+          if (m_series[index]->isVisible())
+          {
+            m_activeAxisIndex = index;
+
+            updateAxisVisibility();
+          }
+
+          return;
+        }
+
+        // Обычный щелчок: скрытие или отображение линии.
         if (m_hiddenSignals.contains(id))
           m_hiddenSignals.erase(id);
         else
@@ -317,6 +335,9 @@ void SignalChartWidget::setupLegend()
 
 void SignalChartWidget::clear()
 {
+  for (auto& points : m_pendingPoints)
+    points.clear();
+
   for (auto* series : m_series)
     series->clear();
 
@@ -328,9 +349,8 @@ void SignalChartWidget::clear()
     0.0,
     m_windowSeconds);
 
-  m_axisY->setRange(
-    -1.0,
-    1.0);
+  for (auto* axisY : m_axesY)
+    axisY->setRange(-1.0, 1.0);
 }
 
 void SignalChartWidget::setWindowSeconds(
@@ -361,37 +381,7 @@ void SignalChartWidget::setWindowSeconds(
 
   if (m_hasFirstTimestamp)
   {
-    const double currentTime =
-      static_cast<double>(
-        m_lastTimestamp - m_firstTimestamp) /
-      1'000'000.0;
-
-    const double minimumTime =
-      std::max(
-        0.0,
-        currentTime - m_windowSeconds);
-
-    for (auto* series : m_series)
-    {
-      const auto points = series->points();
-
-      qsizetype removeCount = 0;
-
-      while (removeCount < points.size() &&
-             points[removeCount].x() < minimumTime)
-      {
-        ++removeCount;
-      }
-
-      if (removeCount > 0)
-      {
-        series->removePoints(
-          0,
-          removeCount);
-      }
-    }
-
-    updateAxes(currentTime);
+    refreshChart();
   }
   else
   {
@@ -446,11 +436,8 @@ void SignalChartWidget::updateSeriesVisibility()
     for (QLegendMarker* marker :
          m_chart->legend()->markers(series))
     {
-      // Маркер должен оставаться доступным,
-      // даже когда серия скрыта.
       marker->setVisible(true);
 
-      // Полупрозрачная легенда для скрытой линии.
       QColor color =
         marker->labelBrush().color();
 
@@ -459,6 +446,8 @@ void SignalChartWidget::updateSeriesVisibility()
       marker->setLabelBrush(QBrush(color));
     }
   }
+
+  updateAxisVisibility();
 
   if (m_hasFirstTimestamp)
   {
@@ -469,6 +458,128 @@ void SignalChartWidget::updateSeriesVisibility()
 
     updateAxes(currentTime);
   }
+}
+
+void SignalChartWidget::refreshChart()
+{
+  if (!m_hasFirstTimestamp)
+    return;
+
+  const double currentTime =
+    static_cast<double>(
+      m_lastTimestamp - m_firstTimestamp) /
+    1'000'000.0;
+
+  const double minimumTime =
+    std::max(
+      0.0,
+      currentTime - m_windowSeconds);
+
+  for (std::size_t i = 0; i < m_series.size(); ++i)
+  {
+    auto* series = m_series[i];
+    auto& pending = m_pendingPoints[i];
+
+    // Добавляем все накопленные измерения.
+    if (!pending.empty())
+    {
+      const auto first = std::lower_bound(
+        pending.begin(),
+        pending.end(),
+        minimumTime,
+        [](const QPointF& point, double time)
+        {
+          return point.x() < time;
+        });
+
+      if (first != pending.end())
+      {
+        series->append(
+          QList<QPointF>(
+            first,
+            pending.end()));
+      }
+
+      pending.clear();
+    }
+
+    // Удаляем точки за пределами окна.
+    const auto points = series->points();
+
+    const auto firstValid = std::lower_bound(
+      points.begin(),
+      points.end(),
+      minimumTime,
+      [](const QPointF& point, double time)
+      {
+        return point.x() < time;
+      });
+
+    const qsizetype removeCount =
+      std::distance(
+        points.begin(),
+        firstValid);
+
+    if (removeCount > 0)
+    {
+      series->removePoints(
+        0,
+        removeCount);
+    }
+  }
+
+  updateAxes(currentTime);
+}
+
+void SignalChartWidget::updateAxisVisibility()
+{
+  if (m_axesY.empty())
+    return;
+
+  if (m_activeAxisIndex >= m_series.size() ||
+      !m_series[m_activeAxisIndex]->isVisible())
+  {
+    m_activeAxisIndex = m_series.size();
+
+    for (std::size_t i = 0; i < m_series.size(); ++i)
+    {
+      if (m_series[i]->isVisible())
+      {
+        m_activeAxisIndex = i;
+        break;
+      }
+    }
+  }
+
+  for (std::size_t i = 0; i < m_axesY.size(); ++i)
+  {
+    const bool visible =
+      m_series[i]->isVisible();
+
+    const bool active =
+      visible && i == m_activeAxisIndex;
+
+    const bool showAxis =
+      m_yAxisMode == YAxisMode::Multiple
+        ? visible
+        : active;
+
+    m_axesY[i]->setVisible(showAxis);
+
+    for (QLegendMarker* marker :
+         m_chart->legend()->markers(m_series[i]))
+    {
+      QFont font = marker->font();
+
+      if (font.bold() != active)
+      {
+        font.setBold(active);
+        marker->setFont(font);
+      }
+    }
+  }
+
+  m_chart->legend()->setVisible(true);
 }
 
 }

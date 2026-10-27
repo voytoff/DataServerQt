@@ -47,6 +47,7 @@ private:
   void startMonitoring();
   void stopMonitoring();
   void updateControls();
+  void updateChartSignals();
 
   enum class MonitorState
   {

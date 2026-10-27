@@ -4,6 +4,9 @@
 
 #include <QWidget>
 #include <QString>
+#include <QTimer>
+#include <QPointF>
+#include <QGuiApplication>
 
 #include <cstdint>
 #include <span>
@@ -23,6 +26,13 @@ namespace qds
 class SignalChartWidget : public QWidget
 {
   Q_OBJECT
+
+  enum class YAxisMode
+  {
+    Single,
+    Multiple
+  };
+
 
 public:
   explicit SignalChartWidget(
@@ -49,14 +59,17 @@ public:
 
 private:
   void updateAxes(double currentTime);
-    void setupLegend();
+  void setupLegend();
+  void updateSeriesVisibility();
+  void refreshChart();
+
+  void updateAxisVisibility();
 
 private:
   QChart* m_chart = nullptr;
   QChartView* m_chartView = nullptr;
 
   QValueAxis* m_axisX = nullptr;
-  QValueAxis* m_axisY = nullptr;
 
   QComboBox* m_intervalCombo = nullptr;
 
@@ -72,7 +85,14 @@ private:
 
   std::unordered_set<SignalId> m_hiddenSignals;
 
-  void updateSeriesVisibility();
+  QTimer m_refreshTimer;
+  std::vector<std::vector<QPointF>> m_pendingPoints;
+  static constexpr int RefreshIntervalMs = 50;
+
+  // оси Y
+  YAxisMode m_yAxisMode = YAxisMode::Single;
+  std::vector<QValueAxis*> m_axesY;
+  std::size_t m_activeAxisIndex = 0;
 
 signals:
   void windowSecondsChanged(int seconds);

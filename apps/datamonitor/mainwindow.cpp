@@ -181,9 +181,12 @@ MainWindow::MainWindow(
             m_configurationId,
             m_signalModel->selectedSignals()))
       {
-        qWarning()
-        << "Не удалось сохранить выбранные сигналы";
+        statusBar()->showMessage(
+          tr("Не удалось сохранить выбранные сигналы"));
       }
+
+      if (m_monitorState == MonitorState::Stopped)
+        updateChartSignals();
     });
 
 
@@ -375,8 +378,8 @@ void MainWindow::createClient()
             m_configurationId,
             seconds))
       {
-        qWarning()
-        << "Не удалось сохранить интервал графика";
+        statusBar()->showMessage(
+          tr("Не удалось сохранить интервал графика"));
       }
     });
 
@@ -391,8 +394,8 @@ void MainWindow::createClient()
             m_configurationId,
             m_signalChart->hiddenSignals()))
       {
-        qWarning()
-        << "Не удалось сохранить видимость линий графика";
+        statusBar()->showMessage(
+          tr("Не удалось сохранить видимость линий графика"));
       }
     });
 
@@ -417,10 +420,6 @@ bool MainWindow::loadConfiguration(
   m_serverPort = info.udpPort;
 
   m_signalModel->setSignals(signalIds);
-
-  m_signalChart->setSignals(
-    std::span<const SignalId>{},
-    std::vector<QString>{});
 
   const int chartInterval =
     MonitorSettingsLoader::loadChartInterval(
@@ -456,6 +455,8 @@ bool MainWindow::loadConfiguration(
 
     m_signalModel->setSelectedSignals(selected);
   }
+
+  updateChartSignals();
 
   return true;
 }
@@ -597,6 +598,23 @@ void MainWindow::updateControls()
   m_configurationSelector->setEnabled(stopped);
 
   m_signalView->setEnabled(stopped);
+}
+
+void MainWindow::updateChartSignals()
+{
+  const auto ids =
+    m_signalModel->selectedSignals();
+
+  std::vector<QString> names;
+  names.reserve(ids.size());
+
+  for (SignalId signalId : ids)
+  {
+    names.push_back(
+      m_signalModel->signalName(signalId));
+  }
+
+  m_signalChart->setSignals(ids, names);
 }
 
 void MainWindow::setMonitorState(
