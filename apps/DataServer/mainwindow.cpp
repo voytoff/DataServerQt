@@ -191,11 +191,11 @@ void MainWindow::createToolbar(
   toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
 
   m_startAction = toolBar->addAction(
-    QIcon(":/images/start.png"),
+    themedSvgIcon(":/images/start.svg"),
     tr("Запустить"));
 
   m_stopAction = toolBar->addAction(
-    QIcon(":/images/stop.png"),
+    themedSvgIcon(":/images/stop.svg"),
     tr("Остановить"));
 
   toolBar->addSeparator();
@@ -206,6 +206,8 @@ void MainWindow::createToolbar(
 
   m_themeAction->setToolTip(
     tr("Переключить светлую/тёмную тему"));
+
+  toolBar->addSeparator();
 
   auto* configurationLabel =
     new QLabel(tr("Эксперимент:"), this);
@@ -228,7 +230,7 @@ void MainWindow::createToolbar(
   toolBar->addSeparator();
 
   m_clearLogAction = toolBar->addAction(
-    QIcon(":/images/clear.png"),
+    themedSvgIcon(":/images/clear.svg"),
     tr("Очистить журнал"));
 
   connect(

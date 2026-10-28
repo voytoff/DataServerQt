@@ -69,6 +69,20 @@ QVariant ConfigurationSignalModel::data(
   const auto& signal =
     m_signals[index.row()];
 
+  if (role == Qt::ForegroundRole &&
+      index.column() == 0 &&
+      signal.kind == SignalKind::Raw)
+  {
+    const uint32_t tag =
+      signal.source.tag.value;
+
+    if (tag != 0 &&
+        !m_availableTags.contains(tag))
+    {
+      return QColor(Qt::red);
+    }
+  }
+
   if (role != Qt::DisplayRole)
     return {};
 
@@ -323,6 +337,13 @@ bool ConfigurationSignalModel::updateSignalSource(
 
   m_signals[index.row()].source = SignalSource{tag};
 
+  emit rawSignalSourcesChanged();
+
+  emit dataChanged(
+    index,
+    index,
+    {Qt::ForegroundRole});
+
   return true;
 }
 
@@ -357,39 +378,7 @@ bool ConfigurationSignalModel::updateSignalFormula(
 
   return true;
 }
-/*
-bool ConfigurationSignalModel::updateSignalPreprocessingFormula(
-  const QModelIndex &index,
-  const QString &formula)
-{
-  const auto* s = signal(index);
 
-  if (!s || s->kind != SignalKind::Raw)
-    return false;
-
-  if (s->preprocessingFormula == formula)
-    return true;
-
-  if (!m_repository.updateSignalPreprocessingFormula(
-        m_configuration,
-        s->id,
-        formula))
-  {
-    const auto error = m_repository.lastError();
-
-    emit operationFailed(
-      error.isValid()
-        ? error.text()
-        : tr("Не удалось сохранить настройки сигнала."));
-
-    return false;
-  }
-
-  m_signals[index.row()].preprocessingFormula = formula.toStdString();
-
-  return true;
-}
-*/
 bool ConfigurationSignalModel::createSignal(
   QString name,
   SignalKind kind)
@@ -431,6 +420,9 @@ bool ConfigurationSignalModel::createSignal(
 
   endInsertRows();
 
+  if (kind == SignalKind::Raw)
+    emit rawSignalSourcesChanged();
+
   return true;
 }
 
@@ -456,6 +448,9 @@ bool ConfigurationSignalModel::removeSignal(
     return false;
   }
 
+  const bool isRaw =
+    s->kind == SignalKind::Raw;
+
   const int row = index.row();
 
   beginRemoveRows(QModelIndex(), row, row);
@@ -464,7 +459,36 @@ bool ConfigurationSignalModel::removeSignal(
 
   endRemoveRows();
 
+  if (isRaw)
+    emit rawSignalSourcesChanged();
+
   return true;
+}
+
+void ConfigurationSignalModel::setTagSources(
+  const std::vector<TagSourceInfo>& sources)
+{
+  std::unordered_set<uint32_t> tags;
+
+  for (const auto& source : sources)
+    tags.insert(source.id.value);
+
+  if (tags == m_availableTags)
+    return;
+
+  m_availableTags = std::move(tags);
+
+qDebug() << "Available TagIds:";
+for (const auto tag : m_availableTags)
+qDebug() << tag;
+
+  if (!m_signals.empty())
+  {
+    emit dataChanged(
+      index(0, 0),
+      index(rowCount() - 1, 0),
+      {Qt::ForegroundRole});
+  }
 }
 
 }

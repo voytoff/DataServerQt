@@ -1,10 +1,11 @@
 <RCC>
     <qresource prefix="/">
-        <file>images/server.png</file>
-        <file>images/restart.png</file>
-        <file>images/start.png</file>
-        <file>images/stop.png</file>
-        <file>images/clear.png</file>
         <file>images/theme.svg</file>
+        <file>images/settings.svg</file>
+        <file>images/start.svg</file>
+        <file>images/stop.svg</file>
+        <file>images/clear.svg</file>
+        <file>images/restart.svg</file>
+        <file>images/server.png</file>
     </qresource>
 </RCC>

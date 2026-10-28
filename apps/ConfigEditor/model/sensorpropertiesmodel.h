@@ -45,15 +45,16 @@ public:
     const QVariant& value,
     int role = Qt::EditRole) override;
 
-signals:
-  void operationFailed(
-    const QString& message);
-
 private:
   SensorModel& m_sensors;
   ConfigurationRepository& m_repository;
 
   SensorId m_sensorId;
+
+signals:
+  void operationFailed(
+    const QString& message);
+
 };
 
 }

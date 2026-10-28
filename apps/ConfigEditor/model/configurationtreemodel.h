@@ -63,6 +63,9 @@ public:
     const QModelIndex& index,
     const QJsonObject& settings);
 
+  [[nodiscard]]
+  bool refreshRawSignalTags();
+
 private:
   bool hasRawSignal(
     TagId tag) const noexcept;

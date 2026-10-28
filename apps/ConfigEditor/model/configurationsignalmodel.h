@@ -4,6 +4,9 @@
 
 #include <QObject>
 #include <QAbstractTableModel>
+#include <QColor>
+
+#include <unordered_set>
 
 namespace qds
 {
@@ -80,15 +83,20 @@ public:
   bool removeSignal(
     const QModelIndex &index);
 
+  void setTagSources(
+    const std::vector<TagSourceInfo>& sources);
+
 private:
   ConfigurationRepository& m_repository;
   ConfigurationId m_configuration;
   std::vector<SignalDefinition> m_signals;
+  std::unordered_set<uint32_t> m_availableTags;
 
 signals:
   void operationFailed(
     const QString& message);
 
+  void rawSignalSourcesChanged();
 };
 
 }

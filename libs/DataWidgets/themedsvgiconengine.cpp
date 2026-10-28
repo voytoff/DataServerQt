@@ -27,12 +27,40 @@ void ThemedSvgIconEngine::paint(
   QIcon::Mode mode,
   QIcon::State state)
 {
+  const QPixmap image =
+    pixmap(rect.size(), mode, state);
+
+  if (image.isNull())
+    return;
+
+  painter->drawPixmap(
+    rect.topLeft(),
+    image);
+}
+
+QPixmap ThemedSvgIconEngine::pixmap(
+  const QSize& size,
+  QIcon::Mode mode,
+  QIcon::State state)
+{
   Q_UNUSED(state);
+
+  if (size.isEmpty())
+    return {};
 
   QSvgRenderer renderer(m_path);
 
   if (!renderer.isValid())
-    return;
+    return {};
+
+  QPixmap result(size);
+  result.fill(Qt::transparent);
+
+  QPainter painter(&result);
+
+  renderer.render(
+    &painter,
+    QRectF(QPointF(0, 0), QSizeF(size)));
 
   const QPalette palette =
     QApplication::palette();
@@ -44,37 +72,12 @@ void ThemedSvgIconEngine::paint(
         : QPalette::Active,
       QPalette::ButtonText);
 
-  painter->save();
-
-  renderer.render(
-    painter,
-    QRectF(rect));
-
-  painter->setCompositionMode(
+  painter.setCompositionMode(
     QPainter::CompositionMode_SourceIn);
 
-  painter->fillRect(
-    rect,
-    color);
-
-  painter->restore();
-}
-
-QPixmap ThemedSvgIconEngine::pixmap(
-  const QSize& size,
-  QIcon::Mode mode,
-  QIcon::State state)
-{
-  QPixmap result(size);
-  result.fill(Qt::transparent);
-
-  QPainter painter(&result);
-
-  paint(
-    &painter,
+  painter.fillRect(
     QRect(QPoint(0, 0), size),
-    mode,
-    state);
+    color);
 
   return result;
 }

@@ -33,7 +33,6 @@ qt_add_executable(configeditor
     model/sensormodel.h model/sensormodel.cpp
     dlg/sensordialog.h dlg/sensordialog.cpp
     model/sensorpropertiesmodel.h model/sensorpropertiesmodel.cpp
-    model/calibrationmodel.h model/calibrationmodel.cpp
     model/calibrationtablemodel.h model/calibrationtablemodel.cpp
     dlg/calibrationdialog.h dlg/calibrationdialog.cpp dlg/calibrationdialog.ui
     plot/calibrationplot.h plot/calibrationplot.cpp

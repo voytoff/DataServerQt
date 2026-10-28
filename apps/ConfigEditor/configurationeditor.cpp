@@ -49,10 +49,15 @@ ConfigurationEditor::ConfigurationEditor(
   m_configurationTree =
     new QTreeView(this);
 
+  auto* vHeader = m_configurationTree->header();
+
   m_configurationTree->header()->hide();
 
   m_configurationTree->setFrameShape(
     QFrame::NoFrame);
+
+  vHeader->setDefaultSectionSize(40);
+
 
   m_treeModel =
     new ConfigurationTreeModel(
@@ -159,11 +164,11 @@ ConfigurationEditor::ConfigurationEditor(
 
 
   m_tabs = new QTabWidget(this);
-  m_tabs->setIconSize(QSize(16, 16));
+  m_tabs->setIconSize(QSize(24, 24));
 
   m_tabs->addTab(
     right,
-    QIcon(":/images/model.png"),
+    themedSvgIcon(":/images/module.svg"),
     tr("Модули"));
 
   auto* signalsSplitter =
@@ -177,7 +182,7 @@ ConfigurationEditor::ConfigurationEditor(
 
   m_tabs->addTab(
     signalsSplitter,
-    QIcon(":/images/signal.png"),
+    themedSvgIcon(":/images/signal.svg"),
     tr("Сигналы"));
 
   /// типы датчиков ========================================
@@ -230,7 +235,7 @@ ConfigurationEditor::ConfigurationEditor(
 
   m_tabs->addTab(
     m_sensorTypesView,
-    QIcon(":/images/sensortype.png"),
+    themedSvgIcon(":/images/stype.svg"),
     tr("Типы датчиков"));
 
 
@@ -340,7 +345,7 @@ ConfigurationEditor::ConfigurationEditor(
 
   m_tabs->addTab(
     m_sensorsSplitter,
-    QIcon(":/images/sensor.png"),
+    themedSvgIcon(":/images/sensor.svg"),
     tr("Датчики"));
 
 
@@ -416,6 +421,15 @@ ConfigurationEditor::ConfigurationEditor(
         m_configurationCombo->setCurrentIndex(0);
     }
   }
+
+  connect(
+    m_signalModel,
+    &ConfigurationSignalModel::rawSignalSourcesChanged,
+    m_treeModel,
+    [this]()
+    {
+      (void)m_treeModel->refreshRawSignalTags();
+    });
 
   configurationChanged();
 
@@ -510,6 +524,7 @@ ConfigurationEditor::ConfigurationEditor(
         return;
       }
 
+      m_signalModel->setTagSources(tagSources);
       m_signalPropertiesModel->setTagSources(tagSources);
       m_signalPropertiesDelegate->setTagSources(std::move(tagSources));
     });
@@ -684,17 +699,17 @@ void ConfigurationEditor::createToolbar(
   m_toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
 
   m_addAction = m_toolBar->addAction(
-    QIcon(":/images/add.png"),
+    themedSvgIcon(":/images/add.svg"),
     tr("Добавить"));
 
   m_removeAction = m_toolBar->addAction(
-    QIcon(":/images/trash.png"),
+    themedSvgIcon(":/images/trash.svg"),
     tr("Удалить"));
 
   m_toolBar->addSeparator();
 
   m_calibrationAction = m_toolBar->addAction(
-    QIcon(":/images/calibration.png"),
+    themedSvgIcon(":/images/calibration.svg"),
     tr("Тарировка..."));
 
   m_calibrationAction->setEnabled(false);
@@ -702,7 +717,7 @@ void ConfigurationEditor::createToolbar(
   m_toolBar->addSeparator();
 
   m_testAction = m_toolBar->addAction(
-    QIcon(":/images/test.png"),
+    themedSvgIcon(":/images/test.svg"),
     tr("Тест"));
 
   m_toolBar->addSeparator();
@@ -734,19 +749,19 @@ void ConfigurationEditor::createToolbar(
 
   m_configurationPropertiesAction =
     m_toolBar->addAction(
-      QIcon(":/images/config.png"),
+      themedSvgIcon(":/images/config.svg"),
       tr("Свойства..."));
 
   m_configurationPropertiesAction->setEnabled(false);
 
   m_configurationAddAction =
     m_toolBar->addAction(
-      QIcon(":/images/addcfg.png"),
+      themedSvgIcon(":/images/new.svg"),
       tr("Новый эксперимент..."));
 
   m_configurationRemoveAction =
     m_toolBar->addAction(
-      QIcon(":/images/removecfg.png"),
+      themedSvgIcon(":/images/del.svg"),
       tr("Удалить эксперимент"));
 
   m_configurationRemoveAction->setEnabled(false);
@@ -1438,10 +1453,12 @@ void ConfigurationEditor::configurationChanged()
     (void)m_treeModel->load(ConfigurationId{});
     m_signalModel->clear();
 
+    m_signalModel->setTagSources({});
     m_signalPropertiesModel->setTagSources({});
     m_signalPropertiesDelegate->setTagSources({});
 
     updateActions();
+
     return;
   }
 
@@ -1509,6 +1526,7 @@ void ConfigurationEditor::configurationChanged()
     return;
   }
 
+  m_signalModel->setTagSources(tagSources);
   m_signalPropertiesModel->setTagSources(tagSources);
   m_signalPropertiesDelegate->setTagSources(std::move(tagSources));
 

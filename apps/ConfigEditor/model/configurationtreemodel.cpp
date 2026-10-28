@@ -618,6 +618,69 @@ bool ConfigurationTreeModel::updateChannelSettings(
   return true;
 }
 
+bool ConfigurationTreeModel::refreshRawSignalTags()
+{
+  std::vector<SignalDefinition> definitions;
+
+  if (!m_repository.signalDefinitions(
+        m_configuration,
+        definitions))
+  {
+    const auto error =
+      m_repository.lastError();
+
+    emit operationFailed(
+      error.isValid()
+        ? error.text()
+        : tr("Не удалось обновить привязки сигналов."));
+
+    return false;
+  }
+
+  std::unordered_set<uint32_t> tags;
+
+  for (const auto& signal : definitions)
+  {
+    if (signal.kind == SignalKind::Raw)
+      tags.insert(signal.source.tag.value);
+  }
+
+  if (tags == m_rawSignalTags)
+    return true;
+
+  m_rawSignalTags = std::move(tags);
+
+  const int crateCount = rowCount();
+
+  for (int crateRow = 0; crateRow < crateCount; ++crateRow)
+  {
+    const QModelIndex crateIndex =
+      index(crateRow, 0);
+
+    const int moduleCount =
+      rowCount(crateIndex);
+
+    for (int moduleRow = 0; moduleRow < moduleCount; ++moduleRow)
+    {
+      const QModelIndex moduleIndex =
+        index(moduleRow, 0, crateIndex);
+
+      const int channelCount =
+        rowCount(moduleIndex);
+
+      if (channelCount == 0)
+        continue;
+
+      emit dataChanged(
+        index(0, 0, moduleIndex),
+        index(channelCount - 1, 0, moduleIndex),
+        {Qt::ForegroundRole});
+    }
+  }
+
+  return true;
+}
+
 bool ConfigurationTreeModel::hasRawSignal(
   TagId tag) const noexcept
 {

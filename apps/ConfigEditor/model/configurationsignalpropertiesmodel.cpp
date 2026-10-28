@@ -1,6 +1,7 @@
 #include "configurationsignalpropertiesmodel.h"
 
 #include <QString>
+#include <QColor>
 
 namespace qds
 {
@@ -113,6 +114,36 @@ QVariant ConfigurationSignalPropertiesModel::data(
       index.column() < 0 ||
       index.column() >= 2)
   {
+    return {};
+  }
+
+  // проверяем наличие включенного тега для сигнала
+  if (role == Qt::ForegroundRole &&
+      index.column() == 1)
+  {
+    const auto& property =
+      m_properties[index.row()];
+
+    if (property.id == PropertyId::Source)
+    {
+      const uint32_t id =
+        property.value.toUInt();
+
+      if (id == 0)
+        return {};
+
+      const bool exists =
+        std::ranges::any_of(
+          m_tagSources,
+          [id](const TagSourceInfo& source)
+          {
+            return source.id.value == id;
+          });
+
+      if (!exists)
+        return QColor(Qt::red);
+    }
+
     return {};
   }
 
@@ -405,7 +436,11 @@ bool ConfigurationSignalPropertiesModel::setData(
   emit dataChanged(
     index,
     index,
-    {Qt::DisplayRole, Qt::EditRole});
+    {
+      Qt::DisplayRole,
+      Qt::EditRole,
+      Qt::ForegroundRole
+    });
 
   return true;
 }
@@ -450,7 +485,7 @@ void ConfigurationSignalPropertiesModel::setTagSources(
     emit dataChanged(
       index(0, 1),
       index(rowCount() - 1, 1),
-      {Qt::DisplayRole});
+      {Qt::DisplayRole, Qt::ForegroundRole});
   }
 }
 
