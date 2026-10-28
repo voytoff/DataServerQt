@@ -8,7 +8,8 @@ TestSrv::TestSrv(
   , dispatcher(
       cfg,
       manager,
-      udp ? (ISender&)sender : (ISender&)testSender)
+      udp ? (ISender&)sender : (ISender&)testSender,
+      logger)
   , server(dispatcher)
 {
   sender.setSocket(server.socket());

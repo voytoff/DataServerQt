@@ -18,6 +18,7 @@
 #include "systemconfiguration.h"
 #include "taginfo.h"
 #include "qds/testpublishersender.h"
+#include "testlogger.h"
 #include "udpsender.h"
 #include "udpserver.h"
 
@@ -38,7 +39,7 @@ public:
 
   SubscriptionManager manager;
   SignalMemoryLayout layout;
-  //SubscriptionManager subscriptions;
+  TestLogger logger;
   UdpSender sender;
   TestPublisherSender testSender;
 

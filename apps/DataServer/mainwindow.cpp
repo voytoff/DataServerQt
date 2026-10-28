@@ -1,9 +1,12 @@
 #include "applicationsettingsloader.h"
+#include "colorscheme.h"
 #include "configurationselector.h"
 #include "mainwindow.h"
 #include "moduletypeinfo.h"
+#include "paddeditemdelegate.h"
 #include "servercontroller.h"
 #include "loglevel.h"
+#include "themedsvgicon.h"
 
 #include <QLabel>
 #include <QPushButton>
@@ -17,6 +20,8 @@
 #include <QSplitter>
 #include <QDateTime>
 #include <QDir>
+#include <QApplication>
+#include <QStyleHints>
 
 namespace qds
 {
@@ -47,10 +52,11 @@ MainWindow::MainWindow(
   splitter->setHandleWidth(5);
 
   m_modulesTable = new QTableWidget(this);
+
   m_modulesTable->setFrameShape(QFrame::NoFrame);
 
-  m_modulesTable->setStyleSheet(
-    "QTableWidget::item {padding: 0 8px 0 8px;}");
+  m_modulesTable->setItemDelegate(
+    new PaddedItemDelegate(8, 0, 8, 0, this));
 
   m_modulesTable->setColumnCount(6);
   m_modulesTable->setHorizontalHeaderLabels({
@@ -179,10 +185,10 @@ void MainWindow::createToolbar(
   const QSqlDatabase& database)
 {
   auto* toolBar = addToolBar(tr("Управление"));
-  toolBar->setIconSize(QSize(16, 16));
+  toolBar->setIconSize(QSize(24, 24));
 
   toolBar->setMovable(false);
-  toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+  toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
 
   m_startAction = toolBar->addAction(
     QIcon(":/images/start.png"),
@@ -193,6 +199,13 @@ void MainWindow::createToolbar(
     tr("Остановить"));
 
   toolBar->addSeparator();
+
+  m_themeAction = toolBar->addAction(
+    themedSvgIcon(":/images/theme.svg"),
+    tr("Сменить тему"));
+
+  m_themeAction->setToolTip(
+    tr("Переключить светлую/тёмную тему"));
 
   auto* configurationLabel =
     new QLabel(tr("Эксперимент:"), this);
@@ -274,6 +287,12 @@ void MainWindow::createToolbar(
           tr("ERROR: Не удалось сохранить выбранный эксперимент"));
       }
     });
+
+  connect(
+    m_themeAction,
+    &QAction::triggered,
+    this,
+    &toggleColorScheme);
 }
 
 void MainWindow::createStatusbar(const QString& databaseName)
@@ -498,3 +517,4 @@ void MainWindow::setModuleError(ModuleId id)
 }
 
 }
+

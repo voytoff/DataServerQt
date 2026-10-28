@@ -1,13 +1,14 @@
 #pragma once
 
+#include "subscription.h"
+
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <vector>
 #include <chrono>
-
-#include "subscription.h"
+#include <functional>
 
 namespace qds
 {
@@ -49,7 +50,8 @@ public:
   [[nodiscard]]
   bool renew(SubscriptionId id);
 
-  std::size_t removeExpired();
+  std::size_t removeExpired(
+    const std::function<void(const Subscription&)>& onExpired = {});
 
 private:
   SubscriptionId nextId();
@@ -73,6 +75,7 @@ private:
 private:
   uint32_t m_nextId = 1;
   std::vector<Subscription> m_subscriptions;
+
 };
 
 } // namespace qds

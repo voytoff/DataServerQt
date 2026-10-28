@@ -47,6 +47,7 @@ private:
 
   void createToolbar(
     const QSqlDatabase &database);
+
   void updateActions();
 
   void updateSensorTypes();
@@ -103,6 +104,7 @@ private:
   QAction* m_configurationPropertiesAction = nullptr;
   QAction* m_configurationAddAction = nullptr;
   QAction* m_configurationRemoveAction = nullptr;
+  QAction* m_themeAction = nullptr;
 
 signals:
   void statusMessage(

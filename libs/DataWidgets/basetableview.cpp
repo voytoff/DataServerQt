@@ -1,4 +1,5 @@
 #include "basetableview.h"
+#include "paddeditemdelegate.h"
 
 #include <QDebug>
 #include <QHeaderView>
@@ -19,20 +20,24 @@ namespace qds
 
 BaseTableView::BaseTableView(
   int columnWidth,
+  int dx1,
+  int dy1,
+  int dx2,
+  int dy2,
   QWidget *parent)
   : QTableView(parent)
 {
   setFrameShape(
     QFrame::NoFrame);
 
+  setItemDelegate(
+    new PaddedItemDelegate(dx1, dy1, dx2, dy2, this));
+
   setSelectionBehavior(
     QAbstractItemView::SelectRows);
 
   setSelectionMode(
     QAbstractItemView::SingleSelection);
-
-  setStyleSheet(
-    "QTableView::item {padding: 0 4px 0 4px;}");
 
   auto *vHeader = verticalHeader();
 
@@ -52,7 +57,18 @@ BaseTableView::BaseTableView(
     hHeader->setDefaultSectionSize(columnWidth);
 }
 
-BaseTableView::BaseTableView(QWidget* parent)
+BaseTableView::BaseTableView(
+  int columnWidth,
+  QWidget* parent)
+  : BaseTableView(
+      columnWidth,
+      0, 0, 0, 0,
+      parent)
+{
+}
+
+BaseTableView::BaseTableView(
+  QWidget* parent)
   : BaseTableView(0, parent)
 {
 }

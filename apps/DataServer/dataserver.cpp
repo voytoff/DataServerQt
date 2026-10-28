@@ -97,7 +97,8 @@ bool DataServer::start()
     std::make_unique<PacketDispatcher>(
       m_configuration,
       m_subscriptions,
-      m_sender);
+      m_sender,
+      m_logger);
 
   m_udpServer =
     std::make_unique<UdpServer>(
@@ -293,7 +294,17 @@ void DataServer::cleanup()
 
 void DataServer::cleanupExpiredSubscriptions()
 {
-  m_subscriptions.removeExpired();
+  m_subscriptions.removeExpired(
+    [this](const Subscription& sub)
+    {
+      m_logger.warning(
+        "Клиент " +
+        sub.endpoint.address + ":" +
+        std::to_string(sub.endpoint.port) +
+        ": подписка " +
+        std::to_string(sub.id.value) +
+        " истекла (тайм-аут)");
+    });
 }
 
 }

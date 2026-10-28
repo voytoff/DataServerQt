@@ -1,7 +1,8 @@
 <RCC>
     <qresource prefix="/">
         <file>images/main.png</file>
-        <file>images/eue.png</file>
-        <file>images/chart.svg</file>
+        <file>images/pause.svg</file>
+        <file>images/sensor.svg</file>
+        <file>images/theme.svg</file>
     </qresource>
 </RCC>

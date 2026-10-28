@@ -9,10 +9,14 @@ namespace qds
 PacketDispatcher::PacketDispatcher(
   const SystemConfiguration& configuration,
   SubscriptionManager& subscriptions,
-  ISender& sender)
+  ISender& sender,
+  ILogger& logger)
   : m_configuration(configuration)
   , m_subscriptions(subscriptions)
-  , m_sender(sender) {}
+  , m_sender(sender)
+  , m_logger(logger)
+{
+}
 
 bool PacketDispatcher::dispatch(
   std::span<const std::byte> packet,
@@ -223,6 +227,15 @@ bool PacketDispatcher::processSubscribeList(
       req.rate,
       signalIds);
 
+  m_logger.info(
+    "Клиент " +
+    endpoint.address + ":" +
+    std::to_string(endpoint.port) +
+    ": подписка " +
+    std::to_string(id.value) +
+    " создана, сигналов: " +
+    std::to_string(signalIds.size()));
+
   // 5. Ответ клиенту
   return sendSubscribeResponse(
     endpoint,
@@ -231,7 +244,9 @@ bool PacketDispatcher::processSubscribeList(
     id);
 }
 
-bool PacketDispatcher::processUnsubscribe(PacketReader &reader, const Endpoint &endpoint)
+bool PacketDispatcher::processUnsubscribe(
+  PacketReader &reader,
+  const Endpoint &endpoint)
 {
   UnsubscribeRequest req;
   if (!readRequest(reader, endpoint, req))
@@ -264,6 +279,14 @@ bool PacketDispatcher::processUnsubscribe(PacketReader &reader, const Endpoint &
 
   if (!m_subscriptions.remove(req.id))
     return false;
+
+  m_logger.info(
+    "Клиент " +
+    endpoint.address + ":" +
+    std::to_string(endpoint.port) +
+    ": подписка " +
+    std::to_string(req.id.value) +
+    " отменена");
 
   return sendUnsubscribeResponse(
     endpoint,

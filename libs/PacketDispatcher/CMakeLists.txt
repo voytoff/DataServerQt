@@ -20,4 +20,5 @@ target_link_libraries(PacketDispatcher
         Subscriptions
         Publisher
         UdpSender
+        Logger
 )

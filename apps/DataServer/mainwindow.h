@@ -64,6 +64,7 @@ private:
   QAction* m_startAction = nullptr;
   QAction* m_stopAction = nullptr;
   QAction* m_clearLogAction = nullptr;
+  QAction* m_themeAction = nullptr;
 
   QPlainTextEdit* m_logEdit = nullptr;
 

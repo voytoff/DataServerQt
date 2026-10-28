@@ -13,5 +13,6 @@
         <file>images/sensor.png</file>
         <file>images/sensortype.png</file>
         <file>images/signal.png</file>
+        <file>images/theme.svg</file>
     </qresource>
 </RCC>

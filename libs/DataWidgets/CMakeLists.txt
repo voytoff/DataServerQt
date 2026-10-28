@@ -5,14 +5,18 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 REQUIRED COMPONENTS      Core Widgets Sql)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Sql)
+find_package(QT NAMES Qt6 REQUIRED COMPONENTS          Core Widgets Sql Svg)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Sql Svg)
 
 
 add_library(DataWidgets SHARED
   datawidgets_export.h
   basetableview.h basetableview.cpp
   configurationselector.h configurationselector.cpp
+  themedsvgiconengine.h themedsvgiconengine.cpp
+  themedsvgicon.h
+  paddeditemdelegate.h paddeditemdelegate.cpp
+  colorscheme.h colorscheme.cpp
 )
 
 target_include_directories(DataWidgets
@@ -25,6 +29,7 @@ target_link_libraries(DataWidgets
     Qt6::Core
     Qt6::Widgets
     Qt6::Sql
+    Qt6::Svg
 )
 
 target_compile_definitions(DataWidgets

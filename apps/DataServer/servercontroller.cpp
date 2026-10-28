@@ -9,6 +9,8 @@
 #include "signalmemorylayout.h"
 #include "testdatastreamsource.h"
 
+#include <QDir>
+
 namespace qds
 {
 
@@ -233,9 +235,14 @@ bool ServerController::initializeArchive()
     return false;
   }
 
+  const QString path =
+    QDir::toNativeSeparators(
+      QString::fromStdWString(
+        sessionDirectory.wstring()));
+
   m_guiLogger.info(
     "Создан архив: " +
-    sessionDirectory.string());
+    path.toStdString());
 
   m_currentArchiveDirectory = sessionDirectory;
 
@@ -300,28 +307,28 @@ bool ServerController::start()
   if (!m_configurationLoaded && !loadConfiguration())
     return false;
 
-  m_guiLogger.info("Registering data sources");
+  m_guiLogger.info("Регистрация источников данных");
 
   if (!m_sourcesRegistered)
   {
     if (!registerDataSources())
     {
-      m_guiLogger.error("Failed to register data sources");
+      m_guiLogger.error("Не удалось зарегистрировать источники данных");
       return false;
     }
 
     m_sourcesRegistered = true;
   }
 
-  m_guiLogger.info("Initializing archive");
+  m_guiLogger.info("Инициализация архива");
 
   if (!initializeArchive())
   {
-    m_guiLogger.error("Failed to initialize archive");
+    m_guiLogger.error("Не удалось инициализировать архив");
     return false;
   }
 
-  m_guiLogger.info("Creating DataServer");
+  m_guiLogger.info("Создание сервера");
 
   m_server = std::make_unique<DataServer>(
     m_configuration,
@@ -337,21 +344,7 @@ bool ServerController::start()
   m_guiLogger.info("Запуск сервера");
 
 
-  const QMetaObject* meta =
-    m_server->metaObject();
 
-  const int signalIndex =
-    meta->indexOfSignal("stopped()");
-
-  ///==============
-  m_guiLogger.info(
-    QString::fromLatin1(
-      m_server->metaObject()->className())
-      .toStdString());
-
-  m_guiLogger.info(
-    "DataServer: сигнал stopped(), индекс=" +
-    std::to_string(signalIndex));
 /*
   const auto connection = connect(
     m_server.get(),
@@ -367,6 +360,7 @@ bool ServerController::start()
     },
     Qt::DirectConnection);
 */
+
   const auto connection = QObject::connect(
     m_server.get(),
     SIGNAL(stopped()),
@@ -380,10 +374,10 @@ bool ServerController::start()
 
     return false;
   }
-  ///===================
+
   if (!m_server->start())
   {
-    m_guiLogger.error("DataServer start failed");
+    m_guiLogger.error("Не удалось запустить сервер");
 
     m_server.reset();
     m_archive.close();
@@ -391,7 +385,7 @@ bool ServerController::start()
     return false;
   }
 
-  m_guiLogger.info("DataServer started");
+  m_guiLogger.info("Сервер запущен");
 
   emit started();
 

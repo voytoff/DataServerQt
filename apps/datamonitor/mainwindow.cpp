@@ -6,6 +6,8 @@
 #include "configurationselector.h"
 #include "monitorsettingsloader.h"
 #include "signalchartwidget.h"
+#include "themedsvgicon.h"
+#include "colorscheme.h"
 
 #include <QSignalBlocker>
 #include <QHeaderView>
@@ -17,6 +19,8 @@
 #include <QStatusBar>
 #include <QDebug>
 #include <QSplitter>
+#include <QApplication>
+#include <QStyleHints>
 
 namespace qds
 {
@@ -48,7 +52,7 @@ MainWindow::MainWindow(
     new SignalSelectionModel(this);
 
   m_signalView =
-    new BaseTableView(this);
+    new BaseTableView(0, 4, 0, 4, 0, this);
 
   m_signalView->setModel(m_signalModel);
 
@@ -199,7 +203,7 @@ MainWindow::MainWindow(
 void MainWindow::createToolbar()
 {
   m_toolBar = addToolBar(tr("Основная"));
-  m_toolBar->setIconSize(QSize(16, 16));
+  m_toolBar->setIconSize(QSize(24, 24));
 
   m_toolBar->setMovable(false);
 
@@ -213,11 +217,32 @@ void MainWindow::createToolbar()
     QSizePolicy::Preferred);
 
   m_monitorAction = m_toolBar->addAction(
-    QIcon(":/images/eue.png"),
+    themedSvgIcon(":/images/sensor.svg"),
     tr("Мониторинг"));
 
   m_monitorAction->setCheckable(true);
   m_monitorAction->setChecked(false);
+
+  m_toolBar->addSeparator();
+
+  m_pauseAction = m_toolBar->addAction(
+    themedSvgIcon(":/images/pause.svg"),
+    tr("Пауза"));
+
+  m_pauseAction->setCheckable(true);
+  m_pauseAction->setChecked(false);
+  m_pauseAction->setEnabled(false);
+  m_pauseAction->setToolTip(
+    tr("Приостановить отображение графика"));
+
+  m_toolBar->addSeparator();
+
+  m_themeAction = m_toolBar->addAction(
+    themedSvgIcon(":/images/theme.svg"),
+    tr("Сменить тему"));
+
+  m_themeAction->setToolTip(
+    tr("Переключить светлую/тёмную тему"));
 
   m_toolBar->addSeparator();
 
@@ -319,6 +344,29 @@ void MainWindow::createToolbar()
           tr("Не удалось сохранить режим осей Y"));
       }
     });
+
+  connect(
+    m_pauseAction,
+    &QAction::toggled,
+    this,
+    [this](bool paused)
+    {
+      m_signalChart->setPaused(paused);
+
+      m_pauseAction->setText(
+        paused ? tr("Продолжить") : tr("Пауза"));
+
+      m_pauseAction->setToolTip(
+        paused
+          ? tr("Продолжить отображение графика")
+          : tr("Приостановить отображение графика"));
+    });
+
+  connect(
+    m_themeAction,
+    &QAction::triggered,
+    this,
+    &toggleColorScheme);
 }
 
 void MainWindow::createClient()
@@ -660,6 +708,8 @@ void MainWindow::startMonitoring()
 
 void MainWindow::stopMonitoring()
 {
+  m_pauseAction->setChecked(false);
+
   if (m_client->isRecovering())
   {
     m_client->cancelRecovery();
@@ -703,6 +753,9 @@ void MainWindow::updateControls()
     m_monitorState == MonitorState::Unsubscribing;
 
   m_monitorAction->setEnabled(!pending);
+
+  m_pauseAction->setEnabled(
+    m_monitorState == MonitorState::Running);
 
   m_configurationSelector->setEnabled(stopped);
 

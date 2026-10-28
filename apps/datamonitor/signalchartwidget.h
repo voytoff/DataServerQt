@@ -57,6 +57,9 @@ public:
   void setYAxisMode(
     YAxisMode mode);
 
+  void setPaused(bool paused);
+  bool isPaused() const noexcept;
+
 private:
   void updateAxes(double currentTime);
   void setupLegend();
@@ -97,6 +100,8 @@ private:
   std::vector<Qt::Alignment> m_axisAlignments;
   // коэффициент сглаживания
   static constexpr double YAxisSmoothing = 0.15;
+
+  bool m_paused = false;
 
 signals:
   void windowSecondsChanged(int seconds);

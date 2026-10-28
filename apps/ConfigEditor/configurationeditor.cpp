@@ -1,3 +1,4 @@
+#include "colorscheme.h"
 #include "configurationselector.h"
 #include "applicationsettingsloader.h"
 #include "configurationeditor.h"
@@ -8,6 +9,7 @@
 #include "sensordialog.h"
 #include "calibrationdialog.h"
 #include "configurationdialog.h"
+#include "themedsvgicon.h"
 
 #include <QSplitter>
 #include <QTableView>
@@ -29,6 +31,8 @@
 #include <QComboBox>
 #include <QLabel>
 #include <QSignalBlocker>
+#include <QApplication>
+#include <QStyleHints>
 
 namespace qds
 {
@@ -56,7 +60,7 @@ ConfigurationEditor::ConfigurationEditor(
       this);
 
   m_tagsView =
-    new BaseTableView(150, this);
+    new BaseTableView(150, 4, 0, 4, 0, this);
 
   m_propertiesModel =
     new ConfigurationPropertiesModel(
@@ -72,7 +76,7 @@ ConfigurationEditor::ConfigurationEditor(
 
 
   m_signalsView =
-    new BaseTableView(150, this);
+    new BaseTableView(150, 4, 0, 4, 0, this);
 
   m_signalModel =
     new ConfigurationSignalModel(
@@ -88,7 +92,7 @@ ConfigurationEditor::ConfigurationEditor(
 
 
   m_signalPropertiesView =
-    new BaseTableView(150, this);
+    new BaseTableView(150, 4, 0, 4, 0, this);
 
 
   m_signalPropertiesModel =
@@ -178,7 +182,7 @@ ConfigurationEditor::ConfigurationEditor(
 
   /// типы датчиков ========================================
   m_sensorTypesView =
-    new BaseTableView(150, this);
+    new BaseTableView(150, 4, 0, 4, 0, this);
 
   m_sensorTypeModel =
     new SensorTypeModel(
@@ -232,7 +236,7 @@ ConfigurationEditor::ConfigurationEditor(
 
   /// датчики ======================================
   m_sensorsView =
-    new BaseTableView(150, this);
+    new BaseTableView(150, 4, 0, 4, 0, this);
 
   m_sensorModel =
     new SensorModel(
@@ -312,7 +316,7 @@ ConfigurationEditor::ConfigurationEditor(
       this);
 
   m_sensorPropertiesView =
-    new BaseTableView(150, this);
+    new BaseTableView(150, 4, 0, 4, 0, this);
 
   m_sensorPropertiesView->setModel(
     m_sensorPropertiesModel);
@@ -673,12 +677,11 @@ void ConfigurationEditor::createToolbar(
 {
   m_toolBar = new QToolBar(this);
 
-  m_toolBar->setIconSize(QSize(16, 16));
+  m_toolBar->setIconSize(QSize(24, 24));
   m_toolBar->setMovable(false);
   m_toolBar->setFloatable(false);
   m_toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
   m_toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
-  //m_toolBar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
 
   m_addAction = m_toolBar->addAction(
     QIcon(":/images/add.png"),
@@ -702,10 +705,20 @@ void ConfigurationEditor::createToolbar(
     QIcon(":/images/test.png"),
     tr("Тест"));
 
+  m_toolBar->addSeparator();
+
+  m_themeAction = m_toolBar->addAction(
+    themedSvgIcon(":/images/theme.svg"),
+    tr("Сменить тему"));
+
+  m_themeAction->setToolTip(
+    tr("Переключить светлую/тёмную тему"));
+
+  m_toolBar->addSeparator();
+
   m_addAction->setEnabled(false);
   m_removeAction->setEnabled(false);
   m_testAction->setEnabled(false);
-  m_toolBar->addSeparator();
 
   m_toolBar->addWidget(
     new QLabel(tr("Эксперимент:"), m_toolBar));
@@ -947,6 +960,12 @@ void ConfigurationEditor::createToolbar(
     &QAction::triggered,
     this,
     &ConfigurationEditor::editCalibration);
+
+  connect(
+    m_themeAction,
+    &QAction::triggered,
+    this,
+    &toggleColorScheme);
 }
 
 void ConfigurationEditor::updateActions()

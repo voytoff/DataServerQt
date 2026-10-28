@@ -75,6 +75,8 @@ private:
   QToolBar* m_toolBar = nullptr;
 
   QAction* m_monitorAction = nullptr;
+  QAction* m_pauseAction = nullptr;
+  QAction* m_themeAction = nullptr;
 
   MonitorState m_monitorState = MonitorState::Stopped;
 

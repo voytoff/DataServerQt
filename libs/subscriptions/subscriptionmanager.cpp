@@ -1,4 +1,5 @@
 #include "subscriptionmanager.h"
+
 #include <cstddef>
 #include <algorithm>
 
@@ -89,7 +90,8 @@ bool SubscriptionManager::renew(SubscriptionId id)
   return true;
 }
 
-std::size_t SubscriptionManager::removeExpired()
+std::size_t SubscriptionManager::removeExpired(
+  const std::function<void(const Subscription&)>& onExpired)
 {
   const auto now = Clock::now();
 
@@ -97,9 +99,15 @@ std::size_t SubscriptionManager::removeExpired()
 
   std::erase_if(
     m_subscriptions,
-    [now](const Subscription& sub)
+    [now, &onExpired](const Subscription& sub)
     {
-      return sub.expiresAt <= now;
+      if (sub.expiresAt > now)
+        return false;
+
+      if (onExpired)
+        onExpired(sub);
+
+      return true;
     });
 
   return oldSize - m_subscriptions.size();

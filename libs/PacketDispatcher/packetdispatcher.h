@@ -1,6 +1,7 @@
 #pragma once
 
 #include "isender.h"
+#include "ilogger.h"
 #include "packetreader.h"
 #include "packetwriter.h"
 #include "protocol/errorpackets.h"
@@ -31,7 +32,8 @@ public:
     const SystemConfiguration& configuration,
     SubscriptionManager& subscriptions,
     //LiveScheduler& scheduler,
-    ISender& sender);
+    ISender& sender,
+    ILogger& logger);
 
   bool dispatch(
     std::span<const std::byte> packet,
@@ -188,6 +190,7 @@ private:
   SubscriptionManager& m_subscriptions;
   ISender& m_sender;
   PacketWriter m_writer;
+  ILogger& m_logger;
 
 };
 

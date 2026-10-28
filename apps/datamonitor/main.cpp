@@ -9,6 +9,7 @@
 #include <QSqlDatabase>
 #include <QStyleFactory>
 #include <QTranslator>
+#include <QStyleHints>
 
 static bool showError(
   const QString& message)

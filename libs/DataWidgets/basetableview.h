@@ -14,12 +14,21 @@ class DATAWIDGETS_EXPORT BaseTableView
   Q_OBJECT
 
 public:
+public:
   explicit BaseTableView(
     int columnWidth = 0,
     QWidget* parent = nullptr);
 
   explicit BaseTableView(
     QWidget* parent);
+
+  BaseTableView(
+    int columnWidth,
+    int dx1,
+    int dy1,
+    int dx2,
+    int dy2,
+    QWidget* parent = nullptr);
 
   ~BaseTableView() override = default;
 

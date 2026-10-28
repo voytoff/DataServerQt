@@ -26,15 +26,16 @@ namespace qds
 namespace
 {
 
-void updateChartTheme(QChart *chart) {
-  // Получаем текущую схему (Qt::ColorScheme::Dark или Qt::ColorScheme::Light)
-  Qt::ColorScheme currentScheme = QGuiApplication::styleHints()->colorScheme();
+void updateChartTheme(
+  QChart* chart)
+{
+  const auto scheme =
+    QGuiApplication::styleHints()->colorScheme();
 
-  if (currentScheme == Qt::ColorScheme::Dark) {
-    chart->setTheme(QChart::ChartThemeDark); // Включаем темную тему
-  } else {
-    chart->setTheme(QChart::ChartThemeLight); // Включаем светлую тему (или ChartThemeQt)
-  }
+  chart->setTheme(
+    scheme == Qt::ColorScheme::Dark
+      ? QChart::ChartThemeDark
+      : QChart::ChartThemeLight);
 }
 
 }
@@ -46,6 +47,15 @@ SignalChartWidget::SignalChartWidget(
   m_chart = new QChart();
 
   updateChartTheme(m_chart);
+
+  connect(
+    QGuiApplication::styleHints(),
+    &QStyleHints::colorSchemeChanged,
+    this,
+    [this](Qt::ColorScheme)
+    {
+      updateChartTheme(m_chart);
+    });
 
   m_chart->setTitle(
     tr("Мониторинг сигналов"));
@@ -183,6 +193,7 @@ void SignalChartWidget::appendData(
       timestamp - m_firstTimestamp) /
     1'000'000.0;
 
+  // добавляем данные в буфер
   for (std::size_t i = 0; i < values.size(); ++i)
   {
     if (!std::isfinite(values[i]))
@@ -191,6 +202,32 @@ void SignalChartWidget::appendData(
     m_pendingPoints[i].emplace_back(
       currentTime,
       values[i]);
+  }
+
+  // удаляем устаревшие данные в режиме паузы
+  // данные не храним
+  if (m_paused)
+  {
+    const double minimumTime =
+      std::max(
+        0.0,
+        currentTime - m_windowSeconds);
+
+    for (auto& pending : m_pendingPoints)
+    {
+      const auto first = std::lower_bound(
+        pending.begin(),
+        pending.end(),
+        minimumTime,
+        [](const QPointF& point, double time)
+        {
+          return point.x() < time;
+        });
+
+      pending.erase(
+        pending.begin(),
+        first);
+    }
   }
 }
 
@@ -427,6 +464,22 @@ void SignalChartWidget::setYAxisMode(
   updateAxisVisibility();
 }
 
+void SignalChartWidget::setPaused(bool paused)
+{
+  if (m_paused == paused)
+    return;
+
+  m_paused = paused;
+
+  if (!m_paused)
+    refreshChart();
+}
+
+bool SignalChartWidget::isPaused() const noexcept
+{
+  return m_paused;
+}
+
 void SignalChartWidget::updateSeriesVisibility()
 {
   for (std::size_t i = 0; i < m_series.size(); ++i)
@@ -467,7 +520,7 @@ void SignalChartWidget::updateSeriesVisibility()
 
 void SignalChartWidget::refreshChart()
 {
-  if (!m_hasFirstTimestamp)
+  if (m_paused || !m_hasFirstTimestamp)
     return;
 
   const double currentTime =
