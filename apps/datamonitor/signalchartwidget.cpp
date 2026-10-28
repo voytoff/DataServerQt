@@ -224,6 +224,12 @@ void SignalChartWidget::updateAxes(
 
     for (const QPointF& point : series->points())
     {
+      if (point.x() < minimumTime ||
+          point.x() > maximumTime)
+      {
+        continue;
+      }
+
       minimumValue =
         std::min(minimumValue, point.y());
 
@@ -246,7 +252,7 @@ void SignalChartWidget::updateAxes(
     {
       range = std::max(
         std::abs(maximumValue) * 0.1,
-        1.0);
+        1e-6);
     }
 
     const double margin = range * 0.1;
@@ -254,6 +260,8 @@ void SignalChartWidget::updateAxes(
     axisY->setRange(
       minimumValue - margin,
       maximumValue + margin);
+
+    updateAxisLabelFormat(axisY);
   }
 }
 
@@ -612,6 +620,54 @@ void SignalChartWidget::updateAxisAlignment()
 
     m_axisAlignments[i] = alignment;
   }
+}
+
+void SignalChartWidget::updateAxisLabelFormat(
+  QValueAxis* axis)
+{
+  const double minimum = axis->min();
+  const double maximum = axis->max();
+
+  const double range = maximum - minimum;
+
+  if (!std::isfinite(range) || range <= 0.0)
+    return;
+
+  const int intervals =
+    std::max(1, axis->tickCount() - 1);
+
+  const double step =
+    range / intervals;
+
+  const double magnitude =
+    std::max(
+      std::abs(minimum),
+      std::abs(maximum));
+
+  QString format;
+
+  if (magnitude >= 1e6 ||
+      (magnitude > 0.0 && magnitude < 1e-4) ||
+      step < 1e-6)
+  {
+    format = "%.3e";
+  }
+  else
+  {
+    const int decimals =
+      std::clamp(
+        static_cast<int>(
+          std::ceil(-std::log10(step))) + 1,
+        0,
+        8);
+
+    format = QStringLiteral("%.") +
+             QString::number(decimals) +
+             QStringLiteral("f");
+  }
+
+  if (axis->labelFormat() != format)
+    axis->setLabelFormat(format);
 }
 
 }

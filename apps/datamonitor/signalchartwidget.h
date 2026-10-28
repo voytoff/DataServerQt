@@ -65,6 +65,8 @@ private:
 
   void updateAxisVisibility();
   void updateAxisAlignment();
+  void updateAxisLabelFormat(
+    QValueAxis* axis);
 
 private:
   QChart* m_chart = nullptr;
