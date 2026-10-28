@@ -1,0 +1,1 @@
+D:\PROJECT\Qt\DataServerQt\build\Desktop_Qt_6_11_1_MinGW_64_bit_Debug\apps\configeditor\configeditor.exe --config D:\PROJECT\Qt\DataServerQt\build\Desktop_Qt_6_11_1_MinGW_64_bit_Debug\apps\configeditor\configeditor.ini

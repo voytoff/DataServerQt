@@ -106,9 +106,10 @@ void SignalChartWidget::setSignals(
     delete axis;
   }
 
-  m_axesY.clear();
   m_signalIds.clear();
   m_pendingPoints.clear();
+  m_axesY.clear();
+  m_axisAlignments.clear();
 
   m_activeAxisIndex = 0;
 
@@ -138,6 +139,7 @@ void SignalChartWidget::setSignals(
     m_chart->addAxis(
       axisY,
       Qt::AlignLeft);
+    m_axisAlignments.push_back(Qt::AlignLeft);
 
     series->attachAxis(m_axisX);
     series->attachAxis(axisY);
@@ -528,6 +530,8 @@ void SignalChartWidget::updateAxisVisibility()
     }
   }
 
+  std::size_t visibleIndex = 0;
+
   for (std::size_t i = 0; i < m_axesY.size(); ++i)
   {
     const bool visible =
@@ -541,7 +545,21 @@ void SignalChartWidget::updateAxisVisibility()
         ? visible
         : active;
 
-    m_axesY[i]->setVisible(showAxis);
+    auto* axis = m_axesY[i];
+
+    axis->setVisible(showAxis);
+
+    if (showAxis)
+    {
+      const Qt::Alignment alignment =
+        visibleIndex % 2 == 0
+          ? Qt::AlignLeft
+          : Qt::AlignRight;
+
+      ++visibleIndex;
+
+      // Перемещение оси потребует отдельной обработки.
+    }
 
     for (QLegendMarker* marker :
          m_chart->legend()->markers(m_series[i]))
@@ -556,7 +574,44 @@ void SignalChartWidget::updateAxisVisibility()
     }
   }
 
+  updateAxisAlignment();
   m_chart->legend()->setVisible(true);
+}
+
+void SignalChartWidget::updateAxisAlignment()
+{
+  std::size_t visibleIndex = 0;
+
+  for (std::size_t i = 0; i < m_axesY.size(); ++i)
+  {
+    auto* axis = m_axesY[i];
+    auto* series = m_series[i];
+
+    if (!series->isVisible())
+      continue;
+
+    const Qt::Alignment alignment =
+      m_yAxisMode == YAxisMode::Single
+        ? Qt::AlignLeft
+        : (visibleIndex % 2 == 0
+             ? Qt::AlignLeft
+             : Qt::AlignRight);
+
+    ++visibleIndex;
+
+    if (m_axisAlignments[i] == alignment)
+      continue;
+
+    m_chart->removeAxis(axis);
+
+    m_chart->addAxis(
+      axis,
+      alignment);
+
+    series->attachAxis(axis);
+
+    m_axisAlignments[i] = alignment;
+  }
 }
 
 }
