@@ -95,6 +95,8 @@ private:
   std::vector<QValueAxis*> m_axesY;
   std::size_t m_activeAxisIndex = 0;
   std::vector<Qt::Alignment> m_axisAlignments;
+  // коэффициент сглаживания
+  static constexpr double YAxisSmoothing = 0.15;
 
 signals:
   void windowSecondsChanged(int seconds);

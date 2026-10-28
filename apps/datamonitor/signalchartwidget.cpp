@@ -241,25 +241,43 @@ void SignalChartWidget::updateAxes(
 
     if (!hasValues)
     {
-      axisY->setRange(-1.0, 1.0);
+      //axisY->setRange(-1.0, 1.0);
       continue;
     }
 
-    double range =
+    const double range =
       maximumValue - minimumValue;
 
-    if (range <= 0.0)
-    {
-      range = std::max(
-        std::abs(maximumValue) * 0.1,
+    const double minimumRange =
+      std::max(
+        std::max(
+          std::abs(minimumValue),
+          std::abs(maximumValue)) * 0.001,
         1e-6);
-    }
 
-    const double margin = range * 0.1;
+    const double effectiveRange =
+      std::max(range, minimumRange);
 
-    axisY->setRange(
-      minimumValue - margin,
-      maximumValue + margin);
+    const double margin =
+      effectiveRange * 0.1;
+
+    const double targetMin = minimumValue - margin;
+    const double targetMax = maximumValue + margin;
+
+    const double currentMin = axisY->min();
+    const double currentMax = axisY->max();
+
+    const double newMin =
+      targetMin < currentMin
+        ? targetMin
+        : currentMin + (targetMin - currentMin) * YAxisSmoothing;
+
+    const double newMax =
+      targetMax > currentMax
+        ? targetMax
+        : currentMax + (targetMax - currentMax) * YAxisSmoothing;
+
+    axisY->setRange(newMin, newMax);
 
     updateAxisLabelFormat(axisY);
   }
