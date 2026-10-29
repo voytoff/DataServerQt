@@ -1,6 +1,7 @@
 #include "applicationsettingsloader.h"
 #include "databaseconnection.h"
 #include "mainwindow.h"
+#include "colorschemesettings.h"
 
 #include <QApplication>
 #include <QLibraryInfo>
@@ -76,6 +77,9 @@ int main(int argc, char* argv[])
     showError(error);
     return 1;
   }
+
+  qds::ColorSchemeSettings::restore(
+    settings.configFile);
 
   qds::MainWindow window(
     database,

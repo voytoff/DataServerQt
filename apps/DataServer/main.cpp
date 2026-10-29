@@ -2,6 +2,7 @@
 #include "databaseconnection.h"
 #include "mainwindow.h"
 #include "servercontroller.h"
+#include "colorschemesettings.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
@@ -105,6 +106,9 @@ int main(int argc, char *argv[]) {
   {
     return showError(error);
   }
+
+  qds::ColorSchemeSettings::restore(
+    settings.configFile);
 
   qds::ServerController controller(
     database,

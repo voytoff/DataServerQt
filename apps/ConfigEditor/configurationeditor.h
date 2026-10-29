@@ -8,6 +8,7 @@
 #include "configurationtreemodel.h"
 #include "basetableview.h"
 #include "db/configurationrepository.h"
+#include "mainwindow.h"
 #include "sensormodel.h"
 #include "sensortypemodel.h"
 #include "sensorpropertiesmodel.h"
@@ -39,10 +40,12 @@ public:
     ConfigurationId configurationId,
     QWidget* parent = nullptr);
 
-  void saveWindowSettings() const;
+  void saveWindowSettings(
+    const MainWindow *window) const;
+  void restoreWindowSettings(
+    MainWindow *window);
 
 private:
-  void restoreWindowSettings();
 
   void updateChannelVisibility(
     const QModelIndex& moduleIndex);
@@ -99,7 +102,7 @@ private:
   BaseTableView* m_sensorPropertiesView = nullptr;
 
   QSplitter* m_sensorsSplitter = nullptr;
-  QSplitter* m_splitterRight = nullptr;
+  QSplitter* m_modulesSplitter = nullptr;
   QSplitter* m_signalsSplitter = nullptr;
 
 

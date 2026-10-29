@@ -18,6 +18,7 @@ add_library(DataSettings SHARED
   databaseconnection.h databaseconnection.cpp
   settingssection.h
   windowsettings.h windowsettings.cpp
+  colorschemesettings.h colorschemesettings.cpp
 )
 
 target_compile_definitions(DataSettings

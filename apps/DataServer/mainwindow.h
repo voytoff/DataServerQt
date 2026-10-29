@@ -9,6 +9,10 @@
 #include <QPlainTextEdit>
 #include <QTableWidget>
 #include <QTimer>
+#include <QDesktopServices>
+#include <QEvent>
+#include <QMouseEvent>
+#include <QUrl>
 
 class QLabel;
 class QPushButton;
@@ -35,7 +39,12 @@ public:
     QWidget* parent = nullptr);
 
 protected:
-  void closeEvent(QCloseEvent* event) override;
+  void closeEvent(
+    QCloseEvent* event) override;
+
+  bool eventFilter(
+    QObject* watched,
+    QEvent* event) override;
 
 private:
   void createToolbar(

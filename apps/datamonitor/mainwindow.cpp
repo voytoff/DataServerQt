@@ -11,6 +11,7 @@
 #include "applicationsettingsdialog.h"
 #include "settingssection.h"
 #include "windowsettings.h"
+#include "colorschemesettings.h"
 
 #include <QCloseEvent>
 #include <QCoreApplication>
@@ -831,6 +832,9 @@ void MainWindow::saveWindowSettings() const
 void MainWindow::closeEvent(QCloseEvent* event)
 {
   saveWindowSettings();
+
+  ColorSchemeSettings::save(
+    m_configFile);
 
   QMainWindow::closeEvent(event);
 }

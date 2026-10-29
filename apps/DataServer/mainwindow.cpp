@@ -11,6 +11,7 @@
 #include "applicationsettingsloader.h"
 #include "settingssection.h"
 #include "windowsettings.h"
+#include "colorschemesettings.h"
 
 #include <QCloseEvent>
 #include <QLabel>
@@ -335,6 +336,14 @@ void MainWindow::createStatusbar(const QString& databaseName)
   m_archiveLabel->setTextInteractionFlags(
     Qt::TextSelectableByMouse);
 
+  m_archiveLabel->installEventFilter(this);
+
+  m_archiveLabel->setCursor(
+    Qt::PointingHandCursor);
+
+  m_archiveLabel->setToolTip(
+    tr("Двойной щелчок — открыть каталог архива"));
+
   status->addPermanentWidget(
     m_archiveLabel, 1);
 
@@ -628,7 +637,43 @@ void MainWindow::closeEvent(QCloseEvent* event)
 {
   saveWindowSettings();
 
+  ColorSchemeSettings::save(
+    m_configFile);
+
   QMainWindow::closeEvent(event);
+}
+
+bool MainWindow::eventFilter(
+  QObject* watched,
+  QEvent* event)
+{
+  if (watched == m_archiveLabel &&
+      event->type() == QEvent::MouseButtonDblClick)
+  {
+    auto* mouseEvent =
+      static_cast<QMouseEvent*>(event);
+
+    if (mouseEvent->button() != Qt::LeftButton)
+      return false;
+
+    const auto& directory =
+      m_controller.currentArchiveDirectory();
+
+    if (directory.empty())
+      return true;
+
+    const QString path =
+      QString::fromStdWString(
+        directory.wstring());
+
+    QDesktopServices::openUrl(
+      QUrl::fromLocalFile(path));
+
+    return true;
+  }
+
+  return QMainWindow::eventFilter(
+    watched, event);
 }
 
 }

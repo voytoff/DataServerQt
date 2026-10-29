@@ -24,7 +24,9 @@ protected:
   void closeEvent(QCloseEvent* event) override;
 
 private:
+  QString m_configFile;
   ConfigurationEditor* m_editor = nullptr;
+
 };
 
 }

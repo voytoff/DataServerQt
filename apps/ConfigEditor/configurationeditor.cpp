@@ -13,6 +13,7 @@
 #include "applicationsettingsdialog.h"
 #include "settingssection.h"
 #include "windowsettings.h"
+#include "mainwindow.h"
 
 #include <QCloseEvent>
 #include <QSplitter>
@@ -157,21 +158,21 @@ ConfigurationEditor::ConfigurationEditor(
 
   createToolbar(database);
 
-  m_splitterRight =
+  m_modulesSplitter =
     new QSplitter(Qt::Vertical, this);
 
-  m_splitterRight->addWidget(m_configurationTree);
-  m_splitterRight->addWidget(m_tagsView);
+  m_modulesSplitter->addWidget(m_configurationTree);
+  m_modulesSplitter->addWidget(m_tagsView);
 
-  m_splitterRight->setStretchFactor(0, 1);
-  m_splitterRight->setStretchFactor(1, 1);
+  m_modulesSplitter->setStretchFactor(0, 1);
+  m_modulesSplitter->setStretchFactor(1, 1);
 
 
   m_tabs = new QTabWidget(this);
   m_tabs->setIconSize(QSize(24, 24));
 
   m_tabs->addTab(
-    m_splitterRight,
+    m_modulesSplitter,
     themedSvgIcon(":/images/module.svg"),
     tr("Модули"));
 
@@ -652,54 +653,53 @@ ConfigurationEditor::ConfigurationEditor(
 
       m_sensorPropertiesModel->setSensor(current);
     });
-
-  // восстановим положение и состояние окна
-  restoreWindowSettings();
 }
 
-void ConfigurationEditor::restoreWindowSettings()
+void ConfigurationEditor::restoreWindowSettings(
+  MainWindow* window)
 {
   WindowSettings::restoreGeometry(
     m_configFile,
     "Window/Geometry",
-    this);
+    window);
 
   WindowSettings::restoreSplitter(
     m_configFile,
-    "Window/MainSplitter",
+    "Window/SensorsSplitter",
     m_sensorsSplitter);
 
   WindowSettings::restoreSplitter(
     m_configFile,
-    "Window/MainSplitter",
-    m_splitterRight);
+    "Window/ModulesSplitter",
+    m_modulesSplitter);
 
   WindowSettings::restoreSplitter(
     m_configFile,
-    "Window/MainSplitter",
+    "Window/SignalsSplitter",
     m_signalsSplitter);
 }
 
-void ConfigurationEditor::saveWindowSettings() const
+void ConfigurationEditor::saveWindowSettings(
+  const MainWindow *window) const
 {
   WindowSettings::saveGeometry(
     m_configFile,
     "Window/Geometry",
-    this);
+    window);
 
   WindowSettings::saveSplitter(
     m_configFile,
-    "Window/MainSplitter",
+    "Window/SensorsSplitter",
     m_sensorsSplitter);
 
   WindowSettings::saveSplitter(
     m_configFile,
-    "Window/MainSplitter",
-    m_splitterRight);
+    "Window/ModulesSplitter",
+    m_modulesSplitter);
 
   WindowSettings::saveSplitter(
     m_configFile,
-    "Window/MainSplitter",
+    "Window/SignalsSplitter",
     m_signalsSplitter);
 }
 

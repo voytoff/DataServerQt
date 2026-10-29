@@ -1,5 +1,7 @@
 #include "mainwindow.h"
 #include "configurationeditor.h"
+#include "colorschemesettings.h"
+
 #include <QStatusBar>
 
 namespace qds
@@ -11,6 +13,7 @@ MainWindow::MainWindow(
   ConfigurationId configurationId,
   QWidget* parent)
   : QMainWindow(parent)
+  , m_configFile(configFile)
 {
   m_editor =
     new ConfigurationEditor(
@@ -41,11 +44,17 @@ MainWindow::MainWindow(
       .arg(database.databaseName()));
 
   statusBar()->setSizeGripEnabled(true);
+
+  // восстановим положение и состояние окна
+  m_editor->restoreWindowSettings(this);
 }
 
 void MainWindow::closeEvent(QCloseEvent* event)
 {
-  m_editor->saveWindowSettings();
+  m_editor->saveWindowSettings(this);
+
+  ColorSchemeSettings::save(
+    m_configFile);
 
   QWidget::closeEvent(event);
 }
