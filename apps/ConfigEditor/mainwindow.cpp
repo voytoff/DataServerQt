@@ -43,4 +43,13 @@ MainWindow::MainWindow(
   statusBar()->setSizeGripEnabled(true);
 }
 
+void MainWindow::closeEvent(QCloseEvent* event)
+{
+  m_editor->saveWindowSettings();
+
+  QWidget::closeEvent(event);
 }
+
+}
+
+

@@ -10,7 +10,9 @@
 #include "applicationsettingsdialog.h"
 #include "applicationsettingsloader.h"
 #include "settingssection.h"
+#include "windowsettings.h"
 
+#include <QCloseEvent>
 #include <QLabel>
 #include <QPushButton>
 #include <QTableWidget>
@@ -51,9 +53,9 @@ MainWindow::MainWindow(
   createStatusbar(
     database.databaseName());
 
-  auto* splitter = new QSplitter(Qt::Vertical, this);
-  splitter->setChildrenCollapsible(false);
-  splitter->setHandleWidth(5);
+  m_splitter = new QSplitter(Qt::Vertical, this);
+  m_splitter->setChildrenCollapsible(false);
+  m_splitter->setHandleWidth(5);
 
   m_modulesTable = new QTableWidget(this);
 
@@ -104,15 +106,15 @@ MainWindow::MainWindow(
   m_logView->setFrameShape(QFrame::NoFrame);
   m_logView->setLineWrapMode(QPlainTextEdit::NoWrap);
 
-  splitter->addWidget(m_modulesTable);
-  splitter->addWidget(m_logView);
+  m_splitter->addWidget(m_modulesTable);
+  m_splitter->addWidget(m_logView);
 
-  splitter->setStretchFactor(0, 1);
-  splitter->setStretchFactor(1, 1);
+  m_splitter->setStretchFactor(0, 1);
+  m_splitter->setStretchFactor(1, 1);
 
-  splitter->setSizes({300, 300});
+  m_splitter->setSizes({300, 300});
 
-  setCentralWidget(splitter);
+  setCentralWidget(m_splitter);
 
   m_statisticsTimer = new QTimer(this);
   m_statisticsTimer->setInterval(1000);
@@ -183,6 +185,9 @@ MainWindow::MainWindow(
     m_controller.isRunning());
 
   updateArchiveDirectory();
+
+  // восстановим положение и состояние окна
+  restoreWindowSettings();
 }
 
 void MainWindow::createToolbar(
@@ -585,12 +590,48 @@ void MainWindow::showSettings()
         this,
         tr("Настройки сохранены"),
         tr("Изменения сохранены в INI.\n"
-           "Для применения новых настроек "
-           "необходимо перезапустить приложение."));
+          "Для применения новых настроек "
+          "необходимо перезапустить приложение %1.")
+          .arg(QCoreApplication::applicationName()));
     });
 
   dialog.exec();
 }
 
+void MainWindow::restoreWindowSettings()
+{
+  WindowSettings::restoreGeometry(
+    m_configFile,
+    "Window/Geometry",
+    this);
+
+  WindowSettings::restoreSplitter(
+    m_configFile,
+    "Window/MainSplitter",
+    m_splitter);
 }
+
+void MainWindow::saveWindowSettings() const
+{
+  WindowSettings::saveGeometry(
+    m_configFile,
+    "Window/Geometry",
+    this);
+
+  WindowSettings::saveSplitter(
+    m_configFile,
+    "Window/MainSplitter",
+    m_splitter);
+}
+
+void MainWindow::closeEvent(QCloseEvent* event)
+{
+  saveWindowSettings();
+
+  QMainWindow::closeEvent(event);
+}
+
+}
+
+
 

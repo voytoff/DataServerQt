@@ -8,7 +8,12 @@
 #include "signalchartwidget.h"
 #include "themedsvgicon.h"
 #include "colorscheme.h"
+#include "applicationsettingsdialog.h"
+#include "settingssection.h"
+#include "windowsettings.h"
 
+#include <QCloseEvent>
+#include <QCoreApplication>
 #include <QSignalBlocker>
 #include <QHeaderView>
 #include <QMessageBox>
@@ -198,6 +203,8 @@ MainWindow::MainWindow(
     QString("DataMonitor [%1]")
       .arg(database.databaseName()));
 
+  // восстановим положение и состояние окна
+  restoreWindowSettings();
 }
 
 void MainWindow::createToolbar()
@@ -245,6 +252,16 @@ void MainWindow::createToolbar()
     tr("Переключить светлую/тёмную тему"));
 
   m_toolBar->addSeparator();
+
+  m_settingsAction = m_toolBar->addAction(
+    themedSvgIcon(":/images/settings.svg"),
+    tr("Настройки"));
+
+  m_settingsAction->setToolTip(
+    tr("Настройки приложения"));
+
+  m_toolBar->addSeparator();
+
 
   m_toolBar->addWidget(
     new QLabel(tr("Эксперимент:"), m_toolBar));
@@ -367,6 +384,12 @@ void MainWindow::createToolbar()
     &QAction::triggered,
     this,
     &toggleColorScheme);
+
+  connect(
+    m_settingsAction,
+    &QAction::triggered,
+    this,
+    &MainWindow::showSettings);
 }
 
 void MainWindow::createClient()
@@ -779,6 +802,39 @@ void MainWindow::updateChartSignals()
   m_signalChart->setSignals(ids, names);
 }
 
+void MainWindow::restoreWindowSettings()
+{
+  WindowSettings::restoreGeometry(
+    m_configFile,
+    "Window/Geometry",
+    this);
+
+  WindowSettings::restoreSplitter(
+    m_configFile,
+    "Window/MainSplitter",
+    m_splitter);
+}
+
+void MainWindow::saveWindowSettings() const
+{
+  WindowSettings::saveGeometry(
+    m_configFile,
+    "Window/Geometry",
+    this);
+
+  WindowSettings::saveSplitter(
+    m_configFile,
+    "Window/MainSplitter",
+    m_splitter);
+}
+
+void MainWindow::closeEvent(QCloseEvent* event)
+{
+  saveWindowSettings();
+
+  QMainWindow::closeEvent(event);
+}
+
 void MainWindow::setMonitorState(
   MonitorState state)
 {
@@ -793,4 +849,52 @@ void MainWindow::setMonitorState(
   updateControls();
 }
 
+void MainWindow::showSettings()
+{
+  ApplicationSettings settings;
+  QString error;
+
+  constexpr SettingsSection section =
+    SettingsSection::Database;
+
+  if (!ApplicationSettingsLoader::load(
+        m_configFile,
+        settings,
+        error,
+        section))
+  {
+    QMessageBox::warning(
+      this,
+      tr("Настройки приложения"),
+      error);
+
+    return;
+  }
+
+  ApplicationSettingsDialog dialog(
+    settings,
+    section,
+    this);
+
+  connect(
+    &dialog,
+    &ApplicationSettingsDialog::settingsApplied,
+    this,
+    [this](SettingsSections changed)
+    {
+      if (!changed.testFlag(SettingsSection::Database))
+        return;
+
+      QMessageBox::information(
+        this,
+        tr("Настройки сохранены"),
+        tr("Настройки базы данных сохранены.\n"
+          "Для их применения перезапустите %1.")
+          .arg(QCoreApplication::applicationName()));
+    });
+
+  dialog.exec();
 }
+
+}
+

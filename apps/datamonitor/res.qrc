@@ -4,5 +4,6 @@
         <file>images/pause.svg</file>
         <file>images/sensor.svg</file>
         <file>images/theme.svg</file>
+        <file>images/settings.svg</file>
     </qresource>
 </RCC>

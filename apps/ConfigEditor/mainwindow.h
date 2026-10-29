@@ -20,6 +20,9 @@ public:
     ConfigurationId configurationId,
     QWidget* parent = nullptr);
 
+protected:
+  void closeEvent(QCloseEvent* event) override;
+
 private:
   ConfigurationEditor* m_editor = nullptr;
 };

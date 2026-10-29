@@ -10,7 +10,11 @@
 #include "calibrationdialog.h"
 #include "configurationdialog.h"
 #include "themedsvgicon.h"
+#include "applicationsettingsdialog.h"
+#include "settingssection.h"
+#include "windowsettings.h"
 
+#include <QCloseEvent>
 #include <QSplitter>
 #include <QTableView>
 #include <QVBoxLayout>
@@ -153,35 +157,35 @@ ConfigurationEditor::ConfigurationEditor(
 
   createToolbar(database);
 
-  auto* right =
+  m_splitterRight =
     new QSplitter(Qt::Vertical, this);
 
-  right->addWidget(m_configurationTree);
-  right->addWidget(m_tagsView);
+  m_splitterRight->addWidget(m_configurationTree);
+  m_splitterRight->addWidget(m_tagsView);
 
-  right->setStretchFactor(0, 1);
-  right->setStretchFactor(1, 1);
+  m_splitterRight->setStretchFactor(0, 1);
+  m_splitterRight->setStretchFactor(1, 1);
 
 
   m_tabs = new QTabWidget(this);
   m_tabs->setIconSize(QSize(24, 24));
 
   m_tabs->addTab(
-    right,
+    m_splitterRight,
     themedSvgIcon(":/images/module.svg"),
     tr("Модули"));
 
-  auto* signalsSplitter =
+  m_signalsSplitter =
     new QSplitter(Qt::Vertical, this);
 
-  signalsSplitter->addWidget(m_signalsView);
-  signalsSplitter->addWidget(m_signalPropertiesView);
+  m_signalsSplitter->addWidget(m_signalsView);
+  m_signalsSplitter->addWidget(m_signalPropertiesView);
 
-  signalsSplitter->setStretchFactor(0, 1);
-  signalsSplitter->setStretchFactor(1, 1);
+  m_signalsSplitter->setStretchFactor(0, 1);
+  m_signalsSplitter->setStretchFactor(1, 1);
 
   m_tabs->addTab(
-    signalsSplitter,
+    m_signalsSplitter,
     themedSvgIcon(":/images/signal.svg"),
     tr("Сигналы"));
 
@@ -648,6 +652,55 @@ ConfigurationEditor::ConfigurationEditor(
 
       m_sensorPropertiesModel->setSensor(current);
     });
+
+  // восстановим положение и состояние окна
+  restoreWindowSettings();
+}
+
+void ConfigurationEditor::restoreWindowSettings()
+{
+  WindowSettings::restoreGeometry(
+    m_configFile,
+    "Window/Geometry",
+    this);
+
+  WindowSettings::restoreSplitter(
+    m_configFile,
+    "Window/MainSplitter",
+    m_sensorsSplitter);
+
+  WindowSettings::restoreSplitter(
+    m_configFile,
+    "Window/MainSplitter",
+    m_splitterRight);
+
+  WindowSettings::restoreSplitter(
+    m_configFile,
+    "Window/MainSplitter",
+    m_signalsSplitter);
+}
+
+void ConfigurationEditor::saveWindowSettings() const
+{
+  WindowSettings::saveGeometry(
+    m_configFile,
+    "Window/Geometry",
+    this);
+
+  WindowSettings::saveSplitter(
+    m_configFile,
+    "Window/MainSplitter",
+    m_sensorsSplitter);
+
+  WindowSettings::saveSplitter(
+    m_configFile,
+    "Window/MainSplitter",
+    m_splitterRight);
+
+  WindowSettings::saveSplitter(
+    m_configFile,
+    "Window/MainSplitter",
+    m_signalsSplitter);
 }
 
 void ConfigurationEditor::updateChannelVisibility(
@@ -728,6 +781,15 @@ void ConfigurationEditor::createToolbar(
 
   m_themeAction->setToolTip(
     tr("Переключить светлую/тёмную тему"));
+
+  m_toolBar->addSeparator();
+
+  m_settingsAction = m_toolBar->addAction(
+    themedSvgIcon(":/images/settings.svg"),
+    tr("Настройки"));
+
+  m_settingsAction->setToolTip(
+    tr("Настройки приложения"));
 
   m_toolBar->addSeparator();
 
@@ -981,6 +1043,12 @@ void ConfigurationEditor::createToolbar(
     &QAction::triggered,
     this,
     &toggleColorScheme);
+
+  connect(
+    m_settingsAction,
+    &QAction::triggered,
+    this,
+    &ConfigurationEditor::showSettings);
 }
 
 void ConfigurationEditor::updateActions()
@@ -1547,6 +1615,53 @@ void ConfigurationEditor::configurationChanged()
         tr("Не удалось сохранить выбранный эксперимент."));
     }
   }
+}
+
+void ConfigurationEditor::showSettings()
+{
+  ApplicationSettings settings;
+  QString error;
+
+  constexpr SettingsSection section =
+    SettingsSection::Database;
+
+  if (!ApplicationSettingsLoader::load(
+        m_configFile,
+        settings,
+        error,
+        section))
+  {
+    QMessageBox::warning(
+      this,
+      tr("Настройки приложения"),
+      error);
+
+    return;
+  }
+
+  ApplicationSettingsDialog dialog(
+    settings,
+    section,
+    this);
+
+  connect(
+    &dialog,
+    &ApplicationSettingsDialog::settingsApplied,
+    this,
+    [this](SettingsSections changed)
+    {
+      if (!changed.testFlag(SettingsSection::Database))
+        return;
+
+      QMessageBox::information(
+        this,
+        tr("Настройки сохранены"),
+        tr("Настройки базы данных сохранены.\n"
+           "Для их применения перезапустите %1.")
+          .arg(QCoreApplication::applicationName()));
+    });
+
+  dialog.exec();
 }
 
 }

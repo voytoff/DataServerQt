@@ -34,6 +34,9 @@ public:
     ConfigurationId configurationId,
     QWidget* parent = nullptr);
 
+protected:
+  void closeEvent(QCloseEvent* event) override;
+
 private:
   void createToolbar();
   void createClient();
@@ -48,6 +51,9 @@ private:
   void updateControls();
   void updateChartSignals();
 
+  void restoreWindowSettings();
+  void saveWindowSettings() const;
+
   enum class MonitorState
   {
     Stopped,
@@ -57,6 +63,8 @@ private:
   };
 
   void setMonitorState(MonitorState state);
+
+  void showSettings();
 
 private:
   ClientConnection* m_client = nullptr;
@@ -77,6 +85,7 @@ private:
   QAction* m_monitorAction = nullptr;
   QAction* m_pauseAction = nullptr;
   QAction* m_themeAction = nullptr;
+  QAction* m_settingsAction = nullptr;
 
   MonitorState m_monitorState = MonitorState::Stopped;
 

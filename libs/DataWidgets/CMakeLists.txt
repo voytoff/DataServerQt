@@ -29,10 +29,10 @@ target_include_directories(DataWidgets
 
 target_link_libraries(DataWidgets
   PUBLIC
-    Qt6::Core
-    Qt6::Widgets
-    Qt6::Sql
-    Qt6::Svg
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Sql
+    Qt${QT_VERSION_MAJOR}::Svg
     DataSettings
 )
 

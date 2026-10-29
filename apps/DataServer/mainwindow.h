@@ -16,6 +16,7 @@ class QTableWidget;
 class QPlainTextEdit;
 class ServerController;
 class ConfigurationSelector;
+class QSplitter;
 
 namespace qds
 {
@@ -32,6 +33,9 @@ public:
     ServerController& controller,
     const QString& configFile,
     QWidget* parent = nullptr);
+
+protected:
+  void closeEvent(QCloseEvent* event) override;
 
 private:
   void createToolbar(
@@ -52,6 +56,9 @@ private:
 
   void showSettings();
 
+  void restoreWindowSettings();
+  void saveWindowSettings() const;
+
 private:
   ServerController& m_controller;
   QString m_configFile;
@@ -62,6 +69,8 @@ private:
   QTableWidget* m_modulesTable = nullptr;
   QPlainTextEdit* m_logView = nullptr;
   ConfigurationSelector* m_configurationSelector = nullptr;
+
+  QSplitter* m_splitter = nullptr;
 
   QAction* m_startAction = nullptr;
   QAction* m_stopAction = nullptr;

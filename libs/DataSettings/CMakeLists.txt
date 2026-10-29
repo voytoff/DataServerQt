@@ -6,10 +6,9 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS
-  Core
-  Sql
-)
+find_package(QT NAMES Qt6 REQUIRED COMPONENTS          Core Widgets Sql)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Sql)
+
 
 add_library(DataSettings SHARED
   datasettings_export.h
@@ -18,6 +17,7 @@ add_library(DataSettings SHARED
   databasesettings.h
   databaseconnection.h databaseconnection.cpp
   settingssection.h
+  windowsettings.h windowsettings.cpp
 )
 
 target_compile_definitions(DataSettings
@@ -33,6 +33,7 @@ target_include_directories(DataSettings
 target_link_libraries(DataSettings
   PUBLIC
     Configuration
-    Qt6::Core
-    Qt6::Sql
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Sql
 )

@@ -39,7 +39,11 @@ public:
     ConfigurationId configurationId,
     QWidget* parent = nullptr);
 
+  void saveWindowSettings() const;
+
 private:
+  void restoreWindowSettings();
+
   void updateChannelVisibility(
     const QModelIndex& moduleIndex);
 
@@ -59,6 +63,8 @@ private:
   void removeConfiguration();
 
   void configurationChanged();
+
+  void showSettings();
 
 private:
   ConfigurationSelector* m_configurationCombo = nullptr;
@@ -91,7 +97,11 @@ private:
 
   SensorPropertiesModel* m_sensorPropertiesModel = nullptr;
   BaseTableView* m_sensorPropertiesView = nullptr;
+
   QSplitter* m_sensorsSplitter = nullptr;
+  QSplitter* m_splitterRight = nullptr;
+  QSplitter* m_signalsSplitter = nullptr;
+
 
   QTabWidget* m_tabs = nullptr;
 
@@ -105,6 +115,7 @@ private:
   QAction* m_configurationAddAction = nullptr;
   QAction* m_configurationRemoveAction = nullptr;
   QAction* m_themeAction = nullptr;
+  QAction* m_settingsAction = nullptr;
 
 signals:
   void statusMessage(

@@ -13,5 +13,6 @@
         <file>images/module.svg</file>
         <file>images/signal.svg</file>
         <file>images/stype.svg</file>
+        <file>images/settings.svg</file>
     </qresource>
 </RCC>
