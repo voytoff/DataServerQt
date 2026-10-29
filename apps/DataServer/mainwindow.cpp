@@ -7,6 +7,9 @@
 #include "servercontroller.h"
 #include "loglevel.h"
 #include "themedsvgicon.h"
+#include "applicationsettingsdialog.h"
+#include "applicationsettingsloader.h"
+#include "settingssection.h"
 
 #include <QLabel>
 #include <QPushButton>
@@ -22,6 +25,7 @@
 #include <QDir>
 #include <QApplication>
 #include <QStyleHints>
+#include <QMessageBox>
 
 namespace qds
 {
@@ -209,6 +213,15 @@ void MainWindow::createToolbar(
 
   toolBar->addSeparator();
 
+  m_settingsAction = toolBar->addAction(
+    themedSvgIcon(":/images/settings.svg"),
+    tr("Настройки"));
+
+  m_settingsAction->setToolTip(
+    tr("Настройки приложения"));
+
+  toolBar->addSeparator();
+
   auto* configurationLabel =
     new QLabel(tr("Эксперимент:"), this);
 
@@ -295,6 +308,12 @@ void MainWindow::createToolbar(
     &QAction::triggered,
     this,
     &toggleColorScheme);
+
+  connect(
+    m_settingsAction,
+    &QAction::triggered,
+    this,
+    &MainWindow::showSettings);
 }
 
 void MainWindow::createStatusbar(const QString& databaseName)
@@ -333,6 +352,9 @@ void MainWindow::updateControls()
 
   m_stopAction->setEnabled(
     running);
+
+  m_settingsAction->setEnabled(
+    !running);
 }
 
 void MainWindow::updateModules()
@@ -516,6 +538,58 @@ void MainWindow::setModuleError(ModuleId id)
 
     break;
   }
+}
+
+void MainWindow::showSettings()
+{
+  if (m_controller.isRunning())
+    return;
+
+  const SettingsSections sections =
+    SettingsSection::Database |
+    SettingsSection::Archive |
+    SettingsSection::Log;
+
+  ApplicationSettings settings;
+  QString error;
+
+  if (!ApplicationSettingsLoader::load(
+        m_configFile,
+        settings,
+        error,
+        sections))
+  {
+    QMessageBox::warning(
+      this,
+      tr("Настройки приложения"),
+      error);
+
+    return;
+  }
+
+  ApplicationSettingsDialog dialog(
+    settings,
+    sections,
+    this);
+
+  connect(
+    &dialog,
+    &ApplicationSettingsDialog::settingsApplied,
+    this,
+    [this](SettingsSections changed)
+    {
+      if (changed == SettingsSections{})
+        return;
+
+      QMessageBox::information(
+        this,
+        tr("Настройки сохранены"),
+        tr("Изменения сохранены в INI.\n"
+           "Для применения новых настроек "
+           "необходимо перезапустить приложение."));
+    });
+
+  dialog.exec();
 }
 
 }

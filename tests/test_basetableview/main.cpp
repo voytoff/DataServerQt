@@ -1,14 +1,15 @@
 #include "calibrationdialog.h"
+#include "applicationsettingsdialog.h"
+#include "applicationsettingsloader.h"
+#include "settingssection.h"
 
 #include <QApplication>
 #include <QStandardItemModel>
 #include <QAbstractItemView>
 
-int main(int argc, char* argv[])
+void calibrationDialog()
 {
   using namespace qds;
-
-  QApplication app(argc, argv);
 
   Calibration calibration;
 
@@ -18,8 +19,8 @@ int main(int argc, char* argv[])
   if (calibration.kind == CalibrationKind::Table)
   {
     calibration.points = {
-      {0, 0.0, 0.0},
-    };
+                          {0, 0.0, 0.0},
+                          };
   }
   else
   {
@@ -27,11 +28,10 @@ int main(int argc, char* argv[])
       0
     };
   }
-
   CalibrationDialog dialog(calibration, nullptr);
 
   if (dialog.exec() != QDialog::Accepted)
-    return 0;
+    return;
 
   const Calibration result =
     dialog.calibration();
@@ -54,30 +54,57 @@ int main(int argc, char* argv[])
     for (const auto& point : result.coefficients)
       qDebug() << point;
   }
+}
 
+void applicationSettingsDialog()
+{
+  using namespace qds;
+
+  const QString fileName =
+    "D:/DATASERVER/ini/configeditor_test.ini";
+
+  const SettingsSections sections =
+    SettingsSection::Database |
+    SettingsSection::Archive |
+    SettingsSection::Log;
+
+  ApplicationSettings settings;
+  QString error;
+
+  if (!ApplicationSettingsLoader::load(
+        fileName,
+        settings,
+        error,
+        sections))
+  {
+    qWarning() << error;
+    return;
+  }
+
+  ApplicationSettingsDialog dialog(
+    settings,
+    sections);
+
+  QObject::connect(
+    &dialog,
+    &ApplicationSettingsDialog::settingsApplied,
+    &dialog,
+    [](SettingsSections changed)
+    {
+      qDebug() << "Изменены разделы:" << changed;
+    });
+
+  dialog.exec();
+}
+
+int main(int argc, char* argv[])
+{
+  using namespace qds;
+
+  QApplication app(argc, argv);
+
+  applicationSettingsDialog();
 
   return 0;
-
-/*
-  QStandardItemModel model(10, 3);
-
-  model.setHorizontalHeaderLabels({
-    "X", "Y", "Z"
-  });
-
-  qds::BaseTableView view(120);
-
-  view.setModel(&model);
-  view.setPasteEnabled(true);
-
-  view.setSelectionBehavior(
-    QAbstractItemView::SelectItems);
-
-  view.setSelectionMode(
-    QAbstractItemView::ExtendedSelection);
-
-  view.resize(500, 350);
-  view.show();
-
-  return app.exec();*/
 }
+

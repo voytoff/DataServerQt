@@ -3,6 +3,7 @@ project(DataWidgets VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(QT NAMES Qt6 REQUIRED COMPONENTS          Core Widgets Sql Svg)
@@ -17,6 +18,8 @@ add_library(DataWidgets SHARED
   themedsvgicon.h
   paddeditemdelegate.h paddeditemdelegate.cpp
   colorscheme.h colorscheme.cpp
+  applicationsettingsdialog.h applicationsettingsdialog.cpp applicationsettingsdialog.ui
+  res.qrc
 )
 
 target_include_directories(DataWidgets
@@ -30,6 +33,7 @@ target_link_libraries(DataWidgets
     Qt6::Widgets
     Qt6::Sql
     Qt6::Svg
+    DataSettings
 )
 
 target_compile_definitions(DataWidgets

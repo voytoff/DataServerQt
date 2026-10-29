@@ -11,14 +11,15 @@ namespace qds
 
 
 bool ApplicationSettingsLoader::load(
-  const QCoreApplication &app,
-  ApplicationSettings &settings,
-  QString &error,
+  const QCoreApplication& app,
+  ApplicationSettings& settings,
+  QString& error,
   bool requireServerSettings)
 {
   error.clear();
 
   QCommandLineParser parser;
+
   parser.setApplicationDescription(
     app.applicationName());
 
@@ -26,132 +27,169 @@ bool ApplicationSettingsLoader::load(
 
   QCommandLineOption configOption(
     "config",
-    "DataMonitor INI file",
+    "DataServer INI file",
     "file",
     "dataserver.ini");
 
   parser.addOption(configOption);
   parser.process(app);
 
-  const QString configFile =
-    parser.value(configOption);
+  const SettingsSections sections =
+    requireServerSettings
+      ? SettingsSection::Database |
+          SettingsSection::Archive |
+          SettingsSection::Log
+      : SettingsSection::Database;
 
-  if (!QFileInfo::exists(configFile))
+  return load(
+    parser.value(configOption),
+    settings,
+    error,
+    sections);
+}
+
+bool ApplicationSettingsLoader::load(
+  const QString& fileName,
+  ApplicationSettings& settings,
+  QString& error,
+  SettingsSections sections)
+{
+  error.clear();
+
+  if (!QFileInfo::exists(fileName))
   {
-    error = "Не найден файл конфигурации:\n" + configFile;
+    error =
+      "Не найден файл конфигурации:\n" +
+      fileName;
+
     return false;
   }
 
   QSettings s(
-    configFile,
+    fileName,
     QSettings::IniFormat);
 
-  DatabaseSettings database;
-
-  s.beginGroup("Database");
-
-  database.plugin =
-    s.value("Plugin", "QMARIADB").toString();
-
-  database.host =
-    s.value("Host", "127.0.0.1").toString();
-
-  database.port =
-    s.value("Port", 3306).toInt();
-
-  database.name =
-    s.value("Name").toString();
-
-  database.user =
-    s.value("User").toString();
-
-  database.password =
-    s.value("Password").toString();
-
-  s.endGroup();
-
-  if (s.status() != QSettings::NoError ||
-      database.name.isEmpty() ||
-      database.user.isEmpty() ||
-      database.port < 1 ||
-      database.port > 65535)
-  {
-    error =
-      "Неверные настройки доступа к базе данных в файле конфигурации:\n" +
-      configFile;
-
-    return false;
-  }
-
-  // ConfigurationId читаем всегда, если он присутствует.
-
-  s.beginGroup("Server");
-
-  bool idOk = false;
-
-  const auto configurationId =
-    s.value("ConfigurationId").toUInt(&idOk);
-
-  s.endGroup();
-
   ApplicationSettings result;
+  result.configFile = fileName;
 
-  result.configFile = configFile;
-  result.database = std::move(database);
+  // Database
 
-  if (idOk && configurationId != 0)
+  if (sections.testFlag(SettingsSection::Database))
   {
-    result.configurationId =
-      ConfigurationId{configurationId};
-  }
-  else
-  {
-    error = "Некорректный ConfigurationId";
-    return false;
-  }
+    DatabaseSettings database;
 
-  if (requireServerSettings)
-  {
-    s.beginGroup("Archive");
+    s.beginGroup("Database");
 
-    const QString archive =
-      s.value("Directory").toString();
+    database.plugin =
+      s.value("Plugin", database.plugin).toString();
+
+    database.host =
+      s.value("Host", database.host).toString();
+
+    bool portOk = false;
+
+    database.port =
+      s.value("Port", database.port).toInt(&portOk);
+
+    database.name =
+      s.value("Name").toString();
+
+    database.user =
+      s.value("User").toString();
+
+    database.password =
+      s.value("Password").toString();
 
     s.endGroup();
 
-    if (archive.isEmpty())
+    if (!portOk ||
+        database.plugin.isEmpty() ||
+        database.host.isEmpty() ||
+        database.name.isEmpty() ||
+        database.user.isEmpty() ||
+        database.port < 1 ||
+        database.port > 65535)
     {
-      error = "Некорректный каталог архивирования";
+      error =
+        "Неверные настройки доступа к базе данных:\n" +
+        fileName;
+
       return false;
     }
 
-    s.beginGroup("Log");
+    result.database = std::move(database);
+  }
 
-    const QString log =
-      s.value("Directory").toString();
+  // Server/ConfigurationId
 
-    s.endGroup();
+  if (s.contains("Server/ConfigurationId"))
+  {
+    bool idOk = false;
 
-    if (log.isEmpty())
+    const uint32_t id =
+      s.value("Server/ConfigurationId").toUInt(&idOk);
+
+    if (!idOk)
     {
-      error = "Некорректный каталог логирования";
+      error =
+        "Некорректный ConfigurationId:\n" +
+        fileName;
+
+      return false;
+    }
+
+    result.configurationId = ConfigurationId{id};
+  }
+
+  // Archive
+
+  if (sections.testFlag(SettingsSection::Archive))
+  {
+    const QString directory =
+      s.value("Archive/Directory").toString();
+
+    if (directory.isEmpty())
+    {
+      error =
+        "Некорректный каталог архивирования:\n" +
+        fileName;
+
       return false;
     }
 
 #ifdef Q_OS_WIN
     result.archiveDirectory =
-      std::filesystem::path(archive.toStdWString());
-
-    result.logDirectory =
-      std::filesystem::path(log.toStdWString());
+      std::filesystem::path(directory.toStdWString());
 #else
     result.archiveDirectory =
       std::filesystem::u8path(
-        archive.toUtf8().constData());
+        directory.toUtf8().constData());
+#endif
+  }
 
+  // Log
+
+  if (sections.testFlag(SettingsSection::Log))
+  {
+    const QString directory =
+      s.value("Log/Directory").toString();
+
+    if (directory.isEmpty())
+    {
+      error =
+        "Некорректный каталог логирования:\n" +
+        fileName;
+
+      return false;
+    }
+
+#ifdef Q_OS_WIN
+    result.logDirectory =
+      std::filesystem::path(directory.toStdWString());
+#else
     result.logDirectory =
       std::filesystem::u8path(
-        log.toUtf8().constData());
+        directory.toUtf8().constData());
 #endif
   }
 
@@ -159,12 +197,150 @@ bool ApplicationSettingsLoader::load(
   {
     error =
       "Ошибка чтения файла конфигурации:\n" +
-      configFile;
+      fileName;
 
     return false;
   }
 
   settings = std::move(result);
+
+  return true;
+}
+
+bool ApplicationSettingsLoader::save(
+  const QString& fileName,
+  const ApplicationSettings& settings,
+  QString& error,
+  SettingsSections sections)
+{
+  error.clear();
+
+  if (fileName.isEmpty())
+  {
+    error = "Не указан файл конфигурации";
+    return false;
+  }
+
+  if (!QFileInfo::exists(fileName))
+  {
+    error =
+      "Не найден файл конфигурации:\n" +
+      fileName;
+
+    return false;
+  }
+
+  // Проверяем значения до изменения INI.
+
+  if (sections.testFlag(SettingsSection::Database))
+  {
+    const auto& db = settings.database;
+
+    if (db.plugin.trimmed().isEmpty() ||
+        db.host.trimmed().isEmpty() ||
+        db.name.trimmed().isEmpty() ||
+        db.user.trimmed().isEmpty() ||
+        db.port < 1 ||
+        db.port > 65535)
+    {
+      error = "Некорректные настройки базы данных";
+      return false;
+    }
+  }
+
+  if (sections.testFlag(SettingsSection::Archive) &&
+      settings.archiveDirectory.empty())
+  {
+    error = "Не указан каталог архивирования";
+    return false;
+  }
+
+  if (sections.testFlag(SettingsSection::Log) &&
+      settings.logDirectory.empty())
+  {
+    error = "Не указан каталог журналирования";
+    return false;
+  }
+
+  QSettings s(
+    fileName,
+    QSettings::IniFormat);
+
+  if (s.status() != QSettings::NoError)
+  {
+    error =
+      "Ошибка открытия файла конфигурации:\n" +
+      fileName;
+
+    return false;
+  }
+
+  // Database
+
+  if (sections.testFlag(SettingsSection::Database))
+  {
+    const auto& db = settings.database;
+
+    s.setValue("Database/Plugin", db.plugin);
+    s.setValue("Database/Host", db.host);
+    s.setValue("Database/Port", db.port);
+    s.setValue("Database/Name", db.name);
+    s.setValue("Database/User", db.user);
+    s.setValue("Database/Password", db.password);
+  }
+
+  // Archive
+
+  if (sections.testFlag(SettingsSection::Archive))
+  {
+#ifdef Q_OS_WIN
+    const QString directory =
+      QString::fromStdWString(
+        settings.archiveDirectory.wstring());
+#else
+    const auto utf8 =
+      settings.archiveDirectory.u8string();
+
+    const QString directory =
+      QString::fromUtf8(
+        reinterpret_cast<const char*>(utf8.data()),
+        static_cast<qsizetype>(utf8.size()));
+#endif
+
+    s.setValue("Archive/Directory", directory);
+  }
+
+  // Log
+
+  if (sections.testFlag(SettingsSection::Log))
+  {
+#ifdef Q_OS_WIN
+    const QString directory =
+      QString::fromStdWString(
+        settings.logDirectory.wstring());
+#else
+    const auto utf8 =
+      settings.logDirectory.u8string();
+
+    const QString directory =
+      QString::fromUtf8(
+        reinterpret_cast<const char*>(utf8.data()),
+        static_cast<qsizetype>(utf8.size()));
+#endif
+
+    s.setValue("Log/Directory", directory);
+  }
+
+  s.sync();
+
+  if (s.status() != QSettings::NoError)
+  {
+    error =
+      "Не удалось сохранить файл конфигурации:\n" +
+      fileName;
+
+    return false;
+  }
 
   return true;
 }

@@ -50,6 +50,8 @@ private:
   void setModuleError(
     ModuleId id);
 
+  void showSettings();
+
 private:
   ServerController& m_controller;
   QString m_configFile;
@@ -65,6 +67,7 @@ private:
   QAction* m_stopAction = nullptr;
   QAction* m_clearLogAction = nullptr;
   QAction* m_themeAction = nullptr;
+  QAction* m_settingsAction = nullptr;
 
   QPlainTextEdit* m_logEdit = nullptr;
 

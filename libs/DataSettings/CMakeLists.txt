@@ -17,6 +17,7 @@ add_library(DataSettings SHARED
   applicationsettingsloader.h applicationsettingsloader.cpp
   databasesettings.h
   databaseconnection.h databaseconnection.cpp
+  settingssection.h
 )
 
 target_compile_definitions(DataSettings
