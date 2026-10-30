@@ -37,6 +37,7 @@ qt_add_executable(configeditor
     dlg/calibrationdialog.h dlg/calibrationdialog.cpp dlg/calibrationdialog.ui
     plot/calibrationplot.h plot/calibrationplot.cpp
     dlg/configurationdialog.h dlg/configurationdialog.cpp dlg/configurationdialog.ui
+    modulesettingsformatter.h modulesettingsformatter.cpp
 )
 
 if(WIN32)

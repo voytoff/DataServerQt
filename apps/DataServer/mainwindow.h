@@ -68,6 +68,8 @@ private:
   void restoreWindowSettings();
   void saveWindowSettings() const;
 
+  void updateArchiveStatistics();
+
 private:
   ServerController& m_controller;
   QString m_configFile;
@@ -90,6 +92,9 @@ private:
   QPlainTextEdit* m_logEdit = nullptr;
 
   QTimer* m_statisticsTimer = nullptr;
+
+  QLabel* m_archiveStatisticsLabel = nullptr;
+  QTimer* m_archiveStatisticsTimer = nullptr;
 };
 
 }

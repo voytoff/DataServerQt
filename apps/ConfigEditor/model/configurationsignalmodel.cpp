@@ -49,10 +49,7 @@ int ConfigurationSignalModel::rowCount(
 int ConfigurationSignalModel::columnCount(
   const QModelIndex& parent) const
 {
-  if (parent.isValid())
-    return 0;
-
-  return 3;
+  return parent.isValid() ? 0 : ColumnCount;
 }
 
 QVariant ConfigurationSignalModel::data(
@@ -68,6 +65,9 @@ QVariant ConfigurationSignalModel::data(
 
   const auto& signal =
     m_signals[index.row()];
+
+  if (role == KindRole)
+    return static_cast<int>(signal.kind);
 
   if (role == Qt::ForegroundRole &&
       index.column() == 0 &&
@@ -88,25 +88,66 @@ QVariant ConfigurationSignalModel::data(
 
   switch (index.column())
   {
-  case 0:
+  case Name:
     return QString::fromStdString(signal.name);
 
-  case 1:
-    switch (signal.kind)
-    {
-    case SignalKind::Raw:
-      return QStringLiteral("Raw");
-
-    case SignalKind::Calculated:
-      return QStringLiteral("Calculated");
-
-    default:
+  case Source:
+    if (signal.kind != SignalKind::Raw)
       return {};
+
+    if (signal.source.tag.value == 0)
+      return tr("Нет");
+
+    if (const auto it =
+        m_tagNames.find(signal.source.tag.value);
+        it != m_tagNames.end())
+    {
+      return it->second;
     }
 
-  case 2:
-    return QStringLiteral("%1 Гц").arg(
-      static_cast<int>(signal.archiveRate));
+    return tr("TagId=%1")
+      .arg(signal.source.tag.value);
+
+  case Formula:
+    if (signal.kind == SignalKind::Calculated)
+      return QString::fromStdString(signal.formula);
+
+    return {};
+
+  case SignalType:
+    if (signal.signalType.value == 0)
+      return tr("Нет");
+
+    if (const auto it =
+        m_signalTypeNames.find(signal.signalType.value);
+        it != m_signalTypeNames.end())
+    {
+      return it->second;
+    }
+
+    return tr("Тип #%1")
+      .arg(signal.signalType.value);
+
+  case Sensor:
+    if (signal.kind != SignalKind::Calculated)
+      return {};
+
+    if (signal.sensorId.value == 0)
+      return tr("Нет");
+
+    if (const auto it =
+        m_sensorNames.find(signal.sensorId.value);
+        it != m_sensorNames.end())
+    {
+      return it->second;
+    }
+
+    return tr("Датчик #%1")
+      .arg(signal.sensorId.value);
+
+  case Archive:
+    return tr("%1 Гц")
+      .arg(static_cast<int>(signal.archiveRate));
   }
 
   return {};
@@ -125,13 +166,22 @@ QVariant ConfigurationSignalModel::headerData(
 
   switch (section)
   {
-  case 0:
+  case Name:
     return tr("Название");
 
-  case 1:
-    return tr("Вид");
+  case Source:
+    return tr("Источник");
 
-  case 2:
+  case Formula:
+    return tr("Формула");
+
+  case SignalType:
+    return tr("Тип сигнала");
+
+  case Sensor:
+    return tr("Датчик");
+
+  case Archive:
     return tr("Архив");
   }
 
@@ -234,7 +284,7 @@ bool ConfigurationSignalModel::updateSignalArchiveRate(
   m_signals[index.row()].archiveRate = rate;
 
   const QModelIndex changed =
-    this->index(index.row(), 2);
+    this->index(index.row(), Archive);
 
   emit dataChanged(
     changed,
@@ -273,6 +323,14 @@ bool ConfigurationSignalModel::updateSignalSensor(
 
   m_signals[index.row()].sensorId = sensorId;
 
+  const QModelIndex changed =
+    this->index(index.row(), Sensor);
+
+  emit dataChanged(
+    changed,
+    changed,
+    {Qt::DisplayRole});
+
   return true;
 }
 
@@ -305,6 +363,14 @@ bool ConfigurationSignalModel::updateSignalSignalType(
 
   m_signals[index.row()].signalType = type;
 
+  const QModelIndex changed =
+    this->index(index.row(), SignalType);
+
+  emit dataChanged(
+    changed,
+    changed,
+    {Qt::DisplayRole});
+
   return true;
 }
 
@@ -336,13 +402,13 @@ bool ConfigurationSignalModel::updateSignalSource(
   }
 
   m_signals[index.row()].source = SignalSource{tag};
-
+  
   emit rawSignalSourcesChanged();
 
   emit dataChanged(
-    index,
-    index,
-    {Qt::ForegroundRole});
+    this->index(index.row(), Name),
+    this->index(index.row(), Source),
+    {Qt::DisplayRole, Qt::ForegroundRole});
 
   return true;
 }
@@ -375,6 +441,14 @@ bool ConfigurationSignalModel::updateSignalFormula(
   }
 
   m_signals[index.row()].formula = formula.toStdString();
+
+  const QModelIndex changed =
+    this->index(index.row(), Formula);
+
+  emit dataChanged(
+    changed,
+    changed,
+    {Qt::DisplayRole});
 
   return true;
 }
@@ -469,25 +543,74 @@ void ConfigurationSignalModel::setTagSources(
   const std::vector<TagSourceInfo>& sources)
 {
   std::unordered_set<uint32_t> tags;
+  std::unordered_map<uint32_t, QString> names;
 
   for (const auto& source : sources)
+  {
     tags.insert(source.id.value);
 
-  if (tags == m_availableTags)
+    names.emplace(
+      source.id.value,
+      QString::fromStdString(source.name));
+  }
+
+  if (tags == m_availableTags &&
+      names == m_tagNames)
+  {
     return;
+  }
 
   m_availableTags = std::move(tags);
-
-qDebug() << "Available TagIds:";
-for (const auto tag : m_availableTags)
-qDebug() << tag;
+  m_tagNames = std::move(names);
 
   if (!m_signals.empty())
   {
     emit dataChanged(
-      index(0, 0),
-      index(rowCount() - 1, 0),
-      {Qt::ForegroundRole});
+      index(0, Name),
+      index(rowCount() - 1, Source),
+      {Qt::DisplayRole, Qt::ForegroundRole});
+  }
+}
+
+void ConfigurationSignalModel::setSignalTypes(
+  const std::vector<SignalTypeInfo>& types)
+{
+  m_signalTypeNames.clear();
+
+  for (const auto& type : types)
+  {
+    m_signalTypeNames.emplace(
+      type.id.value,
+      QString::fromStdString(type.name));
+  }
+
+  if (!m_signals.empty())
+  {
+    emit dataChanged(
+      index(0, SignalType),
+      index(rowCount() - 1, SignalType),
+      {Qt::DisplayRole});
+  }
+}
+
+void ConfigurationSignalModel::setSensors(
+  const std::vector<qds::Sensor>& sensors)
+{
+  m_sensorNames.clear();
+
+  for (const auto& sensor : sensors)
+  {
+    m_sensorNames.emplace(
+      sensor.id.value,
+      QString::fromStdString(sensor.name));
+  }
+
+  if (!m_signals.empty())
+  {
+    emit dataChanged(
+      index(0, Sensor),
+      index(rowCount() - 1, Sensor),
+      {Qt::DisplayRole});
   }
 }
 

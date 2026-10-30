@@ -30,6 +30,9 @@
 #include <QStyleHints>
 #include <QMessageBox>
 
+#include <filesystem>
+#include <system_error>
+
 namespace qds
 {
 
@@ -137,6 +140,9 @@ MainWindow::MainWindow(
       updateServerState(true);
       updateArchiveDirectory();
       updateControls();
+
+      updateArchiveStatistics();
+      m_archiveStatisticsTimer->start();
     });
 
   connect(
@@ -155,6 +161,9 @@ MainWindow::MainWindow(
         m_modulesTable->item(row, 2)
         ->setText(tr("Остановлен"));
       }
+
+      m_archiveStatisticsTimer->stop();
+      updateArchiveStatistics();
     });
 
   connect(
@@ -186,6 +195,7 @@ MainWindow::MainWindow(
     m_controller.isRunning());
 
   updateArchiveDirectory();
+  updateArchiveStatistics();
 
   // восстановим положение и состояние окна
   restoreWindowSettings();
@@ -346,6 +356,23 @@ void MainWindow::createStatusbar(const QString& databaseName)
 
   status->addPermanentWidget(
     m_archiveLabel, 1);
+
+  m_archiveStatisticsLabel =
+    new QLabel(this);
+
+  statusBar()->addPermanentWidget(
+    m_archiveStatisticsLabel);
+
+  m_archiveStatisticsTimer =
+    new QTimer(this);
+
+  m_archiveStatisticsTimer->setInterval(10000);
+
+  connect(
+    m_archiveStatisticsTimer,
+    &QTimer::timeout,
+    this,
+    &MainWindow::updateArchiveStatistics);
 
   status->addPermanentWidget(
     new QLabel(
@@ -633,6 +660,69 @@ void MainWindow::saveWindowSettings() const
     m_splitter);
 }
 
+void MainWindow::updateArchiveStatistics()
+{
+  const auto& current =
+    m_controller.currentArchiveDirectory();
+
+  const auto& directory =
+    current.empty()
+      ? m_controller.archiveDirectory()
+      : current;
+
+  if (directory.empty())
+    return;
+
+  std::error_code ec;
+
+  const auto space =
+    std::filesystem::space(directory, ec);
+
+  const QString freeSpace = ec
+                              ? tr("—")
+                              : QLocale().formattedDataSize(
+                                  static_cast<qint64>(space.available));
+
+  QString archiveSize = tr("—");
+
+  if (!current.empty())
+  {
+    std::uintmax_t total = 0;
+
+    std::filesystem::directory_iterator it(
+      current, ec);
+
+    const std::filesystem::directory_iterator end;
+
+    while (!ec && it != end)
+    {
+      std::error_code fileError;
+
+      if (it->is_regular_file(fileError))
+      {
+        const auto size =
+          it->file_size(fileError);
+
+        if (!fileError)
+          total += size;
+      }
+
+      it.increment(ec);
+    }
+
+    if (!ec)
+    {
+      archiveSize =
+        QLocale(QLocale::Russian, QLocale::Russia).formattedDataSize(
+          static_cast<qint64>(total));
+    }
+  }
+
+  m_archiveStatisticsLabel->setText(
+    tr("Архив: %1 · Свободно: %2")
+      .arg(archiveSize, freeSpace));
+}
+
 void MainWindow::closeEvent(QCloseEvent* event)
 {
   saveWindowSettings();
@@ -656,18 +746,21 @@ bool MainWindow::eventFilter(
     if (mouseEvent->button() != Qt::LeftButton)
       return false;
 
-    const auto& directory =
+    const auto& current =
       m_controller.currentArchiveDirectory();
+
+    const auto& directory =
+      current.empty()
+        ? m_controller.archiveDirectory()
+        : current;
 
     if (directory.empty())
       return true;
 
-    const QString path =
-      QString::fromStdWString(
-        directory.wstring());
-
     QDesktopServices::openUrl(
-      QUrl::fromLocalFile(path));
+      QUrl::fromLocalFile(
+        QString::fromStdWString(
+          directory.wstring())));
 
     return true;
   }

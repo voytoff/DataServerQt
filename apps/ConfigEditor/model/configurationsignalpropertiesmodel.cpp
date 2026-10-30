@@ -36,7 +36,7 @@ void ConfigurationSignalPropertiesModel::setItem(
       tr("Название"),
       QString::fromStdString(signal->name)
     });
-
+/*
     properties.push_back({
       PropertyId::Kind,
       tr("Вид"),
@@ -44,7 +44,7 @@ void ConfigurationSignalPropertiesModel::setItem(
         ? QStringLiteral("Raw")
         : QStringLiteral("Calculated")
     });
-
+*/
     if (signal->kind == SignalKind::Raw)
     {
       properties.push_back({

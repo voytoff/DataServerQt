@@ -63,14 +63,12 @@ public:
   enum class PropertyId
   {
     Name,
-    Kind,
+    //Kind,
     Source,
     Formula,
     SignalType,
     ArchiveRate,
-    //CalibrationMode,
     Sensor,
-    //PreprocessingFormula
   };
 
 private:

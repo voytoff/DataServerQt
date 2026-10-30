@@ -9,7 +9,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 REQUIRED COMPONENTS          Core Widgets Sql Svg)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Sql Svg)
 
-
 add_library(DataWidgets SHARED
   datawidgets_export.h
   basetableview.h basetableview.cpp
@@ -19,7 +18,7 @@ add_library(DataWidgets SHARED
   paddeditemdelegate.h paddeditemdelegate.cpp
   colorscheme.h colorscheme.cpp
   applicationsettingsdialog.h applicationsettingsdialog.cpp applicationsettingsdialog.ui
-  res.qrc
+  rowheightdelegate.h rowheightdelegate.cpp
 )
 
 target_include_directories(DataWidgets

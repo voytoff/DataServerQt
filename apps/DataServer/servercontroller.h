@@ -66,6 +66,9 @@ public:
   bool setConfigurationId(
     ConfigurationId id);
 
+  [[nodiscard]]
+  const std::filesystem::path& archiveDirectory() const noexcept;
+
 private:
   bool registerDataSources();
   bool initializeArchive();

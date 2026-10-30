@@ -6,6 +6,7 @@
 #include "configurationpropertiesdelegate.h"
 #include "configurationsignalpropertiesdelegate.h"
 #include "configurationsignaldialog.h"
+#include "rowheightdelegate.h"
 #include "sensordialog.h"
 #include "calibrationdialog.h"
 #include "configurationdialog.h"
@@ -39,6 +40,8 @@
 #include <QApplication>
 #include <QStyleHints>
 
+#include <QToolButton>
+
 namespace qds
 {
 
@@ -54,20 +57,31 @@ ConfigurationEditor::ConfigurationEditor(
   m_configurationTree =
     new QTreeView(this);
 
-  auto* vHeader = m_configurationTree->header();
+  m_configurationTree->setItemDelegate(
+    new RowHeightDelegate(24, m_configurationTree));
 
-  m_configurationTree->header()->hide();
+  auto* header = m_configurationTree->header();
+
+  header->show();
+  header->setStretchLastSection(true);
 
   m_configurationTree->setFrameShape(
     QFrame::NoFrame);
-
-  vHeader->setDefaultSectionSize(40);
-
 
   m_treeModel =
     new ConfigurationTreeModel(
       m_repository,
       this);
+
+  m_configurationTree->setModel(
+    m_treeModel);
+
+  header->setSectionResizeMode(
+    0, QHeaderView::Interactive);
+  header->setSectionResizeMode(
+    1, QHeaderView::Stretch);
+
+  m_configurationTree->setColumnWidth(0, 200);
 
   m_tagsView =
     new BaseTableView(150, 4, 0, 4, 0, this);
@@ -85,20 +99,69 @@ ConfigurationEditor::ConfigurationEditor(
       m_tagsView));
 
 
-  m_signalsView =
-    new BaseTableView(150, 4, 0, 4, 0, this);
-
+  //=============================================================
   m_signalModel =
     new ConfigurationSignalModel(
       m_repository, this);
 
-  m_signalsView->setModel(
-    m_signalModel);
+  m_rawSignalsProxy =
+    new QSortFilterProxyModel(this);
 
-  m_signalsView->setEditTriggers(
-    QAbstractItemView::NoEditTriggers);
+  m_rawSignalsProxy->setSourceModel(m_signalModel);
+  m_rawSignalsProxy->setFilterRole(
+    ConfigurationSignalModel::KindRole);
+  m_rawSignalsProxy->setFilterKeyColumn(
+    ConfigurationSignalModel::Name);
+  m_rawSignalsProxy->setFilterFixedString(
+    QString::number(static_cast<int>(SignalKind::Raw)));
 
-  m_signalsView->verticalHeader()->hide();
+  m_calculatedSignalsProxy =
+    new QSortFilterProxyModel(this);
+
+  m_calculatedSignalsProxy->setSourceModel(m_signalModel);
+  m_calculatedSignalsProxy->setFilterRole(
+    ConfigurationSignalModel::KindRole);
+  m_calculatedSignalsProxy->setFilterKeyColumn(
+    ConfigurationSignalModel::Name);
+  m_calculatedSignalsProxy->setFilterFixedString(
+    QString::number(static_cast<int>(SignalKind::Calculated)));
+
+  m_rawSignalsView =
+    new BaseTableView(150, 4, 0, 4, 0, this);
+
+  m_calculatedSignalsView =
+    new BaseTableView(150, 4, 0, 4, 0, this);
+
+  m_rawSignalsView->setModel(m_rawSignalsProxy);
+  m_calculatedSignalsView->setModel(
+    m_calculatedSignalsProxy);
+
+  for (auto* view :
+       {m_rawSignalsView, m_calculatedSignalsView})
+  {
+    view->setEditTriggers(
+      QAbstractItemView::NoEditTriggers);
+
+    view->verticalHeader()->hide();
+
+    view->setSelectionBehavior(
+      QAbstractItemView::SelectRows);
+
+    view->setSelectionMode(
+      QAbstractItemView::SingleSelection);
+  }
+
+  // Raw: название, источник, тип сигнала, архив.
+  m_rawSignalsView->setColumnHidden(
+    ConfigurationSignalModel::Formula, true);
+
+  m_rawSignalsView->setColumnHidden(
+    ConfigurationSignalModel::Sensor, true);
+
+  // Calculated: название, формула, тип, датчик, архив.
+  m_calculatedSignalsView->setColumnHidden(
+    ConfigurationSignalModel::Source, true);
+  //=============================================================
 
 
   m_signalPropertiesView =
@@ -149,10 +212,17 @@ ConfigurationEditor::ConfigurationEditor(
     new ConfigurationSignalPropertiesDelegate(
       m_signalPropertiesView);
 
+  m_signalModel->setSignalTypes(signalTypes);
+  m_signalModel->setSensors(loaded);
+
   m_signalPropertiesModel->setSignalTypes(signalTypes);
   m_signalPropertiesModel->setSensors(loaded);
-  m_signalPropertiesDelegate->setSignalTypes(std::move(signalTypes));
-  m_signalPropertiesDelegate->setSensors(std::move(loaded));
+
+  m_signalPropertiesDelegate->setSignalTypes(
+    std::move(signalTypes));
+
+  m_signalPropertiesDelegate->setSensors(
+    std::move(loaded));
 
   m_signalPropertiesView->setItemDelegateForColumn(1, m_signalPropertiesDelegate);
 
@@ -176,14 +246,30 @@ ConfigurationEditor::ConfigurationEditor(
     themedSvgIcon(":/images/module.svg"),
     tr("Модули"));
 
+
+  //================================================
+  m_signalTabs =
+    new QTabWidget(this);
+
+  m_signalTabs->addTab(
+    m_rawSignalsView,
+    tr("Raw"));
+
+  m_signalTabs->addTab(
+    m_calculatedSignalsView,
+    tr("Calculated"));
+
   m_signalsSplitter =
     new QSplitter(Qt::Vertical, this);
 
-  m_signalsSplitter->addWidget(m_signalsView);
-  m_signalsSplitter->addWidget(m_signalPropertiesView);
+  m_signalsSplitter->addWidget(m_signalTabs);
+  m_signalsSplitter->addWidget(
+    m_signalPropertiesView);
 
   m_signalsSplitter->setStretchFactor(0, 1);
   m_signalsSplitter->setStretchFactor(1, 1);
+  //================================================
+
 
   m_tabs->addTab(
     m_signalsSplitter,
@@ -364,8 +450,6 @@ ConfigurationEditor::ConfigurationEditor(
   layout->setSpacing(0);
 
   m_configurationCombo->setCurrentIndex(-1);
-  m_configurationTree->setModel(
-    m_treeModel);
 
 
   // изменение выделения в дереве объектов
@@ -451,17 +535,45 @@ ConfigurationEditor::ConfigurationEditor(
 
   // обрабатываем событике изменения сигнала
   connect(
-    m_signalsView->selectionModel(),
+    m_rawSignalsView->selectionModel(),
     &QItemSelectionModel::currentChanged,
     this,
-    [this](const QModelIndex& current,
-           const QModelIndex&)
+    [this]()
     {
-      m_signalPropertiesModel->setItem(current);
+      if (m_signalTabs->currentIndex() != 0)
+        return;
 
-      m_removeAction->setEnabled(
-        m_tabs->currentIndex() == 1 &&
-        current.isValid());
+      m_signalPropertiesModel->setItem(
+        currentSignalIndex());
+
+      updateActions();
+    });
+
+  connect(
+    m_calculatedSignalsView->selectionModel(),
+    &QItemSelectionModel::currentChanged,
+    this,
+    [this]()
+    {
+      if (m_signalTabs->currentIndex() != 1)
+        return;
+
+      m_signalPropertiesModel->setItem(
+        currentSignalIndex());
+
+      updateActions();
+    });
+
+  connect(
+    m_signalTabs,
+    &QTabWidget::currentChanged,
+    this,
+    [this]()
+    {
+      m_signalPropertiesModel->setItem(
+        currentSignalIndex());
+
+      updateActions();
     });
 
   // регистрируем обработку и отображение ошибок
@@ -489,6 +601,21 @@ ConfigurationEditor::ConfigurationEditor(
         this,
         tr("Ошибка изменения конфигурации"),
         message);
+    });
+
+  // при удалении выбранной строки прокси может изменить текущий индекс.
+  // Чтобы нижняя панель гарантированно не показывала удалённый сигнал,
+  // дополнительно подключим rowsRemoved исходной модели к обновлению свойств
+  connect(
+    m_signalModel,
+    &QAbstractItemModel::rowsRemoved,
+    this,
+    [this]()
+    {
+      m_signalPropertiesModel->setItem(
+        currentSignalIndex());
+
+      updateActions();
     });
 
   // ошибки изменения свойств сигнала
@@ -853,7 +980,7 @@ void ConfigurationEditor::createToolbar(
     &QAction::triggered,
     this,
     [this]()
-    {
+    {      
       if (m_tabs->currentWidget() == m_sensorTypesView)
       {
         bool ok = false;
@@ -919,13 +1046,11 @@ void ConfigurationEditor::createToolbar(
 
         return;
       }
-      else if (m_tabs->currentIndex() != 1 ||
-        !currentConfiguration())
+      else if (m_tabs->currentWidget() == m_signalsSplitter)
       {
-        return;
-      }
-      else if (m_tabs->currentIndex() == 1)
-      {
+        if (!currentConfiguration())
+          return;
+
         ConfigurationSignalDialog dialog(this);
 
         if (dialog.exec() != QDialog::Accepted)
@@ -934,8 +1059,41 @@ void ConfigurationEditor::createToolbar(
         const QString name = dialog.signalName();
         const SignalKind kind = dialog.signalKind();
 
-        if (m_signalModel->createSignal(name, kind))
-          m_signalsView->selectRow(m_signalModel->rowCount() - 1);
+        if (!m_signalModel->createSignal(name, kind))
+          return;
+
+        m_signalTabs->setCurrentIndex(
+          kind == SignalKind::Raw ? 0 : 1);
+
+        auto* view = currentSignalsView();
+
+        auto* proxy =
+          qobject_cast<QSortFilterProxyModel*>(
+            view->model());
+
+        if (!proxy)
+          return;
+
+        const QModelIndex sourceIndex =
+          m_signalModel->index(
+            m_signalModel->rowCount() - 1,
+            ConfigurationSignalModel::Name);
+
+        const QModelIndex proxyIndex =
+          proxy->mapFromSource(sourceIndex);
+
+        if (!proxyIndex.isValid())
+          return;
+
+        view->setCurrentIndex(proxyIndex);
+        view->selectRow(proxyIndex.row());
+        view->scrollTo(proxyIndex);
+
+        m_signalPropertiesModel->setItem(sourceIndex);
+
+        updateActions();
+
+        return;
       }
     });
 
@@ -1001,10 +1159,10 @@ void ConfigurationEditor::createToolbar(
 
         return;
       }
-      else if (m_tabs->currentIndex() == 1)
+      else if (m_tabs->currentWidget() == m_signalsSplitter)
       {
         const QModelIndex current =
-          m_signalsView->currentIndex();
+          currentSignalIndex();
 
         const auto* signal =
           m_signalModel->signal(current);
@@ -1027,8 +1185,15 @@ void ConfigurationEditor::createToolbar(
         if (answer != QMessageBox::Yes)
           return;
 
-        (void)m_signalModel->removeSignal(
-          current);
+        if (!m_signalModel->removeSignal(current))
+          return;
+
+        m_signalPropertiesModel->setItem(
+          currentSignalIndex());
+
+        updateActions();
+
+        return;
       }
     });
 
@@ -1057,9 +1222,7 @@ void ConfigurationEditor::updateActions()
     bool(currentConfiguration());
 
   const bool signalsTab =
-    m_tabs->currentIndex() == 1;
-  //const bool signalsTab =
-  //  m_tabs->currentWidget() == m_signalsView->parentWidget();
+    m_tabs->currentWidget() == m_signalsSplitter;
 
   const bool sensorTypesTab =
     m_tabs->currentWidget() == m_sensorTypesView;
@@ -1068,7 +1231,7 @@ void ConfigurationEditor::updateActions()
     m_tabs->currentWidget() == m_sensorsSplitter;
 
   const bool hasSignal =
-    m_signalsView->currentIndex().isValid();
+    currentSignalIndex().isValid();
 
   const bool hasSensorType =
     m_sensorTypesView->currentIndex().isValid();
@@ -1514,6 +1677,8 @@ void ConfigurationEditor::configurationChanged()
   const ConfigurationId configuration =
     currentConfiguration();
 
+  m_signalPropertiesModel->setItem({});
+
   if (!configuration)
   {
     m_propertiesModel->setItem({});
@@ -1662,6 +1827,34 @@ void ConfigurationEditor::showSettings()
     });
 
   dialog.exec();
+}
+
+BaseTableView*
+ConfigurationEditor::currentSignalsView() const noexcept
+{
+  return m_signalTabs->currentIndex() == 0
+           ? m_rawSignalsView
+           : m_calculatedSignalsView;
+}
+
+QModelIndex ConfigurationEditor::currentSignalIndex() const
+{
+  const auto* view = currentSignalsView();
+
+  const QModelIndex current =
+    view->currentIndex();
+
+  if (!current.isValid())
+    return {};
+
+  const auto* proxy =
+    qobject_cast<const QSortFilterProxyModel*>(
+      view->model());
+
+  if (!proxy)
+    return {};
+
+  return proxy->mapToSource(current);
 }
 
 }

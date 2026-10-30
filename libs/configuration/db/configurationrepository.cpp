@@ -1659,7 +1659,7 @@ ORDER BY m.serial, ct.channel)",
 
     info.name =
       QString("%1 (%2)")
-        .arg(query.value("channel").toUInt())
+        .arg(query.value("channel").toUInt() + 1)
         .arg(query.value("serial").toString())
         .toStdString();
 

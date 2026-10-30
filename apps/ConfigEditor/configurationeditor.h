@@ -14,6 +14,7 @@
 #include "sensorpropertiesmodel.h"
 
 #include <QWidget>
+#include <QSortFilterProxyModel>
 
 class QSqlTableModel;
 class QSqlRelationalTableModel;
@@ -42,6 +43,7 @@ public:
 
   void saveWindowSettings(
     const MainWindow *window) const;
+
   void restoreWindowSettings(
     MainWindow *window);
 
@@ -69,6 +71,12 @@ private:
 
   void showSettings();
 
+  [[nodiscard]]
+  BaseTableView* currentSignalsView() const noexcept;
+
+  [[nodiscard]]
+  QModelIndex currentSignalIndex() const;
+
 private:
   ConfigurationSelector* m_configurationCombo = nullptr;
   BaseTableView* m_tagsView = nullptr;
@@ -83,7 +91,6 @@ private:
   ConfigurationPropertiesModel* m_propertiesModel = nullptr;
 
   ConfigurationSignalModel* m_signalModel = nullptr;
-  BaseTableView* m_signalsView = nullptr;
 
   ConfigurationSignalPropertiesModel* m_signalPropertiesModel = nullptr;
 
@@ -105,7 +112,6 @@ private:
   QSplitter* m_modulesSplitter = nullptr;
   QSplitter* m_signalsSplitter = nullptr;
 
-
   QTabWidget* m_tabs = nullptr;
 
   QToolBar* m_toolBar = nullptr;
@@ -119,6 +125,15 @@ private:
   QAction* m_configurationRemoveAction = nullptr;
   QAction* m_themeAction = nullptr;
   QAction* m_settingsAction = nullptr;
+
+  // разделение моделей
+  QTabWidget* m_signalTabs = nullptr;
+
+  BaseTableView* m_rawSignalsView = nullptr;
+  BaseTableView* m_calculatedSignalsView = nullptr;
+
+  QSortFilterProxyModel* m_rawSignalsProxy = nullptr;
+  QSortFilterProxyModel* m_calculatedSignalsProxy = nullptr;
 
 signals:
   void statusMessage(

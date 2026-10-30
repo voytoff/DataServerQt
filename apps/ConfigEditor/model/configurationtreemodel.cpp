@@ -1,4 +1,5 @@
 #include "configurationtreemodel.h"
+#include "modulesettingsformatter.h"
 #include "moduletypeinfo.h"
 
 #include <vector>
@@ -242,10 +243,32 @@ int ConfigurationTreeModel::rowCount(
     item->children().size());
 }
 
+QVariant ConfigurationTreeModel::headerData(
+  int section,
+  Qt::Orientation orientation,
+  int role) const
+{
+  if (orientation != Qt::Horizontal ||
+      role != Qt::DisplayRole)
+    return {};
+
+  switch (section)
+  {
+  case 0:
+    return tr("Объект");
+
+  case 1:
+    return tr("Параметры");
+
+  default:
+    return {};
+  }
+}
+
 int ConfigurationTreeModel::columnCount(
   const QModelIndex&) const
 {
-  return 1;
+  return 2;
 }
 
 QVariant ConfigurationTreeModel::data(
@@ -272,6 +295,39 @@ QVariant ConfigurationTreeModel::data(
   const auto& itemData =
     item->data();
 
+  if (index.column() == 1)
+  {
+    if (role != Qt::DisplayRole)
+      return {};
+
+    if (const auto* module =
+        std::get_if<ModuleItemData>(&itemData))
+    {
+      return ModuleSettingsFormatter::moduleText(*module);
+    }
+
+    if (const auto* channel =
+        std::get_if<ChannelItemData>(&itemData))
+    {
+      const auto* parentItem = item->parent();
+
+      if (!parentItem)
+        return {};
+
+      const auto* module =
+        std::get_if<ModuleItemData>(
+          &parentItem->data());
+
+      if (!module)
+        return {};
+
+      return ModuleSettingsFormatter::channelText(
+        *module, *channel);
+    }
+
+    return {};
+  }
+
   if (const auto* crate =
     std::get_if<CrateItemData>(&itemData))
   {
@@ -292,7 +348,7 @@ QVariant ConfigurationTreeModel::data(
            std::get_if<ChannelItemData>(&itemData))
   {
     if (role == Qt::DisplayRole)
-      return channel->channel.value;
+      return channel->channel.value + 1;
 
     if (role == Qt::CheckStateRole)
       return channel->active
@@ -319,6 +375,7 @@ bool ConfigurationTreeModel::setData(
   int role)
 {
   if (!index.isValid() ||
+      index.column() != 0 ||
       role != Qt::CheckStateRole)
   {
     return false;
@@ -468,8 +525,11 @@ bool ConfigurationTreeModel::setData(
 
   emit dataChanged(
     index,
-    index,
-    {Qt::CheckStateRole});
+    this->index(index.row(), 1, index.parent()),
+    {
+      Qt::CheckStateRole,
+      Qt::DisplayRole
+    });
 
   const int count =
     static_cast<int>(item->children().size());
@@ -492,6 +552,9 @@ Qt::ItemFlags ConfigurationTreeModel::flags(
   auto result = QAbstractItemModel::flags(index);
 
   if (!index.isValid())
+    return result;
+
+  if (index.column() != 0)
     return result;
 
   const auto* item =

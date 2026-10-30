@@ -287,6 +287,12 @@ bool ServerController::setConfigurationId(
   return true;
 }
 
+const std::filesystem::path&
+ServerController::archiveDirectory() const noexcept
+{
+  return m_archiveDirectory;
+}
+
 void ServerController::onDataServerStopped()
 {
   m_archive.close();

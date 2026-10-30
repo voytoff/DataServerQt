@@ -1,7 +1,10 @@
 #pragma once
 
 #include "db/configurationrepository.h"
+#include "sensor.h"
+#include "signaldefinition.h"
 
+#include <unordered_map>
 #include <QObject>
 #include <QAbstractTableModel>
 #include <QColor>
@@ -86,11 +89,37 @@ public:
   void setTagSources(
     const std::vector<TagSourceInfo>& sources);
 
+  enum Column
+  {
+    Name = 0,
+    Source,
+    Formula,
+    SignalType,
+    Sensor,
+    Archive,
+    ColumnCount
+  };
+
+  void setSignalTypes(
+    const std::vector<SignalTypeInfo>& types);
+
+  void setSensors(
+    const std::vector<qds::Sensor>& sensors);
+
+  enum Role
+  {
+    KindRole = Qt::UserRole + 1
+  };
+
 private:
   ConfigurationRepository& m_repository;
   ConfigurationId m_configuration;
   std::vector<SignalDefinition> m_signals;
   std::unordered_set<uint32_t> m_availableTags;
+
+  std::unordered_map<uint32_t, QString> m_tagNames;
+  std::unordered_map<uint32_t, QString> m_signalTypeNames;
+  std::unordered_map<uint32_t, QString> m_sensorNames;
 
 signals:
   void operationFailed(
