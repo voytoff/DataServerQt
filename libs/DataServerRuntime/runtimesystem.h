@@ -13,7 +13,7 @@
 #include "frameassembler.h"
 #include "signalmemorylayout.h"
 #include "signalprocessor.h"
-#include "db/sensorrepository.h"
+#include "sensorrepository.h"
 
 #include <memory>
 

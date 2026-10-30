@@ -13,6 +13,7 @@ bool IdentifierResolver::resolve(
   FormulaNode& root,
   std::vector<SignalId>& dependencies)
 {
+  m_lastError.clear();
   dependencies.clear();
 
   return resolveNode(
@@ -33,7 +34,25 @@ bool IdentifierResolver::resolveNode(
         node.identifier);
 
     if (definition == nullptr)
-      return false;
+    {
+      return fail(
+        "Неизвестный сигнал: " +
+        node.identifier);
+    }
+
+    const auto reference =
+      m_layout.reference(
+        definition->id);
+
+    if (!reference.isValid())
+    {
+      return fail(
+        "Сигнал отсутствует в памяти: " +
+        node.identifier +
+        " (SignalId: " +
+        std::to_string(definition->id.value) +
+        ")");
+    }
 
     if (std::find(
           dependencies.begin(),
@@ -43,13 +62,6 @@ bool IdentifierResolver::resolveNode(
       dependencies.push_back(
         definition->id);
     }
-
-    const auto reference =
-      m_layout.reference(
-        definition->id);
-
-    if (!reference.isValid())
-      return false;
 
     node.signal = reference;
     node.type = FormulaNodeType::Signal;
@@ -76,7 +88,7 @@ bool IdentifierResolver::resolveNode(
   case FormulaNodeType::Negate:
   {
     if (!node.left)
-      return false;
+      return fail("Отсутствует операнд унарной операции");
 
     return resolveNode(
       *node.left,
@@ -88,7 +100,7 @@ bool IdentifierResolver::resolveNode(
     for (auto& argument : node.arguments)
     {
       if (!argument)
-        return false;
+        return fail("Отсутствует аргумент функции");
 
       if (!resolveNode(
             *argument,
@@ -103,7 +115,21 @@ bool IdentifierResolver::resolveNode(
     return true;
   }
 
+return fail("Неизвестный тип узла формулы");
+}
+
+bool IdentifierResolver::fail(std::string message)
+{
+  if (m_lastError.empty())
+    m_lastError = std::move(message);
+
   return false;
+}
+
+const std::string&
+IdentifierResolver::lastError() const noexcept
+{
+  return m_lastError;
 }
 
 }

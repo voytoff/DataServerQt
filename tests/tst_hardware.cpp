@@ -282,7 +282,7 @@ void tst_hardware::test_ltr11configurationbuilder()
   Ltr11ConfigurationBuilder builder;
   TestLogger logger;
 
-  QVERIFY(builder.build(cfg, config, logger));
+  QVERIFY(builder.build(cfg, config));
 
   QCOMPARE(config.address, QHostAddress("127.0.0.1").toIPv4Address());
   QCOMPARE(config.channelRate, 1000);
@@ -310,7 +310,7 @@ void tst_hardware::test_ltr11configurationbuilder()
     );
   QCOMPARE(cfg.tags.size(), 3);
 
-  QVERIFY(!builder.build(cfg, config, logger));
+  QVERIFY(!builder.build(cfg, config));
 
   cfg.tags.pop_back();
 
@@ -319,7 +319,7 @@ void tst_hardware::test_ltr11configurationbuilder()
     );
   QCOMPARE(cfg.tags.size(), 3);
 
-  QVERIFY(!builder.build(cfg, config, logger));
+  QVERIFY(!builder.build(cfg, config));
 
   cfg.tags.pop_back();
 
@@ -327,7 +327,7 @@ void tst_hardware::test_ltr11configurationbuilder()
     {TagId{9}, ModuleId{0}, ChannelId{17}, true, QJsonDocument::fromJson(R"({})").object()}
     );
 
-  QVERIFY(!builder.build(cfg, config, logger));
+  QVERIFY(!builder.build(cfg, config));
 
   cfg.tags.pop_back();
 
@@ -336,7 +336,7 @@ void tst_hardware::test_ltr11configurationbuilder()
     );
   QCOMPARE(cfg.tags.size(), 3);
 
-  QVERIFY(!builder.build(cfg, config, logger));
+  QVERIFY(!builder.build(cfg, config));
 
   cfg.tags.pop_back();
 
@@ -345,7 +345,7 @@ void tst_hardware::test_ltr11configurationbuilder()
     );
   QCOMPARE(cfg.tags.size(), 3);
 
-  QVERIFY(!builder.build(cfg, config, logger));
+  QVERIFY(!builder.build(cfg, config));
 
   QCOMPARE(config.address, validConfiguration.address);
   QCOMPARE(config.channels.size(), validConfiguration.channels.size());
@@ -353,17 +353,17 @@ void tst_hardware::test_ltr11configurationbuilder()
 
   cfg.tags.pop_back();
   QCOMPARE(cfg.tags.size(), 2);
-  QVERIFY(builder.build(cfg, config, logger));
+  QVERIFY(builder.build(cfg, config));
 
 
   cfg.crate.host = "127.0.256.1";
-  QVERIFY(!builder.build(cfg, config, logger));
+  QVERIFY(!builder.build(cfg, config));
 
   cfg.crate.host = "";
-  QVERIFY(builder.build(cfg, config, logger));
+  QVERIFY(builder.build(cfg, config));
 
   cfg.tags.clear();
-  QVERIFY(!builder.build(cfg, config, logger));
+  QVERIFY(!builder.build(cfg, config));
 }
 
 void tst_hardware::test_acquire_returns_last_frame()

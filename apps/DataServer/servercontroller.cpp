@@ -144,12 +144,14 @@ bool ServerController::registerDataSources()
 
           if (!builder.build(
                 cfg,
-                configuration,
-                m_guiLogger))
+                configuration))
           {
             m_guiLogger.error(
-              "LTR11: failed to build configuration, module id=" +
-              std::to_string(cfg.module.id.value));
+              "Ошибка конфигурации модуля LTR11 "
+              "(ModuleId: " +
+              std::to_string(cfg.module.id.value) +
+              "): " +
+              builder.lastError());
 
             return nullptr;
           }
@@ -186,7 +188,14 @@ bool ServerController::initializeArchive()
     return false;
 
   SignalMemoryLayout layout;
-  layout.build(m_configuration);
+  if (!layout.build(m_configuration))
+  {
+    m_guiLogger.error(
+      "Ошибка построения памяти сигналов: " +
+      layout.lastError());
+
+    return false;
+  }
 
   const QString timestamp =
     QDateTime::currentDateTime().toString(

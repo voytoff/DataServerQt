@@ -584,7 +584,7 @@ void tst_database::test_database_archive()
   // ------------------------------------------------------------
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   auto directory =
     getCurrentFolder();
@@ -1297,7 +1297,7 @@ void tst_database::test_publisher()
       cfg));
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+  QVERIFY(layout.build(cfg));
 
   BufferManager buffers;
   buffers.initialize(layout);

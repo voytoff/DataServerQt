@@ -1,25 +1,14 @@
 #include <qtestcase.h>
 #include "tst_signalprocessor.h"
-#include "buffermanager.h"
 #include "calculationplan.h"
 #include "calculationcompiler.h"
-#include "dataengine.h"
-#include "datasourcefactory.h"
-#include "datasourcemanager.h"
 #include "db/calibrationrepository.h"
-#include "failoncedatasource.h"
-#include "fakedatasource.h"
-#include "fakeschedulerclock.h"
 #include "formulabuilder.h"
 #include "parser/formulaparser.h"
 #include "parser/identifierresolver.h"
 #include "signalprocessor.h"
 #include "systemconfiguration.h"
-#include "qds/testarchivewriter.h"
-#include "testdatasource.h"
-#include "qds/testpublisher.h"
 #include "testsrv.h"
-#include "testlogger.h"
 
 tst_signalprocessor::tst_signalprocessor() { }
 tst_signalprocessor::~tst_signalprocessor() = default;
@@ -60,7 +49,7 @@ void tst_signalprocessor::test_calculationPlan_base()
   SystemConfiguration cfg = createTestConfig_calculate();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   FormulaAstRepository formulas;
 
@@ -106,7 +95,7 @@ void tst_signalprocessor::test_calculationPlan_failAst()
   SystemConfiguration cfg = createTestConfig_calculate();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   FormulaAstRepository formulas;
 
@@ -134,7 +123,7 @@ void tst_signalprocessor::test_calculationPlan_cycle()
   SystemConfiguration cfg = createTestConfig_cycle();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+  QVERIFY(layout.build(cfg));
 
   FormulaAstRepository formulas;
 
@@ -162,7 +151,7 @@ void tst_signalprocessor::test_calculationPlan_rebuildInvalid()
   SystemConfiguration cfg = createTestConfig_calculate();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   FormulaAstRepository formulas;
 
@@ -198,7 +187,7 @@ void tst_signalprocessor::test_signalProcessor_calculate()
     createTestConfig_calculate();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   RawMemory raw;
   CalculatedMemory calculated;
@@ -274,7 +263,7 @@ void tst_signalprocessor::test_signalProcessor_calibrationOwn()
   signal->sensorId = SensorId{1};
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   RawMemory raw;
   CalculatedMemory calculated;
@@ -365,7 +354,7 @@ void tst_signalprocessor::test_signalProcessor_calibrationByType()
   signal->sensorId = SensorId{1};
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   RawMemory raw;
   CalculatedMemory calculated;
@@ -464,7 +453,7 @@ void tst_signalprocessor::test_signalProcessor_fail()
   signal->sensorId = SensorId{1};
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   RawMemory raw;
   CalculatedMemory calculated;
@@ -536,7 +525,7 @@ void tst_signalprocessor::test_signalProcessor_failOnceDataSource()
     }));
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   DataSourceManager manager;
 
@@ -665,7 +654,7 @@ void tst_signalprocessor::test_signalProcessor_failFormula()
     }));
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   DataSourceManager manager;
 
@@ -745,7 +734,7 @@ void tst_signalprocessor::test_signalProcessor_cycle()
     }));
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   DataSourceManager manager;
 
@@ -861,7 +850,7 @@ void tst_signalprocessor::test_calculation_plan()
   using namespace qds;
   SystemConfiguration cfg = createTestConfig03();
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   CalculationPlan plan;
 
@@ -881,7 +870,7 @@ void tst_signalprocessor::test_calculation_line()
   using namespace qds;
   SystemConfiguration cfg = createTestConfig04();
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   CalculationPlan plan;
 
@@ -940,7 +929,7 @@ void tst_signalprocessor::test_calculation_branching()
   using namespace qds;
   SystemConfiguration cfg = createTestConfig05();
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   CalculationPlan plan;
 
@@ -991,7 +980,7 @@ void tst_signalprocessor::test_calculation_independent()
   using namespace qds;
   SystemConfiguration cfg = createTestConfig06();
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   CalculationPlan plan;
 
@@ -1034,7 +1023,7 @@ void tst_signalprocessor::test_calculation_cycle()
   using namespace qds;
   SystemConfiguration cfg = createTestConfig_cycle();
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   CalculationPlan plan;
 
@@ -1052,7 +1041,7 @@ void tst_signalprocessor::test_calculation_selfReference()
   using namespace qds;
   SystemConfiguration cfg = createTestConfig_selfReference();
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   CalculationPlan plan;
 
@@ -1070,7 +1059,7 @@ void tst_signalprocessor::test_calculation_bigGraph()
   using namespace qds;
   SystemConfiguration cfg = createTestConfig09();
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   CalculationPlan plan;
 
@@ -1135,7 +1124,7 @@ void tst_signalprocessor::test_calculation_calculationProcessor()
   using namespace qds;
   SystemConfiguration cfg = createTestConfig_Copy_Add();
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
   BufferManager manager;
   manager.initialize(layout);
 
@@ -1220,7 +1209,7 @@ void tst_signalprocessor::test_calculationCompiler_failFormula()
   using namespace qds;
   SystemConfiguration cfg = createTestConfig_Copy_Add();
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
   BufferManager manager;
   manager.initialize(layout);
 
@@ -1242,7 +1231,7 @@ void tst_signalprocessor::test_calculationCompiler_unknownSignalDependency()
   using namespace qds;
   SystemConfiguration cfg = createTestConfigUnknownDependency();
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
   BufferManager manager;
   manager.initialize(layout);
 
@@ -1262,7 +1251,7 @@ void tst_signalprocessor::test_calculationProcessor_failingFormula()
   using namespace qds;
   SystemConfiguration cfg = createTestConfig_Copy_Add();
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
   BufferManager manager;
   manager.initialize(layout);
 
@@ -1288,7 +1277,7 @@ void tst_signalprocessor::test_calculationProcessor_emptyCalculationPlan()
   using namespace qds;
   SystemConfiguration cfg = createTestConfig_Copy_Add();
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
   BufferManager manager;
   manager.initialize(layout);
 
@@ -1306,7 +1295,7 @@ void tst_signalprocessor::test_calculationProcessor_formulaContext()
   using namespace qds;
   SystemConfiguration cfg = createTestConfig_Copy_Add();
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
   BufferManager manager;
   manager.initialize(layout);
 

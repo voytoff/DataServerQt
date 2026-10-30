@@ -17,7 +17,7 @@ void tst_publisher::test_publish_reuseWriter()
   SystemConfiguration cfg  = createTestConfig_calculate();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+  QVERIFY(layout.build(cfg));
 
   TestPublisherSender sender;
   SubscriptionManager subscriptions;
@@ -167,7 +167,7 @@ void tst_publisher::test_publish_failSignal()
   SystemConfiguration cfg  = createTestConfig_calculate();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+  QVERIFY(layout.build(cfg));
 
   TestPublisherSender sender;
   SubscriptionManager subscriptions;
@@ -322,7 +322,7 @@ void tst_publisher::test_publish_publishRate()
   SystemConfiguration cfg  = createTestConfig_calculate();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   TestPublisherSender sender;
   SubscriptionManager subscriptions;
@@ -455,7 +455,7 @@ void tst_publisher::test_publish_phase_preserving()
     createTestConfig_calculate();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   TestPublisherSender sender;
   SubscriptionManager subscriptions;
@@ -653,7 +653,7 @@ void tst_publisher::test_publish_sendFailure()
     createTestConfig_calculate();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   TestPublisherSender sender;
   SubscriptionManager subscriptions;
@@ -789,7 +789,7 @@ void tst_publisher::test_publish_sendFailure_afterStart()
     createTestConfig_calculate();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   TestPublisherSender sender;
   SubscriptionManager subscriptions;
@@ -963,7 +963,7 @@ void tst_publisher::test_publish_zeroFrameRate()
     createTestConfig_calculate();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   TestPublisherSender sender;
   SubscriptionManager subscriptions;
@@ -1037,7 +1037,7 @@ void tst_publisher::test_publish_zeroSubscriptionRate()
     createTestConfig_calculate();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   TestPublisherSender sender;
   SubscriptionManager subscriptions;
@@ -1111,7 +1111,7 @@ void tst_publisher::test_publish_subscriptionRateAboveFrameRate()
     createTestConfig_calculate();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   TestPublisherSender sender;
   SubscriptionManager subscriptions;
@@ -1185,7 +1185,7 @@ void tst_publisher::test_publish_subscriptionRateNotDivisor()
     createTestConfig_calculate();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   TestPublisherSender sender;
   SubscriptionManager subscriptions;
@@ -1257,7 +1257,7 @@ void tst_publisher::test_publish_failSubscription()
   SystemConfiguration cfg  = createTestConfig_calculate();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   TestPublisherSender sender;
   SubscriptionManager subscriptions;
@@ -1386,7 +1386,7 @@ void tst_publisher::test_publish_sequenceWraparound()
     createTestConfig_calculate();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+    QVERIFY(layout.build(cfg));
 
   TestPublisherSender sender;
   SubscriptionManager subscriptions;

@@ -1,70 +1,10 @@
 #include "systembuilder.h"
-
+#include "configurationvalidator.h"
 #include "calculationcompiler.h"
 #include "formulabuilder.h"
 
 namespace qds
 {
-
-namespace
-{
-
-bool validateCalibrations(
-  const CalculationPlan& plan,
-  const SensorRepository& sensors,
-  const CalibrationRepository& calibrations)
-{
-  for (const CalculationStep& step : plan.steps())
-  {
-    if (!step.sensorId)
-      continue;
-
-    const Sensor* sensor =
-      sensors.find(step.sensorId);
-
-    if (sensor == nullptr)
-      return false;
-
-    double result = 0.0;
-
-    switch (sensor->calibrationMode)
-    {
-    case SensorCalibrationMode::Own:
-      if (!calibrations.calibrateBySensor(
-            sensor->id,
-            sensor->calibrationKind,
-            0.0,
-            result))
-        return false;
-      break;
-
-    case SensorCalibrationMode::ByType:
-    {
-      const SensorType* type =
-        sensors.find(sensor->sensorTypeId);
-
-      if (type == nullptr)
-        return false;
-
-      if (!calibrations.calibrateBySensorType(
-            type->id,
-            type->calibrationKind,
-            0.0,
-            result))
-        return false;
-
-      break;
-    }
-
-    default:
-      return false;
-    }
-  }
-
-  return true;
-}
-
-}
 
 std::unique_ptr<RuntimeSystem>
 SystemBuilder::build(
@@ -79,40 +19,30 @@ SystemBuilder::build(
   auto runtime =
     std::make_unique<RuntimeSystem>();
 
-  runtime->layout.build(
-    configuration);
+  ConfigurationValidator validator;
+  PreparedConfiguration prepared;
 
-  FormulaBuilder formulaBuilder;
-
-  if (!formulaBuilder.build(
+  if (!validator.build(
         configuration,
-        runtime->layout,
-        runtime->formulas))
-  {
-    logger.error("SystemBuilder: FormulaBuilder failed");
-    return nullptr;
-  }
-
-  CalculationCompiler compiler(
-    configuration,
-    runtime->layout,
-    runtime->formulas);
-
-  if (!compiler.build(
-        runtime->calculationPlan))
-  {
-    logger.error("SystemBuilder: CalculationCompiler failed");
-    return nullptr;
-  }
-
-  if (!validateCalibrations(
-        runtime->calculationPlan,
         sensors,
-        calibrations))
+        calibrations,
+        prepared))
   {
-    logger.error("SystemBuilder: Calibration validation failed");
+    logger.error(
+      "Ошибка конфигурации: " +
+      validator.lastError());
+
     return nullptr;
   }
+
+  runtime->layout =
+    std::move(prepared.layout);
+
+  runtime->formulas =
+    std::move(prepared.formulas);
+
+  runtime->calculationPlan =
+    std::move(prepared.calculationPlan);
 
   runtime->sensors = sensors;
   runtime->calibrations = calibrations;
@@ -160,7 +90,9 @@ SystemBuilder::build(
         runtime->queue,
         logger))
   {
-    logger.error("SystemBuilder: DataSources initialization failed");
+    logger.error(
+      "Ошибка инициализации источников данных");
+
     return nullptr;
   }
 

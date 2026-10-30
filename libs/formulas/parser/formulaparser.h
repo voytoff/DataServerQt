@@ -17,9 +17,14 @@ public:
   explicit FormulaParser(
     std::string_view text);
 
+  [[nodiscard]]
+  const std::string& lastError() const noexcept;
+
   std::unique_ptr<FormulaNode> parse();
 
 private:
+  bool fail(
+    std::string message);
 
   bool accept(
     FormulaTokenType type);
@@ -47,6 +52,8 @@ private:
 
   FormulaLexer m_lexer;
   FormulaToken m_current;
+
+  std::string m_lastError;
 };
 
 }

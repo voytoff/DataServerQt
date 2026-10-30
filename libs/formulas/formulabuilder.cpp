@@ -11,6 +11,8 @@ bool FormulaBuilder::build(
   const SignalMemoryLayout& layout,
   FormulaAstRepository& formulas)
 {
+  m_lastError.clear();
+
   FormulaAstRepository tmp;
 
   struct RuntimeData
@@ -32,20 +34,37 @@ bool FormulaBuilder::build(
     if (definition.kind != SignalKind::Calculated)
       continue;
 
+    const std::string prefix =
+      "Ошибка формулы сигнала \"" +
+      definition.name +
+      "\" (SignalId: " +
+      std::to_string(definition.id.value) +
+      "): ";
+
     FormulaParser parser(
       definition.formula);
 
     auto node = parser.parse();
 
-    if (node == nullptr)
+    if (!node)
+    {
+      m_lastError =
+        prefix + parser.lastError();
+
       return false;
+    }
 
     std::vector<SignalId> dependencies;
 
     if (!resolver.resolve(
           *node,
           dependencies))
+    {
+      m_lastError =
+        prefix + resolver.lastError();
+
       return false;
+    }
 
     const FormulaId formulaId{
       definition.id.value
@@ -54,7 +73,12 @@ bool FormulaBuilder::build(
     if (!tmp.add(
           formulaId,
           std::move(node)))
+    {
+      m_lastError =
+        prefix + "Не удалось зарегистрировать формулу";
+
       return false;
+    }
 
     runtimeData.push_back({
       .signal = definition.id,
@@ -65,14 +89,22 @@ bool FormulaBuilder::build(
 
   // Только после полного успеха
   // изменяем configuration.
+
   for (const auto& data : runtimeData)
   {
     auto* definition =
       configuration.findSignalDefinition(
         data.signal);
 
-    if (definition == nullptr)
+    if (!definition)
+    {
+      m_lastError =
+        "Не найден вычисляемый сигнал (SignalId: " +
+        std::to_string(data.signal.value) +
+        ")";
+
       return false;
+    }
 
     definition->formulaId =
       data.formula;
@@ -84,6 +116,12 @@ bool FormulaBuilder::build(
   formulas = std::move(tmp);
 
   return true;
+}
+
+const std::string&
+FormulaBuilder::lastError() const noexcept
+{
+  return m_lastError;
 }
 
 }

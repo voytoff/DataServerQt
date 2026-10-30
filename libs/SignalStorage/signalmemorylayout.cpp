@@ -1,168 +1,194 @@
+#include "signalmemorylayout.h"
+#include "signaldefinition.h"
+#include "systemconfiguration.h"
+#include "signalmemorylayout.h"
+
+#include <algorithm>
+#include <utility>
 #include <strongidhash.h>
 #include <cassert>
 #include <unordered_map>
 
-#include "signalmemorylayout.h"
-#include "signaldefinition.h"
-#include "systemconfiguration.h"
-
 namespace qds
 {
 
-void SignalMemoryLayout::build(
+bool SignalMemoryLayout::build(
   const SystemConfiguration& configuration)
 {
-  m_locations.clear();
-  m_rawCounts.clear();
+  SignalMemoryLayout tmp;
 
-  m_rawSignalCount = 0;
-  m_calculatedSignalCount = 0;
+  const auto& definitions =
+    configuration.signalDefinitions();
 
-  m_rawOffsets.clear();
+  auto fail =
+    [this](std::string message)
+  {
+    m_lastError = std::move(message);
+    return false;
+  };
 
-  const auto &definitions = configuration.signalDefinitions();
+  // 1. Проверяем уникальность SignalId
+  // и допустимость SignalKind.
 
-  // 1. заполняем RawMemory
+  std::unordered_map<TagId, const SignalDefinition*> rawSignals;
+  std::unordered_map<SignalId, bool> signalIds;
+
+  for (const auto& definition : definitions)
+  {
+    if (!signalIds.emplace(definition.id, true).second)
+    {
+      return fail(
+        "Повторяется идентификатор сигнала (SignalId): " +
+        std::to_string(definition.id.value));
+    }
+
+    switch (definition.kind)
+    {
+    case SignalKind::Raw:
+    {
+      if (!rawSignals.emplace(
+                       definition.source.tag,
+                       &definition).second)
+      {
+        return fail(
+          "Несколько Raw-сигналов используют один источник (TagId): " +
+          std::to_string(definition.source.tag.value));
+      }
+
+      break;
+    }
+
+    case SignalKind::Calculated:
+      break;
+
+    default:
+      return fail(
+        "Неизвестный вид сигнала (SignalId): " +
+        std::to_string(definition.id.value));
+    }
+  }
+
+  // 2. Строим RawMemory.
+
   uint32_t rawOffset = 0;
 
   for (const auto& module : configuration.modules())
   {
-    auto [it, inserted] =
-      m_rawOffsets.emplace(
-        module.id,
-        rawOffset);
-
-    assert(inserted);
+    if (!tmp.m_rawOffsets.emplace(
+                           module.id,
+                           rawOffset).second)
+    {
+      return fail(
+        "Повторяется идентификатор модуля (ModuleId): " +
+        std::to_string(module.id.value));
+    }
 
     uint32_t rawCount = 0;
 
     for (const TagId& tag :
          configuration.moduleTags(module.id))
     {
-      auto p =
-        std::find_if(
-          definitions.begin(),
-          definitions.end(),
-          [&](const SignalDefinition& def)
-          {
-            return def.kind == SignalKind::Raw &&
-                   def.source.tag == tag;
-          });
+      const auto it = rawSignals.find(tag);
 
-      if (p == definitions.end())
+      if (it == rawSignals.end())
       {
-        qDebug() << "Missing Raw signal for module:"
-                 << module.id.value
-                 << "tag:"
-                 << tag.value;
+        return fail(
+          "Не найден Raw-сигнал для модуля (ModuleId): " +
+          std::to_string(module.id.value) +
+          ", источника (TagId): " +
+          std::to_string(tag.value));
       }
 
-      assert(p != definitions.end());
+      const SignalDefinition& definition =
+        *it->second;
 
       SignalLocation location;
 
-      location.id = p->id;
+      location.id = definition.id;
       location.area = SignalMemoryArea::Raw;
-      location.index = m_rawSignalCount++;
+      location.index = tmp.m_rawSignalCount;
 
-      auto [it, inserted] =
-        m_locations.emplace(
-          p->id,
-          location);
+      if (!tmp.m_locations.emplace(
+                            definition.id,
+                            location).second)
+      {
+        return fail(
+          "Повторное размещение Raw-сигнала в памяти (SignalId): " +
+          std::to_string(definition.id.value));
+      }
 
-      assert(inserted);
-
+      ++tmp.m_rawSignalCount;
       ++rawOffset;
       ++rawCount;
     }
 
-    auto [countIt, countInserted] =
-      m_rawCounts.emplace(
-        module.id,
-        rawCount);
-
-    assert(countInserted);
+    tmp.m_rawCounts.emplace(
+      module.id,
+      rawCount);
   }
 
-  assert(rawOffset == m_rawSignalCount);
+  // 3. Строим CalculatedMemory.
 
-  // 2. заполняем CalculatedMemory
   for (const auto& definition : definitions)
   {
+    if (definition.kind != SignalKind::Calculated)
+      continue;
+
     SignalLocation location;
 
     location.id = definition.id;
+    location.area = SignalMemoryArea::Calculated;
+    location.index = tmp.m_calculatedSignalCount;
 
-    switch(definition.kind)
+    if (!tmp.m_locations.emplace(
+                          definition.id,
+                          location).second)
     {
-    case SignalKind::Raw:
-
-      continue;
-
-    case SignalKind::Calculated:
-
-      location.area =
-        SignalMemoryArea::Calculated;
-
-      location.index =
-        m_calculatedSignalCount++;
-
-      break;
-
-
-    default:
-      assert(false);
+      return fail(
+        "Повторное размещение Calculated-сигнала в памяти (SignalId): " +
+        std::to_string(definition.id.value));
     }
 
-    auto [it, inserted] =
-      m_locations.emplace(
-        definition.id,
-        location);
-
-    assert(inserted);
+    ++tmp.m_calculatedSignalCount;
   }
 
-  assert(rawOffset == m_rawSignalCount);
+  // 4. Проверяем, что каждый Raw-сигнал
+  // действительно попал в layout.
 
-//#ifndef NDEBUG
-#ifdef XYZ
-
-  std::printf("\nRAW\n");
-  std::printf("%-8s %-8s %s\n", "Index", "Id", "Name");
-  std::printf("------------------------------------------\n");
   for (const auto& definition : definitions)
   {
-    const auto& location = m_locations.at(definition.id);
-
-    if (location.area != SignalMemoryArea::Raw)
+    if (definition.kind != SignalKind::Raw)
       continue;
 
-    std::printf("%-8u %-8u %s\n",
-                location.index,
-                definition.id.value,
-                definition.name.c_str());
+    if (!tmp.m_locations.contains(definition.id))
+    {
+      return fail(
+        "Raw-сигнал не связан с активным источником (SignalId): " +
+        std::to_string(definition.id.value));
+    }
   }
 
+  // 5. Публикуем результат только после
+  // полного успешного построения.
 
-  std::printf("\nCALCULATED\n");
-  std::printf("%-8s %-8s %s\n", "Index", "Id", "Name");
-  std::printf("------------------------------------------\n");
-  for (const auto& definition : definitions)
-  {
-    const auto& location = m_locations.at(definition.id);
+  m_locations = std::move(tmp.m_locations);
+  m_rawOffsets = std::move(tmp.m_rawOffsets);
+  m_rawCounts = std::move(tmp.m_rawCounts);
 
-    if (location.area != SignalMemoryArea::Calculated)
-      continue;
+  m_rawSignalCount = tmp.m_rawSignalCount;
+  m_calculatedSignalCount = tmp.m_calculatedSignalCount;
 
-    std::printf("%-8u %-8u %s\n",
-                location.index,
-                definition.id.value,
-                definition.name.c_str());
-  }
+  m_lastError.clear();
 
-#endif
-
+  return true;
 }
+
+const std::string&
+SignalMemoryLayout::lastError() const noexcept
+{
+  return m_lastError;
+}
+
 
 uint32_t SignalMemoryLayout::rawSignalCount() const noexcept
 {

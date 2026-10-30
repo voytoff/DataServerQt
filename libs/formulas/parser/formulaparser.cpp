@@ -24,7 +24,7 @@ bool FormulaParser::expect(
   FormulaTokenType type)
 {
   if (m_current.type != type)
-    return false;
+    return fail("Ожидался другой элемент формулы");
 
   m_current = m_lexer.next();
   return true;
@@ -33,15 +33,39 @@ bool FormulaParser::expect(
 std::unique_ptr<FormulaNode>
 FormulaParser::parse()
 {
+  m_lastError.clear();
+
   auto node = parseExpression();
 
   if (!node)
+  {
+    if (m_lastError.empty())
+      fail("Некорректное выражение");
+
     return nullptr;
+  }
 
   if (m_current.type != FormulaTokenType::End)
+  {
+    fail("Лишние символы после окончания выражения");
     return nullptr;
+  }
 
   return node;
+}
+
+bool FormulaParser::fail(std::string message)
+{
+  if (m_lastError.empty())
+    m_lastError = std::move(message);
+
+  return false;
+}
+
+const std::string&
+FormulaParser::lastError() const noexcept
+{
+  return m_lastError;
 }
 
 std::unique_ptr<FormulaNode>
@@ -183,6 +207,7 @@ FormulaParser::parsePrimary()
     return node;
   }
 
+  fail("Ожидалось число, имя сигнала или выражение в скобках");
   return nullptr;
 }
 

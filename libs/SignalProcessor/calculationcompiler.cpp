@@ -17,6 +17,7 @@ CalculationCompiler::CalculationCompiler(
 bool CalculationCompiler::build(
   CalculationPlan& plan)
 {
+  m_lastError.clear();
   plan.clear();
 
   for (const auto& definition :
@@ -27,13 +28,23 @@ bool CalculationCompiler::build(
 
     if (m_formulas.find(
           definition.formulaId) == nullptr)
+    {
+      m_lastError =
+        "Не найдена формула вычисляемого сигнала \"" +
+        definition.name + "\" (SignalId: " +
+        std::to_string(definition.id.value) + ")";
+
       return false;
+    }
   }
 
   CalculationOrder order;
 
   if (!order.build(m_cfg))
+  {
+    m_lastError = order.lastError();
     return false;
+  }
 
   CalculationPlan tmp;
 
@@ -43,7 +54,13 @@ bool CalculationCompiler::build(
       m_cfg.findSignalDefinition(id);
 
     if (definition == nullptr)
+    {
+      m_lastError =
+        "Не найден вычисляемый сигнал (SignalId: " +
+        std::to_string(id.value) + ")";
+
       return false;
+    }
 
     tmp.add({
       .signal = id,
@@ -55,6 +72,12 @@ bool CalculationCompiler::build(
   plan = std::move(tmp);
 
   return true;
+}
+
+const std::string&
+CalculationCompiler::lastError() const noexcept
+{
+  return m_lastError;
 }
 
 }

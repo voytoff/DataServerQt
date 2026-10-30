@@ -21,11 +21,16 @@ public:
   bool build(
     CalculationPlan& plan);
 
-private:
+  [[nodiscard]]
+  const std::string& lastError() const noexcept;
 
+private:
   const SystemConfiguration& m_cfg;
   const SignalMemoryLayout &m_layout;
   FormulaAstRepository& m_formulas;
+
+  std::string m_lastError;
+
 };
 
 }

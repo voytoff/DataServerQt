@@ -25,8 +25,12 @@ class SignalMemoryLayout
 {
 public:
 
-  void build(
+  [[nodiscard]]
+  bool build(
     const SystemConfiguration& configuration);
+
+  [[nodiscard]]
+  const std::string& lastError() const noexcept;
 
   [[nodiscard]]
   bool contains(
@@ -43,9 +47,11 @@ public:
   uint32_t calculatedSignalCount() const noexcept;
 
   [[nodiscard]]
-  std::optional<uint32_t> rawOffset(ModuleId module) const;
+  std::optional<uint32_t> rawOffset(
+    ModuleId module) const;
 
-  const SignalLocation &location(SignalId id) const;
+  const SignalLocation &location(
+    SignalId id) const;
 
   [[nodiscard]]
   std::optional<uint32_t> rawCount(
@@ -68,6 +74,8 @@ private:
   uint32_t m_rawSignalCount = 0;
 
   uint32_t m_calculatedSignalCount = 0;
+
+  std::string m_lastError;
 
 };
 

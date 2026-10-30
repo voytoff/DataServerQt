@@ -80,16 +80,16 @@ add_custom_command(
 
 target_link_libraries(dataserver
     PRIVATE
-        Configuration
-        Formulas
-        SignalStorage
-        Engine
-        UdpSender
-        DataServerRuntime
-        DataServerCore
-        DataArchive
-        DataSettings
-        DataWidgets
+      Configuration
+      Formulas
+      SignalStorage
+      Engine
+      UdpSender
+      DataServerRuntime
+      DataServerCore
+      DataArchive
+      DataSettings
+      DataWidgets
     PRIVATE
       Qt${QT_VERSION_MAJOR}::Core
       Qt${QT_VERSION_MAJOR}::Widgets

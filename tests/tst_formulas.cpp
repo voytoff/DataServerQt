@@ -1064,7 +1064,7 @@ void tst_formulas::test_formulas_identifierResolver()
     createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   FormulaParser parser(
     "Raw0 + Raw1 * 2");
@@ -1129,7 +1129,7 @@ void tst_formulas::test_formulas_identifierResolver_unknown()
     createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   FormulaParser parser(
     "Raw0 + Unknown");
@@ -1154,7 +1154,7 @@ void tst_formulas::test_formulas_identifierResolverCalculated()
     createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   FormulaParser parser(
     "Raw0 * B + (A + C)");
@@ -1281,7 +1281,7 @@ void tst_formulas::test_formulas_evaluator_raw0()
     createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   FormulaParser parser("Raw0");
 
@@ -1325,7 +1325,7 @@ void tst_formulas::test_formulas_evaluator_raw0AndRaw1()
     createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   FormulaParser parser("Raw0 + Raw1");
 
@@ -1370,7 +1370,7 @@ void tst_formulas::test_formulaEvaluator_base()
     createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   FormulaParser parser(
     "Raw0 * B + (A + C)");
@@ -1426,7 +1426,7 @@ void tst_formulas::test_formulas_evaluator_divideByZero()
     createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   IdentifierResolver resolver(cfg, layout);
   std::vector<SignalId> dependencies;
@@ -1468,7 +1468,7 @@ void tst_formulas::test_formulas_evaluator_failSignalReference()
     createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   IdentifierResolver resolver(cfg, layout);
   std::vector<SignalId> dependencies;
@@ -1509,7 +1509,7 @@ void tst_formulas::test_formulas_evaluator_subtract()
     createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   FormulaParser parser("Raw1 - Raw0 - 5.0");
 
@@ -1554,7 +1554,7 @@ void tst_formulas::test_formulas_evaluator_multiply()
     createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   FormulaParser parser("Raw1 * B * 2.0");
 
@@ -1600,7 +1600,7 @@ void tst_formulas::test_formulas_evaluator_negate()
     createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   FormulaParser parser("-C");
 
@@ -1644,7 +1644,7 @@ void tst_formulas::test_formulas_evaluator_formulaFunctionRepository()
     createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   FormulaParser parser("sqrt(Raw0 * 4)");
 
@@ -1731,7 +1731,7 @@ void tst_formulas::test_formulas_functionCall_unknown()
     createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   FormulaParser parser("unknown(Raw0 * 4)");
 
@@ -1772,7 +1772,7 @@ void tst_formulas::test_formulas_functionCall_missingParams()
     createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   FormulaParser parser("sqrt()");
 
@@ -1813,7 +1813,7 @@ void tst_formulas::test_formulas_functionCall_failCountParams()
     createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   FormulaParser parser("sqrt(1, 2)");
 
@@ -1854,7 +1854,7 @@ void tst_formulas::test_formulas_functionCall_failValueParams()
     createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   FormulaParser parser("sqrt(-1)");
 
@@ -1914,7 +1914,7 @@ void tst_formulas::test_formulas_functionCall_sqrtSignal()
     createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   FormulaParser parser("sqrt(Raw0)");
 
@@ -1960,7 +1960,7 @@ void tst_formulas::test_formulas_functionRepository_abs_negate()
     createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   FormulaParser parser("abs(-Raw0)");
 
@@ -2006,7 +2006,7 @@ void tst_formulas::test_formulas_functionRepository_max()
     createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   FormulaParser parser("max(Raw0, Raw1, 7)");
 
@@ -2053,7 +2053,7 @@ void tst_formulas::test_formulas_functionRepository_min()
     createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   FormulaParser parser("min(Raw0, 7, Raw1)");
 
@@ -2100,7 +2100,7 @@ void tst_formulas::test_formulas_functionRepository_max_missingParams()
     createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   FormulaParser parser("max()");
 
@@ -2143,7 +2143,7 @@ void tst_formulas::test_formulas_functionRepository_max_failParams()
     createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   FormulaParser parser("max(1)");
 
@@ -2186,7 +2186,7 @@ void tst_formulas::test_formulas_functionRepository_min_missingParams()
     createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   FormulaParser parser("min()");
 
@@ -2229,7 +2229,7 @@ void tst_formulas::test_formulas_functionRepository_min_failParams()
     createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   FormulaParser parser("min(1)");
 
@@ -2272,7 +2272,7 @@ void tst_formulas::test_formulas_functionRepository_nesteFunctions()
     createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   FormulaParser parser(
     "max(abs(Raw0), min(Raw1, 10), sqrt(C) * 7)");
@@ -2541,7 +2541,7 @@ void tst_formulas::test_formulaCalculator_base()
   SystemConfiguration cfg = createTestConfig_calculate();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   RawMemory raw;
   CalculatedMemory calculated;
@@ -2653,7 +2653,7 @@ void tst_formulas::test_formulaCalculator_calculate()
   SystemConfiguration cfg = createTestConfig_calculate();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   RawMemory raw;
   CalculatedMemory calculated;

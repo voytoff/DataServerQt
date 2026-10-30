@@ -31,7 +31,7 @@ void tst_ltr11module::test_LCardDataSource_update_frequency()
   TestLogger logger;
 
   Ltr11ConfigurationBuilder builder;
-  QVERIFY(builder.build(cfg, config, logger));
+  QVERIFY(builder.build(cfg, config));
 
   QCOMPARE(
     config.slot,
@@ -99,7 +99,7 @@ void tst_ltr11module::test_Ltr11Module_base()
   Ltr11ConfigurationBuilder builder;
   TestLogger logger;
 
-  QVERIFY(builder.build(cfg, config, logger));
+  QVERIFY(builder.build(cfg, config));
 
   QCOMPARE(
     config.slot,
@@ -175,7 +175,7 @@ void tst_ltr11module::test_Ltr11Module_without_print()
   Ltr11ConfigurationBuilder builder;
   TestLogger logger;
 
-  QVERIFY(builder.build(cfg, config, logger));
+  QVERIFY(builder.build(cfg, config));
 
   QCOMPARE(
     config.slot,
@@ -244,7 +244,7 @@ void tst_ltr11module::test_LCardDataSource_base()
   Ltr11ConfigurationBuilder builder;
   TestLogger logger;
 
-  QVERIFY(builder.build(cfg, config, logger));
+  QVERIFY(builder.build(cfg, config));
 
   QCOMPARE(
     config.slot,

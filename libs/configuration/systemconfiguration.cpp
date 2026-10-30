@@ -368,7 +368,8 @@ SystemConfiguration::moduleRuntimeConfiguration(ModuleId module) const
 
     for (const uint32_t index : it->second)
     {
-      assert(index < m_configurationTags.size());
+      if (index >= m_configurationTags.size())
+        return std::nullopt;
 
       result.tags.push_back(
         m_configurationTags[index]);

@@ -1,11 +1,12 @@
 #pragma once
 
+#include "datatypes.h"
+
 #include <span>
+#include <string>
 #include <unordered_map>
 #include <vector>
 #include <strongidhash.h>
-
-#include "signaldefinition.h"
 
 namespace qds
 {
@@ -24,6 +25,9 @@ public:
   [[nodiscard]]
   std::span<const SignalId> order() const noexcept;
 
+  [[nodiscard]]
+  const std::string& lastError() const noexcept;
+
 private:
 
   enum class VisitState
@@ -39,11 +43,20 @@ private:
   bool visit(
     SignalId id,
     const SystemConfiguration& configuration,
-    VisitStates& states);
+    VisitStates& states,
+    std::vector<SignalId>& path);
+
+  bool fail(std::string message);
+
+  void setCycleError(
+    SignalId id,
+    const SystemConfiguration& configuration,
+    const std::vector<SignalId>& path);
 
 private:
 
   std::vector<SignalId> m_order;
+  std::string m_lastError;
 };
 
 }

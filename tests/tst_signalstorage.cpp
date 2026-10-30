@@ -27,7 +27,7 @@ void tst_signalstorage::test_buffer_manager()
     createTestConfig_1module_2raw_2calc();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   QCOMPARE(
     layout.calculatedSignalCount(),
@@ -146,7 +146,7 @@ void tst_signalstorage::test_raw_memory()
   SystemConfiguration cfg = createTestConfig_1module_2raw_2calc();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   RawMemory memory;
   memory.initialize(layout.rawSignalCount());
@@ -187,7 +187,7 @@ void tst_signalstorage::test_datasource_layout_contains()
   SystemConfiguration cfg = createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   QVERIFY(layout.contains(SignalId{0}));
   QVERIFY(layout.contains(SignalId{1}));
@@ -205,7 +205,7 @@ void tst_signalstorage::test_datasource_layout_reference()
   SystemConfiguration cfg = createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   const auto raw = layout.reference({0});
   QVERIFY(raw.isValid());
@@ -228,7 +228,7 @@ void tst_signalstorage::test_datasource_layout_unknownModule()
   SystemConfiguration cfg = createTestConfig_Some_Modules();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   QCOMPARE(layout.rawOffset(ModuleId{999}), std::nullopt);
 }
@@ -240,7 +240,7 @@ void tst_signalstorage::test_datasource_layout_rebuild()
   SystemConfiguration cfg = createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   QCOMPARE(layout.rawSignalCount(), 2u);
   QCOMPARE(layout.calculatedSignalCount(), 3u);
@@ -260,7 +260,7 @@ void tst_signalstorage::test_datasource_layout_rebuild()
     .archiveRate = ArchiveRate::Hz100
   }));
 
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   QCOMPARE(layout.rawSignalCount(), 3u);
   QCOMPARE(layout.calculatedSignalCount(), 3u);
@@ -277,7 +277,7 @@ void tst_signalstorage::test_signalMemoryLayout_rawOffset_rawCount()
     createTestConfig_Some_Modules();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   QCOMPARE(
     layout.rawOffset(ModuleId{0}),
@@ -319,7 +319,7 @@ void tst_signalstorage::test_bufferManager_thread_safe()
     createTestConfig_1module_2raw_2calc();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   QCOMPARE(
     layout.calculatedSignalCount(),
@@ -383,7 +383,7 @@ void tst_signalstorage::test_bufferManager_thread_safe2()
     createTestConfig_1module_2raw_2calc();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   BufferManager buffers;
   buffers.initialize(layout);

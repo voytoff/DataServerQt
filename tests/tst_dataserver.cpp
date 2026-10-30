@@ -79,7 +79,7 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
       description));
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   auto directory = getCurrentFolder();
 
@@ -3023,7 +3023,7 @@ void tst_dataserver::test_dataEngine_process_success()
       ModuleType::Test);
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   BufferManager buffers;
   buffers.initialize(layout);
@@ -3655,7 +3655,7 @@ void tst_dataserver::test_dataServer_failModule()
   QVERIFY(builder.build(cfg, description));
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   ArchiveManager archive;
   QVERIFY(archive.initialize(getCurrentFolder(), description, layout));
@@ -3761,7 +3761,7 @@ void tst_dataserver::test_dataServer_restart_after_runtime_failure()
   QVERIFY(builder.build(cfg, description));
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   ArchiveManager archive;
   QVERIFY(archive.initialize(getCurrentFolder(), description, layout));
@@ -3852,7 +3852,7 @@ void tst_dataserver::subscriptionAutoCleanup()
   QVERIFY(builder.build(cfg, description));
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   auto directory = getCurrentFolder();
 

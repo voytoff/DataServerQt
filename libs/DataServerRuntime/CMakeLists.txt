@@ -6,7 +6,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(DataServerRuntime SHARED
   runtimesystem.h
-  formulabuilder.h formulabuilder.cpp
   systembuilder.h systembuilder.cpp
 )
 
@@ -20,7 +19,7 @@ target_link_libraries(DataServerRuntime
     Configuration
     Formulas
     SignalStorage
-    #HardwareFactory
     SignalProcessor
     Engine
+    configurationvalidation
 )

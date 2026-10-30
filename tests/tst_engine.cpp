@@ -16,7 +16,7 @@ void tst_engine::test_DataEngine_publish_latest()
     createTestConfig_calculate(ModuleType::Test);
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   BufferManager buffers;
   buffers.initialize(layout);
@@ -91,7 +91,7 @@ void tst_engine::test_DataEngine_no_frame()
       ModuleType::Test);
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   BufferManager buffers;
   buffers.initialize(layout);
@@ -126,7 +126,7 @@ void tst_engine::test_DataEngine_restart()
   SystemConfiguration cfg = createTestConfig_calculate();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   BufferManager buffers;
   buffers.initialize(layout);
@@ -159,7 +159,7 @@ void tst_engine::test_DataEngine_restart()
   using namespace qds;
   SystemConfiguration cfg = createTestConfig_Copy_Add(ModuleType::Fake);
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   FormulaAstRepository formulas;
   FormulaBuilder formulaBuilder;
@@ -239,7 +239,7 @@ void tst_engine::test_dataEngine_simple_runtime()
   using namespace qds;
   SystemConfiguration cfg = createTestConfig_Copy_Add(ModuleType::Test);
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   FormulaAstRepository formulas;
   FormulaBuilder formulaBuilder;
@@ -349,7 +349,7 @@ void tst_engine::test_dataEngine_failOnceArchiveWriter()
     }));
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   DataSourceManager manager;
 
@@ -442,7 +442,7 @@ void tst_engine::test_dataEngine_FailingDataSource()
   using namespace qds;
   SystemConfiguration cfg = createTestConfig_Copy_Add(ModuleType::Fail);
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   CalculationPlan plan;
 
@@ -488,7 +488,7 @@ void tst_engine::test_dataEngine_FailingCalculationProcessor()
   using namespace qds;
   SystemConfiguration cfg = createTestConfig_Copy_Add(ModuleType::Test);
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   FailingProcessor processor;
 
@@ -532,7 +532,7 @@ void tst_engine::test_dataEngine_FailingArchiveWriter()
   using namespace qds;
   SystemConfiguration cfg = createTestConfig_Copy_Add(ModuleType::Test);
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   CalculationPlan plan;
 
@@ -580,7 +580,7 @@ void tst_engine::test_dataEngine_simple_pipeline()
     createTestConfig_Some_Modules();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+   QVERIFY(layout.build(cfg));
 
   CalculationPlan plan;
   CalculationProcessor processor(plan);

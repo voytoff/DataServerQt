@@ -251,12 +251,16 @@ ConfigurationEditor::ConfigurationEditor(
   m_signalTabs =
     new QTabWidget(this);
 
+  m_signalTabs->setIconSize(QSize(20, 20));
+
   m_signalTabs->addTab(
     m_rawSignalsView,
+    themedSvgIcon(":/images/raw.svg"),
     tr("Raw"));
 
   m_signalTabs->addTab(
     m_calculatedSignalsView,
+    themedSvgIcon(":/images/func.svg"),
     tr("Calculated"));
 
   m_signalsSplitter =

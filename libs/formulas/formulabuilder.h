@@ -16,6 +16,12 @@ public:
     const SignalMemoryLayout& layout,
     FormulaAstRepository& formulas);
 
+  [[nodiscard]]
+  const std::string& lastError() const noexcept;
+
+private:
+  std::string m_lastError;
+
 };
 
 }

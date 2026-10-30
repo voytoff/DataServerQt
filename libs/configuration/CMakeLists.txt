@@ -31,6 +31,7 @@ add_library(Configuration SHARED
   db/configurationrepository.h db/configurationrepository.cpp
   db/sensorrepository.h db/sensorrepository.cpp
   configurationinfo.h
+  preparedconfiguration.h
 )
 
 target_include_directories(Configuration
