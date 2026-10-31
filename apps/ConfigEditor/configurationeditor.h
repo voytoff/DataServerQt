@@ -48,7 +48,6 @@ public:
     MainWindow *window);
 
 private:
-
   void updateChannelVisibility(
     const QModelIndex& moduleIndex);
 
@@ -76,6 +75,8 @@ private:
 
   [[nodiscard]]
   QModelIndex currentSignalIndex() const;
+
+  void validateConfiguration();
 
 private:
   ConfigurationSelector* m_configurationCombo = nullptr;

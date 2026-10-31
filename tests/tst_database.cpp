@@ -339,6 +339,7 @@ auto db = get_db();
   SystemBuilder builder;
   SensorRepository sensors;
   QVERIFY(repo.loadSensors(sensors));
+  ModuleConfigurationValidatorRegistry validator;
 
   auto runtime =
     builder.build(
@@ -346,6 +347,7 @@ auto db = get_db();
       factory,
     sensors,
       cr,
+    validator,
       clock,
       archive,
       logger);
@@ -620,6 +622,7 @@ void tst_database::test_database_archive()
 
   SystemBuilder builder;
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   QVERIFY(
     repo.loadSensors(
@@ -631,6 +634,7 @@ void tst_database::test_database_archive()
       factory,
       sensors,
       cr,
+    validator,
       clock,
       archive,
       logger);
@@ -1527,6 +1531,7 @@ void tst_database::test_publisher_raw_calculated()
 
   SystemBuilder builder;
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   QVERIFY(
     repo.loadSensors(
@@ -1538,6 +1543,7 @@ void tst_database::test_publisher_raw_calculated()
       factory,
       sensors,
       cr,
+    validator,
       clock,
       archive,
       logger);

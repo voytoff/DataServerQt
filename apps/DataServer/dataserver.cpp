@@ -19,10 +19,11 @@ DataServer::DataServer(
   const SensorRepository& sensors,
   const CalibrationRepository& calibrations,
   const DataStreamSourceFactory& dataSourceFactory,
+  const ModuleConfigurationValidatorRegistry& moduleValidators,
   IArchiveWriter& archive,
   ISchedulerClock& clock,
-  IClock &sourceClock,
-  ISender &sender,
+  IClock& sourceClock,
+  ISender& sender,
   ILogger& logger,
   QObject* parent)
   : QObject(parent)
@@ -30,6 +31,7 @@ DataServer::DataServer(
   , m_sensors(sensors)
   , m_calibrations(calibrations)
   , m_dataSourceFactory(dataSourceFactory)
+  , m_moduleValidators(moduleValidators)
   , m_archive(archive)
   , m_clock(clock)
   , m_sourceClock(sourceClock)
@@ -75,6 +77,7 @@ bool DataServer::start()
       m_dataSourceFactory,
       m_sensors,
       m_calibrations,
+      m_moduleValidators,
       m_sourceClock,
       m_archive,
       m_logger);

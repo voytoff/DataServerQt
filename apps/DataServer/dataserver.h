@@ -1,6 +1,7 @@
 #pragma once
 
 #include "datastreamsourcestatistics.h"
+#include "moduleconfigurationvalidatorregistry.h"
 #include "packetdispatcher.h"
 #include "publisher.h"
 #include "runtimesystem.h"
@@ -32,6 +33,7 @@ public:
     const SensorRepository& sensors,
     const CalibrationRepository& calibrations,
     const DataStreamSourceFactory& dataSourceFactory,
+    const ModuleConfigurationValidatorRegistry& moduleValidators,
     IArchiveWriter& archive,
     ISchedulerClock& clock,
     IClock& sourceClock,
@@ -72,6 +74,7 @@ private:
   CalibrationRepository m_calibrations;
 
   const DataStreamSourceFactory& m_dataSourceFactory;
+  const ModuleConfigurationValidatorRegistry& m_moduleValidators;
 
   IArchiveWriter& m_archive;
   ISchedulerClock& m_clock;

@@ -24,6 +24,7 @@ target_link_libraries(DataServerCore
         DataServerRuntime
         UdpServer
         Logger
+        configurationvalidation
     PRIVATE
         Qt${QT_VERSION_MAJOR}::Core
         Qt${QT_VERSION_MAJOR}::Network
@@ -90,6 +91,8 @@ target_link_libraries(dataserver
       DataArchive
       DataSettings
       DataWidgets
+      modulevalidators
+      configurationvalidation
     PRIVATE
       Qt${QT_VERSION_MAJOR}::Core
       Qt${QT_VERSION_MAJOR}::Widgets

@@ -7,6 +7,7 @@
 #include "ilogger.h"
 #include "runtimesystem.h"
 #include "systemconfiguration.h"
+#include "moduleconfigurationvalidatorregistry.h"
 
 #include <memory>
 
@@ -23,6 +24,7 @@ public:
     const DataStreamSourceFactory& dataSourceFactory,
     const SensorRepository& sensors,
     const CalibrationRepository& calibrations,
+    const qds::ModuleConfigurationValidatorRegistry &moduleValidators,
     IClock& clock,
     IArchiveWriter& archive,
     ILogger& logger);

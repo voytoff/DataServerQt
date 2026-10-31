@@ -91,12 +91,15 @@ target_include_directories(configeditor
 )
 
 target_link_libraries(configeditor
-    PRIVATE
-        Configuration
-        DataSettings
-        DataWidgets
-        QCustomPlot
-        Qt${QT_VERSION_MAJOR}::Core
-        Qt${QT_VERSION_MAJOR}::Widgets
-        Qt${QT_VERSION_MAJOR}::Sql
+  PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Sql
+    Configuration
+    DataSettings
+    DataWidgets
+    QCustomPlot
+    SignalProcessor
+    configurationvalidation
+    modulevalidators
 )

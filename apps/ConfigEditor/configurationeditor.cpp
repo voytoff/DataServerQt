@@ -15,6 +15,9 @@
 #include "settingssection.h"
 #include "windowsettings.h"
 #include "mainwindow.h"
+#include "configurationvalidator.h"
+#include "modulevalidators.h"
+#include "preparedconfiguration.h"
 
 #include <QCloseEvent>
 #include <QSplitter>
@@ -902,7 +905,10 @@ void ConfigurationEditor::createToolbar(
 
   m_testAction = m_toolBar->addAction(
     themedSvgIcon(":/images/test.svg"),
-    tr("Тест"));
+    tr("Проверить конфигурацию"));
+
+  m_testAction->setToolTip(
+    tr("Проверить конфигурацию без запуска оборудования"));
 
   m_toolBar->addSeparator();
 
@@ -1218,6 +1224,12 @@ void ConfigurationEditor::createToolbar(
     &QAction::triggered,
     this,
     &ConfigurationEditor::showSettings);
+
+  connect(
+    m_testAction,
+    &QAction::triggered,
+    this,
+    &ConfigurationEditor::validateConfiguration);
 }
 
 void ConfigurationEditor::updateActions()
@@ -1263,8 +1275,7 @@ void ConfigurationEditor::updateActions()
   m_configurationRemoveAction->setEnabled(
     bool(currentConfiguration()));
 
-
-  m_testAction->setEnabled(false);
+  m_testAction->setEnabled(hasConfiguration);
 }
 
 void ConfigurationEditor::updateSensorTypes()
@@ -1859,6 +1870,81 @@ QModelIndex ConfigurationEditor::currentSignalIndex() const
     return {};
 
   return proxy->mapToSource(current);
+}
+
+void ConfigurationEditor::validateConfiguration()
+{
+  const ConfigurationId id = currentConfiguration();
+
+  if (!id)
+    return;
+
+  SystemConfiguration configuration;
+  SensorRepository sensors;
+  CalibrationRepository calibrations;
+
+  if (!m_repository.load(id, configuration) ||
+      !m_repository.loadSensors(sensors) ||
+      !m_repository.loadCalibrations(
+        configuration,
+        calibrations))
+  {
+    const QSqlError error = m_repository.lastError();
+
+    QMessageBox::warning(
+      this,
+      tr("Ошибка загрузки конфигурации"),
+      error.isValid()
+        ? error.text()
+        : tr("Не удалось загрузить данные конфигурации."));
+
+    return;
+  }
+
+  ModuleConfigurationValidatorRegistry moduleValidators;
+
+  if (!registerModuleValidators(moduleValidators))
+  {
+    QMessageBox::warning(
+      this,
+      tr("Ошибка проверки конфигурации"),
+      tr("Не удалось зарегистрировать валидаторы модулей."));
+
+    return;
+  }
+
+  ConfigurationValidator validator;
+  PreparedConfiguration prepared;
+
+  if (!validator.build(
+        configuration,
+        sensors,
+        calibrations,
+        moduleValidators,
+        prepared))
+  {
+    const QString message =
+      QString::fromStdString(validator.lastError());
+
+    QMessageBox::warning(
+      this,
+      tr("Ошибка конфигурации"),
+      message);
+
+    emit statusMessage(
+      tr("Проверка конфигурации завершилась с ошибкой."));
+
+    return;
+  }
+
+  QMessageBox::information(
+    this,
+    tr("Проверка конфигурации"),
+    tr("Конфигурация проверена.\n"
+       "Ошибок не обнаружено."));
+
+  emit statusMessage(
+    tr("Конфигурация успешно проверена."));
 }
 
 }

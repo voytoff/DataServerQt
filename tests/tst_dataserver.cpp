@@ -3,7 +3,6 @@
 #include "archivedescriptionwriter.h"
 #include "archivemanager.h"
 #include "archivereader.h"
-#include "clientconnection.h"
 #include "db/configurationrepository.h"
 #include "fakedatablocksink.h"
 #include "lcarddatasource.h"
@@ -89,12 +88,14 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
   UdpSender sender;
   FakeSchedulerClock clock(2, 3);
   Logger logger(getCurrentFolder(), clock);
+  ModuleConfigurationValidatorRegistry validator;
 
   DataServer ds(
     cfg,
     sensors,
     calibrations,
     factory,
+    validator,
     archive,
     clock,
     clock,
@@ -570,6 +571,7 @@ void tst_dataserver::test_systemBuilder_success()
 
   SystemBuilder builder;
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   auto runtime =
     builder.build(
@@ -577,6 +579,7 @@ void tst_dataserver::test_systemBuilder_success()
       factory,
       sensors,
       cr,
+      validator,
       clock,
       archive,
       logger);
@@ -672,6 +675,7 @@ void tst_dataserver::test_systemBuilder_buildRuntime()
 
   SystemBuilder builder;
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   auto runtime =
     builder.build(
@@ -679,6 +683,7 @@ void tst_dataserver::test_systemBuilder_buildRuntime()
       factory,
       sensors,
       cr,
+    validator,
       clock,
       archive,
       logger);
@@ -766,6 +771,7 @@ void tst_dataserver::test_systemBuilder_failErrorFormula()
   CalibrationRepository cr;
   SystemBuilder builder;
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   auto runtime =
     builder.build(
@@ -773,6 +779,7 @@ void tst_dataserver::test_systemBuilder_failErrorFormula()
       factory,
       sensors,
       cr,
+    validator,
       clock,
       archive,
       logger);
@@ -809,6 +816,7 @@ void tst_dataserver::test_systemBuilder_failDataSourceManager()
   CalibrationRepository cr;
   SystemBuilder builder;
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   auto runtime =
     builder.build(
@@ -816,6 +824,7 @@ void tst_dataserver::test_systemBuilder_failDataSourceManager()
       factory,
       sensors,
       cr,
+    validator,
       clock,
       archive,
       logger);
@@ -853,6 +862,7 @@ void tst_dataserver::test_systemBuilder_pipeline()
   CalibrationRepository cr;
   SystemBuilder builder;
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   auto runtime =
     builder.build(
@@ -860,6 +870,7 @@ void tst_dataserver::test_systemBuilder_pipeline()
       factory,
       sensors,
       cr,
+    validator,
       clock,
       archive,
       logger);
@@ -1275,12 +1286,14 @@ void tst_dataserver::test_dataServer_failStart_moduleType()
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   DataServer ds(
     cfg,
     sensors,
     cr,
     factory,
+    validator,
     archive,
     clock,
     clock,
@@ -1320,12 +1333,14 @@ void tst_dataserver::test_dataServer_failSubscribe_invalidSignalId()
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   DataServer ds(
     cfg,
     sensors,
     cr,
     factory,
+    validator,
     archive,
     clock,
     clock,
@@ -1443,12 +1458,14 @@ void tst_dataserver::test_dataServer_failSubscribe_duplicateSignalId()
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   DataServer ds(
     cfg,
     sensors,
     cr,
     factory,
+    validator,
     archive,
     clock,
     clock,
@@ -1567,12 +1584,14 @@ void tst_dataserver::test_dataServer_failSubscribe_invalidRate()
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   DataServer ds(
     cfg,
     sensors,
     cr,
     factory,
+    validator,
     archive,
     clock,
     clock,
@@ -1690,12 +1709,14 @@ void tst_dataserver::test_dataServer_failSubscribe_emptyList()
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   DataServer ds(
     cfg,
     sensors,
     cr,
     factory,
+    validator,
     archive,
     clock,
     clock,
@@ -1803,12 +1824,14 @@ void tst_dataserver::test_dataServer_failSubscribe_tooManySignals()
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   DataServer ds(
     cfg,
     sensors,
     cr,
     factory,
+    validator,
     archive,
     clock,
     clock,
@@ -1919,12 +1942,14 @@ void tst_dataserver::test_dataServer_unsubscribe_ok()
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   DataServer ds(
     cfg,
     sensors,
     cr,
     factory,
+    validator,
     archive,
     clock,
     clock,
@@ -2141,12 +2166,14 @@ void tst_dataserver::test_dataServer_unsubscribe_invalidId()
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   DataServer ds(
     cfg,
     sensors,
     cr,
     factory,
+    validator,
     archive,
     clock,
     clock,
@@ -2374,12 +2401,14 @@ void tst_dataserver::test_dataServer_start_stop()
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   DataServer ds(
     cfg,
     sensors,
     cr,
     factory,
+    validator,
     archive,
     clock,
     clock,
@@ -2515,12 +2544,14 @@ void tst_dataserver::test_dataServer_start_after_failed_start()
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   DataServer ds(
     cfg,
     sensors,
     cr,
     factory,
+    validator,
     archive,
     clock,
     clock,
@@ -2584,12 +2615,14 @@ void tst_dataserver::test_dataServer_failStart_invalidUdpPort()
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   DataServer ds(
     cfg,
     sensors,
     cr,
     factory,
+    validator,
     archive,
     clock,
     clock,
@@ -2730,12 +2763,14 @@ void tst_dataserver::test_dataServer_subscriptionId_after_restart()
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   DataServer ds(
     cfg,
     sensors,
     cr,
     factory,
+    validator,
     archive,
     clock,
     clock,
@@ -2929,6 +2964,7 @@ void tst_dataserver::test_SystemBuilder_buildAfterFailure()
   // Fake ещё не зарегистрирован.
   // Первая сборка должна завершиться неудачно.
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   auto runtime =
     builder.build(
@@ -2936,6 +2972,7 @@ void tst_dataserver::test_SystemBuilder_buildAfterFailure()
       factory,
       sensors,
       cr,
+    validator,
       clock,
       archive,
       logger);
@@ -2965,6 +3002,7 @@ void tst_dataserver::test_SystemBuilder_buildAfterFailure()
       factory,
       sensors,
       cr,
+    validator,
       clock,
       archive,
       logger);
@@ -3103,12 +3141,14 @@ void tst_dataserver::test_dataServer_stop_on_dataSourceFailure()
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   DataServer ds(
     cfg,
     sensors,
     cr,
     factory,
+    validator,
     archive,
     clock,
     clock,
@@ -3170,6 +3210,7 @@ void tst_dataserver::test_SystemBuilder_failedThenSuccess()
   // Failed build
   // ------------------------------------------------------------
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   auto runtime =
     builder.build(
@@ -3177,6 +3218,7 @@ void tst_dataserver::test_SystemBuilder_failedThenSuccess()
       factory,
       sensors,
       cr,
+    validator,
       clock,
       archive,
       logger);
@@ -3193,6 +3235,7 @@ void tst_dataserver::test_SystemBuilder_failedThenSuccess()
       factory,
       sensors,
       cr,
+    validator,
       clock,
       archive,
       logger);
@@ -3255,12 +3298,14 @@ void tst_dataserver::test_dataServer_start_twice()
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   DataServer ds(
     cfg,
     sensors,
     cr,
     factory,
+    validator,
     archive,
     clock,
     clock,
@@ -3302,12 +3347,14 @@ void tst_dataserver::test_dataServer_stop_before_start()
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   DataServer ds(
     cfg,
     sensors,
     cr,
     factory,
+    validator,
     archive,
     clock,
     clock,
@@ -3355,12 +3402,14 @@ void tst_dataserver::test_dataServer_udp_pipeline()
   CalibrationRepository cr;
   Logger logger(getCurrentFolder(), clock);
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   DataServer ds(
     cfg,
     sensors,
     cr,
     factory,
+    validator,
     archive,
     clock,
     clock,
@@ -3663,12 +3712,14 @@ void tst_dataserver::test_dataServer_failModule()
 
   CalibrationRepository cr;
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   DataServer server(
     cfg,
     sensors,
     cr,
     factory,
+    validator,
     archive,
     clock,
     clock,
@@ -3769,12 +3820,14 @@ void tst_dataserver::test_dataServer_restart_after_runtime_failure()
 
   CalibrationRepository cr;
   SensorRepository sensors;
+  ModuleConfigurationValidatorRegistry validator;
 
   DataServer server(
     cfg,
     sensors,
     cr,
     factory,
+    validator,
     archive,
     clock,
     clock,
@@ -3862,12 +3915,14 @@ void tst_dataserver::subscriptionAutoCleanup()
   UdpSender sender;
   FakeSchedulerClock clock(2, 3);
   Logger logger(getCurrentFolder(), clock);
+  ModuleConfigurationValidatorRegistry validator;
 
   DataServer ds(
     cfg,
     sensors,
     calibrations,
     factory,
+    validator,
     archive,
     clock,
     clock,

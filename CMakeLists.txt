@@ -31,6 +31,10 @@ add_subdirectory(libs/logger)
 add_subdirectory(libs/dataclient)
 add_subdirectory(libs/datawidgets)
 add_subdirectory(libs/datasettings)
+add_subdirectory(libs/configurationvalidation)
+add_subdirectory(libs/modulevalidators)
+
+add_subdirectory(3rdparty/qcustomplot)
 
 enable_testing()
 add_subdirectory(tests)
@@ -38,6 +42,4 @@ add_subdirectory(tests/test_basetableview)
 
 add_subdirectory(apps/dataserver)
 add_subdirectory(apps/configeditor)
-add_subdirectory(3rdparty/qcustomplot)
 add_subdirectory(apps/datamonitor)
-add_subdirectory(libs/configurationvalidation)

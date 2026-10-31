@@ -1,5 +1,6 @@
 #pragma once
 
+#include "moduleconfigurationvalidatorregistry.h"
 #include "archivemanager.h"
 #include "dataserver.h"
 #include "datastreamsourcefactory.h"
@@ -84,6 +85,7 @@ private:
   SystemConfiguration m_configuration;
   SensorRepository m_sensors;
   CalibrationRepository m_calibrations;
+  ModuleConfigurationValidatorRegistry m_moduleValidators;
 
   SystemClock m_systemClock;
   SchedulerClock m_clock;

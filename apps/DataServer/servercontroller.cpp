@@ -6,6 +6,7 @@
 #include "lcarddatasource.h"
 #include "ltr11configurationbuilder.h"
 #include "ltr11module.h"
+#include "modulevalidators.h"
 #include "signalmemorylayout.h"
 #include "testdatastreamsource.h"
 
@@ -120,6 +121,9 @@ const std::filesystem::path &ServerController::currentArchiveDirectory() const n
 
 bool ServerController::registerDataSources()
 {
+  if (!registerModuleValidators(m_moduleValidators))
+    return false;
+
   if (!m_factory.registerType(
         ModuleType::Test,
         [](const ModuleRuntimeConfiguration&,
@@ -350,6 +354,7 @@ bool ServerController::start()
     m_sensors,
     m_calibrations,
     m_factory,
+    m_moduleValidators,
     m_archive,
     m_clock,
     m_systemClock,
@@ -357,24 +362,6 @@ bool ServerController::start()
     m_guiLogger);
 
   m_guiLogger.info("Запуск сервера");
-
-
-
-/*
-  const auto connection = connect(
-    m_server.get(),
-    &DataServer::stopped,
-    this,
-    [this]()
-    {
-      m_archive.close();
-
-      m_guiLogger.info("Сервер остановлен");
-
-      emit stopped();
-    },
-    Qt::DirectConnection);
-*/
 
   const auto connection = QObject::connect(
     m_server.get(),

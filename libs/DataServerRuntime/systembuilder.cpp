@@ -1,7 +1,5 @@
 #include "systembuilder.h"
 #include "configurationvalidator.h"
-#include "calculationcompiler.h"
-#include "formulabuilder.h"
 
 namespace qds
 {
@@ -12,6 +10,7 @@ SystemBuilder::build(
   const DataStreamSourceFactory& dataSourceFactory,
   const SensorRepository &sensors,
   const CalibrationRepository& calibrations,
+  const ModuleConfigurationValidatorRegistry& moduleValidators,
   IClock& clock,
   IArchiveWriter& archive,
   ILogger& logger)
@@ -26,6 +25,7 @@ SystemBuilder::build(
         configuration,
         sensors,
         calibrations,
+        moduleValidators,
         prepared))
   {
     logger.error(
