@@ -176,6 +176,11 @@ ConfigurationEditor::ConfigurationEditor(
       m_signalModel,
       this);
 
+  m_signalPropertiesDelegate =
+    new ConfigurationSignalPropertiesDelegate(
+      m_signalPropertiesView);
+
+
   std::vector<SignalTypeInfo> signalTypes;
 
   if (!m_repository.signalTypes(signalTypes))
@@ -188,20 +193,9 @@ ConfigurationEditor::ConfigurationEditor(
     return;
   }
 
-  SensorRepository sensors;
-
-  if (!m_repository.loadSensors(sensors))
-    return;
-
-  auto loaded = sensors.sensors();
-
-  std::sort(
-    loaded.begin(),
-    loaded.end(),
-    [](const Sensor& a, const Sensor& b)
-    {
-      return a.name < b.name;
-    });
+  m_signalModel->setSignalTypes(signalTypes);
+  m_signalPropertiesModel->setSignalTypes(signalTypes);
+  m_signalPropertiesDelegate->setSignalTypes(std::move(signalTypes));
 
 
   m_signalPropertiesView->setModel(
@@ -210,22 +204,6 @@ ConfigurationEditor::ConfigurationEditor(
   m_signalPropertiesView->setEditTriggers(
     QAbstractItemView::DoubleClicked |
     QAbstractItemView::EditKeyPressed);
-
-  m_signalPropertiesDelegate =
-    new ConfigurationSignalPropertiesDelegate(
-      m_signalPropertiesView);
-
-  m_signalModel->setSignalTypes(signalTypes);
-  m_signalModel->setSensors(loaded);
-
-  m_signalPropertiesModel->setSignalTypes(signalTypes);
-  m_signalPropertiesModel->setSensors(loaded);
-
-  m_signalPropertiesDelegate->setSignalTypes(
-    std::move(signalTypes));
-
-  m_signalPropertiesDelegate->setSensors(
-    std::move(loaded));
 
   m_signalPropertiesView->setItemDelegateForColumn(1, m_signalPropertiesDelegate);
 
@@ -701,19 +679,6 @@ ConfigurationEditor::ConfigurationEditor(
       updateActions();
     });
 
-  // подключаем обработку ошибок после создания модели датчика:
-  connect(
-    m_sensorModel,
-    &SensorModel::operationFailed,
-    this,
-    [this](const QString& message)
-    {
-      QMessageBox::warning(
-        this,
-        tr("Ошибка изменения датчика"),
-        message);
-    });
-
   // свяжем модель SensorTypeModel с делегатом списка типов датчиков
   connect(
     m_sensorTypeModel,
@@ -766,6 +731,8 @@ ConfigurationEditor::ConfigurationEditor(
     {
       m_sensorPropertiesModel->setSensor(
         m_sensorsView->currentIndex());
+
+      updateSensors();
     });
 
   // если выбранный датчик изменён через основную таблицу,
@@ -777,6 +744,8 @@ ConfigurationEditor::ConfigurationEditor(
     [this](const QModelIndex& topLeft,
            const QModelIndex& bottomRight)
     {
+      updateSensors();
+
       const QModelIndex current =
         m_sensorsView->currentIndex();
 
@@ -787,6 +756,41 @@ ConfigurationEditor::ConfigurationEditor(
 
       m_sensorPropertiesModel->setSensor(current);
     });
+
+  // подключаем обработку ошибок после создания модели датчика:
+  connect(
+    m_sensorModel,
+    &SensorModel::operationFailed,
+    this,
+    [this](const QString& message)
+    {
+      QMessageBox::warning(
+        this,
+        tr("Ошибка изменения датчика"),
+        message);
+    });
+
+  connect(
+    m_sensorModel,
+    &QAbstractItemModel::rowsInserted,
+    this,
+    [this]()
+    {
+      updateSensors();
+    });
+
+  connect(
+    m_sensorModel,
+    &QAbstractItemModel::modelReset,
+    this,
+    [this]()
+    {
+      updateSensors();
+    });
+
+
+  //
+  updateSensors();
 }
 
 void ConfigurationEditor::restoreWindowSettings(
@@ -1298,6 +1302,15 @@ void ConfigurationEditor::updateSensorTypes()
 
   m_sensorTypeDelegate->setItems(
     std::move(items));
+}
+
+void ConfigurationEditor::updateSensors()
+{
+  const auto& sensors = m_sensorModel->sensors();
+
+  m_signalModel->setSensors(sensors);
+  m_signalPropertiesModel->setSensors(sensors);
+  m_signalPropertiesDelegate->setSensors(sensors);
 }
 
 void ConfigurationEditor::editCalibration()

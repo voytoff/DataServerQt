@@ -59,6 +59,7 @@ private:
   void updateActions();
 
   void updateSensorTypes();
+  void updateSensors();
 
   void editCalibration();
 

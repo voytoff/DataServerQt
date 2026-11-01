@@ -74,6 +74,9 @@ private:
   bool registerDataSources();
   bool initializeArchive();
 
+  [[nodiscard]]
+  bool validateConfiguration();
+
 private:
   QSqlDatabase m_database;
   ConfigurationId m_configurationId;

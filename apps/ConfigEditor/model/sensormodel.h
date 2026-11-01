@@ -69,6 +69,9 @@ public:
   void updateSensor(
     const Sensor& sensor);
 
+  [[nodiscard]]
+  const std::vector<Sensor>& sensors() const noexcept;
+
 private:
   ConfigurationRepository& m_repository;
 

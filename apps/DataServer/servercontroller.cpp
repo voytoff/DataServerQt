@@ -9,6 +9,8 @@
 #include "modulevalidators.h"
 #include "signalmemorylayout.h"
 #include "testdatastreamsource.h"
+#include "configurationvalidator.h"
+#include "preparedconfiguration.h"
 
 #include <QDir>
 
@@ -262,6 +264,37 @@ bool ServerController::initializeArchive()
   return true;
 }
 
+bool ServerController::validateConfiguration()
+{
+  m_guiLogger.info("Проверка конфигурации");
+
+  ConfigurationValidator validator;
+  PreparedConfiguration prepared;
+
+  // Валидатор может дополнять конфигурацию
+  // сведениями о формулах и зависимостях.
+  SystemConfiguration configuration = m_configuration;
+
+  if (!validator.build(
+        configuration,
+        m_sensors,
+        m_calibrations,
+        m_moduleValidators,
+        prepared))
+  {
+    m_guiLogger.error(
+      "Ошибка конфигурации: " +
+      validator.lastError());
+
+    return false;
+  }
+
+  m_guiLogger.info(
+    "Конфигурация проверена. Ошибок не обнаружено");
+
+  return true;
+}
+
 ConfigurationId ServerController::configurationId() const noexcept
 {
   return m_configurationId;
@@ -338,6 +371,10 @@ bool ServerController::start()
 
     m_sourcesRegistered = true;
   }
+
+  // Проверяем конфигурацию до создания архива.
+  if (!validateConfiguration())
+    return false;
 
   m_guiLogger.info("Инициализация архива");
 

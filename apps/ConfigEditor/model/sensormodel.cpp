@@ -504,4 +504,9 @@ void SensorModel::updateSensor(
     {Qt::DisplayRole, Qt::EditRole});
 }
 
+const std::vector<Sensor>& SensorModel::sensors() const noexcept
+{
+  return m_sensors;
+}
+
 }
