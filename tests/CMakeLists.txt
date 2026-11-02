@@ -5,7 +5,7 @@ set(CMAKE_AUTOMOC ON)
 
 enable_testing()
 
-find_package(QT NAMES Qt6 REQUIRED COMPONENTS Test Core Network Sql)
+find_package(QT NAMES Qt6 REQUIRED COMPONENTS          Test Core Network Sql)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Test Core Network Sql)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -66,7 +66,6 @@ add_executable(unit_tests
   qds/failingarchivewriter.h
   qds/fakeschedulerclock.h qds/fakeschedulerclock.cpp
   qds/fakeclock.h qds/fakeclock.cpp
-
 )
 
 target_include_directories(DataClient
@@ -94,6 +93,7 @@ target_link_libraries(unit_tests
     DataSettings
     DataWidgets
     DataClient
+    modulevalidators
   PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Test

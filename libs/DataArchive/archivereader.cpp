@@ -3,6 +3,8 @@
 #include <string>
 #include <format>
 #include <fstream>
+#include <limits>
+
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonParseError>
@@ -258,76 +260,151 @@ bool ArchiveReader::readFrame(
   FrameNumber frameNumber,
   ArchiveSample& sample)
 {
-  assert(
-    fileIndex <
-    m_files.size());
+  uint64_t recordIndex = 0;
 
-  if (!m_open)
-    return false;
-
-  if (!ensureOpen(fileIndex))
-    return false;
-
-  auto& file =
-    m_files[fileIndex].archive;
-
-  const auto& header =
-    file.header();
-
-  if (header.sampleFrequency == 0)
-    return false;
-
-  const uint64_t periodFrames =
-    BaseFrameFrequency /
-    header.sampleFrequency;
-
-  if (periodFrames == 0)
-    return false;
-
-  if (
-    frameNumber.value %
-      periodFrames != 0)
+  if (!findRecord(
+        fileIndex,
+        frameNumber,
+        recordIndex))
   {
     return false;
   }
 
-  const uint64_t recordIndex =
-    frameNumber.value /
-    periodFrames;
+  const auto* header =
+    fileHeader(fileIndex);
 
-  if (
-    recordIndex >=
-    header.recordCount)
+  if (!header)
+    return false;
+
+  if (recordIndex >= header->recordCount)
+    return false;
+
+  ArchiveSample result;
+
+  if (!readRecord(
+        fileIndex,
+        recordIndex,
+        result))
   {
     return false;
   }
 
-  const uint64_t position =
-    header.headerSize +
-    recordIndex *
-      header.recordSize;
+  if (result.frameNumber != frameNumber)
+    return false;
 
-  if (
-    position +
-      header.recordSize >
-    file.fileSize())
+  sample = std::move(result);
+
+  return true;
+}
+
+bool ArchiveReader::readRecord(
+  std::size_t fileIndex,
+  uint64_t recordIndex,
+  ArchiveSample& sample)
+{
+  uint64_t position = 0;
+
+  if (!recordPosition(
+        fileIndex,
+        recordIndex,
+        position))
   {
     return false;
   }
+
+  auto& file = m_files[fileIndex].archive;
 
   if (!file.seek(position))
     return false;
 
-  if (!read(
+  return read(fileIndex, sample);
+}
+
+bool ArchiveReader::findRecord(
+  std::size_t fileIndex,
+  FrameNumber frameNumber,
+  uint64_t& recordIndex)
+{
+  if (!m_open || fileIndex >= m_files.size())
+    return false;
+
+  const auto* header = fileHeader(fileIndex);
+
+  if (!header)
+    return false;
+
+  uint64_t left = 0;
+  uint64_t right = header->recordCount;
+
+  while (left < right)
+  {
+    const uint64_t middle =
+      left + (right - left) / 2;
+
+    SampleRecordHeader record;
+
+    if (!readRecordHeader(
+          fileIndex,
+          middle,
+          record))
+    {
+      return false;
+    }
+
+    if (record.frameNumber < frameNumber.value)
+      left = middle + 1;
+    else
+      right = middle;
+  }
+
+  recordIndex = left;
+
+  return true;
+}
+
+bool ArchiveReader::readRange(
+  std::size_t fileIndex,
+  FrameNumber firstFrame,
+  FrameNumber lastFrame,
+  std::vector<ArchiveSample>& samples)
+{
+  samples.clear();
+
+  if (firstFrame.value > lastFrame.value)
+    return false;
+
+  uint64_t recordIndex = 0;
+
+  if (!findRecord(
         fileIndex,
-        sample))
+        firstFrame,
+        recordIndex))
   {
     return false;
   }
 
-  return
-    sample.frameNumber ==
-    frameNumber;
+  const auto* header = fileHeader(fileIndex);
+
+  if (!header)
+    return false;
+
+  for (
+    uint64_t i = recordIndex;
+    i < header->recordCount;
+    ++i)
+  {
+    ArchiveSample sample;
+
+    if (!readRecord(fileIndex, i, sample))
+      return false;
+
+    if (sample.frameNumber.value > lastFrame.value)
+      break;
+
+    samples.push_back(std::move(sample));
+  }
+
+  return true;
 }
 
 bool ArchiveReader::ensureOpen(std::size_t fileIndex)
@@ -345,6 +422,75 @@ bool ArchiveReader::ensureOpen(std::size_t fileIndex)
     file.archive.close();
     return false;
   }
+
+  return true;
+}
+
+bool ArchiveReader::readRecordHeader(
+  std::size_t fileIndex,
+  uint64_t recordIndex,
+  SampleRecordHeader& header)
+{
+  uint64_t position = 0;
+
+  if (!recordPosition(
+        fileIndex,
+        recordIndex,
+        position))
+  {
+    return false;
+  }
+
+  auto& file = m_files[fileIndex].archive;
+
+  if (!file.seek(position))
+    return false;
+
+  return file.readObject(header);
+}
+
+bool ArchiveReader::recordPosition(
+  std::size_t fileIndex,
+  uint64_t recordIndex,
+  uint64_t& position)
+{
+  if (!m_open || fileIndex >= m_files.size())
+    return false;
+
+  if (!ensureOpen(fileIndex))
+    return false;
+
+  auto& file = m_files[fileIndex].archive;
+  const auto& header = file.header();
+
+  if (recordIndex >= header.recordCount)
+    return false;
+
+  const uint64_t fileSize = file.fileSize();
+
+  if (header.headerSize > fileSize)
+    return false;
+
+  const uint64_t available =
+    fileSize - header.headerSize;
+
+  if (header.recordSize > available)
+    return false;
+
+  // Проверяем индекс без умножения, чтобы
+  // избежать переполнения uint64_t.
+  if (
+    recordIndex >
+    (available - header.recordSize) /
+      header.recordSize)
+  {
+    return false;
+  }
+
+  position =
+    static_cast<uint64_t>(header.headerSize) +
+    recordIndex *
+      static_cast<uint64_t>(header.recordSize);
 
   return true;
 }

@@ -438,7 +438,7 @@ void tst_datasource::test_datasource_manager()
   SystemConfiguration cfg = createTestConfig_Some_Modules();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+  QVERIFY(layout.build(cfg));
 
   BufferManager buffers;
   buffers.initialize(layout);
@@ -488,7 +488,7 @@ void tst_datasource::test_datasource_fail_datasource()
   SystemConfiguration cfg = createTestConfig_Fail_ModuleType();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+  QVERIFY(layout.build(cfg));
 
   BufferManager buffers;
   buffers.initialize(layout);
@@ -541,7 +541,7 @@ void tst_datasource::test_datasource_absent_datasource()
   SystemConfiguration cfg = createTestConfig_Some_Modules();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+  QVERIFY(layout.build(cfg));
 
   BufferManager buffers;
   buffers.initialize(layout);
@@ -579,7 +579,7 @@ void tst_datasource::test_datasource_missing_datasource()
     createTestConfig_Fail_DataSource();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+  QVERIFY(layout.build(cfg));
 
   DataSourceFactory factory;
   QVERIFY(factory.registerType(
@@ -613,7 +613,7 @@ void tst_datasource::test_datasource_repeat_initialize()
   SystemConfiguration cfg = createTestConfig_Some_Modules();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+  QVERIFY(layout.build(cfg));
 
   BufferManager buffers;
   buffers.initialize(layout);
@@ -687,7 +687,7 @@ void tst_datasource::test_datasource_acquire_repeat()
     createTestConfig_Some_Modules();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+  QVERIFY(layout.build(cfg));
 
   BufferManager buffers;
   buffers.initialize(layout);
@@ -749,7 +749,7 @@ void tst_datasource::test_datasource_empty_config()
   SystemConfiguration cfg;
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+  QVERIFY(layout.build(cfg));
 
   DataSourceFactory factory;
 
@@ -769,7 +769,7 @@ void tst_datasource::test_dataSourceManager_successInit()
     createTestConfig_Some_Modules();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+  QVERIFY(layout.build(cfg));
 
   BufferManager buffers;
   buffers.initialize(layout);
@@ -809,7 +809,7 @@ void tst_datasource::test_datasource_fail_repeat()
     createTestConfig_Some_Modules();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+  QVERIFY(layout.build(cfg));
 
   DataSourceFactory factory;
 
@@ -847,7 +847,7 @@ void tst_datasource::test_datasource_start_stop()
   SystemConfiguration cfg = createTestConfig_calculate(ModuleType::LTR11);
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+  QVERIFY(layout.build(cfg));
 
   DataSourceFactory factory;
 

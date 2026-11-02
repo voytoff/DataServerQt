@@ -1,7 +1,10 @@
 #include "ltr11configurationbuilder.h"
+#include "ltr11configurationvalidator.h"
 #include "networkutils.h"
+#include "jsonutils.h"
 
 #include <utility>
+#include <cmath>
 
 namespace qds
 {
@@ -34,28 +37,44 @@ bool Ltr11ConfigurationBuilder::build(
   cfg.port = moduleConfiguration.crate.port;
   cfg.slot = moduleConfiguration.module.slot + 1;
 
-  cfg.channelRate = 1000.0;
-
   const auto& moduleSettings =
     moduleConfiguration.configuration.settings;
 
-  if (!moduleSettings.contains("mode") ||
-      !moduleSettings.value("mode").isDouble())
+  const QJsonValue rateValue =
+    moduleSettings.value("channelRate");
+
+  if (!rateValue.isDouble())
   {
     m_lastError =
-      "LTR11: не задан или некорректен режим работы модуля";
+      "LTR11: не задана или некорректна частота опроса";
 
     return false;
   }
 
-  const int mode =
-    moduleSettings.value("mode").toInt(-1);
+  const double channelRate = rateValue.toDouble();
 
-  if (mode < 0 || mode > 2)
+  if (!std::isfinite(channelRate) ||
+      channelRate <= 0.0)
   {
     m_lastError =
-      "LTR11: недопустимый режим работы модуля: " +
-      std::to_string(mode);
+      "LTR11: недопустимая частота опроса: " +
+      std::to_string(channelRate);
+
+    return false;
+  }
+
+  cfg.channelRate = channelRate;
+
+  int mode = 0;
+
+  if (!jsonInteger(
+        moduleSettings.value("mode"),
+        0,
+        1,
+        mode))
+  {
+    m_lastError =
+      "LTR11: не задан или недопустим режим работы модуля";
 
     return false;
   }
@@ -70,36 +89,35 @@ bool Ltr11ConfigurationBuilder::build(
   {
     const auto& settings = tag.settings;
 
-    if (!settings.contains("range") ||
-        !settings.value("range").isDouble())
+    int range = 0;
+
+    if (!jsonInteger(
+          settings.value("range"),
+          0,
+          3,
+          range))
     {
       m_lastError =
-        "LTR11: не задан или некорректен диапазон "
+        "LTR11: не задан или недопустим диапазон "
         "измерения канала " +
-        std::to_string(tag.channel.value);
+        std::to_string(static_cast<int>(tag.channel.value));
 
       return false;
     }
 
-    const int range =
-      settings.value("range").toInt(-1);
-
-    if (range < 0 || range > 3)
+    if (tag.channel.value < 0 ||
+        tag.channel.value >= 32)
     {
       m_lastError =
-        "LTR11: недопустимый диапазон "
-        "измерения канала " +
-        std::to_string(tag.channel.value) +
-        ": " + std::to_string(range);
+        "LTR11: недопустимый номер канала: " +
+        std::to_string(static_cast<int>(tag.channel.value));
 
       return false;
     }
 
     cfg.channels.push_back({
-      .channel =
-      static_cast<uint8_t>(tag.channel.value),
-      .range =
-      static_cast<uint8_t>(range)
+      .channel = static_cast<uint8_t>(tag.channel.value),
+      .range = static_cast<uint8_t>(range)
     });
   }
 
@@ -108,6 +126,13 @@ bool Ltr11ConfigurationBuilder::build(
     m_lastError =
       "LTR11: не настроен ни один канал";
 
+    return false;
+  }
+
+  if (!Ltr11ConfigurationValidator::validate(
+        cfg,
+        m_lastError))
+  {
     return false;
   }
 

@@ -15,6 +15,7 @@
 #include "systemconfiguration.h"
 #include "qds/testpublishersender.h"
 #include "testsrv.h"
+#include "modulevalidators.h"
 #include "testlogger.h"
 #include <QSqlTableModel>
 #include <qtestcase.h>
@@ -340,6 +341,7 @@ auto db = get_db();
   SensorRepository sensors;
   QVERIFY(repo.loadSensors(sensors));
   ModuleConfigurationValidatorRegistry validator;
+  QVERIFY(registerModuleValidators(validator));
 
   auto runtime =
     builder.build(
@@ -623,6 +625,7 @@ void tst_database::test_database_archive()
   SystemBuilder builder;
   SensorRepository sensors;
   ModuleConfigurationValidatorRegistry validator;
+  QVERIFY(registerModuleValidators(validator));
 
   QVERIFY(
     repo.loadSensors(
@@ -1282,6 +1285,241 @@ void tst_database::test_archiveReader_readFrame()
     nullptr);
 }
 
+void tst_database::test_archiveReader_readRecord()
+{
+  using namespace qds;
+
+  ArchiveReader reader;
+
+  QVERIFY(reader.open(getCurrentFolder()));
+
+  const auto& files =
+    reader.description().files;
+
+  auto it = std::find_if(
+    files.begin(),
+    files.end(),
+    [](const ArchiveFileDescription& desc)
+    {
+      return desc.frequency == 10 &&
+             !desc.signalIds.empty() &&
+             desc.signalIds[0].kind ==
+               SignalKind::Calculated;
+    });
+
+  QVERIFY(it != files.end());
+
+  const auto fileIndex =
+    static_cast<std::size_t>(
+      std::distance(files.begin(), it));
+
+  const auto* header =
+    reader.fileHeader(fileIndex);
+
+  QVERIFY(header != nullptr);
+  QVERIFY(header->recordCount > 0);
+
+  const uint64_t periodFrames =
+    BaseFrameFrequency /
+    header->sampleFrequency;
+
+  const uint64_t recordCount =
+    header->recordCount;
+
+  ArchiveSample sample;
+
+  for (uint64_t i = recordCount; i > 0; --i)
+  {
+    const uint64_t recordIndex = i - 1;
+
+    QVERIFY(reader.readRecord(
+      fileIndex,
+      recordIndex,
+      sample));
+
+    QCOMPARE(
+      sample.frameNumber,
+      FrameNumber{
+                  recordIndex * periodFrames});
+
+    QCOMPARE(
+      sample.values.size(),
+      static_cast<std::size_t>(
+        header->channelCount));
+  }
+
+  // Индекс за последней записью.
+  QVERIFY(!reader.readRecord(
+    fileIndex,
+    recordCount,
+    sample));
+
+  // Несуществующий файл.
+  QVERIFY(!reader.readRecord(
+    reader.fileCount(),
+    0,
+    sample));
+
+  reader.close();
+
+  QVERIFY(!reader.readRecord(
+    fileIndex,
+    0,
+    sample));
+}
+
+void tst_database::test_archiveReader_findRecord()
+{
+  using namespace qds;
+
+  ArchiveReader reader;
+
+  QVERIFY(reader.open(getCurrentFolder()));
+
+  const auto& files =
+    reader.description().files;
+
+  auto it = std::find_if(
+    files.begin(),
+    files.end(),
+    [](const ArchiveFileDescription& desc)
+    {
+      return desc.frequency == 10 &&
+             !desc.signalIds.empty() &&
+             desc.signalIds[0].kind ==
+               SignalKind::Calculated;
+    });
+
+  QVERIFY(it != files.end());
+
+  const auto fileIndex =
+    static_cast<std::size_t>(
+      std::distance(files.begin(), it));
+
+  const auto* header =
+    reader.fileHeader(fileIndex);
+
+  QVERIFY(header != nullptr);
+  QVERIFY(header->recordCount > 0);
+
+  const uint64_t periodFrames =
+    BaseFrameFrequency /
+    header->sampleFrequency;
+
+  uint64_t recordIndex = 0;
+
+  // Первый кадр.
+  QVERIFY(reader.findRecord(
+    fileIndex,
+    FrameNumber{0},
+    recordIndex));
+
+  QCOMPARE(recordIndex, uint64_t{0});
+
+  // Все существующие кадры.
+  for (uint64_t i = 0; i < header->recordCount; ++i)
+  {
+    QVERIFY(reader.findRecord(
+      fileIndex,
+      FrameNumber{i * periodFrames},
+      recordIndex));
+
+    QCOMPARE(recordIndex, i);
+  }
+
+  // Кадр между двумя записями.
+  if (header->recordCount > 1)
+  {
+    QVERIFY(reader.findRecord(
+      fileIndex,
+      FrameNumber{1},
+      recordIndex));
+
+    QCOMPARE(recordIndex, uint64_t{1});
+
+    QVERIFY(reader.findRecord(
+      fileIndex,
+      FrameNumber{periodFrames - 1},
+      recordIndex));
+
+    QCOMPARE(recordIndex, uint64_t{1});
+  }
+
+  // За последним кадром.
+  QVERIFY(reader.findRecord(
+    fileIndex,
+    FrameNumber{
+                header->recordCount * periodFrames},
+    recordIndex));
+
+  QCOMPARE(recordIndex, header->recordCount);
+
+  // Несуществующий индекс файла.
+  QVERIFY(!reader.findRecord(
+    reader.fileCount(),
+    FrameNumber{0},
+    recordIndex));
+
+  reader.close();
+
+  QVERIFY(!reader.findRecord(
+    fileIndex,
+    FrameNumber{0},
+    recordIndex));
+}
+
+void tst_database::test_archiveReader_missingFrames()
+{
+  using namespace qds;
+
+  QTemporaryDir tempDir;
+  QVERIFY(tempDir.isValid());
+
+  SystemConfiguration cfg;
+
+  cfg.addCrate({.id={0}});
+  QVERIFY(cfg.addModule({.id = {0}, .crate = {0}}));
+  QVERIFY(cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}}));
+  QVERIFY(cfg.addSignalDefinition({.id = {10}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveRate = ArchiveRate::Hz100}));
+
+  ArchiveDescriptionBuilder descriptionBuilder;  
+
+  ArchiveDescription description;
+
+  QVERIFY(
+    descriptionBuilder.build(
+      cfg,
+      description));
+
+  ArchiveDescriptionWriter descriptionWriter;
+
+  const auto path =
+    std::filesystem::path(tempDir.filePath("description.json").toStdString());
+
+  QVERIFY(
+    descriptionWriter.write(
+      path,
+      description));
+
+
+  const std::vector<uint64_t> frames{
+    0, 10, 20, 50, 60, 100
+  };
+
+  SignalMemoryLayout layout;
+  QVERIFY(layout.build(cfg));
+
+  ArchiveManager archive;
+
+  QVERIFY(
+    archive.initialize(
+      std::filesystem::path(tempDir.path().toStdString()),
+      description,
+      layout));
+
+
+}
+
 void tst_database::test_publisher()
 {
   using namespace qds;
@@ -1532,6 +1770,7 @@ void tst_database::test_publisher_raw_calculated()
   SystemBuilder builder;
   SensorRepository sensors;
   ModuleConfigurationValidatorRegistry validator;
+  QVERIFY(registerModuleValidators(validator));
 
   QVERIFY(
     repo.loadSensors(

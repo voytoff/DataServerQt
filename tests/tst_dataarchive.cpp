@@ -2802,7 +2802,7 @@ void tst_dataarchive::test_FrameAssembler_wait_for_all_modules()
     createTestConfig_Some_Modules();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+  QVERIFY(layout.build(cfg));
 
   FrameAssembler assembler(
     cfg,
@@ -2975,7 +2975,7 @@ void tst_dataarchive::test_FrameAssembler_allow_incomplete()
     createTestConfig_Some_Modules();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+  QVERIFY(layout.build(cfg));
 
   FrameAssembler assembler(
     cfg,
@@ -3061,7 +3061,7 @@ void tst_dataarchive::test_DataStreamProcessor_archiveFailure()
     createTestConfig_Some_Modules();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+  QVERIFY(layout.build(cfg));
 
   DataStreamReader reader;
 
@@ -3239,7 +3239,7 @@ void tst_dataarchive::test_DataStreamProcessor_wait_for_all()
     createTestConfig_Some_Modules();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+  QVERIFY(layout.build(cfg));
 
   DataStreamReader reader;
 
@@ -3407,7 +3407,7 @@ void tst_dataarchive::test_DataStreamProcessor_livetime()
     createTestConfig_Some_Modules();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+  QVERIFY(layout.build(cfg));
 
   DataStreamReader reader;
 
@@ -3553,7 +3553,7 @@ void tst_dataarchive::
     createTestConfig_Some_Modules();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+  QVERIFY(layout.build(cfg));
 
   DataStreamReader reader;
 
@@ -3708,7 +3708,7 @@ void tst_dataarchive::test_DataStreamWorker_base()
     createTestConfig_Some_Modules();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+  QVERIFY(layout.build(cfg));
 
   DataStreamReader reader;
 
@@ -3845,7 +3845,7 @@ void tst_dataarchive::test_LCardDataSource_to_archive()
     createTestConfig_Some_Modules();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+  QVERIFY(layout.build(cfg));
 
   DataStreamReader reader;
 
@@ -4006,7 +4006,7 @@ void tst_dataarchive::test_LCardDataSource_some_modules_to_archive()
     createTestConfig_Some_Modules();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+  QVERIFY(layout.build(cfg));
 
   DataStreamReader reader;
 
@@ -4230,7 +4230,7 @@ void tst_dataarchive::test_DataStreamWorker_restart()
     createTestConfig_Some_Modules();
 
   SignalMemoryLayout layout;
-  layout.build(cfg);
+  QVERIFY(layout.build(cfg));
 
   DataStreamReader reader;
 
