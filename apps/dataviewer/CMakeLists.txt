@@ -6,8 +6,8 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 REQUIRED COMPONENTS           Core Widgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS  Core Widgets)
+find_package(QT NAMES Qt6 REQUIRED COMPONENTS           Core Widgets Charts)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS  Core Widgets Charts)
 
 set(DATAVIEWER_RESOURCE_FILES res.qrc)
 qt6_add_resources(DATAVIEWER_PROJECT_RESOURCES ${DATAVIEWER_RESOURCE_FILES})
@@ -29,8 +29,10 @@ target_link_libraries(dataviewer
   PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Charts
     Configuration
     DataSettings
     DataWidgets
     signalprocessing
+    DataArchive
 )

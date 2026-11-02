@@ -18,8 +18,6 @@ add_executable(unit_tests
   tst_common.h tst_common.cpp
   tst_udpsender.h tst_udpsender.cpp
   tst_subscriptions.h tst_subscriptions.cpp
-  #tst_livestorage.h tst_livestorage.cpp
-  #tst_livescheduler.h tst_livescheduler.cpp
   tst_udpserver.h tst_udpserver.cpp
   tst_dataprotocol.h tst_dataprotocol.cpp
   testsrv.h testsrv.cpp
@@ -31,7 +29,6 @@ add_executable(unit_tests
   tst_packetdispatcher.h tst_packetdispatcher.cpp
   tst_dataarchive.h tst_dataarchive.cpp
   tst_signalstorage.h tst_signalstorage.cpp
-  #tst_scheduler.h tst_scheduler.cpp
   tst_signalprocessor.h tst_signalprocessor.cpp
   tst_configuration.h tst_configuration.cpp
   tst_formulas.h tst_formulas.cpp
@@ -40,7 +37,6 @@ add_executable(unit_tests
   tst_logger.h tst_logger.cpp
   tst_ltr11module.h tst_ltr11module.cpp
   qds/fakedatastreameventsink.h
-  #qds/testarchiveframewriter.h
   qds/testpublisher.h
   qds/testarchivewriter.h
   qds/testdatastreamsource.h
@@ -68,7 +64,7 @@ add_executable(unit_tests
   qds/fakeclock.h qds/fakeclock.cpp
 )
 
-target_include_directories(DataClient
+target_include_directories(unit_tests
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/qds

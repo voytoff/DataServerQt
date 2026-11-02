@@ -14,4 +14,6 @@ private slots:
   void test_systemClock();
   void test_schedulerClock();
 
+  void test_timeAxis();
+
 };

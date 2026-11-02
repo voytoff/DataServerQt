@@ -6,8 +6,8 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 REQUIRED COMPONENTS          Core Widgets Sql Svg)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Sql Svg)
+find_package(QT NAMES Qt6 REQUIRED COMPONENTS          Core Widgets Sql Svg Charts)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Sql Svg Charts)
 
 add_library(DataWidgets SHARED
   datawidgets_export.h
@@ -19,6 +19,7 @@ add_library(DataWidgets SHARED
   colorscheme.h colorscheme.cpp
   applicationsettingsdialog.h applicationsettingsdialog.cpp applicationsettingsdialog.ui
   rowheightdelegate.h rowheightdelegate.cpp
+  timeaxis.h timeaxis.cpp
 )
 
 target_include_directories(DataWidgets
@@ -32,6 +33,7 @@ target_link_libraries(DataWidgets
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Sql
     Qt${QT_VERSION_MAJOR}::Svg
+    Qt${QT_VERSION_MAJOR}::Charts
     DataSettings
 )
 

@@ -1477,9 +1477,11 @@ void tst_database::test_archiveReader_missingFrames()
 
   SystemConfiguration cfg;
 
-  cfg.addCrate({.id={0}});
+  cfg.addCrate({.id = {0}});
   QVERIFY(cfg.addModule({.id = {0}, .crate = {0}}));
+  QVERIFY(cfg.addConfigurationModule({.configurationId = {0}, .module = {0}, .settings = {}}));
   QVERIFY(cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}}));
+  QVERIFY(cfg.addConfigurationTag({.tag = {0}, .module = {0}, .channel = {0}, .settings = {}}));
   QVERIFY(cfg.addSignalDefinition({.id = {10}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveRate = ArchiveRate::Hz100}));
 
   ArchiveDescriptionBuilder descriptionBuilder;  
@@ -1496,6 +1498,9 @@ void tst_database::test_archiveReader_missingFrames()
   const auto path =
     std::filesystem::path(tempDir.filePath("description.json").toStdString());
 
+  const auto file =
+    std::filesystem::path(tempDir.filePath("raw_100Hz.dat").toStdString());
+
   QVERIFY(
     descriptionWriter.write(
       path,
@@ -1506,18 +1511,233 @@ void tst_database::test_archiveReader_missingFrames()
     0, 10, 20, 50, 60, 100
   };
 
-  SignalMemoryLayout layout;
-  QVERIFY(layout.build(cfg));
+  std::array<float, 1> values;
 
-  ArchiveManager archive;
-
-  QVERIFY(
-    archive.initialize(
-      std::filesystem::path(tempDir.path().toStdString()),
-      description,
-      layout));
+  DataFileHeader hdr{
+    .module = {0},
+    .sampleFrequency = 100,
+    .channelCount = values.size(),
+    .recordSize = static_cast<uint32_t>(sizeof(SampleRecordHeader) + values.size() * sizeof(float)),
+  };
 
 
+  ArchiveWriter writer;
+  QVERIFY(writer.open(file, hdr));
+  QVERIFY(writer.isOpen());
+
+  for (size_t n = 0; n < frames.size(); n++)
+  {
+    const auto i = FrameNumber{frames[n]};
+    values[0] = static_cast<float>(100 * i.value);
+
+    QVERIFY(
+      writer.write(
+        Timestamp{(n + 1) * 100'000},
+        i,
+        WallClockTime{static_cast<int64_t>((n + 1) * 10'000)},
+        values));
+  }
+
+  writer.close();
+
+  ArchiveReader reader;
+  QVERIFY(reader.open(std::filesystem::path(tempDir.path().toStdString())));
+
+  ArchiveSample sample;
+
+  for (size_t n = 0; n < frames.size(); n++)
+  {
+    const auto i = FrameNumber{frames[n]};
+    uint64_t recordIndex;
+    QVERIFY(reader.findRecord(0, i, recordIndex));
+
+    QCOMPARE(recordIndex, n);
+
+    QVERIFY(reader.readFrame(0, i, sample));
+
+    QCOMPARE(sample.frameNumber, i);
+    QCOMPARE(sample.timestamp, Timestamp{(n + 1) * 100'000});
+    QCOMPARE(sample.wallTime, WallClockTime{static_cast<int64_t>((n + 1) * 10'000)});
+    QCOMPARE(sample.values.size(), 1);
+    QCOMPARE(sample.values[0], static_cast<float>(100 * i.value));
+  }
+
+  struct TestCase
+  {
+    uint64_t frame;
+    uint64_t expectedIndex;
+  };
+
+  const std::array missingFrames{
+    TestCase{1, 1},
+    TestCase{30, 3},
+    TestCase{40, 3},
+    TestCase{70, 5},
+    TestCase{90, 5},
+    TestCase{110, 6}
+  };
+
+  for (const auto& test : missingFrames)
+  {
+    uint64_t recordIndex = 0;
+
+    QVERIFY(reader.findRecord(
+      0,
+      FrameNumber{test.frame},
+      recordIndex));
+
+    QCOMPARE(recordIndex, test.expectedIndex);
+
+    QVERIFY(!reader.readFrame(
+      0,
+      FrameNumber{test.frame},
+      sample));
+  }
+
+  QVERIFY(!reader.readFrame(0, FrameNumber{110}, sample));
+
+  QVERIFY(reader.readFrame(
+    0,
+    FrameNumber{50},
+    sample));
+
+  const auto previousFrame = sample.frameNumber;
+  const auto previousValues = sample.values;
+
+  QVERIFY(!reader.readFrame(
+    0,
+    FrameNumber{40},
+    sample));
+
+  QCOMPARE(sample.frameNumber, previousFrame);
+  QCOMPARE(sample.values, previousValues);
+
+
+  //===================================================
+  std::vector<ArchiveSample> samples;
+
+  // Все существующие записи в диапазоне.
+  QVERIFY(reader.readRange(
+    0,
+    FrameNumber{20},
+    FrameNumber{70},
+    100,
+    samples));
+
+  QCOMPARE(samples.size(), std::size_t{3});
+  QCOMPARE(samples[0].frameNumber, FrameNumber{20});
+  QCOMPARE(samples[1].frameNumber, FrameNumber{50});
+  QCOMPARE(samples[2].frameNumber, FrameNumber{60});
+
+  // Ограничение количества записей.
+  QVERIFY(reader.readRange(
+    0,
+    FrameNumber{20},
+    FrameNumber{100},
+    2,
+    samples));
+
+  QCOMPARE(samples.size(), std::size_t{2});
+  QCOMPARE(samples[0].frameNumber, FrameNumber{20});
+  QCOMPARE(samples[1].frameNumber, FrameNumber{50});
+
+  // Диапазон без записей.
+  QVERIFY(reader.readRange(
+    0,
+    FrameNumber{30},
+    FrameNumber{40},
+    100,
+    samples));
+
+  QVERIFY(samples.empty());
+
+  // Диапазон за концом архива.
+  QVERIFY(reader.readRange(
+    0,
+    FrameNumber{110},
+    FrameNumber{200},
+    100,
+    samples));
+
+  QVERIFY(samples.empty());
+
+  // Некорректный диапазон.
+  QVERIFY(!reader.readRange(
+    0,
+    FrameNumber{100},
+    FrameNumber{20},
+    100,
+    samples));
+
+  // Нулевой размер страницы.
+  QVERIFY(!reader.readRange(
+    0,
+    FrameNumber{0},
+    FrameNumber{100},
+    0,
+    samples));
+
+  //=================================================
+  // Читаем записи с индексами 2, 3, 4.
+  QVERIFY(reader.readRecords(
+    0, 2, 3, samples));
+
+  QCOMPARE(samples.size(), std::size_t{3});
+  QCOMPARE(samples[0].frameNumber, FrameNumber{20});
+  QCOMPARE(samples[1].frameNumber, FrameNumber{50});
+  QCOMPARE(samples[2].frameNumber, FrameNumber{60});
+
+  // Запрашиваем больше записей, чем осталось.
+  QVERIFY(reader.readRecords(
+    0, 4, 100, samples));
+
+  QCOMPARE(samples.size(), std::size_t{2});
+  QCOMPARE(samples[0].frameNumber, FrameNumber{60});
+  QCOMPARE(samples[1].frameNumber, FrameNumber{100});
+
+  // Начальный индекс за концом файла.
+  QVERIFY(reader.readRecords(
+    0, 6, 100, samples));
+
+  QVERIFY(samples.empty());
+
+  // Нулевой размер страницы.
+  QVERIFY(!reader.readRecords(
+    0, 0, 0, samples));
+
+  QVERIFY(samples.empty());
+
+  // Несуществующий файл.
+  QVERIFY(!reader.readRecords(
+    reader.fileCount(), 0, 10, samples));
+
+  QVERIFY(reader.fileHeader(reader.fileCount()) == nullptr);
+
+  // Некорректный индекс файла.
+  QVERIFY(!reader.read(
+    reader.fileCount(),
+    sample));
+
+  QVERIFY_THROWS_EXCEPTION(
+    std::out_of_range,
+    (void)reader.fileDescription(reader.fileCount()));
+
+  reader.close();
+
+  QVERIFY(!reader.isOpen());
+
+  QCOMPARE(reader.fileCount(), std::size_t(0));
+  QVERIFY(reader.description().files.empty());
+  QCOMPARE(reader.description().version, 1);
+
+  QVERIFY(reader.fileHeader(0) == nullptr);
+
+  QVERIFY(!reader.read(0, sample));
+
+
+  QVERIFY_THROWS_EXCEPTION(
+    std::logic_error,
+    (void)reader.fileDescription(0));
 }
 
 void tst_database::test_publisher()

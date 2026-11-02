@@ -65,6 +65,21 @@ public:
     FrameNumber lastFrame,
     std::vector<ArchiveSample>& samples);
 
+  [[nodiscard]]
+  bool readRange(
+    std::size_t fileIndex,
+    FrameNumber firstFrame,
+    FrameNumber lastFrame,
+    std::size_t maxRecords,
+    std::vector<ArchiveSample>& samples);
+
+  [[nodiscard]]
+  bool readRecords(
+    std::size_t fileIndex,
+    uint64_t firstRecord,
+    std::size_t maxRecords,
+    std::vector<ArchiveSample>& samples);
+
 private:
   bool ensureOpen(
     std::size_t fileIndex);

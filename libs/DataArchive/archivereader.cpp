@@ -3,7 +3,8 @@
 #include <string>
 #include <format>
 #include <fstream>
-#include <limits>
+#include <algorithm>
+#include <stdexcept>
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -180,9 +181,12 @@ bool ArchiveReader::open(const std::filesystem::path &directory)
 
 void ArchiveReader::close() noexcept
 {
-  for (auto &file : m_files)
+  for (auto& file : m_files)
     file.archive.close();
 
+  m_files.clear();
+  m_description = {};
+  m_directory.clear();
   m_open = false;
 }
 
@@ -201,18 +205,22 @@ std::size_t ArchiveReader::fileCount() const noexcept
   return m_files.size();
 }
 
-const ArchiveFileDescription &ArchiveReader::fileDescription(std::size_t fileIndex) const
+const ArchiveFileDescription& ArchiveReader::fileDescription(
+  std::size_t fileIndex) const
 {
-  assert(fileIndex < m_files.size()); // ??? m_open == false;
+  if (!m_open)
+    throw std::logic_error("ArchiveReader is not open");
+
+  if (fileIndex >= m_files.size())
+    throw std::out_of_range("ArchiveReader: invalid file index");
 
   return m_files[fileIndex].description;
 }
 
-const DataFileHeader *ArchiveReader::fileHeader(std::size_t fileIndex)
+const DataFileHeader* ArchiveReader::fileHeader(
+  std::size_t fileIndex)
 {
-  assert(fileIndex < m_files.size());
-
-  if (!m_open)
+  if (!m_open || fileIndex >= m_files.size())
     return nullptr;
 
   if (!ensureOpen(fileIndex))
@@ -221,36 +229,42 @@ const DataFileHeader *ArchiveReader::fileHeader(std::size_t fileIndex)
   return &m_files[fileIndex].archive.header();
 }
 
-bool ArchiveReader::read(std::size_t fileIndex, ArchiveSample& sample)
+bool ArchiveReader::read(
+  std::size_t fileIndex,
+  ArchiveSample& sample)
 {
-  assert(fileIndex < m_files.size());
-
-  if (!m_open)
+  if (!m_open || fileIndex >= m_files.size())
     return false;
 
   if (!ensureOpen(fileIndex))
     return false;
 
-  auto &file =
-    m_files[fileIndex].archive;
+  auto& file = m_files[fileIndex].archive;
 
   const auto channelCount =
     file.header().channelCount;
 
   SampleRecordHeader header;
+
   if (!file.readObject(header))
     return false;
 
-  sample.frameNumber = FrameNumber{header.frameNumber};
-  sample.timestamp = Timestamp{header.timestamp};
-  sample.wallTime = WallClockTime{header.wallTime};
+  ArchiveSample result;
 
-  sample.values.resize(channelCount);
+  result.frameNumber = FrameNumber{header.frameNumber};
+  result.timestamp = Timestamp{header.timestamp};
+  result.wallTime = WallClockTime{header.wallTime};
+
+  result.values.resize(channelCount);
 
   if (!file.readArray(
-        sample.values.data(),
-        sample.values.size()))
+        result.values.data(),
+        result.values.size()))
+  {
     return false;
+  }
+
+  sample = std::move(result);
 
   return true;
 }
@@ -400,6 +414,130 @@ bool ArchiveReader::readRange(
 
     if (sample.frameNumber.value > lastFrame.value)
       break;
+
+    samples.push_back(std::move(sample));
+  }
+
+  return true;
+}
+
+bool ArchiveReader::readRange(
+  std::size_t fileIndex,
+  FrameNumber firstFrame,
+  FrameNumber lastFrame,
+  std::size_t maxRecords,
+  std::vector<ArchiveSample>& samples)
+{
+  samples.clear();
+
+  if (firstFrame.value > lastFrame.value)
+    return false;
+
+  if (maxRecords == 0)
+    return false;
+
+  uint64_t recordIndex = 0;
+
+  if (!findRecord(
+        fileIndex,
+        firstFrame,
+        recordIndex))
+  {
+    return false;
+  }
+
+  const auto* header = fileHeader(fileIndex);
+
+  if (!header)
+    return false;
+
+  if (recordIndex >= header->recordCount)
+    return true;
+
+  uint64_t position = 0;
+
+  if (!recordPosition(
+        fileIndex,
+        recordIndex,
+        position))
+  {
+    return false;
+  }
+
+  auto& file = m_files[fileIndex].archive;
+
+  if (!file.seek(position))
+    return false;
+
+  while (
+    recordIndex < header->recordCount &&
+    samples.size() < maxRecords)
+  {
+    ArchiveSample sample;
+
+    if (!read(fileIndex, sample))
+    {
+      samples.clear();
+      return false;
+    }
+
+    if (sample.frameNumber.value > lastFrame.value)
+      break;
+
+    samples.push_back(std::move(sample));
+    ++recordIndex;
+  }
+
+  return true;
+}
+
+bool ArchiveReader::readRecords(
+  std::size_t fileIndex,
+  uint64_t firstRecord,
+  std::size_t maxRecords,
+  std::vector<ArchiveSample>& samples)
+{
+  samples.clear();
+
+  if (maxRecords == 0)
+    return false;
+
+  const auto* header = fileHeader(fileIndex);
+
+  if (!header)
+    return false;
+
+  if (firstRecord >= header->recordCount)
+    return true;
+
+  uint64_t position = 0;
+
+  if (!recordPosition(
+        fileIndex,
+        firstRecord,
+        position))
+  {
+    return false;
+  }
+
+  auto& file = m_files[fileIndex].archive;
+
+  if (!file.seek(position))
+    return false;
+
+  const uint64_t count = std::min<uint64_t>(
+    header->recordCount - firstRecord,
+    maxRecords);
+
+  for (uint64_t i = 0; i < count; ++i)
+  {
+    ArchiveSample sample;
+
+    if (!read(fileIndex, sample))
+    {
+      samples.clear();
+      return false;
+    }
 
     samples.push_back(std::move(sample));
   }

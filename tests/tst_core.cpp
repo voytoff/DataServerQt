@@ -4,6 +4,7 @@
 #include "fakeclock.h"
 #include "schedulerclock.h"
 #include "systemclock.h"
+#include "timeaxis.h"
 
 tst_core::tst_core() { }
 tst_core::~tst_core() = default;
@@ -73,4 +74,44 @@ void tst_core::test_schedulerClock()
 
   QCOMPARE(clock.frameNumber().value, 2);
   QCOMPARE(clock.timestamp().value, 1100);
+}
+
+void tst_core::test_timeAxis()
+{
+  using namespace qds;
+
+  TimeAxis axis;
+
+  axis.setOriginTimestamp(Timestamp{1'000'000});
+  axis.setZeroTimestamp(Timestamp{1'000'000});
+
+  const Timestamp point{6'000'000};
+
+  QCOMPARE(axis.chartSeconds(point), 5.0);
+  QCOMPARE(axis.relativeSeconds(point), 5.0);
+
+  axis.setZeroTimestamp(Timestamp{8'000'000});
+
+  QCOMPARE(axis.chartSeconds(point), 5.0);
+  QCOMPARE(axis.relativeSeconds(point), -2.0);
+
+  axis.setMode(TimeAxisMode::LocalTime);
+
+  QCOMPARE(axis.chartSeconds(point), 5.0);
+
+  // Проверка форматирования относительного времени.
+  axis.setMode(TimeAxisMode::RelativeSeconds);
+
+  QCOMPARE(
+    axis.format(point, WallClockTime{}),
+    QString("-2.000"));
+
+  // Проверка точности для больших Timestamp.
+  axis.setOriginTimestamp(
+    Timestamp{10'000'000'000'000'000ULL});
+
+  QCOMPARE(
+    axis.chartSeconds(
+      Timestamp{10'000'000'000'000'001ULL}),
+    0.000001);
 }
