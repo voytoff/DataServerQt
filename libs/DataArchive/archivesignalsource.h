@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <atomic>
 
 #include "archivereader.h"
 #include "archivesignalpoint.h"
@@ -32,6 +33,15 @@ public:
     Timestamp lastTimestamp,
     std::size_t maxRecords,
     ArchiveSignalPoints& points);
+
+  [[nodiscard]]
+  bool readPlot(
+    SignalId signalId,
+    Timestamp firstTimestamp,
+    Timestamp lastTimestamp,
+    std::size_t maxPoints,
+    ArchiveSignalPoints& points,
+    const std::atomic_bool* cancel = nullptr);
 
 private:
   ArchiveReader& m_reader;

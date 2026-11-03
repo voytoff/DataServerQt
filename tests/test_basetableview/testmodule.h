@@ -19,6 +19,10 @@ public:
   void createTimeChartView();
   void createArchiveChartView();
 
+  void testWorker();
+  void testController();
+  void createDynamicArchiveChartView();
+
 private:
   std::unique_ptr<QMainWindow> m_mainWindow;
 };

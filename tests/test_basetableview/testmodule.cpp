@@ -2,6 +2,8 @@
 #include "applicationsettings.h"
 #include "applicationsettingsloader.h"
 #include "applicationsettingsdialog.h"
+#include "archivechartcontroller.h"
+#include "archivechartworker.h"
 #include "archivereader.h"
 #include "archivesignalsource.h"
 #include "calibration.h"
@@ -15,6 +17,8 @@
 #include <QMainWindow>
 #include <qboxlayout.h>
 
+#include <qthread.h>
+#include <qtimer.h>
 #include <timeaxis.h>
 
 #include <QLineSeries>
@@ -25,7 +29,7 @@
 namespace qds
 {
 
-namespace qds
+namespace
 {
 
 QVector<QPointF> toChartPoints(
@@ -46,6 +50,36 @@ QVector<QPointF> toChartPoints(
   }
 
   return points;
+}
+
+Timestamp toTimestamp(
+  double seconds,
+  Timestamp origin)
+{
+  const auto microseconds =
+    static_cast<int64_t>(
+      std::llround(seconds * 1'000'000.0));
+
+  if (microseconds < 0)
+  {
+    const auto delta =
+      static_cast<uint64_t>(-(microseconds + 1)) + 1;
+
+    return Timestamp{
+      delta > origin.value
+        ? 0
+        : origin.value - delta
+    };
+  }
+
+  const auto delta =
+    static_cast<uint64_t>(microseconds);
+
+  return Timestamp{
+    delta > UINT64_MAX - origin.value
+      ? UINT64_MAX
+      : origin.value + delta
+  };
 }
 
 }
@@ -313,6 +347,232 @@ void TestModule::createArchiveChartView()
 
   window->setCentralWidget(view);
   window->resize(1200, 700);
+  window->show();
+}
+
+void TestModule::testWorker()
+{
+  using namespace qds;
+
+  qRegisterMetaType<ArchiveSignalPoints>();
+  qRegisterMetaType<SignalId>();
+  qRegisterMetaType<Timestamp>();
+
+  m_mainWindow = std::make_unique<QMainWindow>();
+
+  auto* window = m_mainWindow.get();
+
+  auto* thread = new QThread(window);
+
+  auto* worker = new ArchiveChartWorker(
+    "D:/DATASERVER/archive/_test");
+
+  worker->moveToThread(thread);
+
+  QObject::connect(
+    thread,
+    &QThread::started,
+    worker,
+    &ArchiveChartWorker::initialize);
+
+  QObject::connect(
+    worker,
+    &ArchiveChartWorker::initialized,
+    window,
+    [worker](bool success)
+    {
+      if (!success)
+      {
+        qWarning() << "Не удалось открыть архив";
+        return;
+      }
+
+      QMetaObject::invokeMethod(
+        worker,
+        [worker]()
+        {
+          std::shared_ptr<std::atomic_bool> cancel;
+          cancel->store(false);
+          worker->readPlot(
+            1,
+            SignalId{10},
+            Timestamp{100'000},
+            Timestamp{600'000},
+            4,
+            cancel);
+        },
+        Qt::QueuedConnection);
+    });
+
+  QObject::connect(
+    worker,
+    &ArchiveChartWorker::plotReady,
+    window,
+    [](uint64_t requestId,
+       bool success,
+       ArchiveSignalPoints points)
+    {
+      qDebug()
+      << "Request:" << requestId
+      << "Success:" << success
+      << "Points:" << points.size();
+    });
+
+  window->resize(800, 500);
+  window->show();
+
+  thread->start();
+}
+
+void TestModule::testController()
+{
+  using namespace qds;
+
+  m_mainWindow = std::make_unique<QMainWindow>();
+
+  auto* window = m_mainWindow.get();
+
+  auto* controller = new ArchiveChartController(
+    "D:/DATASERVER/archive/_test",
+    window);
+
+  QObject::connect(
+    controller,
+    &ArchiveChartController::plotReady,
+    window,
+    [](bool success, ArchiveSignalPoints points)
+    {
+      qDebug()
+      << "Success:" << success
+      << "Points:" << points.size();
+    });
+
+  // Пока запрос отправляем после инициализации.
+  // Запрос сразу после создания контроллера.
+  /*/ ======
+  controller->requestPlot(
+    SignalId{10},
+    Timestamp{100'000},
+    Timestamp{600'000},
+    4);
+*/
+  controller->requestPlot(
+    SignalId{10},
+    Timestamp{100'000},
+    Timestamp{200'000},
+    4);
+
+  controller->requestPlot(
+    SignalId{10},
+    Timestamp{200'000},
+    Timestamp{400'000},
+    4);
+
+  controller->requestPlot(
+    SignalId{10},
+    Timestamp{100'000},
+    Timestamp{600'000},
+    4);
+
+  window->resize(800, 500);
+  window->show();
+}
+
+void TestModule::createDynamicArchiveChartView()
+{
+  using namespace qds;
+
+  m_mainWindow = std::make_unique<QMainWindow>();
+
+  auto* window = m_mainWindow.get();
+
+  auto* controller = new ArchiveChartController(
+    "D:/DATASERVER/archive/_test",
+    window);
+
+  auto* timeAxis = new TimeAxis(window);
+
+  const Timestamp origin{100'000};
+
+  timeAxis->setOriginTimestamp(origin);
+  timeAxis->setZeroTimestamp(origin);
+
+  auto* view = new TimeChartView(window);
+  view->setTimeAxis(timeAxis);
+
+  view->setWallClockReference(
+    origin,
+    WallClockTime{1'700'000'000'000LL});
+
+  auto* series = new QLineSeries();
+  series->setName("Тестовый сигнал");
+
+
+  view->addSeries(series);
+  view->setTimeRange(0.0, 0.5);
+  view->setValueRange(-500.0, 10500.0);
+
+  window->setCentralWidget(view);
+
+  QObject::connect(
+    controller,
+    &ArchiveChartController::plotReady,
+    window,
+    [series, timeAxis, view](
+      bool success,
+      ArchiveSignalPoints points)
+    {
+      if (!success)
+      {
+        qWarning() << "Ошибка чтения архивных данных";
+        return;
+      }
+
+      series->replace(
+        toChartPoints(points, *timeAxis));
+
+      view->autoScaleY();
+
+    });
+
+  QObject::connect(
+    view,
+    &TimeChartView::visibleTimeRangeChanged,
+    window,
+    [controller, timeAxis, view](
+      double minimum,
+      double maximum)
+    {
+      const auto origin =
+        timeAxis->originTimestamp();
+
+      const auto first =
+        toTimestamp(minimum, origin);
+
+      const auto last =
+        toTimestamp(maximum, origin);
+
+      const auto width =
+        view->chart()->plotArea().width();
+
+      const auto maxPoints =
+        static_cast<std::size_t>(
+          std::max(2.0, width * 2.0));
+
+      controller->requestPlot(
+        SignalId{10},
+        first,
+        last,
+        maxPoints);
+    });
+
+  controller->requestPlot(
+    SignalId{10},
+    Timestamp{100'000},
+    Timestamp{600'000},
+    2400);
+
+  window->resize(800, 500);
   window->show();
 }
 

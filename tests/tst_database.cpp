@@ -1896,6 +1896,70 @@ void tst_database::test_archiveSignalSource()
   QCOMPARE(points.size(), std::size_t{2});
 }
 
+void tst_database::test_archiveSignalSource_readPlot()
+{
+  ArchiveReader reader;
+  QVERIFY(reader.open(std::filesystem::path("D:/DATASERVER/archive/_test")));
+
+  ArchiveSignalSource source(reader);
+
+  ArchiveSignalPoints points;
+
+  QVERIFY(source.readPlot(
+    SignalId{10},
+    Timestamp{100'000},
+    Timestamp{600'000},
+    4,
+    points));
+
+  QVERIFY(!points.empty());
+
+  const auto [minIt, maxIt] =
+    std::minmax_element(
+      points.begin(),
+      points.end(),
+      [](const auto& a, const auto& b)
+      {
+        return a.value < b.value;
+      });
+
+  QCOMPARE(minIt->value, 0.0);
+  QCOMPARE(maxIt->value, 10000.0);
+
+  QVERIFY(points.size() <= std::size_t{4});
+
+  for (std::size_t i = 1; i < points.size(); ++i)
+  {
+    QVERIFY(
+      points[i - 1].timestamp <=
+      points[i].timestamp);
+  }
+}
+
+void tst_database::test_archiveSignalSource_cancel()
+{
+  ArchiveReader reader;
+
+  QVERIFY(reader.open(
+    std::filesystem::path("D:/DATASERVER/archive/_test")));
+
+  ArchiveSignalSource source(reader);
+
+  ArchiveSignalPoints points;
+
+  std::atomic_bool cancel{true};
+
+  QVERIFY(!source.readPlot(
+    SignalId{10},
+    Timestamp{100'000},
+    Timestamp{600'000},
+    100,
+    points,
+    &cancel));
+
+  QVERIFY(points.empty());
+}
+
 void tst_database::test_publisher()
 {
   using namespace qds;

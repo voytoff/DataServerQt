@@ -26,6 +26,8 @@ private slots:
   void test_archiveReader_findRecord();
   void test_archiveReader_missingFrames();
   void test_archiveSignalSource();
+  void test_archiveSignalSource_readPlot();
+  void test_archiveSignalSource_cancel();
 
   void test_publisher();
   void test_publisher_raw_calculated();

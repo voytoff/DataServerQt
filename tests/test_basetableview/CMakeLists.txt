@@ -21,7 +21,12 @@ add_executable(test_basetableview
     ../../apps/configeditor/model/calibrationtablemodel.h
     ../../apps/configeditor/plot/calibrationplot.cpp
     ../../apps/configeditor/plot/calibrationplot.h
-)
+
+    ../../apps/dataviewer/archivechartworker.h
+    ../../apps/dataviewer/archivechartworker.cpp
+    ../../apps/dataviewer/archivechartcontroller.h
+    ../../apps/dataviewer/archivechartcontroller.cpp
+  )
 
 target_include_directories(test_basetableview
   PUBLIC
@@ -32,6 +37,7 @@ target_include_directories(test_basetableview
     ${CMAKE_CURRENT_SOURCE_DIR}/../../apps/configeditor/delegate
     ${CMAKE_CURRENT_SOURCE_DIR}/../../apps/configeditor/dlg
     ${CMAKE_CURRENT_SOURCE_DIR}/../../apps/configeditor/plot
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../apps/dataviewer
 )
 
 

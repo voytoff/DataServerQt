@@ -17,6 +17,8 @@ qt_add_executable(dataviewer
   ${DATAVIEWER_PROJECT_RESOURCES}
   ${APP_ICON_RESOURCE_WINDOWS}
   main.cpp
+  archivechartcontroller.h archivechartcontroller.cpp
+  archivechartworker.h archivechartworker.cpp
 )
 
 target_include_directories(dataviewer
