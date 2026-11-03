@@ -1,3 +1,4 @@
+#include "archivesignalsource.h"
 #include "tst_database.h"
 #include "archivedescriptionbuilder.h"
 #include "archivedescriptionwriter.h"
@@ -1594,6 +1595,34 @@ void tst_database::test_archiveReader_missingFrames()
       sample));
   }
 
+  struct TimestampTestCase
+  {
+    uint64_t timestamp;
+    uint64_t expectedIndex;
+  };
+
+  const std::array timestampTests{
+    TimestampTestCase{0, 0},
+    TimestampTestCase{100'000, 0},
+    TimestampTestCase{150'000, 1},
+    TimestampTestCase{300'000, 2},
+    TimestampTestCase{350'000, 3},
+    TimestampTestCase{600'000, 5},
+    TimestampTestCase{700'000, 6}
+  };
+
+  for (const auto& test : timestampTests)
+  {
+    uint64_t recordIndex = 0;
+
+    QVERIFY(reader.findRecord(
+      0,
+      Timestamp{test.timestamp},
+      recordIndex));
+
+    QCOMPARE(recordIndex, test.expectedIndex);
+  }
+
   QVERIFY(!reader.readFrame(0, FrameNumber{110}, sample));
 
   QVERIFY(reader.readFrame(
@@ -1738,6 +1767,133 @@ void tst_database::test_archiveReader_missingFrames()
   QVERIFY_THROWS_EXCEPTION(
     std::logic_error,
     (void)reader.fileDescription(0));
+}
+
+void tst_database::test_archiveSignalSource()
+{
+  using namespace qds;
+
+  QTemporaryDir tempDir;
+  QVERIFY(tempDir.isValid());
+
+  SystemConfiguration cfg;
+
+  cfg.addCrate({.id = {0}});
+  QVERIFY(cfg.addModule({.id = {0}, .crate = {0}}));
+  QVERIFY(cfg.addConfigurationModule({.configurationId = {0}, .module = {0}, .settings = {}}));
+  QVERIFY(cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}}));
+  QVERIFY(cfg.addConfigurationTag({.tag = {0}, .module = {0}, .channel = {0}, .settings = {}}));
+  QVERIFY(cfg.addSignalDefinition({.id = {10}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveRate = ArchiveRate::Hz100}));
+
+  ArchiveDescriptionBuilder descriptionBuilder;
+
+  ArchiveDescription description;
+
+  QVERIFY(
+    descriptionBuilder.build(
+      cfg,
+      description));
+
+  ArchiveDescriptionWriter descriptionWriter;
+
+  const auto path =
+    std::filesystem::path(tempDir.filePath("description.json").toStdString());
+
+  const auto file =
+    std::filesystem::path(tempDir.filePath("raw_100Hz.dat").toStdString());
+
+  QVERIFY(
+    descriptionWriter.write(
+      path,
+      description));
+
+
+  const std::vector<uint64_t> frames{
+    0, 10, 20, 50, 60, 100
+  };
+
+  std::array<float, 1> values;
+
+  DataFileHeader hdr{
+                     .module = {0},
+                     .sampleFrequency = 100,
+                     .channelCount = values.size(),
+                     .recordSize = static_cast<uint32_t>(sizeof(SampleRecordHeader) + values.size() * sizeof(float)),
+                     };
+
+
+  ArchiveWriter writer;
+  QVERIFY(writer.open(file, hdr));
+  QVERIFY(writer.isOpen());
+
+  for (size_t n = 0; n < frames.size(); n++)
+  {
+    const auto i = FrameNumber{frames[n]};
+    values[0] = static_cast<float>(100 * i.value);
+
+    QVERIFY(
+      writer.write(
+        Timestamp{(n + 1) * 100'000},
+        i,
+        WallClockTime{static_cast<int64_t>((n + 1) * 10'000)},
+        values));
+  }
+
+  writer.close();
+
+  ArchiveReader reader;
+  QVERIFY(reader.open(std::filesystem::path(tempDir.path().toStdString())));
+
+  ArchiveSignalSource source(reader);
+
+  ArchiveSignalPoints points;
+
+  QVERIFY(source.readRange(
+    SignalId{10},
+    Timestamp{200'000},
+    Timestamp{500'000},
+    100,
+    points));
+
+  QCOMPARE(points.size(), std::size_t{4});
+
+  QCOMPARE(points[0].frameNumber, FrameNumber{10});
+  QCOMPARE(points[1].frameNumber, FrameNumber{20});
+  QCOMPARE(points[2].frameNumber, FrameNumber{50});
+  QCOMPARE(points[3].frameNumber, FrameNumber{60});
+
+  QCOMPARE(points[0].value, 1000.0);
+  QCOMPARE(points[1].value, 2000.0);
+  QCOMPARE(points[2].value, 5000.0);
+  QCOMPARE(points[3].value, 6000.0);
+
+  // Несуществующий сигнал.
+  QVERIFY(!source.readRange(
+    SignalId{999},
+    Timestamp{0},
+    Timestamp{600'000},
+    100,
+    points));
+
+  // Пустой диапазон за концом архива.
+  QVERIFY(source.readRange(
+    SignalId{10},
+    Timestamp{700'000},
+    Timestamp{900'000},
+    100,
+    points));
+
+  QVERIFY(points.empty());
+
+  // Ограничение количества точек.
+  QVERIFY(source.readRange(
+    SignalId{10},
+    Timestamp{100'000},
+    Timestamp{600'000},
+    2,
+    points));
+
+  QCOMPARE(points.size(), std::size_t{2});
 }
 
 void tst_database::test_publisher()

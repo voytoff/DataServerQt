@@ -1,3 +1,5 @@
+#include <QCoreApplication>
+#include <qsignalspy.h>
 #include <qtestcase.h>
 #include <qtestsupport_core.h>
 #include "tst_core.h"
@@ -5,6 +7,9 @@
 #include "schedulerclock.h"
 #include "systemclock.h"
 #include "timeaxis.h"
+#include "timechartview.h"
+#include "timerangecontroller.h"
+
 
 tst_core::tst_core() { }
 tst_core::~tst_core() = default;
@@ -114,4 +119,79 @@ void tst_core::test_timeAxis()
     axis.chartSeconds(
       Timestamp{10'000'000'000'000'001ULL}),
     0.000001);
+}
+
+void tst_core::test_visibleTimeRangeChanged()
+{
+  using namespace qds;
+/*
+  int arg = 0;
+  QCoreApplication app(arg, nullptr);
+
+  TimeChartView view;
+  qds::TimeAxis axis;
+
+  view.setTimeAxis(&axis);
+
+  QSignalSpy spy(
+    &view,
+    &TimeChartView::visibleTimeRangeChanged);
+
+  view.setVisibleTimeRange(2.0, 8.0);
+
+  QCOMPARE(spy.count(), 1);
+
+  QCOMPARE(view.visibleTimeRange().first, 2.0);
+  QCOMPARE(view.visibleTimeRange().second, 8.0);
+
+  axis.setZeroTimestamp(Timestamp{5'000'000});
+
+  QCOMPARE(spy.count(), 1);
+*/
+}
+
+void tst_core::test_timeRangeController()
+{
+  using namespace qds;
+
+  TimeRangeController controller;
+
+  QCOMPARE(controller.minimum(), 0.0);
+  QCOMPARE(controller.maximum(), 10.0);
+
+  QSignalSpy spy(
+    &controller,
+    &TimeRangeController::rangeChanged);
+
+  controller.setRange(2.0, 8.0);
+
+  QCOMPARE(controller.minimum(), 2.0);
+  QCOMPARE(controller.maximum(), 8.0);
+  QCOMPARE(spy.count(), 1);
+
+  // Повторная установка того же диапазона.
+  controller.setRange(2.0, 8.0);
+  QCOMPARE(spy.count(), 1);
+
+  // Некорректный диапазон.
+  controller.setRange(10.0, 5.0);
+  QCOMPARE(spy.count(), 1);
+
+  // Нулевой диапазон.
+  controller.setRange(5.0, 5.0);
+  QCOMPARE(spy.count(), 1);
+
+  // Проверка бесконечных значений.
+  controller.setRange(
+    0.0,
+    std::numeric_limits<double>::infinity());
+
+  QCOMPARE(spy.count(), 1);
+
+  // Корректное изменение.
+  controller.setRange(-5.0, 15.0);
+
+  QCOMPARE(controller.minimum(), -5.0);
+  QCOMPARE(controller.maximum(), 15.0);
+  QCOMPARE(spy.count(), 2);
 }

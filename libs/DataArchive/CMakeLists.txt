@@ -26,6 +26,8 @@ add_library(DataArchive SHARED
     framestartpolicy.h
     datastreamprocessor.h datastreamprocessor.cpp
     datastreamworker.h datastreamworker.cpp
+    archivesignalsource.h archivesignalsource.cpp
+    archivesignalpoint.h
 )
 
 target_include_directories(DataArchive

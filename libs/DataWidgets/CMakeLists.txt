@@ -11,15 +11,17 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Sql Svg Char
 
 add_library(DataWidgets SHARED
   datawidgets_export.h
+  themedsvgicon.h
   basetableview.h basetableview.cpp
   configurationselector.h configurationselector.cpp
   themedsvgiconengine.h themedsvgiconengine.cpp
-  themedsvgicon.h
   paddeditemdelegate.h paddeditemdelegate.cpp
   colorscheme.h colorscheme.cpp
   applicationsettingsdialog.h applicationsettingsdialog.cpp applicationsettingsdialog.ui
   rowheightdelegate.h rowheightdelegate.cpp
   timeaxis.h timeaxis.cpp
+  timechartview.h timechartview.cpp
+  timerangecontroller.h timerangecontroller.cpp
 )
 
 target_include_directories(DataWidgets

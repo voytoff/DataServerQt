@@ -1,101 +1,17 @@
-#include "calibrationdialog.h"
-#include "applicationsettingsdialog.h"
-#include "applicationsettingsloader.h"
-#include "settingssection.h"
+#include "testmodule.h"
 
 #include <QApplication>
 #include <QStandardItemModel>
 #include <QAbstractItemView>
+#include <qmainwindow.h>
+#include <QMainWindow>
+#include <QToolBar>
+#include <QAction>
+#include <QLineSeries>
 
-void calibrationDialog()
-{
-  using namespace qds;
-
-  Calibration calibration;
-
-  calibration.kind = CalibrationKind::Polynomial;
-  calibration.description = "Проверка редактора";
-
-  if (calibration.kind == CalibrationKind::Table)
-  {
-    calibration.points = {
-                          {0, 0.0, 0.0},
-                          };
-  }
-  else
-  {
-    calibration.coefficients = {
-      0
-    };
-  }
-  CalibrationDialog dialog(calibration, nullptr);
-
-  if (dialog.exec() != QDialog::Accepted)
-    return;
-
-  const Calibration result =
-    dialog.calibration();
-
-  if (calibration.kind == CalibrationKind::Table)
-  {
-    qDebug() << "Calibration:"
-             << result.description
-             << "Points:" << result.points.size();
-
-    for (const auto& point : result.points)
-      qDebug() << point.index << point.x << point.y;
-  }
-  else
-  {
-    qDebug() << "Calibration:"
-             << result.description
-             << "Coefficients:" << result.coefficients.size();
-
-    for (const auto& point : result.coefficients)
-      qDebug() << point;
-  }
-}
-
-void applicationSettingsDialog()
-{
-  using namespace qds;
-
-  const QString fileName =
-    "D:/DATASERVER/ini/configeditor_test.ini";
-
-  const SettingsSections sections =
-    SettingsSection::Database |
-    SettingsSection::Archive |
-    SettingsSection::Log;
-
-  ApplicationSettings settings;
-  QString error;
-
-  if (!ApplicationSettingsLoader::load(
-        fileName,
-        settings,
-        error,
-        sections))
-  {
-    qWarning() << error;
-    return;
-  }
-
-  ApplicationSettingsDialog dialog(
-    settings,
-    sections);
-
-  QObject::connect(
-    &dialog,
-    &ApplicationSettingsDialog::settingsApplied,
-    &dialog,
-    [](SettingsSections changed)
-    {
-      qDebug() << "Изменены разделы:" << changed;
-    });
-
-  dialog.exec();
-}
+#include <cmath>
+#include <timeaxis.h>
+#include <timechartview.h>
 
 int main(int argc, char* argv[])
 {
@@ -103,8 +19,12 @@ int main(int argc, char* argv[])
 
   QApplication app(argc, argv);
 
-  applicationSettingsDialog();
+  TestModule tm;
 
-  return 0;
+  tm.createArchiveChartView();
+
+  return app.exec();
 }
+
+
 

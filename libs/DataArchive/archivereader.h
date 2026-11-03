@@ -59,6 +59,12 @@ public:
     uint64_t& recordIndex);
 
   [[nodiscard]]
+  bool findRecord(
+    std::size_t fileIndex,
+    Timestamp timestamp,
+    uint64_t& recordIndex);
+
+  [[nodiscard]]
   bool readRange(
     std::size_t fileIndex,
     FrameNumber firstFrame,

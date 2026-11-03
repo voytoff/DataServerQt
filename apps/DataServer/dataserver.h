@@ -12,7 +12,6 @@
 #include "isender.h"
 #include "ilogger.h"
 #include "udpserver.h"
-#include "udpsender.h"
 
 #include <QObject>
 #include <QTimer>

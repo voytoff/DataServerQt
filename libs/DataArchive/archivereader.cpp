@@ -376,6 +376,46 @@ bool ArchiveReader::findRecord(
   return true;
 }
 
+bool ArchiveReader::findRecord(
+  std::size_t fileIndex,
+  Timestamp timestamp,
+  uint64_t& recordIndex)
+{
+  const auto* header =
+    fileHeader(fileIndex);
+
+  if (!header)
+    return false;
+
+  uint64_t left = 0;
+  uint64_t right = header->recordCount;
+
+  while (left < right)
+  {
+    const uint64_t middle =
+      left + (right - left) / 2;
+
+    SampleRecordHeader recordHeader;
+
+    if (!readRecordHeader(
+          fileIndex,
+          middle,
+          recordHeader))
+    {
+      return false;
+    }
+
+    if (recordHeader.timestamp < timestamp.value)
+      left = middle + 1;
+    else
+      right = middle;
+  }
+
+  recordIndex = left;
+
+  return true;
+}
+
 bool ArchiveReader::readRange(
   std::size_t fileIndex,
   FrameNumber firstFrame,

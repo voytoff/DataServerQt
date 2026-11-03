@@ -338,7 +338,7 @@ void tst_datasource::test_datasource_layout()
   SystemConfiguration sc = createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(sc);
+  QVERIFY(layout.build(sc));
 
   QCOMPARE(layout.rawSignalCount(), 2u);
   QCOMPARE(layout.rawOffset(ModuleId{0}), 0u);
@@ -358,7 +358,7 @@ void tst_datasource::test_datasource_layout_someModules()
   SystemConfiguration sc = createTestConfig_Some_Modules();
 
   SignalMemoryLayout layout;
-  layout.build(sc);
+  QVERIFY(layout.build(sc));
 
   QCOMPARE(layout.rawSignalCount(), 7u);
   QCOMPARE(layout.rawOffset(ModuleId{0}), 0u);
@@ -393,7 +393,7 @@ void tst_datasource::test_datasource_layout_raw_calculated()
   SystemConfiguration sc = createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(sc);
+  QVERIFY(layout.build(sc));
 
   QCOMPARE(layout.rawSignalCount(), 2u);
   QCOMPARE(layout.rawOffset(ModuleId{0}), 0u);
@@ -419,13 +419,13 @@ void tst_datasource::test_datasource_layout_two_build()
   SystemConfiguration sc = createTestConfig_Copy_Add();
 
   SignalMemoryLayout layout;
-  layout.build(sc);
+  QVERIFY(layout.build(sc));
 
   QCOMPARE(layout.rawSignalCount(), 2u);
   QCOMPARE(layout.rawOffset(ModuleId{0}), 0u);
   QCOMPARE(layout.calculatedSignalCount(), 3u);
 
-  layout.build(sc);
+  QVERIFY(layout.build(sc));
 
   QCOMPARE(layout.rawSignalCount(), 2u);
   QCOMPARE(layout.rawOffset(ModuleId{0}), 0u);
