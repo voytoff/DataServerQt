@@ -18,4 +18,13 @@ struct ArchiveSignalPoint
 using ArchiveSignalPoints =
   std::vector<ArchiveSignalPoint>;
 
+
+struct ArchiveSignalSegment
+{
+  ArchiveSignalPoints points;
+};
+
+using ArchiveSignalSegments =
+  std::vector<ArchiveSignalSegment>;
+
 }

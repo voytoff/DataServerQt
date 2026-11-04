@@ -29,6 +29,11 @@ private slots:
   void test_archiveSignalSource_readPlot();
   void test_archiveSignalSource_cancel();
 
+  void test_archiveSignalSource_extremePoints();
+  void test_archiveSignalSource_continuousSignal();
+  void test_archiveSignalSource_shortBurst();
+  void test_archiveSignalSource_gaps();
+
   void test_publisher();
   void test_publisher_raw_calculated();
 

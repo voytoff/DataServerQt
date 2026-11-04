@@ -1,20 +1,21 @@
+#include "archivehelper.h"
 #include "archivesignalsource.h"
 #include "tst_database.h"
 #include "archivedescriptionbuilder.h"
 #include "archivedescriptionwriter.h"
 #include "archivemanager.h"
 #include "archivereader.h"
-#include "db/configurationrepository.h"
+#include "configurationrepository.h"
 #include "protocol/publishheader.h"
 #include "qds/db.h"
 #include "archiveformat.h"
 #include "fakeschedulerclock.h"
 #include "qds/nullarchivewriter.h"
-#include "qds/testarchiveframewriter.h"
-#include "qds/testdatastreamsource.h"
+#include "testarchiveframewriter.h"
+#include "testdatastreamsource.h"
 #include "systembuilder.h"
 #include "systemconfiguration.h"
-#include "qds/testpublishersender.h"
+#include "testpublishersender.h"
 #include "testsrv.h"
 #include "modulevalidators.h"
 #include "testlogger.h"
@@ -1909,7 +1910,7 @@ void tst_database::test_archiveSignalSource_readPlot()
     SignalId{10},
     Timestamp{100'000},
     Timestamp{600'000},
-    4,
+    6,
     points));
 
   QVERIFY(!points.empty());
@@ -1926,7 +1927,7 @@ void tst_database::test_archiveSignalSource_readPlot()
   QCOMPARE(minIt->value, 0.0);
   QCOMPARE(maxIt->value, 10000.0);
 
-  QVERIFY(points.size() <= std::size_t{4});
+  QVERIFY(points.size() <= std::size_t{6});
 
   for (std::size_t i = 1; i < points.size(); ++i)
   {
@@ -1958,6 +1959,199 @@ void tst_database::test_archiveSignalSource_cancel()
     &cancel));
 
   QVERIFY(points.empty());
+}
+
+void tst_database::test_archiveSignalSource_extremePoints()
+{
+
+  const std::vector<uint64_t> frames{
+    0, 10, 20, 50, 60, 100
+  };
+  std::vector<TestArchivePoint> valuepoints =
+  {
+    {100'000,   0,     0.f},
+    {200'000,  10,  1000.f},
+    {300'000,  20,  2000.f},
+    {400'000,  50,  5000.f},
+    {500'000,  60,  6000.f},
+    {600'000, 100, 10000.f},
+  };
+
+  QVERIFY(ArchiveHelper::create("_extremePoints", valuepoints));
+
+  ArchiveReader reader;
+
+  QVERIFY(reader.open(
+    std::filesystem::path(archivePath / "_extremePoints")));
+
+  ArchiveSignalSource source(reader);
+
+  ArchiveSignalPoints points;
+
+  QVERIFY(source.readPlot(
+    SignalId{10},
+    Timestamp{156'000},
+    Timestamp{357'000},
+    10,
+    points));
+
+  QCOMPARE(points.front().timestamp, Timestamp{100'000});
+  QCOMPARE(points.back().timestamp, Timestamp{400'000});
+
+  QCOMPARE(points.front().value, 0.0);
+  QCOMPARE(points.back().value, 5000.0);
+
+  QVERIFY(points.size() <= std::size_t{10});
+
+  for (std::size_t i = 1; i < points.size(); ++i)
+  {
+    QVERIFY(
+      points[i - 1].timestamp <=
+      points[i].timestamp);
+  }
+
+  QVERIFY(source.readPlot(
+    SignalId{10},
+    Timestamp{250'000},
+    Timestamp{270'000},
+    10,
+    points));
+
+  QCOMPARE(points.size(), std::size_t{2});
+
+  QCOMPARE(points[0].timestamp, Timestamp{200'000});
+  QCOMPARE(points[1].timestamp, Timestamp{300'000});
+}
+
+void tst_database::test_archiveSignalSource_continuousSignal()
+{
+  using namespace qds;
+
+  std::vector<TestArchivePoint> valuepoints =
+  {
+    {100'000, 0, 5.f},
+    {200'000, 1, 5.f},
+    {300'000, 2, 5.f},
+    {400'000, 3, 5.f},
+    {500'000, 4, 5.f},
+    {600'000, 5, 5.f},
+    {700'000, 6, 5.f},
+    {800'000, 7, 5.f},
+    {900'000, 8, 5.f},
+    {1000'000,9, 5.f},
+  };
+
+  QVERIFY(ArchiveHelper::create("_continuousSignal", valuepoints));
+
+  ArchiveReader reader;
+
+  QVERIFY(reader.open(
+    std::filesystem::path(archivePath / "_continuousSignal")));
+
+  ArchiveSignalSource source(reader);
+
+  ArchiveSignalPoints points;
+
+  QVERIFY(source.readPlot(
+    SignalId{10},
+    Timestamp{100'000},
+    Timestamp{1'000'000},
+    6,
+    points));
+
+  QCOMPARE(points.size(), std::size_t{2});
+
+  QCOMPARE(points.front().timestamp, Timestamp{100'000});
+  QCOMPARE(points.back().timestamp, Timestamp{1'000'000});
+
+  QCOMPARE(points.front().value, 5.0);
+  QCOMPARE(points.back().value, 5.0);
+}
+
+void tst_database::test_archiveSignalSource_shortBurst()
+{
+  using namespace qds;
+
+  std::vector<TestArchivePoint> valuepoints =
+  {
+    {100'000, 0, 5.f},
+    {200'000, 1, 5.f},
+    {300'000, 2, 5.f},
+    {400'000, 3, 100.f},
+    {500'000, 4, 5.f},
+    {600'000, 5, 5.f},
+    {700'000, 6, 5.f},
+    {800'000, 7, 5.f},
+    {900'000, 8, 5.f},
+    {1000'000,9, 5.f},
+  };
+
+  QVERIFY(ArchiveHelper::create("_shortBurst", valuepoints));
+
+  ArchiveReader reader;
+
+  QVERIFY(reader.open(
+    std::filesystem::path(archivePath / "_shortBurst")));
+
+  ArchiveSignalSource source(reader);
+
+  ArchiveSignalPoints points;
+
+  QVERIFY(source.readPlot(
+    SignalId{10},
+    Timestamp{100'000},
+    Timestamp{1'000'000},
+    6,
+    points));
+
+  const bool hasPeak =
+    std::any_of(
+      points.begin(),
+      points.end(),
+      [](const auto& point)
+      {
+        return point.value == 100.0;
+      });
+
+  QVERIFY(hasPeak);
+  QVERIFY(points.size() <= std::size_t{6});
+}
+
+void tst_database::test_archiveSignalSource_gaps()
+{
+  using namespace qds;
+
+  std::vector<TestArchivePoint> valuepoints{
+    {100'000,  0, 10.f},
+    {110'000, 10, 11.f},
+    {120'000, 20, 12.f},
+    // Пропущены отсчёты между 120000 и 200000 мкс.
+    {200'000, 30, 20.f},
+    {210'000, 40, 21.f},
+    {220'000, 50, 22.f}
+  };
+
+  QVERIFY(ArchiveHelper::create("_gaps", valuepoints));
+
+  ArchiveReader reader;
+
+  QVERIFY(reader.open(archivePath / "_gaps"));
+
+  ArchiveSignalSource source(reader);
+
+  ArchiveSignalPoints points;
+
+  QVERIFY(source.readPlot(
+    SignalId{10},
+    Timestamp{100'000},
+    Timestamp{220'000},
+    100,
+    points));
+
+  QCOMPARE(points.size(), std::size_t{6});
+
+  QCOMPARE(points[2].timestamp, Timestamp{120'000});
+  QCOMPARE(points[3].timestamp, Timestamp{200'000});
 }
 
 void tst_database::test_publisher()

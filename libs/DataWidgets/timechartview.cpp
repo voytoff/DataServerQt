@@ -465,11 +465,47 @@ void TimeChartView::applyTimeRange(
     return;
   }
 
+  auto [clampedMinimum, clampedMaximum] =
+    clampTimeRange(minimum, maximum);
+
+  minimum = clampedMinimum;
+  maximum = clampedMaximum;
+
   m_axisX->setRange(minimum, maximum);
 
   updateTimeLabels();
 
   emit visibleTimeRangeChanged(minimum, maximum);
+}
+
+std::pair<double, double> TimeChartView::clampTimeRange(
+  double minimum,
+  double maximum) const noexcept
+{
+  const double initialMinimum = m_initialTimeMinimum;
+  const double initialMaximum = m_initialTimeMaximum;
+
+  const double initialWidth =
+    initialMaximum - initialMinimum;
+
+  const double width = maximum - minimum;
+
+  if (width >= initialWidth)
+    return {initialMinimum, initialMaximum};
+
+  if (minimum < initialMinimum)
+  {
+    minimum = initialMinimum;
+    maximum = minimum + width;
+  }
+
+  if (maximum > initialMaximum)
+  {
+    maximum = initialMaximum;
+    minimum = maximum - width;
+  }
+
+  return {minimum, maximum};
 }
 
 void TimeChartView::updateTimeLabels()

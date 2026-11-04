@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cmath>
 #include <vector>
+#include <optional>
+#include <array>
 
 namespace qds
 {
@@ -146,7 +148,7 @@ bool ArchiveSignalSource::readPlot(
 {
   points.clear();
 
-  if (firstTimestamp > lastTimestamp || maxPoints < 2)
+  if (firstTimestamp > lastTimestamp || maxPoints < 6)
     return false;
 
   const auto location = findSignal(signalId);
@@ -169,7 +171,45 @@ bool ArchiveSignalSource::readPlot(
         recordIndex))
     return false;
 
-  const std::size_t bucketCount = maxPoints / 2;
+
+  const uint64_t firstRecordIndex = recordIndex;
+
+  std::optional<ArchiveSignalPoint> leftPoint;
+  std::optional<ArchiveSignalPoint> rightPoint;
+
+  if (firstRecordIndex > 0)
+  {
+    ArchiveSample sample;
+
+    if (!m_reader.readRecord(
+          location->fileIndex,
+          firstRecordIndex - 1,
+          sample))
+    {
+      return false;
+    }
+
+    if (location->channelIndex >= sample.values.size())
+      return false;
+
+    const double value =
+      static_cast<double>(
+        sample.values[location->channelIndex]);
+
+    if (std::isfinite(value))
+    {
+      leftPoint = ArchiveSignalPoint{
+        .timestamp = sample.timestamp,
+        .wallTime = sample.wallTime,
+        .frameNumber = sample.frameNumber,
+        .value = value
+      };
+    }
+  }
+
+
+  const std::size_t bucketCount =
+    (maxPoints - 2) / 4;
 
   // Расчёты выполняем в целых микросекундах.
   const uint64_t duration =
@@ -178,8 +218,11 @@ bool ArchiveSignalSource::readPlot(
   struct Bucket
   {
     bool hasValue = false;
+
+    ArchiveSignalPoint first;
     ArchiveSignalPoint minimum;
     ArchiveSignalPoint maximum;
+    ArchiveSignalPoint last;
   };
 
   std::vector<Bucket> buckets(bucketCount);
@@ -221,6 +264,26 @@ bool ArchiveSignalSource::readPlot(
 
       if (sample.timestamp > lastTimestamp)
       {
+        if (location->channelIndex >= sample.values.size())
+        {
+          points.clear();
+          return false;
+        }
+
+        const double value =
+          static_cast<double>(
+            sample.values[location->channelIndex]);
+
+        if (std::isfinite(value))
+        {
+          rightPoint = ArchiveSignalPoint{
+            .timestamp = sample.timestamp,
+            .wallTime = sample.wallTime,
+            .frameNumber = sample.frameNumber,
+            .value = value
+          };
+        }
+
         finished = true;
         break;
       }
@@ -265,8 +328,11 @@ bool ArchiveSignalSource::readPlot(
       if (!bucket.hasValue)
       {
         bucket.hasValue = true;
+
+        bucket.first = point;
         bucket.minimum = point;
         bucket.maximum = point;
+        bucket.last = point;
       }
       else
       {
@@ -275,6 +341,8 @@ bool ArchiveSignalSource::readPlot(
 
         if (point.value > bucket.maximum.value)
           bucket.maximum = point;
+
+        bucket.last = point;
       }
     }
 
@@ -284,28 +352,49 @@ bool ArchiveSignalSource::readPlot(
     recordIndex += samples.size();
   }
 
+  if (cancel && cancel->load(std::memory_order_relaxed))
+    return false;
+
   points.reserve(maxPoints);
+
+  if (leftPoint)
+    points.push_back(*leftPoint);
 
   for (const auto& bucket : buckets)
   {
     if (!bucket.hasValue)
       continue;
 
-    if (bucket.minimum.timestamp == bucket.maximum.timestamp)
+    std::array<ArchiveSignalPoint, 4> candidates{
+      bucket.first,
+      bucket.minimum,
+      bucket.maximum,
+      bucket.last
+    };
+
+    std::sort(
+      candidates.begin(),
+      candidates.end(),
+      [](const auto& a, const auto& b)
+      {
+        return a.timestamp < b.timestamp;
+      });
+
+    for (const auto& point : candidates)
     {
-      points.push_back(bucket.minimum);
-    }
-    else if (bucket.minimum.timestamp < bucket.maximum.timestamp)
-    {
-      points.push_back(bucket.minimum);
-      points.push_back(bucket.maximum);
-    }
-    else
-    {
-      points.push_back(bucket.maximum);
-      points.push_back(bucket.minimum);
+      if (!points.empty() &&
+          points.back().timestamp == point.timestamp &&
+          points.back().frameNumber == point.frameNumber)
+      {
+        continue;
+      }
+
+      points.push_back(point);
     }
   }
+
+  if (rightPoint)
+    points.push_back(*rightPoint);
 
   return true;
 }

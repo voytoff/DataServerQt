@@ -43,6 +43,15 @@ public:
     ArchiveSignalPoints& points,
     const std::atomic_bool* cancel = nullptr);
 
+  [[nodiscard]]
+  bool readPlotSegments(
+    SignalId signalId,
+    Timestamp firstTimestamp,
+    Timestamp lastTimestamp,
+    std::size_t maxPoints,
+    ArchiveSignalSegments& segments,
+    const std::atomic_bool* cancel = nullptr);
+
 private:
   ArchiveReader& m_reader;
 };

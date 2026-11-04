@@ -58,6 +58,10 @@ private:
   [[nodiscard]] QString formatTime(double chartSeconds) const;
   void applyTimeRange(double minimum, double maximum);
 
+  std::pair<double, double> clampTimeRange(
+    double minimum,
+    double maximum) const noexcept;
+
 private:
   TimeAxis* m_timeAxis = nullptr;
 

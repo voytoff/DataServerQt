@@ -62,6 +62,7 @@ add_executable(unit_tests
   qds/failingarchivewriter.h
   qds/fakeschedulerclock.h qds/fakeschedulerclock.cpp
   qds/fakeclock.h qds/fakeclock.cpp
+  qds/archivehelper.h
 )
 
 target_include_directories(unit_tests
