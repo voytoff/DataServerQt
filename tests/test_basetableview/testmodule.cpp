@@ -12,19 +12,22 @@
 #include "settingssection.h"
 #include "timechartview.h"
 #include "timerangecontroller.h"
-#include <QApplication>
-#include <QToolBar>
-#include <QMainWindow>
-#include <qboxlayout.h>
 
 #include <qthread.h>
 #include <qtimer.h>
 #include <timeaxis.h>
+#include <cmath>
 
+#include <QBoxLayout>
+#include <QApplication>
+#include <QToolBar>
+#include <QMainWindow>
 #include <QLineSeries>
 #include <QVector>
-
-#include <cmath>
+#include <QChart>
+#include <QLegend>
+#include <QLegendMarker>
+#include <QScatterSeries>
 
 namespace qds
 {
@@ -80,6 +83,71 @@ Timestamp toTimestamp(
       ? UINT64_MAX
       : origin.value + delta
   };
+}
+
+void setChartSegments(
+  TimeChartView* view,
+  const ArchiveSignalSegments& segments,
+  const TimeAxis& timeAxis)
+{
+  if (!view)
+    return;
+
+  view->clearSeries();
+
+  const QColor color(0, 120, 215);
+  bool firstSeries = true;
+
+  for (const auto& segment : segments)
+  {
+    if (segment.points.empty())
+      continue;
+
+    const auto points =
+      toChartPoints(segment.points, timeAxis);
+
+    if (points.isEmpty())
+      continue;
+
+    QXYSeries* series = nullptr;
+
+    if (points.size() == 1)
+    {
+      auto* scatter = new QScatterSeries();
+
+      scatter->setMarkerSize(8.0);
+      scatter->setColor(color);
+      scatter->setBorderColor(color);
+
+      series = scatter;
+    }
+    else
+    {
+      auto* line = new QLineSeries();
+
+      line->setColor(color);
+
+      series = line;
+    }
+
+    series->setName("Архивный сигнал");
+    series->replace(points);
+
+    view->addSeries(series);
+
+    if (!firstSeries)
+    {
+      const auto markers =
+        view->chart()->legend()->markers(series);
+
+      for (auto* marker : markers)
+        marker->setVisible(false);
+    }
+
+    firstSeries = false;
+  }
+
+  view->autoScaleY();
 }
 
 }
@@ -391,8 +459,9 @@ void TestModule::testWorker()
         worker,
         [worker]()
         {
-          std::shared_ptr<std::atomic_bool> cancel;
-          cancel->store(false);
+          auto cancel =
+            std::make_shared<std::atomic_bool>(false);
+
           worker->readPlot(
             1,
             SignalId{10},
@@ -410,12 +479,12 @@ void TestModule::testWorker()
     window,
     [](uint64_t requestId,
        bool success,
-       ArchiveSignalPoints points)
+       ArchiveSignalSegments segments)
     {
       qDebug()
       << "Request:" << requestId
       << "Success:" << success
-      << "Points:" << points.size();
+      << "Segments:" << segments.size();
     });
 
   window->resize(800, 500);
@@ -440,11 +509,11 @@ void TestModule::testController()
     controller,
     &ArchiveChartController::plotReady,
     window,
-    [](bool success, ArchiveSignalPoints points)
+    [](bool success, ArchiveSignalSegments segments)
     {
       qDebug()
       << "Success:" << success
-      << "Points:" << points.size();
+      << "Segments:" << segments.size();
     });
 
   // Пока запрос отправляем после инициализации.
@@ -487,30 +556,57 @@ void TestModule::createDynamicArchiveChartView()
   auto* window = m_mainWindow.get();
 
   auto* controller = new ArchiveChartController(
-    "D:/DATASERVER/archive/_test",
+    "D:/DATASERVER/archive/__raw0",
     window);
 
   auto* timeAxis = new TimeAxis(window);
 
-  const Timestamp origin{100'000};
-
-  timeAxis->setOriginTimestamp(origin);
-  timeAxis->setZeroTimestamp(origin);
-
   auto* view = new TimeChartView(window);
   view->setTimeAxis(timeAxis);
 
-  view->setWallClockReference(
-    origin,
-    WallClockTime{1'700'000'000'000LL});
+  constexpr SignalId signalId{25};
 
-  auto* series = new QLineSeries();
-  series->setName("Тестовый сигнал");
+  QObject::connect(
+    controller,
+    &ArchiveChartController::timeRangeReady,
+    window,
+    [controller, timeAxis, view, signalId](
+      bool success,
+      Timestamp firstTimestamp,
+      Timestamp lastTimestamp)
+    {
+      if (!success)
+      {
+        qWarning() << "Не удалось определить диапазон архива";
+        return;
+      }
+
+      timeAxis->setOriginTimestamp(firstTimestamp);
+      timeAxis->setZeroTimestamp(firstTimestamp);
+
+      const double minimum =
+        timeAxis->chartSeconds(firstTimestamp);
+
+      const double maximum =
+        timeAxis->chartSeconds(lastTimestamp);
+
+      if (maximum <= minimum)
+      {
+        qWarning() << "Некорректный временной диапазон";
+        return;
+      }
+
+      view->setTimeRange(minimum, maximum);
 
 
-  view->addSeries(series);
-  view->setTimeRange(0.0, 0.5);
-  view->setValueRange(-500.0, 10500.0);
+      qDebug()
+        << "Archive time range:"
+        << firstTimestamp.value
+        << lastTimestamp.value
+        << "Duration:"
+        << maximum;
+
+    });
 
   window->setCentralWidget(view);
 
@@ -518,9 +614,9 @@ void TestModule::createDynamicArchiveChartView()
     controller,
     &ArchiveChartController::plotReady,
     window,
-    [series, timeAxis, view](
+    [timeAxis, view](
       bool success,
-      ArchiveSignalPoints points)
+      ArchiveSignalSegments segments)
     {
       if (!success)
       {
@@ -528,18 +624,34 @@ void TestModule::createDynamicArchiveChartView()
         return;
       }
 
-      series->replace(
-        toChartPoints(points, *timeAxis));
+      setChartSegments(view, segments, *timeAxis);
 
-      view->autoScaleY();
+      qDebug()
+        << "Получено сегментов:"
+        << segments.size();
 
+      for (std::size_t i = 0; i < segments.size(); ++i)
+      {
+        const auto& segment = segments[i];
+
+        qDebug()
+          << "Segment" << i
+          << "points =" << segment.points.size();
+
+        for (const auto& point : segment.points)
+        {
+          qDebug()
+          << "  timestamp =" << point.timestamp.value
+          << "value =" << point.value;
+        }
+      }
     });
 
   QObject::connect(
     view,
     &TimeChartView::visibleTimeRangeChanged,
     window,
-    [controller, timeAxis, view](
+    [controller, timeAxis, view, signalId](
       double minimum,
       double maximum)
     {
@@ -560,14 +672,17 @@ void TestModule::createDynamicArchiveChartView()
           std::max(2.0, width * 2.0));
 
       controller->requestPlot(
-        SignalId{10},
+        signalId,
         first,
         last,
         maxPoints);
     });
 
+  controller->requestTimeRange(
+    signalId);
+
   controller->requestPlot(
-    SignalId{10},
+    signalId,
     Timestamp{100'000},
     Timestamp{600'000},
     2400);

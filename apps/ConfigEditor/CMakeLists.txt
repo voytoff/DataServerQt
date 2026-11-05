@@ -97,7 +97,7 @@ target_link_libraries(configeditor
     Qt${QT_VERSION_MAJOR}::Sql
     Configuration
     DataSettings
-    DataWidgets
+    datawidgets
     QCustomPlot
     SignalProcessor
     configurationvalidation

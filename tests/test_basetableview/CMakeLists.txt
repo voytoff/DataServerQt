@@ -45,7 +45,7 @@ target_link_libraries(test_basetableview
   PRIVATE
     Configuration
     QCustomPlot
-    DataWidgets
+    datawidgets
     DataArchive
     Qt6::Widgets
 )

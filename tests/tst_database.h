@@ -33,6 +33,12 @@ private slots:
   void test_archiveSignalSource_continuousSignal();
   void test_archiveSignalSource_shortBurst();
   void test_archiveSignalSource_gaps();
+  void test_archiveSignalSource_segmentDownsampling();
+  void test_archiveSignalSource_multipleExtremes();
+
+  void test_archiveSignalSource_NaN_Inf();
+  void test_archiveSignalSource_manySegments();
+  void test_archiveSignalSource_largeSignal();
 
   void test_publisher();
   void test_publisher_raw_calculated();

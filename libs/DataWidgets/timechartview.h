@@ -3,6 +3,7 @@
 #include <QChartView>
 #include <QCategoryAxis>
 #include <QLineSeries>
+#include <QXYSeries>
 
 #include "datawidgets_export.h"
 #include "timeaxis.h"
@@ -24,7 +25,7 @@ public:
     Timestamp timestamp,
     WallClockTime wallTime);
 
-  void addSeries(QLineSeries* series);
+  void addSeries(QXYSeries* series);
   void clearSeries();
 
   void setTimeRange(double minimum, double maximum);

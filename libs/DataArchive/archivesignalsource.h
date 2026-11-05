@@ -1,12 +1,13 @@
 #pragma once
 
+#include "archivereader.h"
+#include "archivesignalpoint.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <atomic>
-
-#include "archivereader.h"
-#include "archivesignalpoint.h"
+#include <vector>
 
 namespace qds
 {
@@ -51,6 +52,61 @@ public:
     std::size_t maxPoints,
     ArchiveSignalSegments& segments,
     const std::atomic_bool* cancel = nullptr);
+
+  [[nodiscard]] bool timeRange(
+    SignalId signalId,
+    Timestamp& firstTimestamp,
+    Timestamp& lastTimestamp) const;
+
+private:
+  template<typename Callback>
+  bool forEachSample(
+    std::size_t fileIndex,
+    uint64_t firstRecord,
+    Timestamp lastTimestamp,
+    const std::atomic_bool* cancel,
+    Callback&& callback)
+  {
+    constexpr std::size_t blockSize = 4096;
+
+    std::vector<ArchiveSample> samples;
+
+    uint64_t recordIndex = firstRecord;
+
+    while (true)
+    {
+      if (cancel && cancel->load(std::memory_order_relaxed))
+        return false;
+
+      if (!m_reader.readRecords(
+            fileIndex,
+            recordIndex,
+            blockSize,
+            samples))
+      {
+        return false;
+      }
+
+      if (samples.empty())
+        break;
+
+      for (const auto& sample : samples)
+      {
+        if (cancel && cancel->load(std::memory_order_relaxed))
+          return false;
+
+        if (sample.timestamp > lastTimestamp)
+          return true;
+
+        if (!callback(sample))
+          return false;
+      }
+
+      recordIndex += samples.size();
+    }
+
+    return !(cancel && cancel->load(std::memory_order_relaxed));
+  }
 
 private:
   ArchiveReader& m_reader;

@@ -1,3 +1,4 @@
+#include "archivesignalpoint.h"
 #include "testmodule.h"
 
 #include <QApplication>
@@ -19,12 +20,18 @@ int main(int argc, char* argv[])
 
   QApplication app(argc, argv);
 
+  qRegisterMetaType<qds::ArchiveSignalSegments>(
+    "qds::ArchiveSignalSegments");
+
+
   TestModule tm;
 
   tm.createDynamicArchiveChartView();
 
   return app.exec();
 }
+
+Q_DECLARE_METATYPE(qds::ArchiveSignalSegments);
 
 
 

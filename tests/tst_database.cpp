@@ -2152,6 +2152,361 @@ void tst_database::test_archiveSignalSource_gaps()
 
   QCOMPARE(points[2].timestamp, Timestamp{120'000});
   QCOMPARE(points[3].timestamp, Timestamp{200'000});
+
+  ArchiveSignalSegments segments;
+
+  QVERIFY(source.readPlotSegments(
+    SignalId{10},
+    Timestamp{100'000},
+    Timestamp{220'000},
+    4,
+    segments));
+
+  QCOMPARE(segments.size(), std::size_t{2});
+
+  QCOMPARE(segments[0].points.size(), std::size_t{2});
+  QCOMPARE(segments[1].points.size(), std::size_t{2});
+
+  QCOMPARE(segments[0].points.front().timestamp, Timestamp{100'000});
+  QCOMPARE(segments[0].points.back().timestamp, Timestamp{120'000});
+
+  QCOMPARE(segments[1].points.front().timestamp, Timestamp{200'000});
+  QCOMPARE(segments[1].points.back().timestamp, Timestamp{220'000});
+
+
+  QVERIFY(source.readPlotSegments(
+    SignalId{10},
+    Timestamp{100'000},
+    Timestamp{220'000},
+    100,
+    segments));
+
+  QCOMPARE(segments.size(), 2);
+
+  QCOMPARE(segments[0].points.size(), std::size_t{3});
+  QCOMPARE(segments[1].points.size(), std::size_t{3});
+
+  QCOMPARE(
+    segments[0].points.front().timestamp,
+    Timestamp{100'000});
+
+  QCOMPARE(
+    segments[0].points.back().timestamp,
+    Timestamp{120'000});
+
+  QCOMPARE(
+    segments[1].points.front().timestamp,
+    Timestamp{200'000});
+
+  QCOMPARE(
+    segments[1].points.back().timestamp,
+    Timestamp{220'000});
+}
+
+void tst_database::test_archiveSignalSource_segmentDownsampling()
+{
+  using namespace qds;
+
+  std::vector<TestArchivePoint> valuepoints{
+    {100'000,  0, 10.0f},
+    {110'000, 10, 11.0f},
+    {120'000, 20, 12.0f},
+    // Пропущены отсчёты между 120000 и 200000 мкс.
+    {200'000, 30, 20.0f},
+    {210'000, 40, 21.0f},
+    {220'000, 50, 500.0f},
+    {230'000, 60, 22.0f},
+    {240'000, 70, 22.0f}
+  };
+
+  QVERIFY(ArchiveHelper::create("_segmentDownsampling", valuepoints));
+
+  ArchiveReader reader;
+
+  QVERIFY(reader.open(archivePath / "_segmentDownsampling"));
+
+  ArchiveSignalSource source(reader);
+
+  ArchiveSignalSegments segments;
+
+  QVERIFY(source.readPlotSegments(
+    SignalId{10},
+    Timestamp{100'000},
+    Timestamp{240'000},
+    7,
+    segments));
+
+  QCOMPARE(segments.size(), std::size_t{2});
+
+  std::size_t totalPoints = 0;
+
+  for (const auto& segment : segments)
+    totalPoints += segment.points.size();
+
+  QVERIFY(totalPoints <= std::size_t{7});
+
+  // Границы первого сегмента
+  QCOMPARE(
+    segments[0].points.front().timestamp,
+    Timestamp{100'000});
+
+  QCOMPARE(
+    segments[0].points.back().timestamp,
+    Timestamp{120'000});
+
+  // Границы второго сегмента
+  QCOMPARE(
+    segments[1].points.front().timestamp,
+    Timestamp{200'000});
+
+  QCOMPARE(
+    segments[1].points.back().timestamp,
+    Timestamp{240'000});
+
+  // Короткий выброс должен сохраниться
+  const bool hasPeak =
+    std::any_of(
+      segments[1].points.begin(),
+      segments[1].points.end(),
+      [](const ArchiveSignalPoint& point)
+      {
+        return point.timestamp == Timestamp{220'000} &&
+             static_cast<float>(point.value) == 500.0f;
+      });
+
+  QVERIFY(hasPeak);
+
+  // Порядок точек внутри каждого сегмента
+  for (const auto& segment : segments)
+  {
+    for (std::size_t i = 1; i < segment.points.size(); ++i)
+    {
+      QVERIFY(
+        segment.points[i - 1].timestamp <=
+        segment.points[i].timestamp);
+    }
+  }
+}
+
+void tst_database::test_archiveSignalSource_multipleExtremes()
+{
+  using namespace qds;
+
+  std::vector<TestArchivePoint> valuepoints{
+    {100'000,   0,  10.0f},
+    {110'000,  10,  12.0f},
+    {120'000,  20, 100.0f}, // Первый максимум
+    {130'000,  30,  11.0f},
+    {140'000,  40, -80.0f}, // Минимум
+    {150'000,  50,  12.0f},
+    {160'000,  60, 200.0f}, // Второй максимум
+    {170'000,  70,  11.0f},
+    {180'000,  80,  10.0f}
+  };
+
+  QVERIFY(ArchiveHelper::create("_multipleExtremes", valuepoints));
+
+  ArchiveReader reader;
+  QVERIFY(reader.open(archivePath / "_multipleExtremes"));
+
+  ArchiveSignalSource source(reader);
+  ArchiveSignalSegments segments;
+
+  constexpr std::size_t maxPoints = 7;
+
+  QVERIFY(source.readPlotSegments(
+    SignalId{10},
+    Timestamp{100'000},
+    Timestamp{180'000},
+    maxPoints,
+    segments));
+
+  QCOMPARE(segments.size(), std::size_t{1});
+
+  const auto& points = segments[0].points;
+
+  QVERIFY(points.size() <= maxPoints);
+
+  QCOMPARE(points.front().timestamp, Timestamp{100'000});
+  QCOMPARE(points.back().timestamp, Timestamp{180'000});
+
+  const auto hasPoint =
+    [&](Timestamp timestamp, float value)
+  {
+    return std::any_of(
+      points.begin(),
+      points.end(),
+      [&](const ArchiveSignalPoint& point)
+      {
+        return point.timestamp == timestamp &&
+               static_cast<float>(point.value) == value;
+      });
+  };
+
+  QVERIFY(hasPoint(Timestamp{120'000}, 100.0f));
+  QVERIFY(hasPoint(Timestamp{140'000}, -80.0f));
+  QVERIFY(hasPoint(Timestamp{160'000}, 200.0f));
+
+  for (std::size_t i = 1; i < points.size(); ++i)
+    QVERIFY(points[i - 1].timestamp < points[i].timestamp);
+}
+
+void tst_database::test_archiveSignalSource_NaN_Inf()
+{
+  using namespace qds;
+
+  std::vector<TestArchivePoint> valuepoints{
+    {100'000,   0,  10.0f},
+    {110'000,  10,  12.0f},
+    {120'000,  20,  std::numeric_limits<float>::infinity()},
+    {130'000,  30,  11.0f},
+    {140'000,  40,  11.5f},
+    {150'000,  50,  12.0f},
+    {160'000,  60,  std::numeric_limits<float>::quiet_NaN()},
+    {170'000,  70,  11.0f},
+    {180'000,  80,  10.0f},
+    {190'000,  80,  -std::numeric_limits<float>::infinity()},
+    {200'000,  80,  8.0f}
+  };
+
+  QVERIFY(ArchiveHelper::create("_NaN_Inf", valuepoints));
+
+  ArchiveReader reader;
+  QVERIFY(reader.open(archivePath / "_NaN_Inf"));
+
+  ArchiveSignalSource source(reader);
+  ArchiveSignalSegments segments;
+
+  constexpr std::size_t maxPoints = 7;
+
+  QVERIFY(source.readPlotSegments(
+    SignalId{10},
+    Timestamp{100'000},
+    Timestamp{200'000},
+    maxPoints,
+    segments));
+
+  QCOMPARE(segments.size(), std::size_t{4});
+
+
+  QCOMPARE(segments[0].points.front().timestamp, Timestamp{100'000});
+  QCOMPARE(segments[0].points.back().timestamp, Timestamp{110'000});
+
+  QCOMPARE(segments[1].points.front().timestamp, Timestamp{130'000});
+  QCOMPARE(segments[1].points.back().timestamp, Timestamp{150'000});
+
+  QCOMPARE(segments[2].points.front().timestamp, Timestamp{170'000});
+  QCOMPARE(segments[2].points.back().timestamp, Timestamp{180'000});
+
+  QCOMPARE(segments[3].points.size(), 1);
+  QCOMPARE(segments[3].points[0].timestamp, Timestamp{200'000});
+  QCOMPARE(segments[3].points[0].value, 8.0f);
+
+  for (const auto& segment : segments)
+  {
+    for (const auto& point : segment.points)
+    {
+      QVERIFY(std::isfinite(point.value));
+    }
+  }
+}
+
+void tst_database::test_archiveSignalSource_manySegments()
+{
+  using namespace qds;
+
+  std::vector<TestArchivePoint> valuepoints{
+    {100'000,   0,  10.0f},
+    {110'000,  10,  12.0f},
+    {230'000,  30,  11.0f},
+    {240'000,  40,  11.5f},
+    {370'000,  70,  11.0f},
+    {380'000,  80,  10.0f},
+  };
+
+  QVERIFY(ArchiveHelper::create("_manySegments", valuepoints));
+
+  ArchiveReader reader;
+  QVERIFY(reader.open(archivePath / "_manySegments"));
+
+  ArchiveSignalSource source(reader);
+  ArchiveSignalSegments segments;
+
+  constexpr std::size_t maxPoints = 5;
+
+  QVERIFY(!source.readPlotSegments(
+    SignalId{10},
+    Timestamp{100'000},
+    Timestamp{400'000},
+    maxPoints,
+    segments));
+
+  QVERIFY(segments.empty());
+}
+
+void tst_database::test_archiveSignalSource_largeSignal()
+{
+  using namespace qds;
+
+  constexpr std::size_t recordCount = 100'000;
+  constexpr std::size_t maxPoints = 1'000;
+
+  std::vector<TestArchivePoint> valuepoints;
+  valuepoints.reserve(recordCount);
+
+  for (std::size_t i = 0; i < recordCount; ++i)
+  {
+    const float value =
+      static_cast<float>(
+        10.0 * std::sin(static_cast<double>(i) * 0.01));
+
+    valuepoints.push_back({
+      100'000 + static_cast<uint64_t>(i) * 10'000,
+      static_cast<uint64_t>(i) * 10,
+      value
+    });
+  }
+
+  QVERIFY(ArchiveHelper::create("_largeSignal", valuepoints));
+
+  ArchiveReader reader;
+  QVERIFY(reader.open(archivePath / "_largeSignal"));
+
+  ArchiveSignalSource source(reader);
+  ArchiveSignalSegments segments;
+
+  const Timestamp firstTimestamp{100'000};
+  const Timestamp lastTimestamp{
+    100'000 + (recordCount - 1) * 10'000
+  };
+
+  QVERIFY(source.readPlotSegments(
+    SignalId{10},
+    firstTimestamp,
+    lastTimestamp,
+    maxPoints,
+    segments));
+
+  QCOMPARE(segments.size(), std::size_t{1});
+
+  const auto& points = segments[0].points;
+
+  QVERIFY(points.size() <= maxPoints);
+  QVERIFY(points.size() >= 2);
+
+  QCOMPARE(points.front().timestamp, firstTimestamp);
+  QCOMPARE(points.back().timestamp, lastTimestamp);
+
+  for (std::size_t i = 0; i < points.size(); ++i)
+  {
+    QVERIFY(std::isfinite(points[i].value));
+
+    if (i > 0)
+    {
+      QVERIFY(
+        points[i - 1].timestamp < points[i].timestamp);
+    }
+  }
 }
 
 void tst_database::test_publisher()

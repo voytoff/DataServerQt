@@ -90,7 +90,7 @@ target_link_libraries(dataserver
       DataServerCore
       DataArchive
       DataSettings
-      DataWidgets
+      datawidgets
       modulevalidators
       configurationvalidation
     PRIVATE

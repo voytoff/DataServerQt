@@ -41,10 +41,8 @@ public:
     Timestamp lastTimestamp,
     std::size_t maxPoints);
 
-signals:
-  void plotReady(
-    bool success,
-    qds::ArchiveSignalPoints points);
+  void requestTimeRange(
+    SignalId signalId);
 
 private:
   void dispatchPendingRequest();
@@ -59,6 +57,19 @@ private:
   bool m_busy = false;
 
   std::shared_ptr<std::atomic_bool> m_activeCancel;
+
+  std::optional<SignalId> m_pendingTimeRangeSignal;
+  uint64_t m_timeRangeGeneration = 0;
+
+signals:
+  void timeRangeReady(
+    bool success,
+    Timestamp firstTimestamp,
+    Timestamp lastTimestamp);
+
+  void plotReady(
+    bool success,
+    qds::ArchiveSignalSegments segments);
 
 };
 

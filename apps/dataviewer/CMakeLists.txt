@@ -34,7 +34,7 @@ target_link_libraries(dataviewer
     Qt${QT_VERSION_MAJOR}::Charts
     Configuration
     DataSettings
-    DataWidgets
+    datawidgets
     signalprocessing
     DataArchive
 )

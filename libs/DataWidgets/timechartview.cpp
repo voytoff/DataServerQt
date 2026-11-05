@@ -108,7 +108,7 @@ void TimeChartView::setWallClockReference(
   updateTimeLabels();
 }
 
-void TimeChartView::addSeries(QLineSeries* series)
+void TimeChartView::addSeries(QXYSeries *series)
 {
   if (!series)
     return;
@@ -459,17 +459,17 @@ void TimeChartView::applyTimeRange(
     return;
   }
 
-  if (m_axisX->min() == minimum &&
-      m_axisX->max() == maximum)
-  {
-    return;
-  }
-
   auto [clampedMinimum, clampedMaximum] =
     clampTimeRange(minimum, maximum);
 
   minimum = clampedMinimum;
   maximum = clampedMaximum;
+
+  if (m_axisX->min() == minimum &&
+      m_axisX->max() == maximum)
+  {
+    return;
+  }
 
   m_axisX->setRange(minimum, maximum);
 

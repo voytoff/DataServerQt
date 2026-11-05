@@ -33,6 +33,12 @@ ArchiveChartController::ArchiveChartController(
 
       if (success)
         dispatchPendingRequest();
+
+      if (success && m_pendingTimeRangeSignal)
+      {
+        const auto signalId = *m_pendingTimeRangeSignal;
+        requestTimeRange(signalId);
+      }
     });
 
   connect(
@@ -42,7 +48,7 @@ ArchiveChartController::ArchiveChartController(
     [this](
       uint64_t requestId,
       bool success,
-      ArchiveSignalPoints points)
+      ArchiveSignalSegments segments)
     {
       m_busy = false;
       m_activeCancel.reset();
@@ -51,10 +57,29 @@ ArchiveChartController::ArchiveChartController(
       {
         emit plotReady(
           success,
-          std::move(points));
+          std::move(segments));
       }
 
       dispatchPendingRequest();
+    });
+
+  connect(
+    m_worker,
+    &ArchiveChartWorker::timeRangeReady,
+    this,
+    [this](
+      uint64_t requestId,
+      bool success,
+      Timestamp firstTimestamp,
+      Timestamp lastTimestamp)
+    {
+      if (requestId != m_timeRangeGeneration)
+        return;
+
+      emit timeRangeReady(
+        success,
+        firstTimestamp,
+        lastTimestamp);
     });
 
   connect(
@@ -93,6 +118,27 @@ void ArchiveChartController::requestPlot(
   };
 
   dispatchPendingRequest();
+}
+
+void ArchiveChartController::requestTimeRange(
+  SignalId signalId)
+{
+  const auto requestId = ++m_timeRangeGeneration;
+
+  m_pendingTimeRangeSignal = signalId;
+
+  if (!m_initialized)
+    return;
+
+  m_pendingTimeRangeSignal.reset();
+
+  QMetaObject::invokeMethod(
+    m_worker,
+    [worker = m_worker, requestId, signalId]()
+    {
+      worker->readTimeRange(requestId, signalId);
+    },
+    Qt::QueuedConnection);
 }
 
 void ArchiveChartController::dispatchPendingRequest()

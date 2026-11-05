@@ -34,13 +34,23 @@ public slots:
     std::size_t maxPoints,
     std::shared_ptr<std::atomic_bool> cancel);
 
+  void readTimeRange(
+    uint64_t requestId,
+    qds::SignalId signalId);
+
 signals:
   void initialized(bool success);
 
   void plotReady(
     uint64_t requestId,
     bool success,
-    qds::ArchiveSignalPoints points);
+    qds::ArchiveSignalSegments segments);
+
+  void timeRangeReady(
+    uint64_t requestId,
+    bool success,
+    qds::Timestamp firstTimestamp,
+    qds::Timestamp lastTimestamp);
 
 private:
   std::filesystem::path m_archivePath;

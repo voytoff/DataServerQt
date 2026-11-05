@@ -3,6 +3,7 @@
 #include "archivedescriptionbuilder.h"
 #include "archivedescriptionwriter.h"
 #include "archiveformat.h"
+#include "archivesignalpoint.h"
 #include "archivewriter.h"
 #include "systemconfiguration.h"
 #include <QString>
@@ -103,6 +104,21 @@ public:
 
     return true;
   }
+
+  static bool hasPoint(const ArchiveSignalSegment& segment, Timestamp timestamp, float value)
+  {
+    return std::any_of(
+      segment.points.begin(),
+      segment.points.end(),
+      [&](const ArchiveSignalPoint& point)
+      {
+        return point.timestamp == timestamp &&
+               ((std::isnan(value) && std::isnan(point.value)) ||
+               (std::isinf(value) && std::isinf(point.value)) ||
+               static_cast<float>(point.value) == value);
+      });
+  };
+
 };
 
 }

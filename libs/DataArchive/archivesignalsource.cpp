@@ -6,6 +6,8 @@
 #include <optional>
 #include <array>
 
+#include <QDebug>
+
 namespace qds
 {
 
@@ -399,5 +401,629 @@ bool ArchiveSignalSource::readPlot(
   return true;
 }
 
+bool ArchiveSignalSource::readPlotSegments(
+  SignalId signalId,
+  Timestamp firstTimestamp,
+  Timestamp lastTimestamp,
+  std::size_t maxPoints,
+  ArchiveSignalSegments& segments,
+  const std::atomic_bool* cancel)
+{
+  segments.clear();
+
+  if (firstTimestamp > lastTimestamp || maxPoints == 0)
+    return false;
+
+  const auto location = findSignal(signalId);
+  if (!location)
+    return false;
+
+  const auto* header = m_reader.fileHeader(location->fileIndex);
+  if (!header || header->sampleFrequency == 0)
+    return false;
+
+  const uint64_t expectedInterval =
+    1'000'000ULL / header->sampleFrequency;
+
+  if (expectedInterval == 0)
+    return false;
+
+  const uint64_t gapThreshold =
+    expectedInterval + expectedInterval / 2;
+
+  uint64_t recordIndex = 0;
+
+  if (!m_reader.findRecord(
+        location->fileIndex,
+        firstTimestamp,
+        recordIndex))
+  {
+    return false;
+  }
+
+  struct SegmentInfo
+  {
+    ArchiveSignalPoint first;
+    ArchiveSignalPoint last;
+    ArchiveSignalPoint minimum;
+    ArchiveSignalPoint maximum;
+
+    std::size_t recordCount = 0;
+    std::size_t pointBudget = 0;
+  };
+  // функция рассчета значимости экстремума
+  const auto deviation =
+    [](const SegmentInfo& segment,
+       const ArchiveSignalPoint& point) -> double
+  {
+    const auto t0 = segment.first.timestamp.value;
+    const auto t1 = segment.last.timestamp.value;
+    const auto t = point.timestamp.value;
+
+    if (t1 <= t0)
+      return 0.0;
+
+    const double ratio =
+      static_cast<double>(t - t0) /
+      static_cast<double>(t1 - t0);
+
+    const double expected =
+      segment.first.value +
+      (segment.last.value - segment.first.value) * ratio;
+
+    return std::abs(point.value - expected);
+  };
+
+  std::vector<SegmentInfo> segmentInfo;
+
+  std::optional<Timestamp> previousTimestamp;
+
+  const bool success = forEachSample(
+    location->fileIndex,
+    recordIndex,
+    lastTimestamp,
+    cancel,
+    [&](const ArchiveSample& sample) -> bool
+    {
+      if (location->channelIndex >= sample.values.size())
+        return false;
+
+      const double value =
+        static_cast<double>(
+          sample.values[location->channelIndex]);
+
+      if (!std::isfinite(value))
+      {
+        previousTimestamp.reset();
+        return true;
+      }
+
+      const ArchiveSignalPoint point{
+        .timestamp = sample.timestamp,
+        .wallTime = sample.wallTime,
+        .frameNumber = sample.frameNumber,
+        .value = value
+      };
+
+      bool startsSegment = !previousTimestamp;
+
+      if (previousTimestamp)
+      {
+        if (sample.timestamp <= *previousTimestamp ||
+            sample.timestamp.value - previousTimestamp->value > gapThreshold)
+        {
+          startsSegment = true;
+        }
+      }
+
+      if (startsSegment)
+      {
+        segmentInfo.push_back({
+          .first = point,
+          .last = point,
+          .minimum = point,
+          .maximum = point,
+          .recordCount = 1
+        });
+      }
+      else
+      {
+        auto& segment = segmentInfo.back();
+
+        segment.last = point;
+
+        if (point.value < segment.minimum.value)
+          segment.minimum = point;
+
+        if (point.value > segment.maximum.value)
+          segment.maximum = point;
+
+        ++segment.recordCount;
+      }
+
+      previousTimestamp = sample.timestamp;
+
+      return true;
+    });
+
+  if (!success)
+    return false;
+
+  std::size_t minimumPoints = 0;
+
+  for (const auto& segment : segmentInfo)
+  {
+    minimumPoints +=
+      std::min(segment.recordCount, std::size_t{2});
+  }
+
+  if (minimumPoints > maxPoints)
+    return false;
+
+  // 2 проход =====================================
+  std::size_t totalRecords = 0;
+
+  for (const auto& info : segmentInfo)
+    totalRecords += info.recordCount;
+
+  if (totalRecords <= maxPoints)
+  {
+    segments.clear();
+    segments.reserve(segmentInfo.size());
+
+    for (const auto& info : segmentInfo)
+    {
+      ArchiveSignalSegment segment;
+      segment.points.reserve(info.recordCount);
+      segments.push_back(std::move(segment));
+    }
+
+    std::size_t segmentIndex = 0;
+    std::size_t segmentRecordIndex = 0;
+
+    const bool success = forEachSample(
+      location->fileIndex,
+      recordIndex,
+      lastTimestamp,
+      cancel,
+      [&](const ArchiveSample& sample) -> bool
+      {
+        if (location->channelIndex >= sample.values.size())
+          return false;
+
+        const double value =
+          static_cast<double>(
+            sample.values[location->channelIndex]);
+
+        if (!std::isfinite(value))
+          return true;
+
+        if (segmentIndex >= segmentInfo.size())
+          return false;
+
+        segments[segmentIndex].points.push_back({
+          .timestamp = sample.timestamp,
+          .wallTime = sample.wallTime,
+          .frameNumber = sample.frameNumber,
+          .value = value
+        });
+
+        ++segmentRecordIndex;
+
+        if (segmentRecordIndex == segmentInfo[segmentIndex].recordCount)
+        {
+          ++segmentIndex;
+          segmentRecordIndex = 0;
+        }
+
+        return true;
+      });
+
+    if (!success ||
+        segmentIndex != segmentInfo.size() ||
+        segmentRecordIndex != 0)
+    {
+      segments.clear();
+      return false;
+    }
+
+    return true;
+  }
+
+  // Обработаем распределение бюджета
+  // Минимальный бюджет: первая и последняя точки.
+  std::size_t remainingPoints = maxPoints - minimumPoints;
+  std::size_t totalInterior = 0;
+
+  for (auto& info : segmentInfo)
+  {
+    info.pointBudget =
+      std::min(info.recordCount, std::size_t{2});
+
+    totalInterior += info.recordCount - info.pointBudget;
+  }
+
+  // Пропорциональное распределение дополнительных точек.
+  struct BudgetRemainder
+  {
+    std::size_t segmentIndex = 0;
+    long double remainder = 0.0L;
+  };
+
+  std::vector<BudgetRemainder> remainders;
+  remainders.reserve(segmentInfo.size());
+
+  const std::size_t extraBudget = remainingPoints;
+
+  for (std::size_t i = 0; i < segmentInfo.size(); ++i)
+  {
+    auto& info = segmentInfo[i];
+
+    const std::size_t interior =
+      info.recordCount - info.pointBudget;
+
+    // Расчёт целой части и остатка пропорции.
+    // Используем long double, чтобы избежать
+    // переполнения при умножении size_t.
+    const long double share =
+      static_cast<long double>(extraBudget) *
+      static_cast<long double>(interior) /
+      static_cast<long double>(totalInterior);
+
+    const std::size_t extra =
+      std::min(interior, static_cast<std::size_t>(share));
+
+    info.pointBudget += extra;
+    remainingPoints -= extra;
+
+    remainders.push_back({
+      .segmentIndex = i,
+      .remainder = share - std::floor(share)
+    });
+  }
+
+  // Оставшиеся точки распределяем по наибольшим
+  // дробным остаткам.
+  std::sort(
+    remainders.begin(),
+    remainders.end(),
+    [](const auto& a, const auto& b)
+    {
+      if (a.remainder != b.remainder)
+        return a.remainder > b.remainder;
+
+      return a.segmentIndex < b.segmentIndex;
+    });
+
+  for (const auto& item : remainders)
+  {
+    if (remainingPoints == 0)
+      break;
+
+    auto& info = segmentInfo[item.segmentIndex];
+
+    if (info.pointBudget >= info.recordCount)
+      continue;
+
+    ++info.pointBudget;
+    --remainingPoints;
+  }
+
+  for (std::size_t i = 0; i < segmentInfo.size(); ++i)
+  {
+    const auto& info = segmentInfo[i];
+
+    qDebug()
+      << "Segment" << i
+      << "records =" << info.recordCount
+      << "budget =" << info.pointBudget;
+  }
+
+
+
+
+  // Добавляем структуру корзины
+  struct PlotBucket
+  {
+    ArchiveSignalPoint first;
+    ArchiveSignalPoint last;
+    ArchiveSignalPoint minimum;
+    ArchiveSignalPoint maximum;
+
+    bool initialized = false;
+
+    void add(const ArchiveSignalPoint& point)
+    {
+      if (!initialized)
+      {
+        first = point;
+        last = point;
+        minimum = point;
+        maximum = point;
+        initialized = true;
+        return;
+      }
+
+      last = point;
+
+      if (point.value < minimum.value)
+        minimum = point;
+
+      if (point.value > maximum.value)
+        maximum = point;
+    }
+  };
+
+
+  segments.clear();
+  segments.reserve(segmentInfo.size());
+
+  struct SegmentBuckets
+  {
+    std::vector<PlotBucket> buckets;
+  };
+
+  std::vector<SegmentBuckets> segmentBuckets;
+  segmentBuckets.reserve(segmentInfo.size());
+
+  for (const auto& info : segmentInfo)
+  {
+    ArchiveSignalSegment segment;
+    segment.points.reserve(info.pointBudget);
+    segments.push_back(std::move(segment));
+
+    SegmentBuckets data;
+
+    if (info.pointBudget > 2)
+    {
+      const std::size_t extraBudget = info.pointBudget - 2;
+
+      // Одна корзина может дать минимум и максимум.
+      const std::size_t bucketCount =
+        std::max(std::size_t{1}, (extraBudget + 1) / 2);
+
+      data.buckets.resize(bucketCount);
+    }
+
+    segmentBuckets.push_back(std::move(data));
+  }
+
+
+
+  std::size_t segmentIndex = 0;
+  std::size_t segmentRecordIndex = 0;
+
+  const bool readSuccess = forEachSample(
+    location->fileIndex,
+    recordIndex,
+    lastTimestamp,
+    cancel,
+    [&](const ArchiveSample& sample) -> bool
+    {
+      if (location->channelIndex >= sample.values.size())
+        return false;
+
+      const double value =
+        static_cast<double>(
+          sample.values[location->channelIndex]);
+
+      if (!std::isfinite(value))
+        return true;
+
+      if (segmentIndex >= segmentInfo.size())
+        return false;
+
+      const auto& info = segmentInfo[segmentIndex];
+      auto& segment = segments[segmentIndex];
+      auto& buckets = segmentBuckets[segmentIndex].buckets;
+
+      const ArchiveSignalPoint point{
+        .timestamp = sample.timestamp,
+        .wallTime = sample.wallTime,
+        .frameNumber = sample.frameNumber,
+        .value = value
+      };
+
+      const std::size_t index = segmentRecordIndex;
+
+      if (index == 0)
+      {
+        segment.points.push_back(point);
+      }
+      else if (index + 1 == info.recordCount)
+      {
+        if (info.pointBudget > 1)
+          segment.points.push_back(point);
+      }
+      else if (!buckets.empty())
+      {
+        const std::size_t interiorCount = info.recordCount - 2;
+
+        const std::size_t position = index - 1;
+
+        const std::size_t bucketIndex =
+          position / interiorCount * buckets.size() +
+          (position % interiorCount) * buckets.size() / interiorCount;
+
+        buckets[bucketIndex].add(point);
+      }
+
+      ++segmentRecordIndex;
+
+      if (segmentRecordIndex == info.recordCount)
+      {
+        ++segmentIndex;
+        segmentRecordIndex = 0;
+      }
+
+      return true;
+    });
+
+  if (!readSuccess ||
+      segmentIndex != segmentInfo.size() ||
+      segmentRecordIndex != 0)
+  {
+    segments.clear();
+    return false;
+  }
+
+
+  for (std::size_t i = 0; i < segments.size(); ++i)
+  {
+    auto& points = segments[i].points;
+    const auto& info = segmentInfo[i];
+    const auto& buckets = segmentBuckets[i].buckets;
+
+    if (buckets.empty())
+      continue;
+
+    std::vector<ArchiveSignalPoint> candidates;
+    candidates.reserve(buckets.size() * 4);
+
+    for (const auto& bucket : buckets)
+    {
+      if (!bucket.initialized)
+        continue;
+
+      candidates.push_back(bucket.first);
+      candidates.push_back(bucket.minimum);
+      candidates.push_back(bucket.maximum);
+      candidates.push_back(bucket.last);
+    }
+
+    std::sort(
+      candidates.begin(),
+      candidates.end(),
+      [](const auto& a, const auto& b)
+      {
+        return a.timestamp < b.timestamp;
+      });
+
+    candidates.erase(
+      std::unique(
+        candidates.begin(),
+        candidates.end(),
+        [](const auto& a, const auto& b)
+        {
+          return a.timestamp == b.timestamp;
+        }),
+      candidates.end());
+
+    const std::size_t extraBudget = info.pointBudget - 2;
+
+    while (candidates.size() > extraBudget)
+    {
+      std::size_t removeIndex = 0;
+      double minimumDeviation =
+        std::numeric_limits<double>::infinity();
+
+      for (std::size_t j = 0; j < candidates.size(); ++j)
+      {
+        const auto& previous =
+          j == 0 ? points.front() : candidates[j - 1];
+
+        const auto& next =
+          j + 1 == candidates.size()
+            ? points.back()
+            : candidates[j + 1];
+
+        const auto& current = candidates[j];
+
+        const double duration =
+          static_cast<double>(
+            next.timestamp.value - previous.timestamp.value);
+
+        if (duration <= 0.0)
+          continue;
+
+        const double ratio =
+          static_cast<double>(
+            current.timestamp.value - previous.timestamp.value) /
+          duration;
+
+        const double expected =
+          previous.value +
+          (next.value - previous.value) * ratio;
+
+        const double deviation =
+          std::abs(current.value - expected);
+
+        if (deviation < minimumDeviation)
+        {
+          minimumDeviation = deviation;
+          removeIndex = j;
+        }
+      }
+
+      candidates.erase(candidates.begin() + removeIndex);
+    }
+
+    points.insert(
+      points.end(),
+      candidates.begin(),
+      candidates.end());
+
+    std::sort(
+      points.begin(),
+      points.end(),
+      [](const auto& a, const auto& b)
+      {
+        return a.timestamp < b.timestamp;
+      });
+  }
+
+  return true;
+}
+
+bool ArchiveSignalSource::timeRange(
+  SignalId signalId,
+  Timestamp& firstTimestamp,
+  Timestamp& lastTimestamp) const
+{
+  const auto location = findSignal(signalId);
+
+  if (!location)
+    return false;
+
+  const auto header =
+    m_reader.fileHeader(location->fileIndex);
+
+  if (!header || header->recordCount == 0)
+    return false;
+
+  std::vector<ArchiveSample> samples;
+
+  if (!m_reader.readRecords(
+        location->fileIndex,
+        0,
+        1,
+        samples) ||
+      samples.size() != 1)
+  {
+    return false;
+  }
+
+  const Timestamp first = samples.front().timestamp;
+
+  if (!m_reader.readRecords(
+        location->fileIndex,
+        header->recordCount - 1,
+        1,
+        samples) ||
+      samples.size() != 1)
+  {
+    return false;
+  }
+
+  const Timestamp last = samples.front().timestamp;
+
+  if (last < first)
+    return false;
+
+  firstTimestamp = first;
+  lastTimestamp = last;
+
+  return true;
+}
 
 }

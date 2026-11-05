@@ -88,7 +88,7 @@ target_link_libraries(unit_tests
     SignalStorage
     Logger
     DataSettings
-    DataWidgets
+    datawidgets
     DataClient
     modulevalidators
   PRIVATE
