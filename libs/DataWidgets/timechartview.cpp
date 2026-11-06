@@ -44,20 +44,21 @@ TimeChartView::TimeChartView(QWidget* parent)
   m_axisX->setTitleText(tr("Время"));
   m_axisY->setTitleText(tr("Значение"));
 
-  chart()->addAxis(m_axisX, Qt::AlignBottom);
-  chart()->addAxis(m_axisY, Qt::AlignLeft);
+  auto* chr = chart();
 
-  chart()->legend()->setVisible(true);
-  chart()->legend()->hide();
+  chr->addAxis(m_axisX, Qt::AlignBottom);
+  chr->addAxis(m_axisY, Qt::AlignLeft);
+
+  chr->legend()->setVisible(true);
 
   setTimeRange(0.0, 10.0);
   setValueRange(-1.0, 1.0);
 
-  chart()->setPlotAreaBackgroundVisible(true);
+  chr->setPlotAreaBackgroundVisible(true);
 
-  chart()->setPlotAreaBackgroundBrush(Qt::NoBrush);
+  chr->setPlotAreaBackgroundBrush(Qt::NoBrush);
 
-  chart()->setPlotAreaBackgroundPen(
+  chr->setPlotAreaBackgroundPen(
     QPen(QColor(210, 210, 210), 1.0));
 }
 
@@ -204,7 +205,7 @@ void TimeChartView::autoScaleY()
 
   if (!hasValues)
   {
-    setValueRange(-1.0, 1.0);
+    //setValueRange(-1.0, 1.0);
     return;
   }
 

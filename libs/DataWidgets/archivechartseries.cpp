@@ -1,85 +1,100 @@
+
 #include "archivechartseries.h"
+#include "timechartview.h"
+
+#include <QColor>
+#include <QLegendMarker>
+#include <QLegend>
 
 namespace qds
 {
 
-namespace
-{
-
-QVector<QPointF> toChartPoints(
-  const ArchiveSignalPoints& samples,
-  const TimeAxis& timeAxis)
-{
-  QVector<QPointF> points;
-  points.reserve(samples.size());
-
-  for (const auto& sample : samples)
-  {
-    if (!std::isfinite(sample.value))
-      continue;
-
-    points.append(QPointF(
-      timeAxis.chartSeconds(sample.timestamp),
-      sample.value));
-  }
-
-  return points;
-}
-
-}
-
 ArchiveChartSeries::ArchiveChartSeries(
-  QObject *parent)
-: QObject(parent)
+  TimeChartView* view)
+  : QObject(view),
+  m_view(view)
 {
+  m_legendSeries = new QLineSeries();
+
+  m_legendSeries->setColor(m_color);
+
+  m_view->addSeries(m_legendSeries);
+
+  auto* marker =
+    m_view->chart()->legend()->markers(m_legendSeries).value(0);
+
+  if (marker)
+  {
+    connect(
+      marker,
+      &QLegendMarker::clicked,
+      this,
+      [this]()
+      {
+        setVisible(!isVisible());
+      });
+  }
 }
 
-void ArchiveChartSeries::setChartSegments(
-  TimeChartView *view,
-  const ArchiveSignalSegments &segments,
-  const TimeAxis &timeAxis)
+void ArchiveChartSeries::setName(
+  const QString& name)
+{
+  m_legendSeries->setName(name);
+}
+
+void ArchiveChartSeries::setSegments(
+  const Segments& segments)
 {
   std::size_t lineIndex = 0;
   std::size_t pointIndex = 0;
 
-  for (const auto& segment : segments)
+  for (const auto& points : segments)
   {
-    if (segment.points.empty())
+    if (points.empty())
       continue;
-
-    const auto points =
-      toChartPoints(segment.points, timeAxis);
 
     if (points.size() > 1)
     {
       if (lineIndex == m_lines.size())
       {
         auto* series = new QLineSeries();
-        series->setColor(Qt::blue);
 
-        view->addSeries(series);
+        series->setColor(m_color);
+
+        m_view->addSeries(series);
+
+        for (auto* marker : m_view->chart()->legend()->markers(series))
+          marker->setVisible(false);
+
         m_lines.push_back(series);
       }
 
       auto* series = m_lines[lineIndex++];
+
       series->replace(points);
-      series->setVisible(true);
+      series->setVisible(m_visible);
     }
-    else if (points.size() == 1)
+    else
     {
       if (pointIndex == m_points.size())
       {
         auto* series = new QScatterSeries();
-        series->setColor(Qt::blue);
+
+        series->setColor(m_color);
         series->setMarkerSize(6.0);
 
-        view->addSeries(series);
+        m_view->addSeries(series);
+
+        for (auto* marker : m_view->chart()->legend()->markers(series))
+          marker->setVisible(false);
+
         m_points.push_back(series);
       }
 
       auto* series = m_points[pointIndex++];
+
       series->replace(points);
-      series->setVisible(true);
+      series->setVisible(m_visible);
     }
   }
 
@@ -99,7 +114,84 @@ void ArchiveChartSeries::setChartSegments(
     m_points[i]->setVisible(false);
   }
 
-  view->autoScaleY();
+  updateLegend();
+
+  m_view->autoScaleY();
+}
+
+void ArchiveChartSeries::setColor(
+  const QColor& color)
+{
+  if (m_color == color)
+    return;
+
+  m_color = color;
+
+  for (auto* series : m_lines)
+    series->setColor(color);
+
+  for (auto* series : m_points)
+    series->setColor(color);
+
+  m_legendSeries->setColor(color);
+}
+
+void ArchiveChartSeries::setVisible(
+  bool visible)
+{
+  if (m_visible == visible)
+    return;
+
+  m_visible = visible;
+
+  for (auto* series : m_lines)
+  {
+    series->setVisible(
+      visible && !series->points().empty());
+  }
+
+  for (auto* series : m_points)
+  {
+    series->setVisible(
+      visible && !series->points().empty());
+  }
+
+  for (auto* marker :
+       m_view->chart()->legend()->markers(m_legendSeries))
+  {
+    QColor color = marker->labelBrush().color();
+    color.setAlpha(visible ? 255 : 90);
+    marker->setLabelBrush(QBrush(color));
+  }
+
+  updateLegend();
+
+  m_view->autoScaleY();
+}
+
+bool ArchiveChartSeries::isVisible() const noexcept
+{
+  return m_visible;
+}
+
+void ArchiveChartSeries::updateLegend()
+{
+  auto* legend = m_view->chart()->legend();
+
+  for (auto* marker : legend->markers(m_legendSeries))
+    marker->setVisible(true);
+
+  for (auto* series : m_lines)
+  {
+    for (auto* marker : legend->markers(series))
+      marker->setVisible(false);
+  }
+
+  for (auto* series : m_points)
+  {
+    for (auto* marker : legend->markers(series))
+      marker->setVisible(false);
+  }
 }
 
 }

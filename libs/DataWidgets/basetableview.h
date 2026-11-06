@@ -14,7 +14,6 @@ class DATAWIDGETS_EXPORT BaseTableView
   Q_OBJECT
 
 public:
-public:
   explicit BaseTableView(
     int columnWidth = 0,
     QWidget* parent = nullptr);

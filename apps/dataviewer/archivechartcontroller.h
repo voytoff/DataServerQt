@@ -64,8 +64,8 @@ private:
 signals:
   void timeRangeReady(
     bool success,
-    Timestamp firstTimestamp,
-    Timestamp lastTimestamp);
+    qds::Timestamp firstTimestamp,
+    qds::Timestamp lastTimestamp);
 
   void plotReady(
     bool success,

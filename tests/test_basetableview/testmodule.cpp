@@ -3,6 +3,7 @@
 #include "applicationsettingsloader.h"
 #include "applicationsettingsdialog.h"
 #include "archivechartcontroller.h"
+#include "archivechartseries.h"
 #include "archivechartworker.h"
 #include "archivereader.h"
 #include "archivesignalsource.h"
@@ -18,6 +19,7 @@
 #include <array>
 #include <memory>
 #include <vector>
+#include <algorithm>
 
 #include <QThread>
 #include <QTimer>
@@ -38,11 +40,34 @@ namespace qds
 namespace
 {
 
-struct ArchiveChartSeries
+ArchiveChartSeries::Segments toChartSegments(
+  const ArchiveSignalSegments& segments,
+  const TimeAxis& timeAxis)
 {
-  std::vector<QLineSeries*> lines;
-  std::vector<QScatterSeries*> points;
-};
+  ArchiveChartSeries::Segments result;
+  result.reserve(segments.size());
+
+  for (const auto& segment : segments)
+  {
+    QVector<QPointF> points;
+    points.reserve(segment.points.size());
+
+    for (const auto& sample : segment.points)
+    {
+      if (!std::isfinite(sample.value))
+        continue;
+
+      points.append(QPointF(
+        timeAxis.chartSeconds(sample.timestamp),
+        sample.value));
+    }
+
+    if (!points.empty())
+      result.push_back(std::move(points));
+  }
+
+  return result;
+}
 
 QVector<QPointF> toChartPoints(
   const ArchiveSignalPoints& samples,
@@ -92,75 +117,6 @@ Timestamp toTimestamp(
       ? UINT64_MAX
       : origin.value + delta
   };
-}
-
-void setChartSegments(
-  TimeChartView* view,
-  ArchiveChartSeries& chartSeries,
-  const ArchiveSignalSegments& segments,
-  const TimeAxis& timeAxis)
-{
-  std::size_t lineIndex = 0;
-  std::size_t pointIndex = 0;
-
-  for (const auto& segment : segments)
-  {
-    if (segment.points.empty())
-      continue;
-
-    const auto points =
-      toChartPoints(segment.points, timeAxis);
-
-    if (points.size() > 1)
-    {
-      if (lineIndex == chartSeries.lines.size())
-      {
-        auto* series = new QLineSeries();
-        series->setColor(Qt::blue);
-
-        view->addSeries(series);
-        chartSeries.lines.push_back(series);
-      }
-
-      auto* series = chartSeries.lines[lineIndex++];
-      series->replace(points);
-      series->setVisible(true);
-    }
-    else if (points.size() == 1)
-    {
-      if (pointIndex == chartSeries.points.size())
-      {
-        auto* series = new QScatterSeries();
-        series->setColor(Qt::blue);
-        series->setMarkerSize(6.0);
-
-        view->addSeries(series);
-        chartSeries.points.push_back(series);
-      }
-
-      auto* series = chartSeries.points[pointIndex++];
-      series->replace(points);
-      series->setVisible(true);
-    }
-  }
-
-  for (std::size_t i = lineIndex;
-       i < chartSeries.lines.size();
-       ++i)
-  {
-    chartSeries.lines[i]->clear();
-    chartSeries.lines[i]->setVisible(false);
-  }
-
-  for (std::size_t i = pointIndex;
-       i < chartSeries.points.size();
-       ++i)
-  {
-    chartSeries.points[i]->clear();
-    chartSeries.points[i]->setVisible(false);
-  }
-
-  view->autoScaleY();
 }
 
 }
@@ -576,6 +532,7 @@ void TestModule::createDynamicArchiveChartView()
 
   auto* view = new TimeChartView(window);
   view->setTimeAxis(timeAxis);
+  auto* chartSeries = new ArchiveChartSeries(view);
 
   constexpr SignalId signalId{25};
 
@@ -583,7 +540,7 @@ void TestModule::createDynamicArchiveChartView()
     controller,
     &ArchiveChartController::timeRangeReady,
     window,
-    [controller, timeAxis, view, signalId](
+    [timeAxis, view](
       bool success,
       Timestamp firstTimestamp,
       Timestamp lastTimestamp)
@@ -620,14 +577,12 @@ void TestModule::createDynamicArchiveChartView()
     });
 
   window->setCentralWidget(view);
-  auto chartSeries =
-    std::make_shared<ArchiveChartSeries>();
 
   QObject::connect(
     controller,
     &ArchiveChartController::plotReady,
     window,
-    [timeAxis, view, chartSeries](
+    [timeAxis, chartSeries](
       bool success,
       ArchiveSignalSegments segments)
     {
@@ -637,27 +592,8 @@ void TestModule::createDynamicArchiveChartView()
         return;
       }
 
-      setChartSegments(view, *chartSeries, segments, *timeAxis);
-
-      qDebug()
-        << "Получено сегментов:"
-        << segments.size();
-
-      for (std::size_t i = 0; i < segments.size(); ++i)
-      {
-        const auto& segment = segments[i];
-
-        qDebug()
-          << "Segment" << i
-          << "points =" << segment.points.size();
-
-        for (const auto& point : segment.points)
-        {
-          qDebug()
-          << "  timestamp =" << point.timestamp.value
-          << "value =" << point.value;
-        }
-      }
+      chartSeries->setSegments(
+        toChartSegments(segments, *timeAxis));
     });
 
   QObject::connect(
@@ -704,6 +640,7 @@ void TestModule::createDynamicArchiveChartView()
   window->show();
 }
 
+
 void TestModule::createDynamicArchiveChartsView()
 {
   using namespace qds;
@@ -712,23 +649,38 @@ void TestModule::createDynamicArchiveChartsView()
 
   auto* window = m_mainWindow.get();
 
-  QWidget* widget = new QWidget(window);
-  QVBoxLayout* layout = new QVBoxLayout(widget);
-  widget->setLayout(layout);
+  auto* widget = new QWidget(window);
+  auto* layout = new QVBoxLayout(widget);
 
   auto* tmc = new TimeRangeController(window);
 
   window->setCentralWidget(widget);
 
   constexpr std::array<SignalId, 2> signalIds = {
-    SignalId{26},
-    SignalId{27},
+                                                 SignalId{26},
+                                                 SignalId{27},
+                                                 };
+
+  struct ChartContext
+  {
+    TimeAxis* timeAxis = nullptr;
+    TimeChartView* view = nullptr;
+    Timestamp firstTimestamp{};
+    Timestamp lastTimestamp{};
+    bool ready = false;
   };
 
-  for (SignalId id : signalIds)
+  struct SharedState
   {
-    auto chartSeries =
-      std::make_shared<ArchiveChartSeries>();
+    std::array<ChartContext, 2> charts;
+    bool initialized = false;
+  };
+
+  auto state = std::make_shared<SharedState>();
+
+  for (std::size_t i = 0; i < signalIds.size(); ++i)
+  {
+    const SignalId id = signalIds[i];
 
     auto* controller = new ArchiveChartController(
       "D:/DATASERVER/archive/__raw01_100_10",
@@ -736,15 +688,27 @@ void TestModule::createDynamicArchiveChartsView()
 
     auto* timeAxis = new TimeAxis(window);
     auto* view = new TimeChartView(window);
+
     view->setTimeAxis(timeAxis);
+
     layout->addWidget(view);
     tmc->addView(view);
+
+    auto* chartSeries = new ArchiveChartSeries(view);
+
+    chartSeries->setName(
+      id == SignalId{26}
+        ? QStringLiteral("Канал 1 (100 Гц)")
+        : QStringLiteral("Канал 2 (10 Гц)"));
+
+    state->charts[i].timeAxis = timeAxis;
+    state->charts[i].view = view;
 
     QObject::connect(
       controller,
       &ArchiveChartController::timeRangeReady,
       window,
-      [controller, timeAxis, view, id](
+      [state, i](
         bool success,
         Timestamp firstTimestamp,
         Timestamp lastTimestamp)
@@ -755,29 +719,67 @@ void TestModule::createDynamicArchiveChartsView()
           return;
         }
 
-        timeAxis->setOriginTimestamp(firstTimestamp);
-        timeAxis->setZeroTimestamp(firstTimestamp);
+        auto& current = state->charts[i];
 
-        const double minimum =
-          timeAxis->chartSeconds(firstTimestamp);
+        current.firstTimestamp = firstTimestamp;
+        current.lastTimestamp = lastTimestamp;
+        current.ready = true;
 
-        const double maximum =
-          timeAxis->chartSeconds(lastTimestamp);
+        if (state->initialized)
+          return;
 
-        if (maximum <= minimum)
+        for (const auto& chart : state->charts)
+        {
+          if (!chart.ready)
+            return;
+        }
+
+        Timestamp commonFirst =
+          state->charts.front().firstTimestamp;
+
+        Timestamp commonLast =
+          state->charts.front().lastTimestamp;
+
+        for (const auto& chart : state->charts)
+        {
+          commonFirst = std::min(
+            commonFirst,
+            chart.firstTimestamp);
+
+          commonLast = std::max(
+            commonLast,
+            chart.lastTimestamp);
+        }
+
+        if (commonLast <= commonFirst)
         {
           qWarning() << "Некорректный временной диапазон";
           return;
         }
 
-        view->setTimeRange(minimum, maximum);
+        state->initialized = true;
+
+        for (auto& chart : state->charts)
+        {
+          chart.timeAxis->setOriginTimestamp(commonFirst);
+          chart.timeAxis->setZeroTimestamp(commonFirst);
+        }
+
+        const double duration =
+          state->charts.front().timeAxis->chartSeconds(
+            commonLast);
+
+        for (auto& chart : state->charts)
+        {
+          chart.view->setTimeRange(0.0, duration);
+        }
       });
 
     QObject::connect(
       controller,
       &ArchiveChartController::plotReady,
       window,
-      [timeAxis, view, chartSeries](
+      [timeAxis, chartSeries](
         bool success,
         ArchiveSignalSegments segments)
       {
@@ -787,21 +789,21 @@ void TestModule::createDynamicArchiveChartsView()
           return;
         }
 
-        setChartSegments(
-          view,
-          *chartSeries,
-          segments,
-          *timeAxis);
+        chartSeries->setSegments(
+          toChartSegments(segments, *timeAxis));
       });
 
     QObject::connect(
       view,
       &TimeChartView::visibleTimeRangeChanged,
       window,
-      [controller, timeAxis, view, id](
+      [controller, timeAxis, view, id, state](
         double minimum,
         double maximum)
       {
+        if (!state->initialized)
+          return;
+
         const auto origin =
           timeAxis->originTimestamp();
 
@@ -825,13 +827,13 @@ void TestModule::createDynamicArchiveChartsView()
           maxPoints);
       });
 
-    controller->requestTimeRange(
-      id);
+    controller->requestTimeRange(id);
   }
 
   window->resize(800, 500);
   window->show();
 }
+
 
 void TestModule::applicationSettingsDialog(QApplication &app)
 {
