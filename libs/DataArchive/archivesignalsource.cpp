@@ -441,6 +441,10 @@ bool ArchiveSignalSource::readPlotSegments(
     return false;
   }
 
+  // Начинаем с предыдущей записи.
+  if (recordIndex > 0)
+    --recordIndex;
+
   struct SegmentInfo
   {
     ArchiveSignalPoint first;
@@ -483,6 +487,7 @@ bool ArchiveSignalSource::readPlotSegments(
     recordIndex,
     lastTimestamp,
     cancel,
+    true,
     [&](const ArchiveSample& sample) -> bool
     {
       if (location->channelIndex >= sample.values.size())
@@ -586,6 +591,7 @@ bool ArchiveSignalSource::readPlotSegments(
       recordIndex,
       lastTimestamp,
       cancel,
+      true,
       [&](const ArchiveSample& sample) -> bool
       {
         if (location->channelIndex >= sample.values.size())
@@ -709,19 +715,6 @@ bool ArchiveSignalSource::readPlotSegments(
     --remainingPoints;
   }
 
-  for (std::size_t i = 0; i < segmentInfo.size(); ++i)
-  {
-    const auto& info = segmentInfo[i];
-
-    qDebug()
-      << "Segment" << i
-      << "records =" << info.recordCount
-      << "budget =" << info.pointBudget;
-  }
-
-
-
-
   // Добавляем структуру корзины
   struct PlotBucket
   {
@@ -788,8 +781,6 @@ bool ArchiveSignalSource::readPlotSegments(
     segmentBuckets.push_back(std::move(data));
   }
 
-
-
   std::size_t segmentIndex = 0;
   std::size_t segmentRecordIndex = 0;
 
@@ -798,6 +789,7 @@ bool ArchiveSignalSource::readPlotSegments(
     recordIndex,
     lastTimestamp,
     cancel,
+    true,
     [&](const ArchiveSample& sample) -> bool
     {
       if (location->channelIndex >= sample.values.size())

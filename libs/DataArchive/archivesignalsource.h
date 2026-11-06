@@ -65,12 +65,12 @@ private:
     uint64_t firstRecord,
     Timestamp lastTimestamp,
     const std::atomic_bool* cancel,
+    bool includeNext,
     Callback&& callback)
   {
     constexpr std::size_t blockSize = 4096;
 
     std::vector<ArchiveSample> samples;
-
     uint64_t recordIndex = firstRecord;
 
     while (true)
@@ -96,7 +96,12 @@ private:
           return false;
 
         if (sample.timestamp > lastTimestamp)
+        {
+          if (includeNext && !callback(sample))
+            return false;
+
           return true;
+        }
 
         if (!callback(sample))
           return false;

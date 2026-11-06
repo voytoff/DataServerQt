@@ -21,6 +21,12 @@ namespace
 
 constexpr double MicrosecondsPerSecond = 1'000'000.0;
 constexpr int TickCount = 6;
+// отступ 10% от диапазона значений, когда минимум и максимум различаются.
+constexpr double YRangePaddingFactor = 0.10;
+// отступ 10% от абсолютного значения, когда все точки одинаковые.
+constexpr double YConstantPaddingFactor = 0.10;
+// минимальный отступ 0.00001, чтобы график не схлопывался около нуля.
+constexpr double YMinimumPadding = 1e-5;
 
 }
 
@@ -42,6 +48,7 @@ TimeChartView::TimeChartView(QWidget* parent)
   chart()->addAxis(m_axisY, Qt::AlignLeft);
 
   chart()->legend()->setVisible(true);
+  chart()->legend()->hide();
 
   setTimeRange(0.0, 10.0);
   setValueRange(-1.0, 1.0);
@@ -201,13 +208,11 @@ void TimeChartView::autoScaleY()
     return;
   }
 
-  const double range = maximum - minimum;
-
-  if (range <= 0.0)
+  if (minimum == maximum)
   {
     const double padding = std::max(
-      std::abs(minimum) * 0.05,
-      0.1);
+      std::abs(minimum) * YConstantPaddingFactor,
+      YMinimumPadding);
 
     setValueRange(
       minimum - padding,
@@ -216,7 +221,8 @@ void TimeChartView::autoScaleY()
     return;
   }
 
-  const double padding = range * 0.05;
+  const double padding =
+    (maximum - minimum) * YRangePaddingFactor;
 
   setValueRange(
     minimum - padding,

@@ -22,7 +22,7 @@ qt_add_executable(datamonitor
   monitorsettingsloader.h monitorsettingsloader.cpp
   signalchartwidget.h signalchartwidget.cpp
 )
-#[[
+
 if(WIN32)
 
   get_target_property(
@@ -62,7 +62,7 @@ if(WIN32)
   )
 
 endif()
-]]
+
 target_include_directories(datamonitor
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}

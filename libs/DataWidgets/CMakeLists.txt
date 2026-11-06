@@ -22,6 +22,7 @@ add_library(datawidgets SHARED
   timeaxis.h timeaxis.cpp
   timechartview.h timechartview.cpp
   timerangecontroller.h timerangecontroller.cpp
+  archivechartseries.h archivechartseries.cpp
 )
 
 target_include_directories(datawidgets
@@ -37,6 +38,7 @@ target_link_libraries(datawidgets
     Qt${QT_VERSION_MAJOR}::Svg
     Qt${QT_VERSION_MAJOR}::Charts
     DataSettings
+    DataArchive
 )
 
 target_compile_definitions(datawidgets

@@ -36,6 +36,9 @@ private slots:
   void test_archiveSignalSource_segmentDownsampling();
   void test_archiveSignalSource_multipleExtremes();
 
+  void test_archiveSignalSource_boundaryPoints();
+  void test_archiveSignalSource_boundaryGap();
+
   void test_archiveSignalSource_NaN_Inf();
   void test_archiveSignalSource_manySegments();
   void test_archiveSignalSource_largeSignal();

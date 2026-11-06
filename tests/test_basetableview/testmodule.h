@@ -22,6 +22,7 @@ public:
   void testWorker();
   void testController();
   void createDynamicArchiveChartView();
+  void createDynamicArchiveChartsView();
 
 private:
   std::unique_ptr<QMainWindow> m_mainWindow;

@@ -2330,25 +2330,88 @@ void tst_database::test_archiveSignalSource_multipleExtremes()
   QCOMPARE(points.front().timestamp, Timestamp{100'000});
   QCOMPARE(points.back().timestamp, Timestamp{180'000});
 
-  const auto hasPoint =
-    [&](Timestamp timestamp, float value)
-  {
-    return std::any_of(
-      points.begin(),
-      points.end(),
-      [&](const ArchiveSignalPoint& point)
-      {
-        return point.timestamp == timestamp &&
-               static_cast<float>(point.value) == value;
-      });
-  };
-
-  QVERIFY(hasPoint(Timestamp{120'000}, 100.0f));
-  QVERIFY(hasPoint(Timestamp{140'000}, -80.0f));
-  QVERIFY(hasPoint(Timestamp{160'000}, 200.0f));
+  QVERIFY(ArchiveHelper::hasPoint(segments[0], Timestamp{120'000}, 100.0f));
+  QVERIFY(ArchiveHelper::hasPoint(segments[0], Timestamp{140'000}, -80.0f));
+  QVERIFY(ArchiveHelper::hasPoint(segments[0], Timestamp{160'000}, 200.0f));
 
   for (std::size_t i = 1; i < points.size(); ++i)
     QVERIFY(points[i - 1].timestamp < points[i].timestamp);
+}
+
+void tst_database::test_archiveSignalSource_boundaryPoints()
+{
+  using namespace qds;
+
+  std::vector<TestArchivePoint> valuepoints = {
+    {100'000,  0, 10.0f},
+    {110'000, 10, 20.0f},
+    {120'000, 20, 30.0f},
+    {130'000, 30, 40.0f}
+  };
+
+  QVERIFY(ArchiveHelper::create("_boundaryPoints", valuepoints));
+
+  ArchiveReader reader;
+  QVERIFY(reader.open(archivePath / "_boundaryPoints"));
+
+  ArchiveSignalSource source(reader);
+  ArchiveSignalSegments segments;
+
+  constexpr std::size_t maxPoints = 100;
+
+  QVERIFY(source.readPlotSegments(
+    SignalId{10},
+    Timestamp{113'000},
+    Timestamp{117'000},
+    maxPoints,
+    segments));
+
+  QCOMPARE(segments.size(), std::size_t{1});
+
+  const auto& points = segments[0].points;
+
+  QCOMPARE(points.size(), 2);
+
+  QVERIFY(ArchiveHelper::hasPoint(segments[0], Timestamp{110'000}, 20.0f));
+  QVERIFY(ArchiveHelper::hasPoint(segments[0], Timestamp{120'000}, 30.0f));
+}
+
+void tst_database::test_archiveSignalSource_boundaryGap()
+{
+  using namespace qds;
+
+  std::vector<TestArchivePoint> valuepoints = {
+    {100'000,  0, 10.0f},
+    {110'000, 10, 20.0f},
+    {200'000, 20, 30.0f},
+    {210'000, 30, 40.0f}
+  };
+
+  QVERIFY(ArchiveHelper::create("_boundaryGap", valuepoints));
+
+  ArchiveReader reader;
+  QVERIFY(reader.open(archivePath / "_boundaryGap"));
+
+  ArchiveSignalSource source(reader);
+  ArchiveSignalSegments segments;
+
+  QVERIFY(source.readPlotSegments(
+    SignalId{10},
+    Timestamp{113'000},
+    Timestamp{197'000},
+    100,
+    segments));
+
+  QCOMPARE(segments.size(), std::size_t{2});
+
+  QCOMPARE(segments[0].points.size(), std::size_t{1});
+  QCOMPARE(segments[1].points.size(), std::size_t{1});
+
+  QVERIFY(ArchiveHelper::hasPoint(
+    segments[0], Timestamp{110'000}, 20.0f));
+
+  QVERIFY(ArchiveHelper::hasPoint(
+    segments[1], Timestamp{200'000}, 30.0f));
 }
 
 void tst_database::test_archiveSignalSource_NaN_Inf()
