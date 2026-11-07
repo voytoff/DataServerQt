@@ -6,8 +6,8 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 REQUIRED COMPONENTS           Core Widgets Charts)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS  Core Widgets Charts)
+find_package(QT NAMES Qt6 REQUIRED COMPONENTS           Core Widgets Charts Sql Charts)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS  Core Widgets Charts Sql Charts)
 
 set(DATAVIEWER_RESOURCE_FILES res.qrc)
 qt6_add_resources(DATAVIEWER_PROJECT_RESOURCES ${DATAVIEWER_RESOURCE_FILES})
@@ -17,8 +17,6 @@ qt_add_executable(dataviewer
   ${DATAVIEWER_PROJECT_RESOURCES}
   ${APP_ICON_RESOURCE_WINDOWS}
   main.cpp
-  archivechartcontroller.h archivechartcontroller.cpp
-  archivechartworker.h archivechartworker.cpp
 )
 
 target_include_directories(dataviewer
@@ -32,6 +30,7 @@ target_link_libraries(dataviewer
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Charts
+    Qt${QT_VERSION_MAJOR}::Sql
     Configuration
     DataSettings
     datawidgets
