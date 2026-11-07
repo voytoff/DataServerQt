@@ -1,4 +1,3 @@
-
 #include "archivechartseries.h"
 #include "timechartview.h"
 
@@ -12,7 +11,8 @@ namespace qds
 ArchiveChartSeries::ArchiveChartSeries(
   TimeChartView* view)
   : QObject(view),
-  m_view(view)
+  m_view(view),
+  m_valueAxis(view->valueChartAxis())
 {
   m_legendSeries = new QLineSeries();
 
@@ -33,6 +33,27 @@ ArchiveChartSeries::ArchiveChartSeries(
       {
         setVisible(!isVisible());
       });
+  }
+}
+
+ArchiveChartSeries::~ArchiveChartSeries()
+{
+  for (auto* series : m_lines)
+  {
+    m_view->chart()->removeSeries(series);
+    delete series;
+  }
+
+  for (auto* series : m_points)
+  {
+    m_view->chart()->removeSeries(series);
+    delete series;
+  }
+
+  if (m_legendSeries)
+  {
+    m_view->chart()->removeSeries(m_legendSeries);
+    delete m_legendSeries;
   }
 }
 
@@ -63,6 +84,13 @@ void ArchiveChartSeries::setSegments(
 
         m_view->addSeries(series);
 
+        if (m_valueAxis &&
+            m_valueAxis != m_view->valueChartAxis())
+        {
+          series->detachAxis(m_view->valueChartAxis());
+          series->attachAxis(m_valueAxis);
+        }
+
         for (auto* marker : m_view->chart()->legend()->markers(series))
           marker->setVisible(false);
 
@@ -84,6 +112,13 @@ void ArchiveChartSeries::setSegments(
         series->setMarkerSize(6.0);
 
         m_view->addSeries(series);
+
+        if (m_valueAxis &&
+            m_valueAxis != m_view->valueChartAxis())
+        {
+          series->detachAxis(m_view->valueChartAxis());
+          series->attachAxis(m_valueAxis);
+        }
 
         for (auto* marker : m_view->chart()->legend()->markers(series))
           marker->setVisible(false);
@@ -172,6 +207,47 @@ void ArchiveChartSeries::setVisible(
 bool ArchiveChartSeries::isVisible() const noexcept
 {
   return m_visible;
+}
+
+void ArchiveChartSeries::setValueAxis(
+  QValueAxis* axis)
+{
+  if (!axis || m_valueAxis == axis)
+    return;
+
+  if (!m_view->chart()->axes(Qt::Vertical).contains(axis))
+    return;
+
+  m_valueAxis = axis;
+
+  for (auto* series : m_lines)
+  {
+    for (auto* attached : series->attachedAxes())
+    {
+      if (attached->orientation() == Qt::Vertical)
+        series->detachAxis(attached);
+    }
+
+    series->attachAxis(axis);
+  }
+
+  for (auto* series : m_points)
+  {
+    for (auto* attached : series->attachedAxes())
+    {
+      if (attached->orientation() == Qt::Vertical)
+        series->detachAxis(attached);
+    }
+
+    series->attachAxis(axis);
+  }
+
+  m_view->autoScaleY();
+}
+
+QValueAxis* ArchiveChartSeries::valueAxis() const noexcept
+{
+  return m_valueAxis;
 }
 
 void ArchiveChartSeries::updateLegend()

@@ -1,5 +1,9 @@
 #pragma once
 
+#include "datawidgets_export.h"
+#include "archivereader.h"
+#include "archivesignalsource.h"
+
 #include <QObject>
 
 #include <cstddef>
@@ -8,13 +12,10 @@
 #include <atomic>
 #include <memory>
 
-#include "archivereader.h"
-#include "archivesignalsource.h"
-
 namespace qds
 {
 
-class ArchiveChartWorker : public QObject
+class DATAWIDGETS_EXPORT ArchiveChartWorker : public QObject
 {
   Q_OBJECT
 

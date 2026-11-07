@@ -1,15 +1,26 @@
 #pragma once
 
+#include "datawidgets_export.h"
+#include "timeaxis.h"
+
 #include <QChartView>
 #include <QCategoryAxis>
 #include <QLineSeries>
 #include <QXYSeries>
+#include <QValueAxis>
 
-#include "datawidgets_export.h"
-#include "timeaxis.h"
+#include <vector>
 
 namespace qds
 {
+
+enum class YAxisMode
+{
+  // все сигналы используют существующую m_axisY.
+  Single,
+  // каждый ArchiveChartSeries получает собственную ось Y и независимое автоматическое масштабирование.
+  Multiple
+};
 
 class DATAWIDGETS_EXPORT TimeChartView : public QChartView
 {
@@ -31,10 +42,16 @@ public:
   void setTimeRange(double minimum, double maximum);
   void setValueRange(double minimum, double maximum);
 
-  [[nodiscard]] QCategoryAxis* timeChartAxis() const noexcept;
-  [[nodiscard]] QValueAxis* valueChartAxis() const noexcept;
+  [[nodiscard]]
+  QCategoryAxis* timeChartAxis() const noexcept;
+
+  [[nodiscard]]
+  QValueAxis* valueChartAxis() const noexcept;
 
   void autoScaleY();
+
+  void autoScaleY(
+    QValueAxis* axis);
 
   void resetTimeRange();
 
@@ -42,6 +59,15 @@ public:
 
   [[nodiscard]] std::pair<double, double>
   visibleTimeRange() const noexcept;
+
+
+  void setYAxisMode(YAxisMode mode);
+  YAxisMode yAxisMode() const noexcept;
+
+  QValueAxis* addValueAxis(
+    Qt::Alignment alignment = Qt::AlignLeft);
+
+  void removeValueAxis(QValueAxis* axis);
 
 protected:
   void wheelEvent(
@@ -78,6 +104,10 @@ private:
 
   bool m_panning = false;
   QPointF m_lastMousePosition;
+
+  YAxisMode m_yAxisMode = YAxisMode::Single;
+
+  std::vector<QValueAxis*> m_additionalAxesY;
 
 private slots:
   void updateTimeLabels();

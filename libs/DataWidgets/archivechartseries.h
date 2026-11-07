@@ -9,6 +9,7 @@
 #include <QVector>
 #include <QColor>
 
+#include <qvalueaxis.h>
 #include <vector>
 
 namespace qds
@@ -27,6 +28,8 @@ public:
   explicit ArchiveChartSeries(
     TimeChartView* view);
 
+  ~ArchiveChartSeries() override;
+
   void setName(
     const QString& name);
 
@@ -41,12 +44,18 @@ public:
 
   bool isVisible() const noexcept;
 
+
+  void setValueAxis(QValueAxis* axis);
+  QValueAxis* valueAxis() const noexcept;
+
 private:
   void updateLegend();
 
   TimeChartView* m_view = nullptr;
 
   QLineSeries* m_legendSeries = nullptr;
+
+  QValueAxis* m_valueAxis = nullptr;
 
   std::vector<QLineSeries*> m_lines;
   std::vector<QScatterSeries*> m_points;

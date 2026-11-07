@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QThread>
 
+#include "datawidgets_export.h"
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -24,7 +25,7 @@ struct ArchivePlotRequest
   std::size_t maxPoints = 0;
 };
 
-class ArchiveChartController : public QObject
+class DATAWIDGETS_EXPORT ArchiveChartController : public QObject
 {
   Q_OBJECT
 

@@ -23,6 +23,9 @@ add_library(datawidgets SHARED
   timechartview.h timechartview.cpp
   timerangecontroller.h timerangecontroller.cpp
   archivechartseries.h archivechartseries.cpp
+  archivechartcontroller.h archivechartcontroller.cpp
+  archivechartworker.h archivechartworker.cpp
+  archivechartview.h archivechartview.cpp
 )
 
 target_include_directories(datawidgets

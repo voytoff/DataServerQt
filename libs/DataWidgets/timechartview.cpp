@@ -93,7 +93,6 @@ void TimeChartView::setTimeAxis(TimeAxis* timeAxis)
       [this]()
       {
         m_timeAxis = nullptr;
-        updateTimeLabels();
       });
   }
 
@@ -175,10 +174,38 @@ QValueAxis* TimeChartView::valueChartAxis() const noexcept
 
 void TimeChartView::autoScaleY()
 {
+  autoScaleY(m_axisY);
+
+  if (m_yAxisMode == YAxisMode::Multiple)
+  {
+    for (auto* axis : m_additionalAxesY)
+      autoScaleY(axis);
+  }
+}
+
+void TimeChartView::autoScaleY(
+  QValueAxis* axis)
+{
+  if (!axis)
+    return;
+
+  const double first = m_axisX->min();
+  const double last = m_axisX->max();
+
   double minimum = std::numeric_limits<double>::max();
   double maximum = std::numeric_limits<double>::lowest();
 
   bool hasValues = false;
+
+  auto includeValue = [&](double value)
+  {
+    if (!std::isfinite(value))
+      return;
+
+    minimum = std::min(minimum, value);
+    maximum = std::max(maximum, value);
+    hasValues = true;
+  };
 
   for (auto* series : chart()->series())
   {
@@ -187,45 +214,71 @@ void TimeChartView::autoScaleY()
     if (!xySeries || !xySeries->isVisible())
       continue;
 
+    if (!xySeries->attachedAxes().contains(axis))
+      continue;
+
     const auto points = xySeries->points();
 
+    // Учитываем отсчёты внутри видимого диапазона.
     for (const auto& point : points)
     {
-      const double value = point.y();
+      if (point.x() >= first && point.x() <= last)
+        includeValue(point.y());
+    }
 
-      if (!std::isfinite(value))
+    // Интерполяция нужна только для линейных серий.
+    if (!qobject_cast<QLineSeries*>(xySeries))
+      continue;
+
+    for (qsizetype i = 1; i < points.size(); ++i)
+    {
+      const auto& p0 = points[i - 1];
+      const auto& p1 = points[i];
+
+      const double x0 = p0.x();
+      const double x1 = p1.x();
+
+      if (!std::isfinite(x0) ||
+          !std::isfinite(x1) ||
+          !std::isfinite(p0.y()) ||
+          !std::isfinite(p1.y()))
         continue;
 
-      minimum = std::min(minimum, value);
-      maximum = std::max(maximum, value);
+      if (x1 <= x0)
+        continue;
 
-      hasValues = true;
+      // Отрезок не пересекает видимое окно.
+      if (x1 < first || x0 > last)
+        continue;
+
+      const double left = std::max(first, x0);
+      const double right = std::min(last, x1);
+
+      const double dx = x1 - x0;
+      const double dy = p1.y() - p0.y();
+
+      const double leftValue =
+        p0.y() + (left - x0) / dx * dy;
+
+      const double rightValue =
+        p0.y() + (right - x0) / dx * dy;
+
+      includeValue(leftValue);
+      includeValue(rightValue);
     }
   }
 
   if (!hasValues)
-  {
-    //setValueRange(-1.0, 1.0);
     return;
-  }
-
-  if (minimum == maximum)
-  {
-    const double padding = std::max(
-      std::abs(minimum) * YConstantPaddingFactor,
-      YMinimumPadding);
-
-    setValueRange(
-      minimum - padding,
-      maximum + padding);
-
-    return;
-  }
 
   const double padding =
-    (maximum - minimum) * YRangePaddingFactor;
+    minimum == maximum
+      ? std::max(
+          std::abs(minimum) * YConstantPaddingFactor,
+          YMinimumPadding)
+      : (maximum - minimum) * YRangePaddingFactor;
 
-  setValueRange(
+  axis->setRange(
     minimum - padding,
     maximum + padding);
 }
@@ -244,6 +297,73 @@ TimeChartView::visibleTimeRange() const noexcept
     m_axisX->min(),
     m_axisX->max()
   };
+}
+
+void TimeChartView::setYAxisMode(YAxisMode mode)
+{
+  if (m_yAxisMode == mode)
+    return;
+
+  m_yAxisMode = mode;
+
+  autoScaleY();
+}
+
+YAxisMode TimeChartView::yAxisMode() const noexcept
+{
+  return m_yAxisMode;
+}
+
+QValueAxis* TimeChartView::addValueAxis(
+  Qt::Alignment alignment)
+{
+  if (alignment != Qt::AlignLeft &&
+      alignment != Qt::AlignRight)
+  {
+    return nullptr;
+  }
+
+  auto* axis = new QValueAxis();
+
+  axis->setTitleText(tr("Значение"));
+  axis->setRange(-1.0, 1.0);
+
+  chart()->addAxis(axis, alignment);
+
+  m_additionalAxesY.push_back(axis);
+
+  return axis;
+}
+
+void TimeChartView::removeValueAxis(
+  QValueAxis* axis)
+{
+  if (!axis || axis == m_axisY)
+    return;
+
+  const auto it = std::find(
+    m_additionalAxesY.begin(),
+    m_additionalAxesY.end(),
+    axis);
+
+  if (it == m_additionalAxesY.end())
+    return;
+
+  for (auto* series : chart()->series())
+  {
+    if (series->attachedAxes().contains(axis))
+    {
+      series->detachAxis(axis);
+      series->attachAxis(m_axisY);
+    }
+  }
+
+  m_additionalAxesY.erase(it);
+
+  chart()->removeAxis(axis);
+  delete axis;
+
+  autoScaleY();
 }
 
 void TimeChartView::setVisibleTimeRange(
@@ -517,6 +637,9 @@ std::pair<double, double> TimeChartView::clampTimeRange(
 
 void TimeChartView::updateTimeLabels()
 {
+  if (!m_axisX)
+    return;
+
   const auto labels = m_axisX->categoriesLabels();
 
   for (const auto& label : labels)

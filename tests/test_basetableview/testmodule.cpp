@@ -4,6 +4,7 @@
 #include "applicationsettingsdialog.h"
 #include "archivechartcontroller.h"
 #include "archivechartseries.h"
+#include "archivechartview.h"
 #include "archivechartworker.h"
 #include "archivereader.h"
 #include "archivesignalsource.h"
@@ -124,6 +125,96 @@ Timestamp toTimestamp(
 TestModule::TestModule(QObject *parent)
   : QObject(parent)
 {
+}
+
+void TestModule::applicationSettingsDialog(QApplication &app)
+{
+  using namespace qds;
+
+  const QString fileName =
+    "D:/DATASERVER/ini/configeditor_test.ini";
+
+  const SettingsSections sections =
+    SettingsSection::Database |
+    SettingsSection::Archive |
+    SettingsSection::Log;
+
+  ApplicationSettings settings;
+  QString error;
+
+  if (!ApplicationSettingsLoader::load(
+        fileName,
+        settings,
+        error,
+        sections))
+  {
+    qWarning() << error;
+    return;
+  }
+
+  ApplicationSettingsDialog dialog(
+    settings,
+    sections);
+
+  QObject::connect(
+    &dialog,
+    &ApplicationSettingsDialog::settingsApplied,
+    &dialog,
+    [](SettingsSections changed)
+    {
+      qDebug() << "Изменены разделы:" << changed;
+    });
+
+  dialog.exec();
+}
+
+void TestModule::calibrationDialog(QApplication &app)
+{
+  using namespace qds;
+
+  Calibration calibration;
+
+  calibration.kind = CalibrationKind::Polynomial;
+  calibration.description = "Проверка редактора";
+
+  if (calibration.kind == CalibrationKind::Table)
+  {
+    calibration.points = {
+                          {0, 0.0, 0.0},
+                          };
+  }
+  else
+  {
+    calibration.coefficients = {
+      0
+    };
+  }
+  CalibrationDialog dialog(calibration, nullptr);
+
+  if (dialog.exec() != QDialog::Accepted)
+    return;
+
+  const Calibration result =
+    dialog.calibration();
+
+  if (calibration.kind == CalibrationKind::Table)
+  {
+    qDebug() << "Calibration:"
+             << result.description
+             << "Points:" << result.points.size();
+
+    for (const auto& point : result.points)
+      qDebug() << point.index << point.x << point.y;
+  }
+  else
+  {
+    qDebug() << "Calibration:"
+             << result.description
+             << "Coefficients:" << result.coefficients.size();
+
+    for (const auto& point : result.coefficients)
+      qDebug() << point;
+  }
 }
 
 void TestModule::createTimeChartView()
@@ -835,94 +926,413 @@ void TestModule::createDynamicArchiveChartsView()
 }
 
 
-void TestModule::applicationSettingsDialog(QApplication &app)
+void TestModule::createCombinedArchiveChartView()
 {
   using namespace qds;
 
-  const QString fileName =
-    "D:/DATASERVER/ini/configeditor_test.ini";
+  m_mainWindow = std::make_unique<QMainWindow>();
 
-  const SettingsSections sections =
-    SettingsSection::Database |
-    SettingsSection::Archive |
-    SettingsSection::Log;
+  auto* window = m_mainWindow.get();
 
-  ApplicationSettings settings;
-  QString error;
+  auto* view = new TimeChartView(window);
+  auto* timeAxis = new TimeAxis(view);
 
-  if (!ApplicationSettingsLoader::load(
-        fileName,
-        settings,
-        error,
-        sections))
+  view->setTimeAxis(timeAxis);
+  window->setCentralWidget(view);
+
+  constexpr std::array<SignalId, 2> signalIds = {
+                                                 SignalId{26},
+                                                 SignalId{27},
+                                                 };
+
+  struct SignalContext
   {
-    qWarning() << error;
-    return;
-  }
+    ArchiveChartController* controller = nullptr;
+    ArchiveChartSeries* series = nullptr;
+    Timestamp firstTimestamp{};
+    Timestamp lastTimestamp{};
+    bool ready = false;
+  };
 
-  ApplicationSettingsDialog dialog(
-    settings,
-    sections);
+  struct SharedState
+  {
+    std::array<SignalContext, 2> signalCnts;
+    bool initialized = false;
+  };
+
+  auto state = std::make_shared<SharedState>();
+
+  for (std::size_t i = 0; i < signalIds.size(); ++i)
+  {
+    const SignalId id = signalIds[i];
+
+    auto* controller = new ArchiveChartController(
+      "D:/DATASERVER/archive/__raw01_100_10",
+      window);
+
+    auto* series = new ArchiveChartSeries(view);
+
+    series->setName(
+      i == 0
+        ? QStringLiteral("Канал 1 (100 Гц)")
+        : QStringLiteral("Канал 2 (10 Гц)"));
+
+    series->setColor(
+      i == 0
+        ? QColor(Qt::blue)
+        : QColor(Qt::red));
+
+    state->signalCnts[i].controller = controller;
+    state->signalCnts[i].series = series;
+
+    QObject::connect(
+      controller,
+      &ArchiveChartController::timeRangeReady,
+      window,
+      [state, i, timeAxis, view](
+        bool success,
+        Timestamp firstTimestamp,
+        Timestamp lastTimestamp)
+      {
+        if (!success)
+        {
+          qWarning() << "Не удалось определить диапазон архива";
+          return;
+        }
+
+        auto& signal = state->signalCnts[i];
+
+        signal.firstTimestamp = firstTimestamp;
+        signal.lastTimestamp = lastTimestamp;
+        signal.ready = true;
+
+        if (state->initialized)
+          return;
+
+        for (const auto& item : state->signalCnts)
+        {
+          if (!item.ready)
+            return;
+        }
+
+        Timestamp commonFirst =
+          state->signalCnts.front().firstTimestamp;
+
+        Timestamp commonLast =
+          state->signalCnts.front().lastTimestamp;
+
+        for (const auto& item : state->signalCnts)
+        {
+          commonFirst = std::min(
+            commonFirst,
+            item.firstTimestamp);
+
+          commonLast = std::max(
+            commonLast,
+            item.lastTimestamp);
+        }
+
+        if (commonLast <= commonFirst)
+        {
+          qWarning() << "Некорректный временной диапазон";
+          return;
+        }
+
+        state->initialized = true;
+
+        timeAxis->setOriginTimestamp(commonFirst);
+        timeAxis->setZeroTimestamp(commonFirst);
+
+        const double duration =
+          timeAxis->chartSeconds(commonLast);
+
+        view->setTimeRange(0.0, duration);
+      });
+
+    QObject::connect(
+      controller,
+      &ArchiveChartController::plotReady,
+      window,
+      [timeAxis, series](
+        bool success,
+        ArchiveSignalSegments segments)
+      {
+        if (!success)
+        {
+          qWarning() << "Ошибка чтения архивных данных";
+          return;
+        }
+
+        series->setSegments(
+          toChartSegments(segments, *timeAxis));
+      });
+
+    controller->requestTimeRange(id);
+  }
 
   QObject::connect(
-    &dialog,
-    &ApplicationSettingsDialog::settingsApplied,
-    &dialog,
-    [](SettingsSections changed)
+    view,
+    &TimeChartView::visibleTimeRangeChanged,
+    window,
+    [state, timeAxis, view, signalIds](
+      double minimum,
+      double maximum)
     {
-      qDebug() << "Изменены разделы:" << changed;
+      if (!state->initialized)
+        return;
+
+      const auto origin =
+        timeAxis->originTimestamp();
+
+      const auto first =
+        toTimestamp(minimum, origin);
+
+      const auto last =
+        toTimestamp(maximum, origin);
+
+      const auto width =
+        view->chart()->plotArea().width();
+
+      const auto maxPoints =
+        static_cast<std::size_t>(
+          std::max(2.0, width * 2.0));
+
+      for (std::size_t i = 0; i < signalIds.size(); ++i)
+      {
+        state->signalCnts[i].controller->requestPlot(
+          signalIds[i],
+          first,
+          last,
+          maxPoints);
+      }
     });
 
-  dialog.exec();
+  window->resize(1000, 500);
+  window->show();
 }
 
-void TestModule::calibrationDialog(QApplication &app)
+void TestModule::createCombinedArchiveChartView2()
 {
   using namespace qds;
 
-  Calibration calibration;
+  m_mainWindow = std::make_unique<QMainWindow>();
 
-  calibration.kind = CalibrationKind::Polynomial;
-  calibration.description = "Проверка редактора";
+  auto* window = m_mainWindow.get();
 
-  if (calibration.kind == CalibrationKind::Table)
+  auto* view = new TimeChartView(window);
+  auto* timeAxis = new TimeAxis(view);
+
+  view->setTimeAxis(timeAxis);
+  view->setYAxisMode(YAxisMode::Multiple);
+
+  auto* axis2 = view->addValueAxis(Qt::AlignRight);
+
+  window->setCentralWidget(view);
+
+  constexpr std::array<SignalId, 2> signalIds =
   {
-    calibration.points = {
-                          {0, 0.0, 0.0},
-                          };
-  }
-  else
+    SignalId{26},
+    SignalId{27},
+  };
+
+  struct SignalContext
   {
-    calibration.coefficients = {
-      0
-    };
-  }
-  CalibrationDialog dialog(calibration, nullptr);
+    ArchiveChartController* controller = nullptr;
+    ArchiveChartSeries* series = nullptr;
+    Timestamp firstTimestamp{};
+    Timestamp lastTimestamp{};
+    bool ready = false;
+  };
 
-  if (dialog.exec() != QDialog::Accepted)
-    return;
-
-  const Calibration result =
-    dialog.calibration();
-
-  if (calibration.kind == CalibrationKind::Table)
+  struct SharedState
   {
-    qDebug() << "Calibration:"
-             << result.description
-             << "Points:" << result.points.size();
+    std::array<SignalContext, 2> signalCnts;
+    bool initialized = false;
+  };
 
-    for (const auto& point : result.points)
-      qDebug() << point.index << point.x << point.y;
-  }
-  else
+  auto state = std::make_shared<SharedState>();
+
+  for (std::size_t i = 0; i < signalIds.size(); ++i)
   {
-    qDebug() << "Calibration:"
-             << result.description
-             << "Coefficients:" << result.coefficients.size();
+    const SignalId id = signalIds[i];
 
-    for (const auto& point : result.coefficients)
-      qDebug() << point;
+    auto* controller = new ArchiveChartController(
+      "D:/DATASERVER/archive/__raw01_100_10",
+      window);
+
+    auto* series = new ArchiveChartSeries(view);
+
+    series->setName(
+      i == 0
+        ? QStringLiteral("Канал 1 (100 Гц)")
+        : QStringLiteral("Канал 2 (10 Гц)"));
+
+    series->setColor(
+      i == 0
+        ? QColor(Qt::blue)
+        : QColor(Qt::red));
+
+    if (i == 1)
+      series->setValueAxis(axis2);
+
+    state->signalCnts[i].controller = controller;
+    state->signalCnts[i].series = series;
+
+    QObject::connect(
+      controller,
+      &ArchiveChartController::timeRangeReady,
+      window,
+      [state, i, timeAxis, view](
+        bool success,
+        Timestamp firstTimestamp,
+        Timestamp lastTimestamp)
+      {
+        if (!success)
+        {
+          qWarning() << "Не удалось определить диапазон архива";
+          return;
+        }
+
+        auto& signal = state->signalCnts[i];
+
+        signal.firstTimestamp = firstTimestamp;
+        signal.lastTimestamp = lastTimestamp;
+        signal.ready = true;
+
+        if (state->initialized)
+          return;
+
+        for (const auto& item : state->signalCnts)
+        {
+          if (!item.ready)
+            return;
+        }
+
+        Timestamp commonFirst =
+          state->signalCnts.front().firstTimestamp;
+
+        Timestamp commonLast =
+          state->signalCnts.front().lastTimestamp;
+
+        for (const auto& item : state->signalCnts)
+        {
+          commonFirst = std::min(
+            commonFirst,
+            item.firstTimestamp);
+
+          commonLast = std::max(
+            commonLast,
+            item.lastTimestamp);
+        }
+
+        if (commonLast <= commonFirst)
+        {
+          qWarning() << "Некорректный временной диапазон";
+          return;
+        }
+
+        state->initialized = true;
+
+        timeAxis->setOriginTimestamp(commonFirst);
+        timeAxis->setZeroTimestamp(commonFirst);
+
+        const double duration =
+          timeAxis->chartSeconds(commonLast);
+
+        view->setTimeRange(0.0, duration);
+      });
+
+    QObject::connect(
+      controller,
+      &ArchiveChartController::plotReady,
+      window,
+      [timeAxis, series](
+        bool success,
+        ArchiveSignalSegments segments)
+      {
+        if (!success)
+        {
+          qWarning() << "Ошибка чтения архивных данных";
+          return;
+        }
+
+        series->setSegments(
+          toChartSegments(segments, *timeAxis));
+      });
+
+    controller->requestTimeRange(id);
   }
+
+  QObject::connect(
+    view,
+    &TimeChartView::visibleTimeRangeChanged,
+    window,
+    [state, timeAxis, view, signalIds](
+      double minimum,
+      double maximum)
+    {
+      if (!state->initialized)
+        return;
+
+      const auto origin =
+        timeAxis->originTimestamp();
+
+      const auto first =
+        toTimestamp(minimum, origin);
+
+      const auto last =
+        toTimestamp(maximum, origin);
+
+      const auto width =
+        view->chart()->plotArea().width();
+
+      const auto maxPoints =
+        static_cast<std::size_t>(
+          std::max(2.0, width * 2.0));
+
+      for (std::size_t i = 0; i < signalIds.size(); ++i)
+      {
+        state->signalCnts[i].controller->requestPlot(
+          signalIds[i],
+          first,
+          last,
+          maxPoints);
+      }
+    });
+
+  window->resize(1000, 500);
+  window->show();
+}
+
+void TestModule::createFinalArchiveChartView()
+{
+  using namespace qds;
+
+  m_mainWindow = std::make_unique<QMainWindow>();
+
+  auto* window = m_mainWindow.get();
+
+  auto* view = new ArchiveChartView(window);
+
+  view->setArchivePath(
+    "D:/DATASERVER/archive/__raw01_100_10");
+
+  view->setYAxisMode(YAxisMode::Multiple);
+
+  view->addSignal(
+    SignalId{26},
+    "Канал 1 (100 Гц)",
+    Qt::blue);
+
+  view->addSignal(
+    SignalId{27},
+    "Канал 2 (10 Гц)",
+    Qt::red);
+
+  window->setCentralWidget(view);
+
+  window->resize(1000, 500);
+  window->show();
 }
 
 }

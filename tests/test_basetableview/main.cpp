@@ -26,7 +26,9 @@ int main(int argc, char* argv[])
 
   TestModule tm;
 
-  tm.createDynamicArchiveChartsView();
+  //tm.createDynamicArchiveChartsView();
+  //tm.createCombinedArchiveChartView2();
+  tm.createFinalArchiveChartView();
 
   return app.exec();
 }
