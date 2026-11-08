@@ -419,8 +419,16 @@ bool ArchiveSignalSource::readPlotSegments(
     return false;
 
   const auto* header = m_reader.fileHeader(location->fileIndex);
+
   if (!header || header->sampleFrequency == 0)
     return false;
+
+  if (header->recordCount == 0 ||
+      lastTimestamp.value < header->firstTimestamp ||
+      firstTimestamp.value > header->lastTimestamp)
+  {
+    return true;
+  }
 
   const uint64_t expectedInterval =
     1'000'000ULL / header->sampleFrequency;

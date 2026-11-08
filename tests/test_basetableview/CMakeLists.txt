@@ -7,7 +7,7 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Test)
 
 qt_standard_project_setup()
 
@@ -32,6 +32,7 @@ target_include_directories(test_basetableview
     ${CMAKE_CURRENT_SOURCE_DIR}/../../apps/configeditor/delegate
     ${CMAKE_CURRENT_SOURCE_DIR}/../../apps/configeditor/dlg
     ${CMAKE_CURRENT_SOURCE_DIR}/../../apps/configeditor/plot
+    ${CMAKE_CURRENT_SOURCE_DIR}/../qds
 )
 
 
@@ -42,4 +43,5 @@ target_link_libraries(test_basetableview
     datawidgets
     DataArchive
     Qt6::Widgets
+    Qt6::Test
 )

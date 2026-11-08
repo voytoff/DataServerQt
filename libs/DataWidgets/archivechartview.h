@@ -42,6 +42,8 @@ public:
 
   [[nodiscard]] std::size_t signalCount() const noexcept;
 
+  bool removeSignal(SignalId id);
+
 private:
   struct SignalContext;
   struct Impl;
@@ -49,7 +51,17 @@ private:
   void initializeTimeRange();
   void requestVisibleData();
 
+  void requestSignalData(
+    SignalContext* context);
+
+  void updateAxisLayout();
+
+  void updateTimeRange();
+
+
+private:
   std::unique_ptr<Impl> m_impl;
+
 };
 
 }

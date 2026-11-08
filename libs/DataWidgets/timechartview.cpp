@@ -366,6 +366,67 @@ void TimeChartView::removeValueAxis(
   autoScaleY();
 }
 
+bool TimeChartView::setValueAxisAlignment(
+  QValueAxis* axis,
+  Qt::Alignment alignment)
+{
+  if (!axis ||
+      (alignment != Qt::AlignLeft &&
+       alignment != Qt::AlignRight))
+    return false;
+
+  if (axis == m_axisY)
+    return alignment == Qt::AlignLeft;
+
+  if (std::find(
+        m_additionalAxesY.begin(),
+        m_additionalAxesY.end(),
+        axis) == m_additionalAxesY.end())
+    return false;
+
+  if (axis->alignment() == alignment)
+    return true;
+
+  QList<QAbstractSeries*> attached;
+
+  for (auto* series : chart()->series())
+  {
+    if (series->attachedAxes().contains(axis))
+      attached.append(series);
+  }
+
+  chart()->removeAxis(axis);
+  chart()->addAxis(axis, alignment);
+
+  for (auto* series : attached)
+    series->attachAxis(axis);
+
+  return true;
+}
+
+void TimeChartView::setAvailableTimeRange(
+  double minimum,
+  double maximum)
+{
+  if (!std::isfinite(minimum) ||
+      !std::isfinite(maximum) ||
+      minimum >= maximum)
+  {
+    return;
+  }
+
+  const auto [visibleMinimum, visibleMaximum] =
+    visibleTimeRange();
+
+  m_initialTimeMinimum = minimum;
+  m_initialTimeMaximum = maximum;
+
+  const auto [clampedMinimum, clampedMaximum] =
+    clampTimeRange(visibleMinimum, visibleMaximum);
+
+  applyTimeRange(clampedMinimum, clampedMaximum);
+}
+
 void TimeChartView::setVisibleTimeRange(
   double minimum,
   double maximum)

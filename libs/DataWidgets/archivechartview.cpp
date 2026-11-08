@@ -84,6 +84,7 @@ Timestamp toTimestamp(
 struct ArchiveChartView::SignalContext
 {
   SignalId id;
+  QString name;
 
   ArchiveChartController* controller = nullptr;
   ArchiveChartSeries* series = nullptr;
@@ -153,22 +154,15 @@ bool ArchiveChartView::addSignal(
   if (m_impl->archivePath.empty())
     return false;
 
-  if (m_impl->initialized)
-  {
-    qWarning() <<
-      "Adding signals after initialization "
-      "is not supported yet";
-    return false;
-  }
-
   for (const auto& signal : m_impl->entries)
   {
     if (signal->id == id)
       return false;
   }
 
-  auto signal = std::make_unique<SignalContext>();
-  signal->id = id;
+  auto entry = std::make_unique<SignalContext>();
+  entry->id = id;
+  entry->name = name;
 
   auto* controller = new ArchiveChartController(
     m_impl->archivePath,
@@ -190,20 +184,23 @@ bool ArchiveChartView::addSignal(
 
     axis->setTitleText(name);
 
-    signal->axisY = axis;
+    entry->axisY = axis;
     series->setValueAxis(axis);
   }
   else
   {
-    valueChartAxis()->setTitleText(name);
+    entry->axisY = valueChartAxis();
+    entry->axisY->setTitleText(name);
   }
 
-  signal->controller = controller;
-  signal->series = series;
+  entry->controller = controller;
+  entry->series = series;
 
-  auto* context = signal.get();
+  auto* context = entry.get();
 
-  m_impl->entries.push_back(std::move(signal));
+  m_impl->entries.push_back(std::move(entry));
+
+  updateAxisLayout();
 
   connect(
     controller,
@@ -225,7 +222,12 @@ bool ArchiveChartView::addSignal(
       context->lastTimestamp = last;
       context->ready = true;
 
-      initializeTimeRange();
+      const bool wasInitialized = m_impl->initialized;
+
+      updateTimeRange();
+
+      if (wasInitialized)
+        requestSignalData(context);
     });
 
   connect(
@@ -334,6 +336,18 @@ void ArchiveChartView::requestVisibleData()
   if (!m_impl->initialized)
     return;
 
+  for (const auto& entry : m_impl->entries)
+    requestSignalData(entry.get());
+}
+
+void ArchiveChartView::requestSignalData(
+  SignalContext* context)
+{
+  if (!m_impl->initialized ||
+      !context ||
+      !context->ready)
+    return;
+
   const auto [minimum, maximum] =
     visibleTimeRange();
 
@@ -353,20 +367,166 @@ void ArchiveChartView::requestVisibleData()
     static_cast<std::size_t>(
       std::max(2.0, width * 2.0));
 
-  for (const auto& signal : m_impl->entries)
+  context->controller->requestPlot(
+    context->id,
+    first,
+    last,
+    maxPoints);
+}
+
+void ArchiveChartView::updateAxisLayout()
+{
+  const auto& entries = m_impl->entries;
+
+  for (std::size_t i = 0; i < entries.size(); ++i)
   {
-    signal->controller->requestPlot(
-      signal->id,
-      first,
-      last,
-      maxPoints);
+    auto* axis = entries[i]->axisY;
+
+    const auto alignment =
+      i % 2 == 0
+        ? Qt::AlignLeft
+        : Qt::AlignRight;
+
+    setValueAxisAlignment(axis, alignment);
   }
+
+  autoScaleY();
+}
+
+void ArchiveChartView::updateTimeRange()
+{
+  if (m_impl->entries.empty())
+    return;
+
+  bool found = false;
+
+  Timestamp first{};
+  Timestamp last{};
+
+  for (const auto& entry : m_impl->entries)
+  {
+    if (!entry->ready)
+      continue;
+
+    if (!found)
+    {
+      first = entry->firstTimestamp;
+      last = entry->lastTimestamp;
+      found = true;
+    }
+    else
+    {
+      first = std::min(first, entry->firstTimestamp);
+      last = std::max(last, entry->lastTimestamp);
+    }
+  }
+
+  if (!found || last <= first)
+    return;
+
+  if (!m_impl->initialized)
+  {
+    // Первоначальная инициализация.
+    for (const auto& entry : m_impl->entries)
+    {
+      if (!entry->ready)
+        return;
+    }
+
+    initializeTimeRange();
+    return;
+  }
+
+  // Начало координат сохраняется.
+  const double minimum =
+    m_impl->timeAxis->chartSeconds(first);
+
+  const double maximum =
+    m_impl->timeAxis->chartSeconds(last);
+
+  setAvailableTimeRange(minimum, maximum);
 }
 
 std::size_t
 ArchiveChartView::signalCount() const noexcept
 {
   return m_impl->entries.size();
+}
+
+bool ArchiveChartView::removeSignal(SignalId id)
+{
+  auto& entries = m_impl->entries;
+
+  const auto it = std::find_if(
+    entries.begin(),
+    entries.end(),
+    [id](const auto& entry)
+    {
+      return entry->id == id;
+    });
+
+  if (it == entries.end())
+    return false;
+
+  auto& entry = *it;
+
+  // Завершаем работу контроллера.
+  delete entry->controller;
+  entry->controller = nullptr;
+
+  // Если удаляем сигнал с основной осью,
+  // передаём её другому сигналу.
+  if (entry->axisY == valueChartAxis())
+  {
+    const auto next = std::find_if(
+      entries.begin(),
+      entries.end(),
+      [&entry](const auto& candidate)
+      {
+        return candidate.get() != entry.get();
+      });
+
+    if (next != entries.end())
+    {
+      auto* oldAxis = (*next)->axisY;
+
+      (*next)->series->setValueAxis(valueChartAxis());
+      (*next)->axisY = valueChartAxis();
+
+      valueChartAxis()->setTitleText((*next)->name);
+
+      if (oldAxis != valueChartAxis())
+        removeValueAxis(oldAxis);
+    }
+  }
+
+  // Удаляем графические серии.
+  delete entry->series;
+  entry->series = nullptr;
+
+  // Удаляем дополнительную ось удаляемого сигнала.
+  if (entry->axisY &&
+      entry->axisY != valueChartAxis())
+  {
+    removeValueAxis(entry->axisY);
+  }
+
+  entries.erase(it);
+
+  updateAxisLayout();
+
+  if (entries.empty())
+  {
+    m_impl->initialized = false;
+    valueChartAxis()->setTitleText(tr("Значение"));
+  }
+  else
+  {
+    updateTimeRange();
+    autoScaleY();
+  }
+
+  return true;
 }
 
 }

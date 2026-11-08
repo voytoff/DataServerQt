@@ -6,12 +6,17 @@
 #include "archivechartseries.h"
 #include "archivechartview.h"
 #include "archivechartworker.h"
+#include "archivedescriptionbuilder.h"
+#include "archivedescriptionwriter.h"
+#include "archivehelper.h"
 #include "archivereader.h"
 #include "archivesignalsource.h"
+#include "archivewriter.h"
 #include "calibration.h"
 #include "calibrationdialog.h"
 #include "datatypes.h"
 #include "settingssection.h"
+#include "systemconfiguration.h"
 #include "timechartview.h"
 #include "timerangecontroller.h"
 
@@ -34,6 +39,7 @@
 #include <QLegend>
 #include <QLegendMarker>
 #include <QScatterSeries>
+#include <QtTest>
 
 namespace qds
 {
@@ -605,6 +611,142 @@ void TestModule::testController()
 
   window->resize(800, 500);
   window->show();
+}
+
+const std::string dir = "_difTimeSignalArchive";
+
+bool TestModule::createArchive()
+{
+  using namespace qds;
+    const auto folder = archivePath / dir;
+    std::error_code ec;
+    if (!fs::exists(folder, ec)) {
+      // Создание каталога со всеми родительскими папками, если их нет
+      fs::create_directories(folder, ec);
+      if (ec) return false;
+    }
+
+    SystemConfiguration cfg;
+
+    cfg.addCrate({.id = {0}});
+    if (!cfg.addModule({.id = {0}, .crate = {0}})) return false;
+    if (!cfg.addConfigurationModule({.configurationId = {0}, .module = {0}, .settings = {}})) return false;
+    if (!cfg.addTag({.tag = {0}, .module = {0}, .channel = {0}})) return false;
+    if (!cfg.addConfigurationTag({.tag = {0}, .module = {0}, .channel = {0}, .settings = {}})) return false;
+    if (!cfg.addSignalDefinition({.id = {10}, .name = "Raw0", .kind = SignalKind::Raw, .source = {0}, .archiveRate = ArchiveRate::Hz100})) return false;
+    if (!cfg.addTag({.tag = {1}, .module = {0}, .channel = {1}})) return false;
+    if (!cfg.addConfigurationTag({.tag = {1}, .module = {0}, .channel = {1}, .settings = {}})) return false;
+    if (!cfg.addSignalDefinition({.id = {11}, .name = "Raw1", .kind = SignalKind::Raw, .source = {1}, .archiveRate = ArchiveRate::Hz10})) return false;
+
+    ArchiveDescriptionBuilder descriptionBuilder;
+
+    ArchiveDescription description;
+
+    if (
+      !descriptionBuilder.build(
+        cfg,
+        description)) return false;
+
+    ArchiveDescriptionWriter descriptionWriter;
+
+    const auto desc =
+      folder / "description.json";
+
+    const auto file1 =
+      folder / "raw_100Hz.dat";
+
+    const auto file2 =
+      folder / "raw_10Hz.dat";
+
+    std::vector<TestArchivePoint> points1;
+    std::vector<TestArchivePoint> points2;
+
+    for (uint64_t n = 0; n < 1000; ++n)
+    {
+      if (n >= 400 && n < 600)
+        continue;
+
+      points1.push_back({
+        100'000 + n * 10'000,
+        n,
+        n * 0.7f
+      });
+    }
+
+    for (uint64_t n = 20; n < 121; ++n)
+    {
+      points2.push_back({
+        100'000 + n * 100'000,
+        n * 100,
+        (121 - n) * 5.2f
+      });
+    }
+
+
+    if (
+      !descriptionWriter.write(
+        desc,
+        description)) return false;
+
+    std::array<float, 1> values;
+
+    DataFileHeader hdr1
+      {
+       .module = {0},
+       .sampleFrequency = 100,
+       .channelCount = values.size(),
+       .recordSize = static_cast<uint32_t>(sizeof(SampleRecordHeader) + values.size() * sizeof(float)),
+       };
+
+
+    ArchiveWriter writer;
+    if (!writer.open(file1, hdr1)) return false;
+    if (!writer.isOpen()) return false;
+
+    for (size_t n = 0; n < points1.size(); n++)
+    {
+      const auto& xyz = points1[n];
+      values[0] = xyz.value;
+
+      if (
+        !writer.write(
+          Timestamp{xyz.timestamp},
+          FrameNumber{xyz.frameNumber},
+          WallClockTime{static_cast<int64_t>((n + 1) * 10'000)},
+          values)) return false;
+    }
+
+    writer.close();
+
+
+    DataFileHeader hdr2
+      {
+       .module = {0},
+       .sampleFrequency = 10,
+       .channelCount = values.size(),
+       .recordSize = static_cast<uint32_t>(sizeof(SampleRecordHeader) + values.size() * sizeof(float)),
+       };
+
+
+    if (!writer.open(file2, hdr2)) return false;
+    if (!writer.isOpen()) return false;
+
+    for (size_t n = 0; n < points2.size(); n++)
+    {
+      const auto& xyz = points2[n];
+      values[0] = xyz.value;
+
+      if (
+        !writer.write(
+          Timestamp{xyz.timestamp},
+          FrameNumber{xyz.frameNumber},
+          WallClockTime{static_cast<int64_t>((n + 1) * 10 * 10'000)},
+          values)) return false;
+    }
+
+    writer.close();
+
+    return true;
 }
 
 void TestModule::createDynamicArchiveChartView()
@@ -1328,6 +1470,112 @@ void TestModule::createFinalArchiveChartView()
     SignalId{27},
     "Канал 2 (10 Гц)",
     Qt::red);
+
+  window->setCentralWidget(view);
+
+  auto* toolbar = window->addToolBar("Панель управления");
+
+  auto* add1 = toolbar->addAction("Добавить Канал 1");
+  auto* remove1 = toolbar->addAction("Удалить Канал 1");
+
+  toolbar->addSeparator();
+
+  auto* add2 = toolbar->addAction("Добавить Канал 2");
+  auto* remove2 = toolbar->addAction("Удалить Канал 2");
+
+  add1->setEnabled(false);
+  add2->setEnabled(false);
+
+  connect(
+    add1,
+    &QAction::triggered,
+    view,
+    [view, add1, remove1]()
+    {
+      if (view->addSignal(
+            SignalId{26},
+            "Канал 1 (100 Гц)",
+            Qt::blue))
+      {
+        add1->setEnabled(false);
+        remove1->setEnabled(true);
+      }
+    });
+
+  connect(
+    remove1,
+    &QAction::triggered,
+    view,
+    [view, add1, remove1]()
+    {
+      if (view->removeSignal(SignalId{26}))
+      {
+        add1->setEnabled(true);
+        remove1->setEnabled(false);
+      }
+    });
+
+  connect(
+    add2,
+    &QAction::triggered,
+    view,
+    [view, add2, remove2]()
+    {
+      if (view->addSignal(
+            SignalId{27},
+            "Канал 2 (10 Гц)",
+            Qt::red))
+      {
+        add2->setEnabled(false);
+        remove2->setEnabled(true);
+      }
+    });
+
+  connect(
+    remove2,
+    &QAction::triggered,
+    view,
+    [view, add2, remove2]()
+    {
+      if (view->removeSignal(SignalId{27}))
+      {
+        add2->setEnabled(true);
+        remove2->setEnabled(false);
+      }
+    });
+
+  window->resize(1000, 500);
+  window->show();
+}
+
+void TestModule::createFinalArchiveChartView2()
+{
+  if (!createArchive())
+    return;
+
+  using namespace qds;
+
+  m_mainWindow = std::make_unique<QMainWindow>();
+
+  auto* window = m_mainWindow.get();
+
+  auto* view = new ArchiveChartView(window);
+
+  view->setArchivePath(
+    archivePath / dir);
+
+  view->setYAxisMode(YAxisMode::Multiple);
+
+  view->addSignal(
+    SignalId{10},
+    "Канал 1 (100 Гц)",
+    Qt::blue);
+
+  view->addSignal(
+    SignalId{11},
+    "Канал 2 (10 Гц)",
+    Qt::red);
+
 
   window->setCentralWidget(view);
 

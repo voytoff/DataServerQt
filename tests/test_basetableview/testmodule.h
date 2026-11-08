@@ -21,6 +21,7 @@ public:
 
   void testWorker();
   void testController();
+  bool createArchive();
 
   /*1*/ void createDynamicArchiveChartView();
   /*2*/ void createDynamicArchiveChartsView();
@@ -28,6 +29,7 @@ public:
   /*3*/ void createCombinedArchiveChartView();
   /*4*/ void createCombinedArchiveChartView2();
   /*5*/ void createFinalArchiveChartView();
+  /*6*/ void createFinalArchiveChartView2();
 
 private:
   std::unique_ptr<QMainWindow> m_mainWindow;

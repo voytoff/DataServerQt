@@ -69,6 +69,14 @@ public:
 
   void removeValueAxis(QValueAxis* axis);
 
+  bool setValueAxisAlignment(
+    QValueAxis* axis,
+    Qt::Alignment alignment);
+
+  void setAvailableTimeRange(
+    double minimum,
+    double maximum);
+
 protected:
   void wheelEvent(
     QWheelEvent* event) override;

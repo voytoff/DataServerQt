@@ -28,7 +28,8 @@ int main(int argc, char* argv[])
 
   //tm.createDynamicArchiveChartsView();
   //tm.createCombinedArchiveChartView2();
-  tm.createFinalArchiveChartView();
+  //tm.createFinalArchiveChartView();
+  tm.createFinalArchiveChartView2();
 
   return app.exec();
 }
