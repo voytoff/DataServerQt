@@ -20,6 +20,7 @@
 #include "timechartview.h"
 #include "timerangecontroller.h"
 
+#include <qstylehints.h>
 #include <timeaxis.h>
 #include <cmath>
 #include <array>
@@ -40,6 +41,7 @@
 #include <QLegendMarker>
 #include <QScatterSeries>
 #include <QtTest>
+#include <QApplication>
 
 namespace qds
 {
@@ -1544,11 +1546,47 @@ void TestModule::createFinalArchiveChartView()
       }
     });
 
+  toolbar->addAction(
+    "Проверить valueAt",
+    window,
+    [view]()
+    {
+      const std::array<double, 6> times{
+        0.0,
+        1.0,
+        2.0,
+        3.0,
+        5.0,
+        10.0
+      };
+
+      for (const double x : times)
+      {
+        const auto value1 =
+          view->valueAt(SignalId{10}, x);
+
+        const auto value2 =
+          view->valueAt(SignalId{11}, x);
+
+        qDebug().noquote()
+          << "X =" << x
+          << "Канал 1 ="
+          << (value1
+                ? QString::number(*value1, 'f', 3)
+                : QString("нет данных"))
+          << "Канал 2 ="
+          << (value2
+                ? QString::number(*value2, 'f', 3)
+                : QString("нет данных"));
+      }
+    });
+
+
   window->resize(1000, 500);
   window->show();
 }
 
-void TestModule::createFinalArchiveChartView2()
+void TestModule::createFinalArchiveChartView2(QApplication* app)
 {
   if (!createArchive())
     return;
@@ -1578,6 +1616,61 @@ void TestModule::createFinalArchiveChartView2()
 
 
   window->setCentralWidget(view);
+
+
+  auto* toolbar =
+    window->addToolBar("Тестирование");
+
+  toolbar->addAction(
+    "Проверить valueAt",
+    window,
+    [view]()
+    {
+      const std::array<double, 6> times{
+        0.0,
+        1.0,
+        2.0,
+        3.0,
+        5.0,
+        10.0
+      };
+
+      for (const double x : times)
+      {
+        const auto value1 =
+          view->valueAt(SignalId{10}, x);
+
+        const auto value2 =
+          view->valueAt(SignalId{11}, x);
+
+        qDebug().noquote()
+          << "X =" << x
+          << "Канал 1 ="
+          << (value1
+                ? QString::number(*value1, 'f', 3)
+                : QString("нет данных"))
+          << "Канал 2 ="
+          << (value2
+                ? QString::number(*value2, 'f', 3)
+                : QString("нет данных"));
+      }
+    });
+
+  toolbar->addAction(
+    "Схема",
+    window,
+    [app]()
+    {
+      auto* hints = app->styleHints();
+
+      const bool dark =
+        hints->colorScheme() == Qt::ColorScheme::Dark;
+
+      hints->setColorScheme(
+        dark
+          ? Qt::ColorScheme::Light
+          : Qt::ColorScheme::Dark);
+    });
 
   window->resize(1000, 500);
   window->show();

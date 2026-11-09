@@ -29,7 +29,8 @@ public:
   /*3*/ void createCombinedArchiveChartView();
   /*4*/ void createCombinedArchiveChartView2();
   /*5*/ void createFinalArchiveChartView();
-  /*6*/ void createFinalArchiveChartView2();
+  /*6*/ void createFinalArchiveChartView2(
+    QApplication *app);
 
 private:
   std::unique_ptr<QMainWindow> m_mainWindow;

@@ -11,7 +11,7 @@
 
 #include <filesystem>
 #include <memory>
-#include <vector>
+#include <optional>
 
 namespace qds
 {
@@ -44,6 +44,21 @@ public:
 
   bool removeSignal(SignalId id);
 
+  [[nodiscard]]
+  std::optional<double> valueAt(
+    SignalId id,
+    double x) const;
+
+  void updateChartTheme() override;
+
+protected:
+  void drawForeground(
+    QPainter* painter,
+    const QRectF& rect) override;
+
+  void mousePressEvent(
+    QMouseEvent* event) override;
+
 private:
   struct SignalContext;
   struct Impl;
@@ -58,6 +73,10 @@ private:
 
   void updateTimeRange();
 
+  void drawMeasurementPanel(
+    QPainter* painter);
+
+  void captureMeasurement();
 
 private:
   std::unique_ptr<Impl> m_impl;

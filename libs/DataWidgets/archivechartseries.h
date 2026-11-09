@@ -1,5 +1,6 @@
 #pragma once
 
+#include "datatypes.h"
 #include "datawidgets_export.h"
 
 #include <QObject>
@@ -11,6 +12,7 @@
 
 #include <qvalueaxis.h>
 #include <vector>
+#include <optional>
 
 namespace qds
 {
@@ -44,9 +46,22 @@ public:
 
   bool isVisible() const noexcept;
 
-
   void setValueAxis(QValueAxis* axis);
+
   QValueAxis* valueAxis() const noexcept;
+
+  [[nodiscard]]
+  std::optional<double> valueAt(
+    double x) const;
+
+  [[nodiscard]]
+  std::optional<QPointF> positionAt(
+    double x) const;
+
+  [[nodiscard]]
+  QColor color() const noexcept;
+
+  void refreshAppearance();
 
 private:
   void updateLegend();

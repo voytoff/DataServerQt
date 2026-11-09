@@ -7,11 +7,15 @@
 
 #include <QChart>
 #include <QDebug>
+#include <QPainter>
+#include <QFontMetrics>
+#include <QPainterPath>
+#include <QStyleHints>
+#include <QMouseEvent>
 
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
-#include <limits>
 #include <utility>
 
 namespace qds
@@ -79,6 +83,44 @@ Timestamp toTimestamp(
   };
 }
 
+void drawLockIcon(
+  QPainter* painter,
+  const QPointF& position,
+  const QColor& color)
+{
+  painter->save();
+  painter->setRenderHint(QPainter::Antialiasing);
+
+  QPen pen(color, 1.4);
+  pen.setCapStyle(Qt::RoundCap);
+  pen.setJoinStyle(Qt::RoundJoin);
+
+  painter->setPen(pen);
+  painter->setBrush(Qt::NoBrush);
+
+  // Дужка замка.
+  painter->drawArc(
+    QRectF(position.x() + 3.0,
+           position.y(),
+           8.0,
+           10.0),
+    0,
+    180 * 16);
+
+  // Корпус замка.
+  painter->setBrush(color);
+
+  painter->drawRoundedRect(
+    QRectF(position.x() + 1.5,
+           position.y() + 6.0,
+           11.0,
+           8.0),
+    1.5,
+    1.5);
+
+  painter->restore();
+}
+
 }
 
 struct ArchiveChartView::SignalContext
@@ -96,6 +138,12 @@ struct ArchiveChartView::SignalContext
   bool ready = false;
 };
 
+struct MeasurementValue
+{
+  SignalId id;
+  std::optional<double> value;
+};
+
 struct ArchiveChartView::Impl
 {
   std::filesystem::path archivePath;
@@ -105,6 +153,11 @@ struct ArchiveChartView::Impl
   TimeAxis* timeAxis = nullptr;
 
   bool initialized = false;
+
+  double cursorX = 0.0;
+  bool cursorVisible = false;
+
+  std::vector<MeasurementValue> lockedValues;
 };
 
 ArchiveChartView::ArchiveChartView(
@@ -124,6 +177,29 @@ ArchiveChartView::ArchiveChartView(
     [this](double, double)
     {
       requestVisibleData();
+    });
+
+  connect(
+    this,
+    &TimeChartView::measurementCursorMoved,
+    this,
+    [this](double x)
+    {
+      m_impl->cursorX = x;
+      m_impl->cursorVisible = true;
+
+      viewport()->update();
+    });
+
+  connect(
+    this,
+    &TimeChartView::measurementCursorHidden,
+    this,
+    [this]()
+    {
+      m_impl->cursorVisible = false;
+
+      viewport()->update();
     });
 }
 
@@ -280,6 +356,7 @@ void ArchiveChartView::clearSignals()
   }
 
   m_impl->entries.clear();
+  m_impl->lockedValues.clear();
 
   m_impl->initialized = false;
 }
@@ -447,6 +524,229 @@ void ArchiveChartView::updateTimeRange()
   setAvailableTimeRange(minimum, maximum);
 }
 
+void ArchiveChartView::drawMeasurementPanel(
+  QPainter* painter)
+{
+  if (!m_impl->cursorVisible)
+    return;
+
+  struct PanelRow
+  {
+    QString name;
+    QString value;
+    QColor color;
+  };
+
+  std::vector<PanelRow> rows;
+  rows.reserve(m_impl->entries.size());
+
+  for (const auto& entry : m_impl->entries)
+  {
+    if (!entry->series ||
+        !entry->series->isVisible())
+    {
+      continue;
+    }
+
+    std::optional<double> value;
+
+    if (isMeasurementCursorLocked())
+    {
+      const auto it = std::find_if(
+        m_impl->lockedValues.begin(),
+        m_impl->lockedValues.end(),
+        [id = entry->id](const auto& item)
+        {
+          return item.id == id;
+        });
+
+      if (it != m_impl->lockedValues.end())
+        value = it->value;
+    }
+    else
+    {
+      value = entry->series->valueAt(
+        m_impl->cursorX);
+    }
+
+    rows.push_back({
+      entry->name,
+      value
+        ? QString::number(*value, 'f', 3)
+        : QStringLiteral("—"),
+      entry->series->color()
+    });
+  }
+
+  if (rows.empty())
+    return;
+
+  const bool dark =
+    QGuiApplication::styleHints()->colorScheme() ==
+    Qt::ColorScheme::Dark;
+
+  painter->save();
+  painter->setRenderHint(QPainter::Antialiasing);
+
+  const QFontMetrics metrics(painter->font());
+
+  constexpr qreal padding = 10.0;
+  constexpr qreal markerSize = 8.0;
+  constexpr qreal spacing = 8.0;
+  constexpr qreal rowSpacing = 5.0;
+
+  const qreal lineHeight = metrics.height();
+  const qreal rowHeight = lineHeight + rowSpacing;
+
+  const QString timeText =
+    QStringLiteral("Время: %1 с")
+      .arg(m_impl->cursorX, 0, 'f', 3);
+
+  qreal nameWidth =
+    metrics.horizontalAdvance(timeText) +
+    (isMeasurementCursorLocked() ? 20.0 : 0.0);
+
+  qreal valueWidth = 0.0;
+
+  for (const auto& row : rows)
+  {
+    nameWidth = std::max(
+      nameWidth,
+      qreal(metrics.horizontalAdvance(row.name)));
+
+    valueWidth = std::max(
+      valueWidth,
+      qreal(metrics.horizontalAdvance(row.value)));
+  }
+
+  const qreal panelWidth =
+    padding * 2.0 +
+    markerSize +
+    spacing +
+    nameWidth +
+    spacing * 2.0 +
+    valueWidth;
+
+  const qreal panelHeight =
+    padding * 2.0 +
+    lineHeight +
+    8.0 +
+    rows.size() * rowHeight;
+
+  const QRectF plot = chart()->plotArea();
+
+  const QRectF panelRect(
+    plot.right() - panelWidth - 10.0,
+    plot.top() + 10.0,
+    panelWidth,
+    panelHeight);
+
+  const QColor background =
+    dark
+      ? QColor(38, 40, 48, 190)
+      : QColor(255, 255, 255, 205);
+
+  const QColor border =
+    dark
+      ? QColor(150, 150, 160, 100)
+      : QColor(160, 160, 160, 120);
+
+  const QColor textColor =
+    dark
+      ? QColor(235, 235, 240)
+      : QColor(45, 45, 45);
+
+  // Полупрозрачный фон.
+  painter->setPen(QPen(border, 1.0));
+  painter->setBrush(background);
+
+  painter->drawRoundedRect(
+    panelRect,
+    6.0,
+    6.0);
+
+  const qreal left = panelRect.left() + padding;
+  const qreal right = panelRect.right() - padding;
+
+  qreal baseline =
+    panelRect.top() + padding + metrics.ascent();
+
+  // Время.
+  painter->setPen(textColor);
+
+  if (isMeasurementCursorLocked())
+  {
+    drawLockIcon(
+      painter,
+      QPointF(left, baseline - metrics.ascent()),
+      textColor);
+  }
+
+  painter->setPen(textColor);
+
+  painter->drawText(
+    QPointF(
+      left + (isMeasurementCursorLocked() ? 20.0 : 0.0),
+      baseline),
+    timeText);
+
+  baseline += lineHeight + 8.0;
+
+  // Значения сигналов.
+  for (const auto& row : rows)
+  {
+    const qreal markerY =
+      baseline -
+      metrics.ascent() / 2.0 -
+      markerSize / 2.0;
+
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(row.color);
+
+    painter->drawEllipse(
+      QRectF(
+        left,
+        markerY,
+        markerSize,
+        markerSize));
+
+    painter->setPen(textColor);
+
+    painter->drawText(
+      QPointF(left + markerSize + spacing, baseline),
+      row.name);
+
+    painter->drawText(
+      QPointF(
+        right - metrics.horizontalAdvance(row.value),
+        baseline),
+      row.value);
+
+    baseline += rowHeight;
+  }
+
+  painter->restore();
+}
+
+void ArchiveChartView::captureMeasurement()
+{
+  m_impl->lockedValues.clear();
+
+  for (const auto& entry : m_impl->entries)
+  {
+    if (!entry->series ||
+        !entry->series->isVisible())
+    {
+      continue;
+    }
+
+    m_impl->lockedValues.push_back({
+      entry->id,
+      entry->series->valueAt(m_impl->cursorX)
+    });
+  }
+}
+
 std::size_t
 ArchiveChartView::signalCount() const noexcept
 {
@@ -511,6 +811,14 @@ bool ArchiveChartView::removeSignal(SignalId id)
     removeValueAxis(entry->axisY);
   }
 
+  // удаляем фиксированные измерения
+  std::erase_if(
+    m_impl->lockedValues,
+    [id](const auto& item)
+    {
+      return item.id == id;
+    });
+
   entries.erase(it);
 
   updateAxisLayout();
@@ -527,6 +835,128 @@ bool ArchiveChartView::removeSignal(SignalId id)
   }
 
   return true;
+}
+
+std::optional<double> ArchiveChartView::valueAt(
+  SignalId id,
+  double x) const
+{
+  const auto& entries = m_impl->entries;
+
+  const auto it = std::find_if(
+    entries.begin(),
+    entries.end(),
+    [id](const auto& entry)
+    {
+      return entry->id == id;
+    });
+
+  if (it == entries.end() ||
+      !(*it)->series)
+  {
+    return std::nullopt;
+  }
+
+  return (*it)->series->valueAt(x);
+}
+
+void ArchiveChartView::updateChartTheme()
+{
+  TimeChartView::updateChartTheme();
+
+  for (const auto& entry : m_impl->entries)
+  {
+    if (!entry->series)
+      continue;
+
+    entry->series->refreshAppearance();
+  }
+
+  viewport()->update();
+}
+
+void ArchiveChartView::drawForeground(
+  QPainter* painter,
+  const QRectF& rect)
+{
+  TimeChartView::drawForeground(painter, rect);
+
+  if (!m_impl->cursorVisible)
+    return;
+
+  const QRectF plot = chart()->plotArea();
+
+  painter->save();
+
+  painter->setRenderHint(
+    QPainter::Antialiasing,
+    true);
+
+  for (const auto& entry : m_impl->entries)
+  {
+    if (!entry->series ||
+        !entry->series->isVisible())
+    {
+      continue;
+    }
+
+    const auto position =
+      entry->series->positionAt(
+        m_impl->cursorX);
+
+    if (!position)
+      continue;
+
+    if (!plot.contains(*position))
+      continue;
+
+    const QColor color =
+      entry->series->color();
+
+    painter->setPen(
+      QPen(Qt::white, 1.5));
+
+    painter->setBrush(color);
+
+    painter->drawEllipse(
+      *position,
+      4.5,
+      4.5);
+  }
+
+  painter->restore();
+
+  drawMeasurementPanel(painter);
+}
+
+void ArchiveChartView::mousePressEvent(
+  QMouseEvent* event)
+{
+  if (event->button() == Qt::LeftButton &&
+      event->modifiers().testFlag(Qt::AltModifier))
+  {
+    if (isMeasurementCursorLocked())
+    {
+      setMeasurementCursorLocked(false);
+
+      m_impl->lockedValues.clear();
+    }
+    else
+    {
+      setMeasurementCursorPosition(event->position());
+
+      setMeasurementCursorLocked(true);
+
+      captureMeasurement();
+    }
+
+    viewport()->update();
+
+    event->accept();
+    return;
+  }
+
+  TimeChartView::mousePressEvent(event);
 }
 
 }

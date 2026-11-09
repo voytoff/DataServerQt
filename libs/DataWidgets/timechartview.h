@@ -60,7 +60,6 @@ public:
   [[nodiscard]] std::pair<double, double>
   visibleTimeRange() const noexcept;
 
-
   void setYAxisMode(YAxisMode mode);
   YAxisMode yAxisMode() const noexcept;
 
@@ -77,17 +76,36 @@ public:
     double minimum,
     double maximum);
 
+  virtual void updateChartTheme();
+
+  void setMeasurementCursorLocked(bool locked);
+  [[nodiscard]] bool isMeasurementCursorLocked() const noexcept;
+
 protected:
+  void setMeasurementCursorPosition(
+    const QPointF& position);
+
   void wheelEvent(
     QWheelEvent* event) override;
+
   void mousePressEvent(
     QMouseEvent* event) override;
+
   void mouseMoveEvent(
     QMouseEvent* event) override;
+
   void mouseReleaseEvent(
     QMouseEvent* event) override;
+
   void mouseDoubleClickEvent(
     QMouseEvent* event) override;
+
+  void leaveEvent(
+    QEvent* event) override;
+
+  void drawForeground(
+    QPainter* painter,
+    const QRectF& rect) override;
 
 private:
   [[nodiscard]] QString formatTime(double chartSeconds) const;
@@ -96,6 +114,10 @@ private:
   std::pair<double, double> clampTimeRange(
     double minimum,
     double maximum) const noexcept;
+
+  void updateMeasurementCursor(
+    const QPointF& position);
+  void hideMeasurementCursor();
 
 private:
   TimeAxis* m_timeAxis = nullptr;
@@ -117,11 +139,23 @@ private:
 
   std::vector<QValueAxis*> m_additionalAxesY;
 
+  // хранит координату времени в единицах оси X, а не координату мыши в пикселях
+  // это позволит правильно перестраивать курсор при изменении диапазона времени
+  double m_measurementCursorX = 0.0;
+  bool m_measurementCursorVisible = false;
+
+  bool m_measurementCursorLocked = false;
+
 private slots:
   void updateTimeLabels();
 
 signals:
-  void visibleTimeRangeChanged(double minimum, double maximum);
+  void visibleTimeRangeChanged(
+    double minimum,
+    double maximum);
+
+  void measurementCursorMoved(double x);
+  void measurementCursorHidden();
 };
 
 }

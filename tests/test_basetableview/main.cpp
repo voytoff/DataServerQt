@@ -9,6 +9,7 @@
 #include <QToolBar>
 #include <QAction>
 #include <QLineSeries>
+#include <QStyleHints>
 
 #include <cmath>
 #include <timeaxis.h>
@@ -20,6 +21,8 @@ int main(int argc, char* argv[])
 
   QApplication app(argc, argv);
 
+  //app.styleHints()->setColorScheme(Qt::ColorScheme::Dark);
+
   qRegisterMetaType<qds::ArchiveSignalSegments>(
     "qds::ArchiveSignalSegments");
 
@@ -29,7 +32,7 @@ int main(int argc, char* argv[])
   //tm.createDynamicArchiveChartsView();
   //tm.createCombinedArchiveChartView2();
   //tm.createFinalArchiveChartView();
-  tm.createFinalArchiveChartView2();
+  tm.createFinalArchiveChartView2(&app);
 
   return app.exec();
 }

@@ -7,6 +7,10 @@
 #include <QXYSeries>
 #include <QMouseEvent>
 #include <QWheelEvent>
+#include <QGraphicsLineItem>
+#include <QGraphicsScene>
+#include <QPen>
+#include <QStyleHints>
 
 #include <algorithm>
 #include <cmath>
@@ -54,12 +58,20 @@ TimeChartView::TimeChartView(QWidget* parent)
   setTimeRange(0.0, 10.0);
   setValueRange(-1.0, 1.0);
 
-  chr->setPlotAreaBackgroundVisible(true);
+  connect(
+    QGuiApplication::styleHints(),
+    &QStyleHints::colorSchemeChanged,
+    this,
+    [this](Qt::ColorScheme)
+    {
+      updateChartTheme();
+    });
 
-  chr->setPlotAreaBackgroundBrush(Qt::NoBrush);
+  TimeChartView::updateChartTheme();
 
-  chr->setPlotAreaBackgroundPen(
-    QPen(QColor(210, 210, 210), 1.0));
+  // Отслеживаем движение мыши без нажатых кнопок.
+  setMouseTracking(true);
+  viewport()->setMouseTracking(true);
 }
 
 void TimeChartView::setTimeAxis(TimeAxis* timeAxis)
@@ -427,6 +439,49 @@ void TimeChartView::setAvailableTimeRange(
   applyTimeRange(clampedMinimum, clampedMaximum);
 }
 
+void TimeChartView::updateChartTheme()
+{
+  const auto scheme =
+    QGuiApplication::styleHints()->colorScheme();
+
+  chart()->setTheme(
+    scheme == Qt::ColorScheme::Dark
+      ? QChart::ChartThemeDark
+      : QChart::ChartThemeLight);
+
+  chart()->setPlotAreaBackgroundVisible(true);
+  chart()->setPlotAreaBackgroundBrush(Qt::NoBrush);
+
+  chart()->setPlotAreaBackgroundPen(
+    QPen(QColor(210, 210, 210), 1.0));
+
+  viewport()->update();
+}
+
+void TimeChartView::setMeasurementCursorLocked(bool locked)
+{
+  if (m_measurementCursorLocked == locked)
+    return;
+
+  m_measurementCursorLocked = locked;
+
+  if (!locked)
+    updateMeasurementCursor(
+      mapFromGlobal(QCursor::pos()));
+}
+
+bool TimeChartView::isMeasurementCursorLocked() const noexcept
+{
+  return m_measurementCursorLocked;
+}
+
+void TimeChartView::setMeasurementCursorPosition(
+  const QPointF& position)
+{
+  if (!m_measurementCursorLocked)
+    updateMeasurementCursor(position);
+}
+
 void TimeChartView::setVisibleTimeRange(
   double minimum,
   double maximum)
@@ -507,6 +562,8 @@ void TimeChartView::mousePressEvent(QMouseEvent* event)
   if (event->button() == Qt::LeftButton &&
       chart()->plotArea().contains(event->position()))
   {
+    hideMeasurementCursor();
+
     m_panning = true;
     m_lastMousePosition = event->position();
 
@@ -521,6 +578,16 @@ void TimeChartView::mousePressEvent(QMouseEvent* event)
 
 void TimeChartView::mouseMoveEvent(QMouseEvent* event)
 {
+  if (!m_panning)
+  {
+    updateMeasurementCursor(event->position());
+
+    QChartView::mouseMoveEvent(event);
+    return;
+  }
+
+  hideMeasurementCursor();
+
   if (!m_panning)
   {
     QChartView::mouseMoveEvent(event);
@@ -582,6 +649,62 @@ void TimeChartView::mouseDoubleClickEvent(QMouseEvent* event)
   }
 
   QChartView::mouseDoubleClickEvent(event);
+}
+
+void TimeChartView::leaveEvent(QEvent* event)
+{
+  hideMeasurementCursor();
+
+  QChartView::leaveEvent(event);
+}
+
+void TimeChartView::drawForeground(
+  QPainter* painter,
+  const QRectF& rect)
+{
+  QChartView::drawForeground(painter, rect);
+
+  if (!m_measurementCursorVisible)
+    return;
+
+  const QRectF plot = chart()->plotArea();
+
+  const double minimum = m_axisX->min();
+  const double maximum = m_axisX->max();
+
+  if (plot.width() <= 0.0 ||
+      maximum <= minimum)
+    return;
+
+  const double ratio =
+    (m_measurementCursorX - minimum) /
+    (maximum - minimum);
+
+  if (ratio < 0.0 || ratio > 1.0)
+    return;
+
+  const double x =
+    plot.left() + ratio * plot.width();
+
+  painter->save();
+
+  const bool dark =
+    QGuiApplication::styleHints()->colorScheme() ==
+    Qt::ColorScheme::Dark;
+
+  const QColor cursorColor =
+    dark
+      ? QColor(200, 200, 200, 170)
+      : QColor(100, 100, 100, 180);
+
+  painter->setPen(
+    QPen(cursorColor, 1.0, Qt::DashLine));
+
+  painter->drawLine(
+    QPointF(x, plot.top()),
+    QPointF(x, plot.bottom()));
+
+  painter->restore();
 }
 
 QString TimeChartView::formatTime(double chartSeconds) const
@@ -661,6 +784,7 @@ void TimeChartView::applyTimeRange(
 
   m_axisX->setRange(minimum, maximum);
 
+  viewport()->update();
   updateTimeLabels();
 
   emit visibleTimeRangeChanged(minimum, maximum);
@@ -694,6 +818,53 @@ std::pair<double, double> TimeChartView::clampTimeRange(
   }
 
   return {minimum, maximum};
+}
+
+void TimeChartView::updateMeasurementCursor(
+  const QPointF& position)
+{
+  if (m_measurementCursorLocked)
+    return;
+
+  const QRectF plot = chart()->plotArea();
+
+  if (!plot.contains(position) ||
+      plot.width() <= 0.0)
+  {
+    hideMeasurementCursor();
+    return;
+  }
+
+  const double minimum = m_axisX->min();
+  const double maximum = m_axisX->max();
+
+  const double ratio =
+    (position.x() - plot.left()) /
+    plot.width();
+
+  m_measurementCursorX =
+    minimum + ratio * (maximum - minimum);
+
+  m_measurementCursorVisible = true;
+
+  viewport()->update();
+
+  emit measurementCursorMoved(m_measurementCursorX);
+}
+
+void TimeChartView::hideMeasurementCursor()
+{
+  if (m_measurementCursorLocked)
+    return;
+
+  if (!m_measurementCursorVisible)
+    return;
+
+  m_measurementCursorVisible = false;
+
+  viewport()->update();
+
+  emit measurementCursorHidden();
 }
 
 void TimeChartView::updateTimeLabels()

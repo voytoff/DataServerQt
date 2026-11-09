@@ -5,6 +5,9 @@
 #include <QLegendMarker>
 #include <QLegend>
 
+#include <algorithm>
+#include <cmath>
+
 namespace qds
 {
 
@@ -248,6 +251,153 @@ void ArchiveChartSeries::setValueAxis(
 QValueAxis* ArchiveChartSeries::valueAxis() const noexcept
 {
   return m_valueAxis;
+}
+
+std::optional<double> ArchiveChartSeries::valueAt(
+  double x) const
+{
+  if (!m_visible || !std::isfinite(x))
+    return std::nullopt;
+
+  // Сначала проверяем непрерывные участки.
+  for (const auto* series : m_lines)
+  {
+    if (!series->isVisible())
+      continue;
+
+    const auto points = series->points();
+
+    if (points.size() < 2)
+      continue;
+
+    if (x < points.first().x() ||
+        x > points.last().x())
+      continue;
+
+    const auto it = std::lower_bound(
+      points.cbegin(),
+      points.cend(),
+      x,
+      [](const QPointF& point, double value)
+      {
+        return point.x() < value;
+      });
+
+    if (it == points.cend())
+      continue;
+
+    if (it->x() == x)
+    {
+      if (std::isfinite(it->y()))
+        return it->y();
+
+      continue;
+    }
+
+    if (it == points.cbegin())
+      continue;
+
+    const auto& right = *it;
+    const auto& left = *(it - 1);
+
+    const double dx = right.x() - left.x();
+
+    if (dx <= 0.0 ||
+        !std::isfinite(left.y()) ||
+        !std::isfinite(right.y()))
+    {
+      continue;
+    }
+
+    const double ratio =
+      (x - left.x()) / dx;
+
+    const double value =
+      left.y() +
+      ratio * (right.y() - left.y());
+
+    if (std::isfinite(value))
+      return value;
+  }
+
+  // Отдельные одиночные точки.
+  for (const auto* series : m_points)
+  {
+    if (!series->isVisible())
+      continue;
+
+    const auto points = series->points();
+
+    for (const auto& point : points)
+    {
+      if (point.x() == x &&
+          std::isfinite(point.y()))
+      {
+        return point.y();
+      }
+    }
+  }
+
+  return std::nullopt;
+}
+
+std::optional<QPointF> ArchiveChartSeries::positionAt(
+  double x) const
+{
+  const auto value = valueAt(x);
+
+  if (!value)
+    return std::nullopt;
+
+  QXYSeries* reference = nullptr;
+
+  for (auto* series : m_lines)
+  {
+    if (series->isVisible() &&
+        !series->points().empty())
+    {
+      reference = series;
+      break;
+    }
+  }
+
+  if (!reference)
+  {
+    for (auto* series : m_points)
+    {
+      if (series->isVisible() &&
+          !series->points().empty())
+      {
+        reference = series;
+        break;
+      }
+    }
+  }
+
+  if (!reference)
+    return std::nullopt;
+
+  return m_view->chart()->mapToPosition(
+    QPointF(x, *value),
+    reference);
+}
+
+QColor ArchiveChartSeries::color() const noexcept
+{
+  return m_color;
+}
+
+void ArchiveChartSeries::refreshAppearance()
+{
+  m_legendSeries->setColor(m_color);
+
+  for (auto* series : m_lines)
+    series->setColor(m_color);
+
+  for (auto* series : m_points)
+    series->setColor(m_color);
+
+  updateLegend();
 }
 
 void ArchiveChartSeries::updateLegend()
