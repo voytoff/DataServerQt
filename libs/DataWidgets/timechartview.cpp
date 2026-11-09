@@ -11,6 +11,7 @@
 #include <QGraphicsScene>
 #include <QPen>
 #include <QStyleHints>
+#include <QApplication>
 
 #include <algorithm>
 #include <cmath>
@@ -22,6 +23,11 @@ namespace qds
 
 namespace
 {
+
+// минимальный временной диапазон (1 мс), согласованный с ограничением масштабирования колёсиком
+constexpr double MinimumVisibleTimeRange = 0.001;
+// минимальная ширина выделения на экране
+constexpr qreal MinimumSelectionWidth = 5.0;
 
 constexpr double MicrosecondsPerSecond = 1'000'000.0;
 constexpr int TickCount = 6;
@@ -475,6 +481,38 @@ bool TimeChartView::isMeasurementCursorLocked() const noexcept
   return m_measurementCursorLocked;
 }
 
+double TimeChartView::chartTimeAt(
+  qreal positionX) const noexcept
+{
+  const QRectF plot = chart()->plotArea();
+
+  if (plot.width() <= 0.0)
+    return m_axisX->min();
+
+  const qreal x = std::clamp(
+    positionX,
+    plot.left(),
+    plot.right());
+
+  const double ratio =
+    (x - plot.left()) / plot.width();
+
+  return m_axisX->min() +
+         ratio * (m_axisX->max() - m_axisX->min());
+}
+
+void TimeChartView::updateTimeSelection(
+  const QPointF& position)
+{
+  if (!m_selectingTimeRange)
+    return;
+
+  m_selectionEndX =
+    chartTimeAt(position.x());
+
+  viewport()->update();
+}
+
 void TimeChartView::setMeasurementCursorPosition(
   const QPointF& position)
 {
@@ -532,9 +570,7 @@ void TimeChartView::wheelEvent(QWheelEvent* event)
   const double newRange =
     std::min(range * factor, initialRange);
 
-  constexpr double minimumRange = 0.001;
-
-  if (newRange < minimumRange)
+  if (newRange < MinimumVisibleTimeRange)
   {
     event->accept();
     return;
@@ -560,6 +596,31 @@ void TimeChartView::wheelEvent(QWheelEvent* event)
 void TimeChartView::mousePressEvent(QMouseEvent* event)
 {
   if (event->button() == Qt::LeftButton &&
+      event->modifiers().testFlag(Qt::ShiftModifier))
+  {
+    const QRectF plot = chart()->plotArea();
+
+    if (plot.contains(event->position()))
+    {
+      m_selectingTimeRange = true;
+
+      m_selectionStartPosition = event->position();
+
+      m_selectionStartX =
+        chartTimeAt(event->position().x());
+
+      m_selectionEndX = m_selectionStartX;
+
+      hideMeasurementCursor();
+
+      viewport()->update();
+
+      event->accept();
+      return;
+    }
+  }
+
+  if (event->button() == Qt::LeftButton &&
       chart()->plotArea().contains(event->position()))
   {
     hideMeasurementCursor();
@@ -578,6 +639,14 @@ void TimeChartView::mousePressEvent(QMouseEvent* event)
 
 void TimeChartView::mouseMoveEvent(QMouseEvent* event)
 {
+  if (m_selectingTimeRange)
+  {
+    updateTimeSelection(event->position());
+
+    event->accept();
+    return;
+  }
+
   if (!m_panning)
   {
     updateMeasurementCursor(event->position());
@@ -621,6 +690,47 @@ void TimeChartView::mouseMoveEvent(QMouseEvent* event)
 
 void TimeChartView::mouseReleaseEvent(QMouseEvent* event)
 {
+  if (m_selectingTimeRange &&
+      event->button() == Qt::LeftButton)
+  {
+    updateTimeSelection(event->position());
+
+    m_selectingTimeRange = false;
+
+    const double minimum = std::min(
+      m_selectionStartX,
+      m_selectionEndX);
+
+    const double maximum = std::max(
+      m_selectionStartX,
+      m_selectionEndX);
+
+    const QRectF plot = chart()->plotArea();
+
+    const qreal startX = std::clamp(
+      m_selectionStartPosition.x(),
+      plot.left(),
+      plot.right());
+
+    const qreal endX = std::clamp(
+      event->position().x(),
+      plot.left(),
+      plot.right());
+
+    const qreal distance = std::abs(endX - startX);
+
+    if (distance >= MinimumSelectionWidth &&
+        maximum - minimum >= MinimumVisibleTimeRange)
+    {
+      setVisibleTimeRange(minimum, maximum);
+    }
+
+    viewport()->update();
+
+    event->accept();
+    return;
+  }
+
   if (event->button() == Qt::LeftButton && m_panning)
   {
     m_panning = false;
@@ -663,6 +773,44 @@ void TimeChartView::drawForeground(
   const QRectF& rect)
 {
   QChartView::drawForeground(painter, rect);
+
+  if (m_selectingTimeRange)
+  {
+    const QRectF plot = chart()->plotArea();
+
+    const double range =
+      m_axisX->max() - m_axisX->min();
+
+    if (plot.width() > 0.0 && range > 0.0)
+    {
+      const auto toPixelX =
+        [&](double time)
+      {
+        return plot.left() +
+               (time - m_axisX->min()) *
+                 plot.width() / range;
+      };
+
+      const qreal x1 = toPixelX(m_selectionStartX);
+      const qreal x2 = toPixelX(m_selectionEndX);
+
+      const QRectF selection(
+        QPointF(std::min(x1, x2), plot.top()),
+        QPointF(std::max(x1, x2), plot.bottom()));
+
+      painter->save();
+
+      painter->setPen(
+        QPen(QColor(65, 130, 220, 190), 1.0));
+
+      painter->setBrush(
+        QColor(65, 130, 220, 50));
+
+      painter->drawRect(selection);
+
+      painter->restore();
+    }
+  }
 
   if (!m_measurementCursorVisible)
     return;

@@ -1,16 +1,19 @@
+#include "dataviewermainwindow.h"
 #include "archivesignalpoint.h"
 
-#include <QGuiApplication>
+#include <QApplication>
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
-  QGuiApplication app(argc, argv);
+  QApplication app(argc, argv);
 
   qRegisterMetaType<qds::ArchiveSignalSegments>(
     "qds::ArchiveSignalSegments");
 
-  return QGuiApplication::exec();
+  qds::DataViewerMainWindow window;
+
+  window.resize(1200, 800);
+  window.show();
+
+  return app.exec();
 }
-
-Q_DECLARE_METATYPE(qds::ArchiveSignalSegments);
-

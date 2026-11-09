@@ -19,8 +19,9 @@ struct ArchiveSignal
 
   std::string name;
 
-  SignalKind kind =
-    SignalKind::Raw;
+  SignalKind kind = SignalKind::Raw;
+
+  std::string unit;
 
   // Для Raw-сигнала.
   std::optional<ModuleId> module;

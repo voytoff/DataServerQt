@@ -197,6 +197,11 @@ ArchiveChartView::ArchiveChartView(
     this,
     [this]()
     {
+      qDebug()
+      << "measurementCursorHidden"
+      << "this =" << this
+      << "impl =" << m_impl.get();
+
       m_impl->cursorVisible = false;
 
       viewport()->update();
@@ -932,6 +937,11 @@ void ArchiveChartView::drawForeground(
 void ArchiveChartView::mousePressEvent(
   QMouseEvent* event)
 {
+  qDebug()
+  << "mousePressEvent"
+  << "this =" << this
+  << "impl =" << m_impl.get();
+
   if (event->button() == Qt::LeftButton &&
       event->modifiers().testFlag(Qt::AltModifier))
   {

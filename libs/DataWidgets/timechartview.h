@@ -81,6 +81,12 @@ public:
   void setMeasurementCursorLocked(bool locked);
   [[nodiscard]] bool isMeasurementCursorLocked() const noexcept;
 
+  [[nodiscard]] double chartTimeAt(
+    qreal positionX) const noexcept;
+
+  void updateTimeSelection(
+    const QPointF& position);
+
 protected:
   void setMeasurementCursorPosition(
     const QPointF& position);
@@ -145,6 +151,13 @@ private:
   bool m_measurementCursorVisible = false;
 
   bool m_measurementCursorLocked = false;
+
+  bool m_selectingTimeRange = false;
+
+  double m_selectionStartX = 0.0;
+  double m_selectionEndX = 0.0;
+
+  QPointF m_selectionStartPosition;
 
 private slots:
   void updateTimeLabels();
