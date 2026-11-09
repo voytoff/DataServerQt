@@ -169,6 +169,7 @@ ArchiveChartView::ArchiveChartView(
   setTimeAxis(m_impl->timeAxis);
 
   setYAxisMode(YAxisMode::Multiple);
+  setMeasurementCursorEnabled(false);
 
   connect(
     this,
@@ -282,6 +283,7 @@ bool ArchiveChartView::addSignal(
   m_impl->entries.push_back(std::move(entry));
 
   updateAxisLayout();
+  setMeasurementCursorEnabled(true);
 
   connect(
     controller,
@@ -339,31 +341,51 @@ bool ArchiveChartView::addSignal(
 
 void ArchiveChartView::clearSignals()
 {
+  // Завершаем работу асинхронных контроллеров.
   for (auto& entry : m_impl->entries)
   {
     delete entry->controller;
     entry->controller = nullptr;
   }
 
+  // Удаляем графические серии.
   for (auto& entry : m_impl->entries)
   {
     delete entry->series;
     entry->series = nullptr;
   }
 
+  // Удаляем только дополнительные оси Y.
   for (auto& entry : m_impl->entries)
   {
-    if (entry->axisY)
+    if (entry->axisY &&
+        entry->axisY != valueChartAxis())
     {
       removeValueAxis(entry->axisY);
-      entry->axisY = nullptr;
     }
+
+    entry->axisY = nullptr;
   }
 
   m_impl->entries.clear();
   m_impl->lockedValues.clear();
 
   m_impl->initialized = false;
+  m_impl->cursorVisible = false;
+
+  // Сбрасываем измерительный курсор.
+  setMeasurementCursorEnabled(false);
+  setMeasurementCursorLocked(false);
+  hideMeasurementCursor();
+
+  // Восстанавливаем основную ось Y.
+  valueChartAxis()->setTitleText(tr("Значение"));
+  valueChartAxis()->setRange(-1.0, 1.0);
+
+  // Восстанавливаем временную ось.
+  clearTimeRange();
+
+  viewport()->update();
 }
 
 void ArchiveChartView::initializeTimeRange()
@@ -827,11 +849,17 @@ bool ArchiveChartView::removeSignal(SignalId id)
   entries.erase(it);
 
   updateAxisLayout();
+  setMeasurementCursorEnabled(!m_impl->entries.empty());
 
   if (entries.empty())
   {
     m_impl->initialized = false;
     valueChartAxis()->setTitleText(tr("Значение"));
+
+    setMeasurementCursorLocked(false);
+    m_impl->lockedValues.clear();
+
+    m_impl->cursorVisible = false;
   }
   else
   {
@@ -937,14 +965,17 @@ void ArchiveChartView::drawForeground(
 void ArchiveChartView::mousePressEvent(
   QMouseEvent* event)
 {
-  qDebug()
-  << "mousePressEvent"
-  << "this =" << this
-  << "impl =" << m_impl.get();
-
   if (event->button() == Qt::LeftButton &&
       event->modifiers().testFlag(Qt::AltModifier))
   {
+    // в самое начало обработчика Alt + ЛКМ добавим проверку наличия сигналов
+    // так на пустом графике Alt + ЛКМ вообще не будет менять состояние измерений.
+    if (m_impl->entries.empty())
+    {
+      event->accept();
+      return;
+    }
+
     if (isMeasurementCursorLocked())
     {
       setMeasurementCursorLocked(false);

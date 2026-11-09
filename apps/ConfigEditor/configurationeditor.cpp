@@ -886,7 +886,7 @@ void ConfigurationEditor::createToolbar(
   m_toolBar->setIconSize(QSize(24, 24));
   m_toolBar->setMovable(false);
   m_toolBar->setFloatable(false);
-  m_toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+  //m_toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
   m_toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
 
   m_addAction = m_toolBar->addAction(

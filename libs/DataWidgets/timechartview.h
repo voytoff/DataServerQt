@@ -55,6 +55,8 @@ public:
 
   void resetTimeRange();
 
+  void clearTimeRange();
+
   void setVisibleTimeRange(double minimum, double maximum);
 
   [[nodiscard]] std::pair<double, double>
@@ -87,6 +89,9 @@ public:
   void updateTimeSelection(
     const QPointF& position);
 
+  void setMeasurementCursorEnabled(
+    bool enabled);
+
 protected:
   void setMeasurementCursorPosition(
     const QPointF& position);
@@ -113,6 +118,8 @@ protected:
     QPainter* painter,
     const QRectF& rect) override;
 
+  void hideMeasurementCursor();
+
 private:
   [[nodiscard]] QString formatTime(double chartSeconds) const;
   void applyTimeRange(double minimum, double maximum);
@@ -123,7 +130,6 @@ private:
 
   void updateMeasurementCursor(
     const QPointF& position);
-  void hideMeasurementCursor();
 
 private:
   TimeAxis* m_timeAxis = nullptr;
@@ -151,6 +157,7 @@ private:
   bool m_measurementCursorVisible = false;
 
   bool m_measurementCursorLocked = false;
+  bool m_measurementCursorEnabled = true;
 
   bool m_selectingTimeRange = false;
 

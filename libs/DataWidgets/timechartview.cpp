@@ -308,6 +308,22 @@ void TimeChartView::resetTimeRange()
     m_initialTimeMaximum);
 }
 
+void TimeChartView::clearTimeRange()
+{
+  m_panning = false;
+  m_selectingTimeRange = false;
+
+  m_initialTimeMinimum = 0.0;
+  m_initialTimeMaximum = 10.0;
+
+  m_axisX->setRange(
+    m_initialTimeMinimum,
+    m_initialTimeMaximum);
+
+  updateTimeLabels();
+  viewport()->update();
+}
+
 std::pair<double, double>
 TimeChartView::visibleTimeRange() const noexcept
 {
@@ -513,9 +529,28 @@ void TimeChartView::updateTimeSelection(
   viewport()->update();
 }
 
+void TimeChartView::setMeasurementCursorEnabled(bool enabled)
+{
+  if (m_measurementCursorEnabled == enabled)
+    return;
+
+  m_measurementCursorEnabled = enabled;
+
+  if (!enabled)
+  {
+    setMeasurementCursorLocked(false);
+    hideMeasurementCursor();
+  }
+
+  viewport()->update();
+}
+
 void TimeChartView::setMeasurementCursorPosition(
   const QPointF& position)
 {
+  if (!m_measurementCursorEnabled)
+    return;
+
   if (!m_measurementCursorLocked)
     updateMeasurementCursor(position);
 }
@@ -649,7 +684,8 @@ void TimeChartView::mouseMoveEvent(QMouseEvent* event)
 
   if (!m_panning)
   {
-    updateMeasurementCursor(event->position());
+    if (m_measurementCursorEnabled)
+      updateMeasurementCursor(event->position());
 
     QChartView::mouseMoveEvent(event);
     return;
@@ -657,16 +693,13 @@ void TimeChartView::mouseMoveEvent(QMouseEvent* event)
 
   hideMeasurementCursor();
 
-  if (!m_panning)
-  {
-    QChartView::mouseMoveEvent(event);
-    return;
-  }
-
   const QRectF plot = chart()->plotArea();
 
   if (plot.width() <= 0.0)
+  {
+    event->accept();
     return;
+  }
 
   const double dx =
     event->position().x() - m_lastMousePosition.x();
@@ -971,6 +1004,12 @@ std::pair<double, double> TimeChartView::clampTimeRange(
 void TimeChartView::updateMeasurementCursor(
   const QPointF& position)
 {
+  if (!m_measurementCursorEnabled)
+  {
+    hideMeasurementCursor();
+    return;
+  }
+
   if (m_measurementCursorLocked)
     return;
 

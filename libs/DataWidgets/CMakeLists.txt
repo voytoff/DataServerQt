@@ -26,6 +26,7 @@ add_library(datawidgets SHARED
   archivechartcontroller.h archivechartcontroller.cpp
   archivechartworker.h archivechartworker.cpp
   archivechartview.h archivechartview.cpp
+  chartpalette.h chartpalette.cpp
 )
 
 target_include_directories(datawidgets

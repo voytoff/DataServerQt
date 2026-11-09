@@ -36,7 +36,10 @@ private:
   QTreeWidget* m_signalTree = nullptr;
   QSplitter* m_splitter = nullptr;
 
+  QToolBar* m_toolBar = nullptr;
+
   QAction* m_openArchiveAction = nullptr;
+  QAction* m_themeAction = nullptr;
 
   std::unique_ptr<ArchiveReader> m_archiveReader;
 };

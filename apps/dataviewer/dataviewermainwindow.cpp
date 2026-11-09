@@ -1,6 +1,9 @@
 #include "dataviewermainwindow.h"
 
 #include "archivechartview.h"
+#include "colorscheme.h"
+#include "themedsvgicon.h"
+#include "chartpalette.h"
 
 #include <QAction>
 #include <QFileDialog>
@@ -10,6 +13,7 @@
 #include <QToolBar>
 #include <QTreeWidget>
 #include <QMessageBox>
+#include <QSignalBlocker >
 
 namespace qds
 {
@@ -22,14 +26,61 @@ DataViewerMainWindow::DataViewerMainWindow(
   createUi();
 
   setWindowTitle(tr("DataViewer"));
+  setWindowIcon(
+    QIcon(":/images/main.png"));
+
+  connect(
+    m_signalTree,
+    &QTreeWidget::itemChanged,
+    this,
+    [this](QTreeWidgetItem* item, int column)
+    {
+      if (column != 0)
+        return;
+
+      if (!(item->flags() & Qt::ItemIsUserCheckable))
+        return;
+
+      const SignalId id{
+        item->data(0, Qt::UserRole).toUInt()
+      };
+
+      if (item->checkState(0) == Qt::Checked)
+      {
+        m_chartView->addSignal(
+          id,
+          item->text(0),
+          ChartPalette::signalColor(id.value));
+      }
+      else
+      {
+        m_chartView->removeSignal(id);
+      }
+    });
 }
 
 void DataViewerMainWindow::createActions()
 {
-  auto* toolbar = addToolBar(tr("Архив"));
+  m_toolBar = addToolBar(tr("Архив"));
+  m_toolBar->setIconSize(QSize(24, 24));
+  m_toolBar->setMovable(false);
+  m_toolBar->setFloatable(false);
+  m_toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
 
   m_openArchiveAction =
-    toolbar->addAction(tr("Открыть архив"));
+    m_toolBar->addAction(
+    themedSvgIcon(":/images/open.svg"),
+    tr("Открыть архив"));
+
+  m_toolBar->addSeparator();
+
+  m_themeAction = m_toolBar->addAction(
+    themedSvgIcon(":/images/theme.svg"),
+    tr("Сменить тему"));
+
+  m_themeAction->setToolTip(
+    tr("Переключить светлую/тёмную тему"));
+
 
   connect(
     m_openArchiveAction,
@@ -48,6 +99,12 @@ void DataViewerMainWindow::createActions()
       openArchive(
         std::filesystem::path(directory.toStdWString()));
     });
+
+  connect(
+    m_themeAction,
+    &QAction::triggered,
+    this,
+    &toggleColorScheme);
 }
 
 void DataViewerMainWindow::createUi()
@@ -120,6 +177,8 @@ void DataViewerMainWindow::populateSignalTree()
   {
     return;
   }
+
+  QSignalBlocker blocker(m_signalTree);
 
   auto* rawRoot =
     new QTreeWidgetItem(m_signalTree, {tr("Raw")});
@@ -202,6 +261,19 @@ void DataViewerMainWindow::populateSignalTree()
       tooltip += tr("\nЕдиница измерения: —");
 
       item->setToolTip(0, tooltip);
+
+      QPixmap pixmap(12, 12);
+      pixmap.fill(Qt::transparent);
+
+      QPainter painter(&pixmap);
+      painter.setRenderHint(QPainter::Antialiasing);
+      painter.setPen(Qt::NoPen);
+      painter.setBrush(
+        ChartPalette::signalColor(signal.id.value));
+      painter.drawEllipse(1, 1, 10, 10);
+      painter.end();
+
+      item->setIcon(0, QIcon(pixmap));
     }
   }
 
