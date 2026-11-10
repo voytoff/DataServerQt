@@ -28,6 +28,8 @@ add_library(DataArchive SHARED
     datastreamworker.h datastreamworker.cpp
     archivesignalsource.h archivesignalsource.cpp
     archivesignalpoint.h
+    archivetableblock.h
+    archivetablesource.h archivetablesource.cpp
 )
 
 target_include_directories(DataArchive

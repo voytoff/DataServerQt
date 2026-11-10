@@ -5,27 +5,17 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <atomic>
 #include <vector>
 
 namespace qds
 {
 
-struct ArchiveSignalLocation
-{
-  std::size_t fileIndex = 0;
-  std::size_t channelIndex = 0;
-};
-
 class ArchiveSignalSource
 {
 public:
-  explicit ArchiveSignalSource(ArchiveReader& reader);
-
-  [[nodiscard]]
-  std::optional<ArchiveSignalLocation>
-  findSignal(SignalId signalId) const;
+  explicit ArchiveSignalSource(
+    ArchiveReader& reader);
 
   [[nodiscard]]
   bool readRange(

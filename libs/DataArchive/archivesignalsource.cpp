@@ -17,38 +17,6 @@ ArchiveSignalSource::ArchiveSignalSource(
 {
 }
 
-std::optional<ArchiveSignalLocation>
-ArchiveSignalSource::findSignal(
-  SignalId signalId) const
-{
-  if (!m_reader.isOpen())
-    return std::nullopt;
-
-  const auto& description =
-    m_reader.description();
-
-  for (std::size_t fileIndex = 0;
-       fileIndex < description.files.size();
-       ++fileIndex)
-  {
-    const auto& file =
-      description.files[fileIndex];
-
-    for (const auto& signal : file.signalIds)
-    {
-      if (signal.id == signalId)
-      {
-        return ArchiveSignalLocation{
-          fileIndex,
-          signal.index
-        };
-      }
-    }
-  }
-
-  return std::nullopt;
-}
-
 bool ArchiveSignalSource::readRange(
   SignalId signalId,
   Timestamp firstTimestamp,
@@ -61,7 +29,7 @@ bool ArchiveSignalSource::readRange(
   if (firstTimestamp > lastTimestamp || maxRecords == 0)
     return false;
 
-  const auto location = findSignal(signalId);
+  const auto location = m_reader.findSignal(signalId);
 
   if (!location)
     return false;
@@ -153,7 +121,7 @@ bool ArchiveSignalSource::readPlot(
   if (firstTimestamp > lastTimestamp || maxPoints < 6)
     return false;
 
-  const auto location = findSignal(signalId);
+  const auto location = m_reader.findSignal(signalId);
 
   if (!location)
     return false;
@@ -414,7 +382,7 @@ bool ArchiveSignalSource::readPlotSegments(
   if (firstTimestamp > lastTimestamp || maxPoints == 0)
     return false;
 
-  const auto location = findSignal(signalId);
+  const auto location = m_reader.findSignal(signalId);
   if (!location)
     return false;
 
@@ -980,7 +948,7 @@ bool ArchiveSignalSource::timeRange(
   Timestamp& firstTimestamp,
   Timestamp& lastTimestamp) const
 {
-  const auto location = findSignal(signalId);
+  const auto location = m_reader.findSignal(signalId);
 
   if (!location)
     return false;

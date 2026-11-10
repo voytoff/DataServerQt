@@ -11,6 +11,12 @@
 namespace qds
 {
 
+struct ArchiveLocation
+{
+  std::size_t fileIndex = 0;
+  std::size_t channelIndex = 0;
+};
+
 class ArchiveReader
 {
 public:
@@ -85,6 +91,20 @@ public:
     uint64_t firstRecord,
     std::size_t maxRecords,
     std::vector<ArchiveSample>& samples);
+
+  [[nodiscard]]
+  bool timeRange(
+    Timestamp& firstTimestamp,
+    Timestamp& lastTimestamp);
+
+  [[nodiscard]]
+  bool timeReference(
+    Timestamp& timestamp,
+    WallClockTime& wallTime);
+
+  [[nodiscard]]
+  std::optional<ArchiveLocation> findSignal(
+    SignalId signalId) const;
 
 private:
   bool ensureOpen(

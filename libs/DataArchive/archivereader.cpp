@@ -585,6 +585,124 @@ bool ArchiveReader::readRecords(
   return true;
 }
 
+bool ArchiveReader::timeRange(
+  Timestamp& firstTimestamp,
+  Timestamp& lastTimestamp)
+{
+  if (!m_open)
+    return false;
+
+  bool initialized = false;
+
+  uint64_t first = 0;
+  uint64_t last = 0;
+
+  for (std::size_t i = 0; i < m_files.size(); ++i)
+  {
+    const auto* header = fileHeader(i);
+
+    if (!header)
+      return false;
+
+    if (header->recordCount == 0)
+      continue;
+
+    if (header->firstTimestamp > header->lastTimestamp)
+      return false;
+
+    if (!initialized)
+    {
+      first = header->firstTimestamp;
+      last = header->lastTimestamp;
+      initialized = true;
+    }
+    else
+    {
+      first = std::min(first, header->firstTimestamp);
+      last = std::max(last, header->lastTimestamp);
+    }
+  }
+
+  if (!initialized)
+    return false;
+
+  firstTimestamp = Timestamp{first};
+  lastTimestamp = Timestamp{last};
+
+  return true;
+}
+
+bool ArchiveReader::timeReference(
+  Timestamp& timestamp,
+  WallClockTime& wallTime)
+{
+  if (!m_open)
+    return false;
+
+  bool initialized = false;
+  ArchiveSample earliest;
+
+  for (std::size_t i = 0; i < m_files.size(); ++i)
+  {
+    const auto* header = fileHeader(i);
+
+    if (!header)
+      return false;
+
+    if (header->recordCount == 0)
+      continue;
+
+    ArchiveSample sample;
+
+    if (!readRecord(i, 0, sample))
+      return false;
+
+    if (!initialized ||
+        sample.timestamp < earliest.timestamp)
+    {
+      earliest = std::move(sample);
+      initialized = true;
+    }
+  }
+
+  if (!initialized)
+    return false;
+
+  timestamp = earliest.timestamp;
+  wallTime = earliest.wallTime;
+
+  return true;
+}
+
+std::optional<ArchiveLocation>
+ArchiveReader::findSignal(
+  SignalId signalId) const
+{
+  if (!m_open)
+    return std::nullopt;
+
+  for (std::size_t fileIndex = 0;
+       fileIndex < m_description.files.size();
+       ++fileIndex)
+  {
+    const auto& file =
+      m_description.files[fileIndex];
+
+    for (const auto& signal : file.signalIds)
+    {
+      if (signal.id == signalId)
+      {
+        return ArchiveLocation{
+          fileIndex,
+          signal.index
+        };
+      }
+    }
+  }
+
+  return std::nullopt;
+}
+
 bool ArchiveReader::ensureOpen(std::size_t fileIndex)
 {
   auto& file = m_files[fileIndex];
