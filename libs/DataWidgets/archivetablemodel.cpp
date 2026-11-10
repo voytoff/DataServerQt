@@ -1,7 +1,9 @@
 #include "archivetablemodel.h"
+#include "archivetableblock.h"
 
 #include <QDateTime>
 
+#include <map>
 #include <algorithm>
 #include <limits>
 
@@ -89,8 +91,8 @@ QVariant ArchiveTableModel::data(
   const uint64_t offset =
     static_cast<uint64_t>(index.row()) * step;
 
-  const uint64_t timestamp =
-    m_gridStart + offset;
+  //const uint64_t timestamp =
+  //  m_gridStart + offset;
 
   if (index.column() == 0)
   {
@@ -137,9 +139,42 @@ QVariant ArchiveTableModel::data(
     return dateTime.toString(format);
   }
 
-  // Значения каналов добавим после
-  // реализации блочного чтения.
-  return {};
+  const uint64_t row =
+    static_cast<uint64_t>(index.row());
+
+  auto it = m_blocks.upper_bound(row);
+
+  if (it == m_blocks.begin())
+    return {};
+
+  --it;
+
+  const auto& block = it->second;
+
+  const uint64_t blockRow =
+    row - block.firstRow;
+
+  const std::size_t column =
+    static_cast<std::size_t>(index.column() - 2);
+
+  if (column >= block.values.size())
+    return {};
+
+  const auto& values = block.values[column];
+
+  if (blockRow >= values.size())
+    return {};
+
+  const auto& value = values[blockRow];
+
+  if (!value)
+    return {};
+
+  if (role == Qt::EditRole)
+    return *value;
+
+  return QLocale(QLocale::Russian)
+    .toString(*value, 'g', 12);
 }
 
 QVariant ArchiveTableModel::headerData(
@@ -183,6 +218,7 @@ void ArchiveTableModel::setFrequency(
 
   m_frequency = frequency;
   updateGrid();
+  m_blocks.clear();
 
   endResetModel();
 }
@@ -196,7 +232,10 @@ void ArchiveTableModel::setChannels(
   std::vector<ArchiveTableChannel> channels)
 {
   beginResetModel();
+
   m_channels = std::move(channels);
+  m_blocks.clear();
+
   endResetModel();
 }
 
@@ -225,7 +264,76 @@ void ArchiveTableModel::setTimeRange(
 
   updateGrid();
 
+  m_blocks.clear();
+
   endResetModel();
+}
+
+void ArchiveTableModel::setBlock(
+  ArchiveTableBlock block)
+{
+  const uint64_t firstRow = block.firstRow;
+
+  if (block.frequency != m_frequency ||
+      block.channels.size() != m_channels.size())
+  {
+    return;
+  }
+
+  for (std::size_t i = 0; i < m_channels.size(); ++i)
+  {
+    if (block.channels[i] != m_channels[i].id)
+      return;
+  }
+
+  if (block.values.size() != m_channels.size())
+    return;
+
+  if (block.values.empty())
+    return;
+
+  const std::size_t count =
+    block.values.front().size();
+
+  if (count == 0)
+    return;
+
+  for (const auto& values : block.values)
+  {
+    if (values.size() != count)
+      return;
+  }
+
+  m_blocks.insert_or_assign(
+    firstRow,
+    std::move(block));
+
+  const uint64_t lastRow =
+    std::min<uint64_t>(
+      firstRow + count,
+      static_cast<uint64_t>(rowCount()));
+
+  if (firstRow >= lastRow)
+    return;
+
+  emit dataChanged(
+    index(static_cast<int>(firstRow), 2),
+    index(static_cast<int>(lastRow - 1),
+          columnCount() - 1),
+    {Qt::DisplayRole, Qt::EditRole});
+}
+
+void ArchiveTableModel::clearBlocks()
+{
+  m_blocks.clear();
+
+  if (rowCount() == 0 || m_channels.empty())
+    return;
+
+  emit dataChanged(
+    index(0, 2),
+    index(rowCount() - 1, columnCount() - 1),
+    {Qt::DisplayRole, Qt::EditRole});
 }
 
 void ArchiveTableModel::updateGrid() noexcept
@@ -272,6 +380,8 @@ void ArchiveTableModel::clear()
   m_referenceTimestamp = {};
   m_referenceWallTime = {};
   m_hasTimeRange = false;
+
+  m_blocks.clear();
 
   endResetModel();
 }

@@ -105,7 +105,9 @@ void DataViewerMainWindow::createActions()
       const QString directory =
         QFileDialog::getExistingDirectory(
           this,
-          tr("Выберите каталог архива"));
+          tr("Выберите каталог архива"),
+          nullptr,
+          QFileDialog::ShowDirsOnly | QFileDialog::DontUseNativeDialog);
 
       if (directory.isEmpty())
         return;

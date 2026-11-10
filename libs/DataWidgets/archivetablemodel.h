@@ -1,5 +1,6 @@
 #pragma once
 
+#include "archivetableblock.h"
 #include "datawidgets_export.h"
 #include "datatypes.h"
 
@@ -81,6 +82,9 @@ public:
     Timestamp referenceTimestamp,
     WallClockTime referenceWallTime);
 
+  void setBlock(ArchiveTableBlock block);
+  void clearBlocks();
+
 private:
   void updateGrid() noexcept;
 
@@ -105,6 +109,9 @@ private:
   Timestamp m_gridOrigin;
 
   int64_t m_displayWallOrigin = 0;
+
+  // ключом будет firstRow блока
+  std::map<uint64_t, ArchiveTableBlock> m_blocks;
 };
 
 }

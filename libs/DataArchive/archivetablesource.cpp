@@ -1,6 +1,10 @@
 #include "archivetablesource.h"
 #include "archivereader.h"
 
+#include <algorithm>
+#include <cstdint>
+#include <limits>
+
 namespace qds
 {
 
@@ -15,67 +19,157 @@ bool ArchiveTableSource::readBlock(
   uint32_t frequency,
   uint64_t firstRow,
   uint32_t rowCount,
-  const std::vector<SignalId> &channels,
-  ArchiveTableBlock &block,
-  const std::atomic_bool *cancel)
+  const std::vector<SignalId>& channels,
+  ArchiveTableBlock& block,
+  const std::atomic_bool* cancel)
 {
-  block.values.clear();
+  block = {};
 
-  if (rowCount == 0)
+  if (!m_reader.isOpen() ||
+      frequency == 0 ||
+      frequency > 1'000'000 ||
+      1'000'000 % frequency != 0 ||
+      rowCount == 0)
+  {
+    return false;
+  }
+
+  constexpr uint64_t MicrosecondsPerSecond = 1'000'000;
+  constexpr std::size_t ReadBlockSize = 1024;
+
+  const uint64_t interval =
+    MicrosecondsPerSecond / frequency;
+
+  const uint64_t maxValue =
+    std::numeric_limits<uint64_t>::max();
+
+  if (firstRow > maxValue / interval)
     return false;
 
-  const auto firstTimestamp =  Timestamp{firstRow * frequency * 1'000};
-  const auto lastTimestamp =  Timestamp{(firstRow + rowCount) * frequency * 1'000};
+  const uint64_t offset = firstRow * interval;
 
-  for (const auto signalId : channels)
+  if (experimentStart.value > maxValue - offset)
+    return false;
+
+  const uint64_t firstTime =
+    experimentStart.value + offset;
+
+  if (rowCount > (maxValue - firstTime) / interval)
+    return false;
+
+  const uint64_t lastTime =
+    firstTime + uint64_t(rowCount) * interval;
+
+  block.firstRow = firstRow;
+  block.frequency = frequency;
+  block.channels = channels;
+
+  block.values.resize(channels.size());
+
+  for (auto& values : block.values)
+    values.resize(rowCount);
+
+  struct ChannelLocation
   {
-    std::vector<std::optional<double>> array;
-    block.values.push_back(array);
+    std::size_t fileIndex;
+    std::size_t channelIndex;
+    std::size_t column;
+  };
 
-    const auto location = m_reader.findSignal(signalId);
+  std::vector<ChannelLocation> locations;
+  locations.reserve(channels.size());
+
+  for (std::size_t column = 0;
+       column < channels.size();
+       ++column)
+  {
+    if (cancel && cancel->load())
+      return false;
+
+    const auto location =
+      m_reader.findSignal(channels[column]);
 
     if (!location)
       return false;
 
+    locations.push_back({
+      location->fileIndex,
+      location->channelIndex,
+      column
+    });
+  }
+
+  std::ranges::sort(
+    locations,
+    {},
+    &ChannelLocation::fileIndex);
+
+
+  for (std::size_t begin = 0;
+       begin < locations.size();)
+  {
+    if (cancel && cancel->load())
+      return false;
+
+    const auto fileIndex =
+      locations[begin].fileIndex;
+
+    std::size_t end = begin + 1;
+
+    while (end < locations.size() &&
+           locations[end].fileIndex == fileIndex)
+    {
+      ++end;
+    }
+
     const auto* header =
-      m_reader.fileHeader(location->fileIndex);
+      m_reader.fileHeader(fileIndex);
 
     if (!header)
       return false;
 
-    if (location->channelIndex >= header->channelCount)
-      return false;
+    for (std::size_t i = begin; i < end; ++i)
+    {
+      if (locations[i].channelIndex >= header->channelCount)
+        return false;
+    }
 
     uint64_t recordIndex = 0;
 
     if (!m_reader.findRecord(
-          location->fileIndex,
-          firstTimestamp,
+          fileIndex,
+          Timestamp{firstTime},
           recordIndex))
     {
       return false;
     }
 
-    constexpr std::size_t BlockSize = 1024;
+    const std::size_t groupSize = end - begin;
+
+    std::vector<std::vector<double>> sums(
+      groupSize,
+      std::vector<double>(rowCount, 0.0));
+
+    std::vector<std::vector<uint32_t>> counts(
+      groupSize,
+      std::vector<uint32_t>(rowCount, 0));
 
     std::vector<ArchiveSample> samples;
 
-    while (recordIndex < header->recordCount &&
-           block.values.size() < rowCount)
-    {
-      const auto remaining =
-        rowCount - block.values.size();
+    bool finished = false;
 
-      const auto count =
-        std::min(BlockSize, remaining);
+    while (recordIndex < header->recordCount &&
+           !finished)
+    {
+      if (cancel && cancel->load())
+        return false;
 
       if (!m_reader.readRecords(
-            location->fileIndex,
+            fileIndex,
             recordIndex,
-            count,
+            ReadBlockSize,
             samples))
       {
-        block.values.clear();
         return false;
       }
 
@@ -84,27 +178,61 @@ bool ArchiveTableSource::readBlock(
 
       for (const auto& sample : samples)
       {
-        if (sample.timestamp > lastTimestamp)
-          return true;
-
-        if (location->channelIndex >= sample.values.size())
+        if (sample.timestamp.value >= lastTime)
         {
-          block.values.clear();
-          return false;
+          finished = true;
+          break;
         }
 
-        array.push_back(
-          static_cast<double>(
-              sample.values[location->channelIndex])
-          );
+        if (sample.timestamp.value < firstTime)
+          continue;
 
-        if (channels.size() >= rowCount)
-          break;
+        const uint64_t row =
+          (sample.timestamp.value - firstTime) /
+          interval;
+
+        if (row >= rowCount)
+          continue;
+
+        for (std::size_t i = begin; i < end; ++i)
+        {
+          const auto& location = locations[i];
+
+          if (location.channelIndex >= sample.values.size())
+            return false;
+
+          const std::size_t groupColumn = i - begin;
+
+          sums[groupColumn][row] +=
+            static_cast<double>(
+              sample.values[location.channelIndex]);
+
+          ++counts[groupColumn][row];
+        }
       }
 
       recordIndex += samples.size();
     }
+
+    for (std::size_t i = begin; i < end; ++i)
+    {
+      const auto& location = locations[i];
+      const std::size_t groupColumn = i - begin;
+
+      for (uint32_t row = 0; row < rowCount; ++row)
+      {
+        if (counts[groupColumn][row] == 0)
+          continue;
+
+        block.values[location.column][row] =
+          sums[groupColumn][row] /
+          counts[groupColumn][row];
+      }
+    }
+
+    begin = end;
   }
+
   return true;
 }
 
