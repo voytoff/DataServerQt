@@ -134,17 +134,165 @@ bool ArchiveTableSource::readBlock(
         return false;
     }
 
+    if (header->sampleFrequency == 0 ||
+        header->sampleFrequency > MicrosecondsPerSecond)
+      return false;
+
+    // удержание последнего отсчёта (Zero-Order Hold)
+    const uint64_t sourceInterval =
+      MicrosecondsPerSecond / header->sampleFrequency;
+
+    const bool holdValues =
+      header->sampleFrequency < frequency;
+
     uint64_t recordIndex = 0;
+
+    // Для удержания нужно найти последний отсчёт до начала блока
+    // Так мы захватим возможный предыдущий отсчёт
+    const uint64_t searchTime =
+      holdValues && firstTime >= sourceInterval
+        ? firstTime - sourceInterval
+        : 0;
 
     if (!m_reader.findRecord(
           fileIndex,
-          Timestamp{firstTime},
+          Timestamp{searchTime},
           recordIndex))
     {
       return false;
     }
 
     const std::size_t groupSize = end - begin;
+
+    // отдельная ветка удержания
+    if (holdValues)
+    {
+      std::vector<ArchiveSample> samples;
+
+      std::optional<ArchiveSample> previous;
+
+      uint64_t row = 0;
+      bool finished = false;
+
+      while (recordIndex < header->recordCount &&
+             !finished)
+      {
+        if (cancel && cancel->load())
+          return false;
+
+        if (!m_reader.readRecords(
+              fileIndex,
+              recordIndex,
+              ReadBlockSize,
+              samples))
+        {
+          return false;
+        }
+
+        if (samples.empty())
+          break;
+
+        for (const auto& sample : samples)
+        {
+          const uint64_t sampleTime =
+            sample.timestamp.value;
+
+          if (sampleTime >= lastTime)
+          {
+            finished = true;
+            break;
+          }
+
+          if (previous)
+          {
+            const uint64_t validUntil =
+              previous->timestamp.value >
+                  maxValue - sourceInterval
+                ? maxValue
+                : previous->timestamp.value +
+                    sourceInterval;
+
+            const uint64_t endTime =
+              std::min(sampleTime, validUntil);
+
+            while (row < rowCount)
+            {
+              const uint64_t rowTime =
+                firstTime + row * interval;
+
+              if (rowTime >= endTime)
+                break;
+
+              if (rowTime >= previous->timestamp.value)
+              {
+                for (std::size_t i = begin; i < end; ++i)
+                {
+                  const auto& location = locations[i];
+
+                  if (location.channelIndex >=
+                      previous->values.size())
+                  {
+                    return false;
+                  }
+
+                  block.values[location.column][row] =
+                    previous->values[location.channelIndex];
+                }
+              }
+
+              ++row;
+            }
+          }
+
+          previous = sample;
+        }
+
+        recordIndex += samples.size();
+      }
+
+      // Заполняем оставшиеся строки последним отсчётом,
+      // но не дольше одного периода источника.
+      if (previous)
+      {
+        const uint64_t validUntil =
+          previous->timestamp.value >
+              maxValue - sourceInterval
+            ? maxValue
+            : previous->timestamp.value +
+                sourceInterval;
+
+        while (row < rowCount)
+        {
+          const uint64_t rowTime =
+            firstTime + row * interval;
+
+          if (rowTime >= validUntil)
+            break;
+
+          if (rowTime >= previous->timestamp.value)
+          {
+            for (std::size_t i = begin; i < end; ++i)
+            {
+              const auto& location = locations[i];
+
+              if (location.channelIndex >=
+                  previous->values.size())
+              {
+                return false;
+              }
+
+              block.values[location.column][row] =
+                previous->values[location.channelIndex];
+            }
+          }
+
+          ++row;
+        }
+      }
+
+      begin = end;
+      continue;
+    }
 
     std::vector<std::vector<double>> sums(
       groupSize,

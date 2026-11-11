@@ -20,8 +20,8 @@ class QToolBar;
 namespace qds
 {
 
-class BaseTableView;
 class ArchiveChartView;
+class ArchiveTableView;
 class ArchiveTableModel;
 
 class DataViewerMainWindow : public QMainWindow
@@ -36,12 +36,11 @@ private:
   struct TableContext
   {
     QWidget* widget = nullptr;
-    BaseTableView* view = nullptr;
+    ArchiveTableView* view = nullptr;
     QComboBox* frequencyCombo = nullptr;
 
     uint32_t frequency = 100;
     std::vector<SignalId> channels;
-    ArchiveTableModel* model = nullptr;
   };
 
   void createActions();
@@ -68,6 +67,8 @@ private:
     TableContext* table);
 
 private:
+  std::filesystem::path m_path;
+
   ArchiveChartView* m_chartView = nullptr;
   QTreeWidget* m_signalTree = nullptr;
   QSplitter* m_splitter = nullptr;

@@ -6,8 +6,8 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 REQUIRED COMPONENTS           Core Widgets Sql)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS  Core Widgets Sql)
+find_package(QT NAMES Qt6 REQUIRED COMPONENTS           Core Widgets Sql Svg Charts PrintSupport)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS  Core Widgets Sql Svg Charts PrintSupport)
 
 set(CONFIGEDITOR_RESOURCE_FILES res.qrc)
 qt6_add_resources(CONFIGEDITOR_PROJECT_RESOURCES ${CONFIGEDITOR_RESOURCE_FILES})
@@ -95,6 +95,9 @@ target_link_libraries(configeditor
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Sql
+    Qt${QT_VERSION_MAJOR}::Svg
+    Qt${QT_VERSION_MAJOR}::Charts
+    Qt${QT_VERSION_MAJOR}::PrintSupport
     Configuration
     DataSettings
     datawidgets

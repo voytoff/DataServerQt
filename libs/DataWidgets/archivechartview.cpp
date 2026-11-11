@@ -100,10 +100,11 @@ void drawLockIcon(
 
   // Дужка замка.
   painter->drawArc(
-    QRectF(position.x() + 3.0,
-           position.y(),
-           8.0,
-           10.0),
+    QRectF(
+      position.x() + 3.0,
+      position.y(),
+      8.0,
+      10.0),
     0,
     180 * 16);
 
@@ -111,10 +112,11 @@ void drawLockIcon(
   painter->setBrush(color);
 
   painter->drawRoundedRect(
-    QRectF(position.x() + 1.5,
-           position.y() + 6.0,
-           11.0,
-           8.0),
+    QRectF(
+      position.x() + 1.5,
+      position.y() + 6.0,
+      11.0,
+      8.0),
     1.5,
     1.5);
 
@@ -198,11 +200,6 @@ ArchiveChartView::ArchiveChartView(
     this,
     [this]()
     {
-      qDebug()
-      << "measurementCursorHidden"
-      << "this =" << this
-      << "impl =" << m_impl.get();
-
       m_impl->cursorVisible = false;
 
       viewport()->update();

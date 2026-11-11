@@ -85,6 +85,11 @@ public:
   void setBlock(ArchiveTableBlock block);
   void clearBlocks();
 
+  [[nodiscard]]
+  bool hasBlock(
+    uint64_t firstRow) const noexcept;
+
+
 private:
   void updateGrid() noexcept;
 

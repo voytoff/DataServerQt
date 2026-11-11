@@ -4,8 +4,11 @@
 #include <QDateTime>
 
 #include <map>
+#include <vector>
+#include <ranges>
 #include <algorithm>
 #include <limits>
+#include <cmath>
 
 namespace qds
 {
@@ -274,11 +277,12 @@ void ArchiveTableModel::setBlock(
 {
   const uint64_t firstRow = block.firstRow;
 
+  if (hasBlock(firstRow))
+    return;
+
   if (block.frequency != m_frequency ||
       block.channels.size() != m_channels.size())
-  {
     return;
-  }
 
   for (std::size_t i = 0; i < m_channels.size(); ++i)
   {
@@ -286,10 +290,8 @@ void ArchiveTableModel::setBlock(
       return;
   }
 
-  if (block.values.size() != m_channels.size())
-    return;
-
-  if (block.values.empty())
+  if (block.values.size() != m_channels.size() ||
+      block.values.empty())
     return;
 
   const std::size_t count =
@@ -304,17 +306,50 @@ void ArchiveTableModel::setBlock(
       return;
   }
 
+  const uint64_t totalRows =
+    static_cast<uint64_t>(rowCount());
+
+  if (firstRow >= totalRows)
+    return;
+
+  const uint64_t lastRow =
+    firstRow + std::min<uint64_t>(
+      count,
+      totalRows - firstRow);
+
   m_blocks.insert_or_assign(
     firstRow,
     std::move(block));
 
-  const uint64_t lastRow =
-    std::min<uint64_t>(
-      firstRow + count,
-      static_cast<uint64_t>(rowCount()));
+  constexpr std::size_t MaxCachedBlocks = 4;
 
-  if (firstRow >= lastRow)
-    return;
+  if (m_blocks.size() > MaxCachedBlocks)
+  {
+    uint64_t maxDistance = 0;
+    auto farthest = m_blocks.end();
+
+    for (auto it = m_blocks.begin();
+         it != m_blocks.end();
+         ++it)
+    {
+      const uint64_t key = it->first;
+
+      const uint64_t distance =
+        key > firstRow
+          ? key - firstRow
+          : firstRow - key;
+
+      if (farthest == m_blocks.end() ||
+          distance > maxDistance)
+      {
+        maxDistance = distance;
+        farthest = it;
+      }
+    }
+
+    if (farthest != m_blocks.end())
+      m_blocks.erase(farthest);
+  }
 
   emit dataChanged(
     index(static_cast<int>(firstRow), 2),
@@ -334,6 +369,12 @@ void ArchiveTableModel::clearBlocks()
     index(0, 2),
     index(rowCount() - 1, columnCount() - 1),
     {Qt::DisplayRole, Qt::EditRole});
+}
+
+bool ArchiveTableModel::hasBlock(
+  uint64_t firstRow) const noexcept
+{
+  return m_blocks.contains(firstRow);
 }
 
 void ArchiveTableModel::updateGrid() noexcept

@@ -2,6 +2,7 @@
 
 #include "archivechartview.h"
 #include "archivetablemodel.h"
+#include "archivetableview.h"
 #include "colorscheme.h"
 #include "themedsvgicon.h"
 #include "chartpalette.h"
@@ -197,6 +198,8 @@ void DataViewerMainWindow::createUi()
 void DataViewerMainWindow::openArchive(
   const std::filesystem::path& path)
 {
+  m_path = path;
+
   auto reader = std::make_unique<ArchiveReader>();
 
   if (!reader->open(path))
@@ -395,9 +398,9 @@ void DataViewerMainWindow::addTable()
   controls->addWidget(combo);
   controls->addStretch();
 
-  auto* view = new BaseTableView(100, page);
+  auto* view = new ArchiveTableView(page);
 
-  context->model = new ArchiveTableModel(view);
+  view->setArchivePath(m_path);
 
   Timestamp firstTimestamp;
   Timestamp lastTimestamp;
@@ -412,26 +415,12 @@ void DataViewerMainWindow::addTable()
         referenceTimestamp,
         referenceWallTime))
   {
-    context->model->setTimeRange(
+    view->setTimeRange(
       firstTimestamp,
       lastTimestamp,
       referenceTimestamp,
       referenceWallTime);
   }
-
-  view->setModel(context->model);
-
-  view->setEditTriggers(
-    QAbstractItemView::NoEditTriggers);
-
-  view->setAlternatingRowColors(true);
-
-  view->setSelectionBehavior(
-    QAbstractItemView::SelectRows);
-
-  view->setSelectionMode(
-    QAbstractItemView::ExtendedSelection);
-
 
   layout->addLayout(controls);
   layout->addWidget(view);
@@ -452,7 +441,7 @@ void DataViewerMainWindow::addTable()
         combo->currentData().toUInt();
 
       table->frequency = frequency;
-      table->model->setFrequency(frequency);
+      table->view->setFrequency(frequency);
     });
 
   m_tables.push_back(
@@ -602,7 +591,7 @@ bool DataViewerMainWindow::isSignalSelected(
 void DataViewerMainWindow::updateTableChannels(
   TableContext* table)
 {
-  if (!table || !table->model)
+  if (!table || !table->view)
     return;
 
   std::vector<ArchiveTableChannel> channels;
@@ -639,7 +628,7 @@ void DataViewerMainWindow::updateTableChannels(
     }
   }
 
-  table->model->setChannels(
+  table->view->setChannels(
     std::move(channels));
 }
 
