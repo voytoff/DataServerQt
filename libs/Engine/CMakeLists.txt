@@ -19,7 +19,7 @@ target_link_libraries(Engine
         Core
         DataSource
         SignalProcessor
-        DataArchive
+        dataarchive
         Publisher
         Logger
 )

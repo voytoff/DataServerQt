@@ -24,14 +24,16 @@ public:
     const QString& fileName,
     ApplicationSettings& settings,
     QString& error,
-    SettingsSections sections);
+    SettingsSections sections,
+    bool allowMissingFile = false);
 
   // Сохранение выбранных разделов в INI.
   static bool save(
     const QString& fileName,
     const ApplicationSettings& settings,
     QString& error,
-    SettingsSections sections);
+    SettingsSections sections,
+    bool allowCreateFile = false);
 
   // Сохранение выбранного эксперимента.
   static bool saveConfigurationId(

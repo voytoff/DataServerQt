@@ -1,4 +1,9 @@
 #include "dataviewermainwindow.h"
+#include "applicationsettingsdialog.h"
+#include "viewersettingsloader.h"
+#include "windowsettings.h"
+#include "colorschemesettings.h"
+#include "applicationsettingsloader.h"
 
 #include "archivechartview.h"
 #include "archivetablemodel.h"
@@ -6,8 +11,8 @@
 #include "colorscheme.h"
 #include "themedsvgicon.h"
 #include "chartpalette.h"
-#include "basetableview.h"
 
+#include <QCloseEvent>
 #include <QAction>
 #include <QFileDialog>
 #include <QHeaderView>
@@ -26,6 +31,7 @@
 #include <QPushButton>
 #include <QTabBar>
 #include <QTreeWidgetItemIterator>
+#include <QSignalBlocker>
 
 #include <algorithm>
 
@@ -33,11 +39,17 @@ namespace qds
 {
 
 DataViewerMainWindow::DataViewerMainWindow(
+  QString configFile,
   QWidget* parent)
   : QMainWindow(parent)
+  , m_configFile(configFile)
 {
+  resize(1200, 800);
+
   createActions();
   createUi();
+
+  restoreWindowSettings();
 
   setWindowTitle(tr("DataViewer"));
   setWindowIcon(
@@ -89,6 +101,15 @@ void DataViewerMainWindow::createActions()
 
   m_toolBar->addSeparator();
 
+  m_settingsAction = m_toolBar->addAction(
+    themedSvgIcon(":/images/settings.svg"),
+    tr("Настройки"));
+
+  m_settingsAction->setToolTip(
+    tr("Настройки приложения"));
+
+  m_toolBar->addSeparator();
+
   m_themeAction = m_toolBar->addAction(
     themedSvgIcon(":/images/theme.svg"),
     tr("Сменить тему"));
@@ -96,6 +117,43 @@ void DataViewerMainWindow::createActions()
   m_themeAction->setToolTip(
     tr("Переключить светлую/тёмную тему"));
 
+  m_toolBar->addSeparator();
+
+  m_frequencyCombo = new QComboBox(this);
+
+  for (const uint32_t frequency :
+       {1u, 10u, 100u, 1000u})
+  {
+    m_frequencyCombo->addItem(
+      tr("%1 Гц").arg(frequency),
+      frequency);
+  }
+
+  m_frequencyCombo->setCurrentIndex(
+    m_frequencyCombo->findData(100u));
+
+  m_frequencyCombo->setToolTip(
+    tr("Частота активной таблицы"));
+
+  m_toolBar->addWidget(m_frequencyCombo);
+
+  connect(
+    m_frequencyCombo,
+    &QComboBox::currentIndexChanged,
+    this,
+    [this](int)
+    {
+      auto* table = currentTable();
+
+      if (!table || !table->view)
+        return;
+
+      const uint32_t frequency =
+        m_frequencyCombo->currentData().toUInt();
+
+      table->frequency = frequency;
+      table->view->setFrequency(frequency);
+    });
 
   connect(
     m_openArchiveAction,
@@ -117,12 +175,17 @@ void DataViewerMainWindow::createActions()
         std::filesystem::path(directory.toStdWString()));
     });
 
-
   connect(
     m_addTableAction,
     &QAction::triggered,
     this,
     &DataViewerMainWindow::addTable);
+
+  connect(
+    m_settingsAction,
+    &QAction::triggered,
+    this,
+    &DataViewerMainWindow::showSettings);
 
   connect(
     m_themeAction,
@@ -172,6 +235,7 @@ void DataViewerMainWindow::createUi()
     [this](int)
     {
       updateSignalTreeChecks();
+      updateFrequencyControl();
     });
 
   connect(
@@ -185,12 +249,14 @@ void DataViewerMainWindow::createUi()
     QTabBar::RightSide,
     nullptr);
 
+
   m_splitter->setStretchFactor(0, 0);
   m_splitter->setStretchFactor(1, 1);
 
   m_splitter->setSizes({250, 950});
 
   setCentralWidget(m_splitter);
+  updateFrequencyControl();
 
   statusBar()->showMessage(tr("Архив не открыт"));
 }
@@ -371,36 +437,23 @@ void DataViewerMainWindow::addTable()
   auto context =
     std::make_unique<TableContext>();
 
-  auto* page = new QWidget(m_tabs);
-
-  auto* layout = new QVBoxLayout(page);
-
-  auto* controls = new QHBoxLayout();
-
-  auto* label = new QLabel(
-    tr("Частота таблицы:"),
-    page);
-
-  auto* combo = new QComboBox(page);
-
-  for (const uint32_t frequency :
-       {1u, 10u, 100u, 1000u})
-  {
-    combo->addItem(
-      tr("%1 Гц").arg(frequency),
-      frequency);
-  }
-
-  combo->setCurrentIndex(
-    combo->findData(100u));
-
-  controls->addWidget(label);
-  controls->addWidget(combo);
-  controls->addStretch();
-
-  auto* view = new ArchiveTableView(page);
+  auto* view = new ArchiveTableView(m_tabs);
 
   view->setArchivePath(m_path);
+
+  ApplicationSettings settings;
+  QString error;
+
+  if (ApplicationSettingsLoader::load(
+        m_configFile,
+        settings,
+        error,
+        SettingsSection::Table,
+        true))
+  {
+    view->setDecimals(
+      settings.table.decimals);
+  }
 
   Timestamp firstTimestamp;
   Timestamp lastTimestamp;
@@ -422,36 +475,20 @@ void DataViewerMainWindow::addTable()
       referenceWallTime);
   }
 
-  layout->addLayout(controls);
-  layout->addWidget(view);
-
-  context->widget = page;
+  context->widget = view;
   context->view = view;
-  context->frequencyCombo = combo;
-
-  auto* table = context.get();
-
-  connect(
-    combo,
-    &QComboBox::currentIndexChanged,
-    this,
-    [table, combo](int)
-    {
-      const uint32_t frequency =
-        combo->currentData().toUInt();
-
-      table->frequency = frequency;
-      table->view->setFrequency(frequency);
-    });
+  context->frequency = view->frequency();
 
   m_tables.push_back(
     std::move(context));
 
   const int index = m_tabs->addTab(
-    page,
+    view,
     tr("Таблица %1").arg(m_tables.size()));
 
   m_tabs->setCurrentIndex(index);
+
+  updateFrequencyControl();
 }
 
 void DataViewerMainWindow::closeTable(
@@ -630,6 +667,121 @@ void DataViewerMainWindow::updateTableChannels(
 
   table->view->setChannels(
     std::move(channels));
+}
+
+void DataViewerMainWindow::updateFrequencyControl()
+{
+  auto* table = currentTable();
+
+  m_frequencyCombo->setEnabled(
+    table && table->view);
+
+  if (!table || !table->view)
+    return;
+
+  const QSignalBlocker blocker(m_frequencyCombo);
+
+  const int index =
+    m_frequencyCombo->findData(
+      table->view->frequency());
+
+  if (index >= 0)
+    m_frequencyCombo->setCurrentIndex(index);
+}
+
+void DataViewerMainWindow::restoreWindowSettings()
+{
+  WindowSettings::restoreGeometry(
+    m_configFile,
+    "Window/Geometry",
+    this);
+
+  WindowSettings::restoreSplitter(
+    m_configFile,
+    "Window/MainSplitter",
+    m_splitter);
+}
+
+void DataViewerMainWindow::saveWindowSettings() const
+{
+  WindowSettings::saveGeometry(
+    m_configFile,
+    "Window/Geometry",
+    this);
+
+  WindowSettings::saveSplitter(
+    m_configFile,
+    "Window/MainSplitter",
+    m_splitter);
+}
+
+void DataViewerMainWindow::saveTableSettings() const
+{
+  std::vector<ViewerTableSettings> tables;
+
+  tables.reserve(m_tables.size());
+
+  for (const auto& context : m_tables)
+  {
+    if (!context->view)
+      continue;
+
+    ViewerTableSettings table;
+
+    table.frequency =
+      context->view->frequency();
+
+    table.channels =
+      context->channels;
+
+    tables.push_back(std::move(table));
+  }
+
+  ViewerSettingsLoader::saveTables(
+    m_configFile,
+    tables);
+}
+
+void DataViewerMainWindow::showSettings()
+{
+  constexpr SettingsSections sections =
+    SettingsSection::Table;
+
+  ApplicationSettings settings;
+  QString error;
+
+  if (!ApplicationSettingsLoader::load(
+        m_configFile,
+        settings,
+        error,
+        sections,
+        true))
+  {
+    QMessageBox::warning(
+      this,
+      tr("Настройки приложения"),
+      error);
+    return;
+  }
+
+  ApplicationSettingsDialog dialog(
+    settings,
+    sections,
+    this);
+
+  dialog.exec();
+}
+
+void DataViewerMainWindow::closeEvent(
+  QCloseEvent* event)
+{
+  saveWindowSettings();
+  saveTableSettings();
+
+  ColorSchemeSettings::save(
+    m_configFile);
+
+  QMainWindow::closeEvent(event);
 }
 
 DataViewerMainWindow::TableContext*

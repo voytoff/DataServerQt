@@ -79,6 +79,10 @@ ApplicationSettingsDialog::ApplicationSettingsDialog(
     ui->tabWidget->indexOf(ui->logPage),
     sections.testFlag(SettingsSection::Log));
 
+  ui->tabWidget->setTabVisible(
+    ui->tabWidget->indexOf(ui->tablePage),
+    sections.testFlag(SettingsSection::Table));
+
   connect(
     ui->buttonBox,
     &QDialogButtonBox::accepted,
@@ -268,6 +272,9 @@ void ApplicationSettingsDialog::loadSettings()
 
   ui->logDirectoryEdit->setText(
     pathToString(m_settings.logDirectory));
+
+  ui->decimalsSpinBox->setValue(
+    m_settings.table.decimals);
 }
 
 bool ApplicationSettingsDialog::saveSettings()
@@ -336,6 +343,12 @@ ApplicationSettings ApplicationSettingsDialog::editedSettings() const
         ui->logDirectoryEdit->text().trimmed());
   }
 
+  if (m_sections.testFlag(SettingsSection::Table))
+  {
+    result.table.decimals =
+      ui->decimalsSpinBox->value();
+  }
+
   return result;
 }
 
@@ -370,6 +383,12 @@ SettingsSections ApplicationSettingsDialog::changedSections(
       m_settings.logDirectory != settings.logDirectory)
   {
     changed |= SettingsSection::Log;
+  }
+
+  if (m_sections.testFlag(SettingsSection::Table) &&
+      m_settings.table.decimals != settings.table.decimals)
+  {
+    changed |= SettingsSection::Table;
   }
 
   return changed;

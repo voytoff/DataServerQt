@@ -30,14 +30,17 @@ class DataViewerMainWindow : public QMainWindow
 
 public:
   explicit DataViewerMainWindow(
+    QString configFile,
     QWidget* parent = nullptr);
+
+protected:
+  void closeEvent(QCloseEvent* event) override;
 
 private:
   struct TableContext
   {
     QWidget* widget = nullptr;
     ArchiveTableView* view = nullptr;
-    QComboBox* frequencyCombo = nullptr;
 
     uint32_t frequency = 100;
     std::vector<SignalId> channels;
@@ -66,6 +69,15 @@ private:
   void updateTableChannels(
     TableContext* table);
 
+  void updateFrequencyControl();
+
+  void restoreWindowSettings();
+  void saveWindowSettings() const;
+
+  void saveTableSettings() const;
+
+  void showSettings();
+
 private:
   std::filesystem::path m_path;
 
@@ -73,17 +85,22 @@ private:
   QTreeWidget* m_signalTree = nullptr;
   QSplitter* m_splitter = nullptr;
   QTabWidget* m_tabs = nullptr;
+  QComboBox* m_frequencyCombo = nullptr;
 
   QToolBar* m_toolBar = nullptr;
 
   QAction* m_openArchiveAction = nullptr;
   QAction* m_themeAction = nullptr;
   QAction* m_addTableAction = nullptr;
+  QAction* m_settingsAction = nullptr;
 
   std::vector<SignalId> m_chartSignals;
   std::vector<std::unique_ptr<TableContext>> m_tables;
 
   std::unique_ptr<ArchiveReader> m_archiveReader;
+
+  QString m_configFile;
+
 };
 
 }

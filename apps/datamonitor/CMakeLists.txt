@@ -74,7 +74,7 @@ target_link_libraries(datamonitor
     Configuration
     DataProtocol
     DataClient
-    DataSettings
+    datasettings
     datawidgets
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Widgets

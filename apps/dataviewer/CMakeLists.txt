@@ -18,6 +18,7 @@ qt_add_executable(dataviewer
   ${APP_ICON_RESOURCE_WINDOWS}
   main.cpp
   dataviewermainwindow.h dataviewermainwindow.cpp
+  viewersettingsloader.h viewersettingsloader.cpp
 )
 
 if(WIN32)
@@ -74,8 +75,8 @@ target_link_libraries(dataviewer
     Qt${QT_VERSION_MAJOR}::Svg
     Qt${QT_VERSION_MAJOR}::Charts
     Configuration
-    DataSettings
+    datasettings
     datawidgets
     signalprocessing
-    DataArchive
+    dataarchive
 )

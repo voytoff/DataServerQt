@@ -52,11 +52,13 @@ bool ApplicationSettingsLoader::load(
   const QString& fileName,
   ApplicationSettings& settings,
   QString& error,
-  SettingsSections sections)
+  SettingsSections sections,
+  bool allowMissingFile)
 {
   error.clear();
 
-  if (!QFileInfo::exists(fileName))
+  if (!QFileInfo::exists(fileName) &&
+      !allowMissingFile)
   {
     error =
       "Не найден файл конфигурации:\n" +
@@ -193,6 +195,24 @@ bool ApplicationSettingsLoader::load(
 #endif
   }
 
+  // Table
+
+  if (sections.testFlag(SettingsSection::Table))
+  {
+    const int decimals =
+      s.value(
+         "Table/Decimals",
+         result.table.decimals).toInt();
+
+    if (decimals < 0 || decimals > 12)
+    {
+      error = "Некорректное количество знаков после запятой";
+      return false;
+    }
+
+    result.table.decimals = decimals;
+  }
+
   if (s.status() != QSettings::NoError)
   {
     error =
@@ -211,7 +231,8 @@ bool ApplicationSettingsLoader::save(
   const QString& fileName,
   const ApplicationSettings& settings,
   QString& error,
-  SettingsSections sections)
+  SettingsSections sections,
+  bool allowCreateFile)
 {
   error.clear();
 
@@ -221,7 +242,8 @@ bool ApplicationSettingsLoader::save(
     return false;
   }
 
-  if (!QFileInfo::exists(fileName))
+  if (!QFileInfo::exists(fileName) &&
+      !allowCreateFile)
   {
     error =
       "Не найден файл конфигурации:\n" +
@@ -259,6 +281,14 @@ bool ApplicationSettingsLoader::save(
       settings.logDirectory.empty())
   {
     error = "Не указан каталог журналирования";
+    return false;
+  }
+
+  if (sections.testFlag(SettingsSection::Table) &&
+      (settings.table.decimals < 0 ||
+       settings.table.decimals > 12))
+  {
+    error = "Некорректное количество знаков после запятой";
     return false;
   }
 
@@ -329,6 +359,15 @@ bool ApplicationSettingsLoader::save(
 #endif
 
     s.setValue("Log/Directory", directory);
+  }
+
+  // Table
+
+  if (sections.testFlag(SettingsSection::Table))
+  {
+    s.setValue(
+      "Table/Decimals",
+      settings.table.decimals);
   }
 
   s.sync();

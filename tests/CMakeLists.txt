@@ -84,10 +84,10 @@ target_link_libraries(unit_tests
     DataSource
     Engine
     Hardware
-    DataArchive
+    dataarchive
     SignalStorage
     Logger
-    DataSettings
+    datasettings
     datawidgets
     DataClient
     modulevalidators

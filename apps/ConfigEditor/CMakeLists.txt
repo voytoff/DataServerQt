@@ -99,7 +99,7 @@ target_link_libraries(configeditor
     Qt${QT_VERSION_MAJOR}::Charts
     Qt${QT_VERSION_MAJOR}::PrintSupport
     Configuration
-    DataSettings
+    datasettings
     datawidgets
     QCustomPlot
     SignalProcessor

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.23)
 
-project(DataArchive LANGUAGES CXX)
+project(dataarchive LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -9,7 +9,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(QT NAMES Qt6 REQUIRED COMPONENTS Core)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
 
-add_library(DataArchive SHARED
+add_library(dataarchive SHARED
     archiveformat.h
     archivefile.h archivefile.cpp
     archivewriter.h archivewriter.cpp
@@ -32,13 +32,13 @@ add_library(DataArchive SHARED
     archivetablesource.h archivetablesource.cpp
 )
 
-target_include_directories(DataArchive
+target_include_directories(dataarchive
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/../datatypes
 )
 
-target_link_libraries(DataArchive
+target_link_libraries(dataarchive
     PUBLIC
       Configuration
       SignalStorage

@@ -4,6 +4,7 @@
 #include "archivetablemodel.h"
 
 #include <QScrollBar>
+#include <QFontDatabase>
 
 #include <memory>
 #include <utility>
@@ -42,6 +43,15 @@ ArchiveTableView::ArchiveTableView(
   setAlternatingRowColors(true);
   setSelectionBehavior(QAbstractItemView::SelectRows);
   setSelectionMode(QAbstractItemView::ExtendedSelection);
+
+  QFont font = QFontDatabase::systemFont(
+    QFontDatabase::FixedFont);
+
+  font.setPointSize(9);
+  //font.setStyleHint(QFont::Monospace);
+  //font.setFixedPitch(true);
+
+  setFont(font);
 
   connect(
     verticalScrollBar(),
@@ -175,6 +185,19 @@ void ArchiveTableView::setTimeRange(
     referenceWallTime);
 
   requestVisibleData();
+}
+
+void ArchiveTableView::setDecimals(int decimals)
+{
+  if (!m_impl->model)
+    return;
+
+  m_impl->model->setDecimals(decimals);
+}
+
+int ArchiveTableView::decimals() const noexcept
+{
+  return m_impl->model->decimals();
 }
 
 void ArchiveTableView::resizeEvent(

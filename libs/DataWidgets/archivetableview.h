@@ -50,6 +50,11 @@ public:
 
   void clear();
 
+  void setDecimals(int decimals);
+
+  [[nodiscard]]
+  int decimals() const noexcept;
+
 protected:
   void resizeEvent(
     QResizeEvent* event) override;

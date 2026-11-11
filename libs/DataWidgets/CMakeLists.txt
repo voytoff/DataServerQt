@@ -45,8 +45,8 @@ target_link_libraries(datawidgets
     Qt${QT_VERSION_MAJOR}::Sql
     Qt${QT_VERSION_MAJOR}::Svg
     Qt${QT_VERSION_MAJOR}::Charts
-    DataSettings
-    DataArchive
+    datasettings
+    dataarchive
 )
 
 target_compile_definitions(datawidgets

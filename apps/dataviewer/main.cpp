@@ -1,10 +1,13 @@
 #include "dataviewermainwindow.h"
 #include "archivesignalpoint.h"
+#include "colorschemesettings.h"
 
 #include <QApplication>
 #include <QStyleFactory>
 #include <QTranslator>
 #include <QLibraryInfo>
+#include <QStandardPaths>
+#include <QDir>
 
 int main(int argc, char* argv[])
 {
@@ -38,9 +41,21 @@ int main(int argc, char* argv[])
   qRegisterMetaType<qds::ArchiveSignalSegments>(
     "qds::ArchiveSignalSegments");
 
-  qds::DataViewerMainWindow window;
+  const QString configPath =
+    QStandardPaths::writableLocation(
+      QStandardPaths::AppConfigLocation);
 
-  window.resize(1200, 800);
+  QDir().mkpath(configPath);
+
+  const auto configFile =
+    QDir(configPath).filePath(
+      QStringLiteral("dataviewer.ini"));
+
+  qds::ColorSchemeSettings::restore(
+    configFile);
+
+  qds::DataViewerMainWindow window(configFile);
+
   window.show();
 
   return app.exec();

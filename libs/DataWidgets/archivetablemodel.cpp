@@ -80,6 +80,13 @@ QVariant ArchiveTableModel::data(
     return {};
   }
 
+  if (role == Qt::TextAlignmentRole)
+  {
+    return index.column() == 1
+             ? QVariant(Qt::AlignCenter)
+             : QVariant(Qt::AlignRight | Qt::AlignVCenter);
+  }
+
   if (role != Qt::DisplayRole &&
       role != Qt::EditRole)
   {
@@ -176,8 +183,10 @@ QVariant ArchiveTableModel::data(
   if (role == Qt::EditRole)
     return *value;
 
-  return QLocale(QLocale::Russian)
-    .toString(*value, 'g', 12);
+  return QLocale(QLocale::Russian).toString(
+    *value,
+    'f',
+    m_decimals);
 }
 
 QVariant ArchiveTableModel::headerData(
@@ -375,6 +384,30 @@ bool ArchiveTableModel::hasBlock(
   uint64_t firstRow) const noexcept
 {
   return m_blocks.contains(firstRow);
+}
+
+void ArchiveTableModel::setDecimals(int decimals)
+{
+  if (decimals < 0 || decimals > 12)
+    return;
+
+  if (m_decimals == decimals)
+    return;
+
+  m_decimals = decimals;
+
+  if (rowCount() > 0 && columnCount() > 2)
+  {
+    emit dataChanged(
+      index(0, 2),
+      index(rowCount() - 1, columnCount() - 1),
+      {Qt::DisplayRole});
+  }
+}
+
+int ArchiveTableModel::decimals() const noexcept
+{
+  return m_decimals;
 }
 
 void ArchiveTableModel::updateGrid() noexcept

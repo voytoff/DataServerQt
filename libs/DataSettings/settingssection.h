@@ -12,7 +12,8 @@ enum class SettingsSection : uint32_t
   None     = 0,
   Database = 1 << 0,
   Archive  = 1 << 1,
-  Log      = 1 << 2
+  Log      = 1 << 2,
+  Table    = 1 << 3
 };
 
 Q_DECLARE_FLAGS(SettingsSections, SettingsSection)

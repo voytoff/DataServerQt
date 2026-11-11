@@ -18,5 +18,5 @@ target_include_directories(signalprocessing
 
 target_link_libraries(signalprocessing
   PUBLIC
-    DataArchive
+    dataarchive
 )

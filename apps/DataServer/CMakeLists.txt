@@ -88,8 +88,8 @@ target_link_libraries(dataserver
       UdpSender
       DataServerRuntime
       DataServerCore
-      DataArchive
-      DataSettings
+      dataarchive
+      datasettings
       datawidgets
       modulevalidators
       configurationvalidation

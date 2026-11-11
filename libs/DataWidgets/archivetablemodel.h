@@ -89,6 +89,10 @@ public:
   bool hasBlock(
     uint64_t firstRow) const noexcept;
 
+  void setDecimals(int decimals);
+
+  [[nodiscard]]
+  int decimals() const noexcept;
 
 private:
   void updateGrid() noexcept;
@@ -117,6 +121,8 @@ private:
 
   // ключом будет firstRow блока
   std::map<uint64_t, ArchiveTableBlock> m_blocks;
+
+  int m_decimals = 6;
 };
 
 }
