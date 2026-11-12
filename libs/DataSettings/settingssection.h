@@ -9,11 +9,12 @@ namespace qds
 
 enum class SettingsSection : uint32_t
 {
-  None     = 0,
-  Database = 1 << 0,
-  Archive  = 1 << 1,
-  Log      = 1 << 2,
-  Table    = 1 << 3
+  None      = 0,
+  Database  = 1 << 0,
+  Archive   = 1 << 1,
+  Log       = 1 << 2,
+  Table     = 1 << 3,
+  Chart     = 1 << 4,
 };
 
 Q_DECLARE_FLAGS(SettingsSections, SettingsSection)

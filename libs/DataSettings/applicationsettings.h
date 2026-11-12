@@ -2,7 +2,7 @@
 
 #include "databasesettings.h"
 #include "datatypes.h"
-#include "tablesettings.h"
+#include "datasettings.h"
 
 #include <QString>
 
@@ -18,7 +18,9 @@ struct ApplicationSettings
   DatabaseSettings database;
 
   ConfigurationId configurationId{};
+
   TableSettings table;
+  ChartSettings chart;
 
   std::filesystem::path archiveDirectory;
   std::filesystem::path logDirectory;

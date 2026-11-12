@@ -1,6 +1,7 @@
 #pragma once
 
 #include "archivereader.h"
+#include "viewersettingsloader.h"
 
 #include <QMainWindow>
 
@@ -47,6 +48,8 @@ private:
   };
 
   void createActions();
+  void updateActions();
+
   void createUi();
 
   void openArchive(
@@ -55,6 +58,10 @@ private:
   void populateSignalTree();
 
   void addTable();
+
+  void addTable(
+    const ViewerTableSettings& settings);
+
   void closeTable(int index);
 
   void updateSignalTreeChecks();
@@ -72,11 +79,16 @@ private:
   void updateFrequencyControl();
 
   void restoreWindowSettings();
+  void restoreTableSettings();
   void saveWindowSettings() const;
 
   void saveTableSettings() const;
 
   void showSettings();
+
+  QString viewerSettingsFile() const;
+
+  void updateChartSettings();
 
 private:
   std::filesystem::path m_path;

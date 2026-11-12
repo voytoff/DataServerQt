@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "datasettings.h"
 #include "datawidgets_export.h"
 #include "timechartview.h"
 
@@ -51,6 +52,12 @@ public:
 
   void updateChartTheme() override;
 
+  void setTimeOrigin(
+    Timestamp timestamp);
+
+  void setChartSettings(
+    const ChartSettings& settings);
+
 protected:
   void drawForeground(
     QPainter* painter,
@@ -78,8 +85,15 @@ private:
 
   void captureMeasurement();
 
+  [[nodiscard]]
+  std::optional<QPointF> measurementPoint(
+    const ArchiveChartSeries* series,
+    double x) const;
+
 private:
   std::unique_ptr<Impl> m_impl;
+
+  ChartSettings chartSettings;
 
 };
 

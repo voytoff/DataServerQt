@@ -19,7 +19,7 @@ add_library(datasettings SHARED
   settingssection.h
   windowsettings.h windowsettings.cpp
   colorschemesettings.h colorschemesettings.cpp
-  tablesettings.h
+  datasettings.h
 )
 
 target_compile_definitions(datasettings

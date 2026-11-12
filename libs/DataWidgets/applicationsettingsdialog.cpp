@@ -15,6 +15,7 @@
 #include <QUuid>
 #include <QString>
 #include <QComboBox>
+#include <QVariant>
 
 #include <filesystem>
 
@@ -62,6 +63,7 @@ ApplicationSettingsDialog::ApplicationSettingsDialog(
   m_sections(sections)
 {
   ui->setupUi(this);
+  ui->tabWidget->setCurrentIndex(0);
 
   setWindowTitle(tr("Настройки приложения"));
 
@@ -82,6 +84,18 @@ ApplicationSettingsDialog::ApplicationSettingsDialog(
   ui->tabWidget->setTabVisible(
     ui->tabWidget->indexOf(ui->tablePage),
     sections.testFlag(SettingsSection::Table));
+
+  ui->comboMarkerMode->addItem(
+    tr("Интерполяция"),
+    QVariant::fromValue(ChartMarkerMode::Interpolated));
+  ui->comboMarkerMode->addItem(
+    tr("Ближайший отсчёт"),
+    QVariant::fromValue(ChartMarkerMode::NearestSample));
+
+  ui->tabWidget->setTabVisible(
+    ui->tabWidget->indexOf(ui->chartPage),
+    sections.testFlag(SettingsSection::Chart));
+
 
   connect(
     ui->buttonBox,
@@ -250,16 +264,16 @@ void ApplicationSettingsDialog::loadSettings()
 {
   const auto& db = m_settings.database;
 
-  int index =
+  int pluginIndex =
     ui->pluginComboBox->findText(db.plugin);
 
-  if (index < 0)
+  if (pluginIndex < 0)
   {
     ui->pluginComboBox->addItem(db.plugin);
-    index = ui->pluginComboBox->count() - 1;
+    pluginIndex = ui->pluginComboBox->count() - 1;
   }
 
-  ui->pluginComboBox->setCurrentIndex(index);
+  ui->pluginComboBox->setCurrentIndex(pluginIndex);
 
   ui->hostEdit->setText(db.host);
   ui->portSpinBox->setValue(db.port);
@@ -275,6 +289,19 @@ void ApplicationSettingsDialog::loadSettings()
 
   ui->decimalsSpinBox->setValue(
     m_settings.table.decimals);
+
+  ui->spinChartLineWidth->setValue(
+    m_settings.chart.lineWidth);
+
+  const int markerModeIndex =
+    ui->comboMarkerMode->findData(
+      QVariant::fromValue(m_settings.chart.markerMode));
+
+  if (markerModeIndex >= 0)
+    ui->comboMarkerMode->setCurrentIndex(markerModeIndex);
+
+  ui->spinChartDecimals->setValue(
+    m_settings.chart.decimals);
 }
 
 bool ApplicationSettingsDialog::saveSettings()
@@ -349,6 +376,19 @@ ApplicationSettings ApplicationSettingsDialog::editedSettings() const
       ui->decimalsSpinBox->value();
   }
 
+  if (m_sections.testFlag(SettingsSection::Chart))
+  {
+    result.chart.lineWidth =
+      ui->spinChartLineWidth->value();
+
+    result.chart.markerMode =
+      ui->comboMarkerMode->currentData()
+        .value<ChartMarkerMode>();
+
+    result.chart.decimals =
+      ui->spinChartDecimals->value();
+  }
+
   return result;
 }
 
@@ -389,6 +429,19 @@ SettingsSections ApplicationSettingsDialog::changedSections(
       m_settings.table.decimals != settings.table.decimals)
   {
     changed |= SettingsSection::Table;
+  }
+
+  if (m_sections.testFlag(SettingsSection::Chart))
+  {
+    const auto& a = m_settings.chart;
+    const auto& b = settings.chart;
+
+    if (a.lineWidth != b.lineWidth ||
+        a.markerMode != b.markerMode ||
+        a.decimals != b.decimals)
+    {
+      changed |= SettingsSection::Chart;
+    }
   }
 
   return changed;

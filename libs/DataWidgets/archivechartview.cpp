@@ -143,7 +143,7 @@ struct ArchiveChartView::SignalContext
 struct MeasurementValue
 {
   SignalId id;
-  std::optional<double> value;
+  std::optional<QPointF> point;
 };
 
 struct ArchiveChartView::Impl
@@ -160,6 +160,11 @@ struct ArchiveChartView::Impl
   bool cursorVisible = false;
 
   std::vector<MeasurementValue> lockedValues;
+
+  Timestamp archiveOrigin{};
+  bool hasArchiveOrigin = false;
+
+  ChartSettings chartSettings;
 };
 
 ArchiveChartView::ArchiveChartView(
@@ -272,6 +277,9 @@ bool ArchiveChartView::addSignal(
     entry->axisY->setTitleText(name);
   }
 
+  series->setLineWidth(
+    m_impl->chartSettings.lineWidth);
+
   entry->controller = controller;
   entry->series = series;
 
@@ -370,6 +378,9 @@ void ArchiveChartView::clearSignals()
   m_impl->initialized = false;
   m_impl->cursorVisible = false;
 
+  m_impl->hasArchiveOrigin = false;
+  m_impl->archiveOrigin = {};
+
   // Сбрасываем измерительный курсор.
   setMeasurementCursorEnabled(false);
   setMeasurementCursorLocked(false);
@@ -419,13 +430,21 @@ void ArchiveChartView::initializeTimeRange()
 
   m_impl->initialized = true;
 
-  m_impl->timeAxis->setOriginTimestamp(first);
-  m_impl->timeAxis->setZeroTimestamp(first);
+  if (!m_impl->hasArchiveOrigin)
+  {
+    m_impl->timeAxis->setOriginTimestamp(first);
+    m_impl->timeAxis->setZeroTimestamp(first);
+  }
 
-  const double duration =
+  const double minimum =
+    m_impl->timeAxis->chartSeconds(first);
+
+  const double maximum =
     m_impl->timeAxis->chartSeconds(last);
 
-  setTimeRange(0.0, duration);
+  setTimeRange(
+    m_impl->hasArchiveOrigin ? 0.0 : minimum,
+    maximum);
 
   // setTimeRange() может не выдать сигнал,
   // если диапазон уже совпадает.
@@ -557,12 +576,17 @@ void ArchiveChartView::drawMeasurementPanel(
   struct PanelRow
   {
     QString name;
+    QString time;
     QString value;
     QColor color;
   };
 
   std::vector<PanelRow> rows;
   rows.reserve(m_impl->entries.size());
+
+  const bool nearestMode =
+    m_impl->chartSettings.markerMode ==
+    ChartMarkerMode::NearestSample;
 
   for (const auto& entry : m_impl->entries)
   {
@@ -572,7 +596,7 @@ void ArchiveChartView::drawMeasurementPanel(
       continue;
     }
 
-    std::optional<double> value;
+    std::optional<QPointF> point;
 
     if (isMeasurementCursorLocked())
     {
@@ -585,18 +609,23 @@ void ArchiveChartView::drawMeasurementPanel(
         });
 
       if (it != m_impl->lockedValues.end())
-        value = it->value;
+        point = it->point;
     }
     else
     {
-      value = entry->series->valueAt(
+      point = measurementPoint(
+        entry->series,
         m_impl->cursorX);
     }
 
     rows.push_back({
       entry->name,
-      value
-        ? QString::number(*value, 'f', 3)
+      nearestMode && point
+        ? QString::number(point->x(), 'f', 3) +
+            tr(" с")
+        : QString(),
+      point
+        ? QString::number(point->y(), 'f', m_impl->chartSettings.decimals)
         : QStringLiteral("—"),
       entry->series->color()
     });
@@ -626,11 +655,9 @@ void ArchiveChartView::drawMeasurementPanel(
     QStringLiteral("Время: %1 с")
       .arg(m_impl->cursorX, 0, 'f', 3);
 
-  qreal nameWidth =
-    metrics.horizontalAdvance(timeText) +
-    (isMeasurementCursorLocked() ? 20.0 : 0.0);
-
+  qreal nameWidth = 0.0;
   qreal valueWidth = 0.0;
+  qreal timeWidth = 0.0;
 
   for (const auto& row : rows)
   {
@@ -638,18 +665,37 @@ void ArchiveChartView::drawMeasurementPanel(
       nameWidth,
       qreal(metrics.horizontalAdvance(row.name)));
 
+    timeWidth = std::max(
+      timeWidth,
+      qreal(metrics.horizontalAdvance(row.time)));
+
     valueWidth = std::max(
       valueWidth,
       qreal(metrics.horizontalAdvance(row.value)));
   }
 
-  const qreal panelWidth =
-    padding * 2.0 +
+  // зафиксируем промежутки
+  constexpr qreal columnSpacing = 12.0;
+
+  const qreal headerWidth =
+    metrics.horizontalAdvance(timeText) +
+    (isMeasurementCursorLocked() ? 20.0 : 0.0);
+
+  const qreal contentWidth =
     markerSize +
     spacing +
     nameWidth +
-    spacing * 2.0 +
+    columnSpacing +
+    (nearestMode
+       ? timeWidth + columnSpacing
+       : 0.0) +
     valueWidth;
+
+  const qreal panelWidth =
+    padding * 2.0 +
+    std::max(
+      contentWidth,
+      headerWidth);
 
   const qreal panelHeight =
     padding * 2.0 +
@@ -736,9 +782,22 @@ void ArchiveChartView::drawMeasurementPanel(
 
     painter->setPen(textColor);
 
+    const qreal nameX =
+      left + markerSize + spacing;
+
+    const qreal timeX =
+      nameX + nameWidth + columnSpacing;
+
     painter->drawText(
-      QPointF(left + markerSize + spacing, baseline),
+      QPointF(nameX, baseline),
       row.name);
+
+    if (nearestMode && !row.time.isEmpty())
+    {
+      painter->drawText(
+        QPointF(timeX, baseline),
+        row.time);
+    }
 
     painter->drawText(
       QPointF(
@@ -766,8 +825,57 @@ void ArchiveChartView::captureMeasurement()
 
     m_impl->lockedValues.push_back({
       entry->id,
-      entry->series->valueAt(m_impl->cursorX)
+      measurementPoint(
+        entry->series,
+        m_impl->cursorX)
     });
+  }
+}
+
+std::optional<QPointF>
+ArchiveChartView::measurementPoint(
+  const ArchiveChartSeries* series,
+  double x) const
+{
+  if (!series)
+    return std::nullopt;
+
+  if (m_impl->chartSettings.markerMode ==
+      ChartMarkerMode::NearestSample)
+  {
+    return series->nearestSample(x);
+  }
+
+  const auto value = series->valueAt(x);
+
+  if (!value)
+    return std::nullopt;
+
+  return QPointF(x, *value);
+}
+
+void ArchiveChartView::setTimeOrigin(
+  Timestamp timestamp)
+{
+  m_impl->archiveOrigin = timestamp;
+  m_impl->hasArchiveOrigin = true;
+
+  m_impl->timeAxis->setOriginTimestamp(timestamp);
+  m_impl->timeAxis->setZeroTimestamp(timestamp);
+}
+
+void ArchiveChartView::setChartSettings(
+  const ChartSettings& settings)
+{
+  m_impl->chartSettings = settings;
+
+  for (const auto& context : m_impl->entries)
+  {
+    if (context->series)
+    {
+      context->series->setLineWidth(
+        settings.lineWidth);
+    }
   }
 }
 
@@ -930,14 +1038,35 @@ void ArchiveChartView::drawForeground(
       continue;
     }
 
-    const auto position =
-      entry->series->positionAt(
-        m_impl->cursorX);
+    std::optional<QPointF> point;
 
-    if (!position)
+    if (isMeasurementCursorLocked())
+    {
+      const auto it = std::find_if(
+        m_impl->lockedValues.begin(),
+        m_impl->lockedValues.end(),
+        [id = entry->id](const auto& item)
+        {
+          return item.id == id;
+        });
+
+      if (it != m_impl->lockedValues.end())
+        point = it->point;
+    }
+    else
+    {
+      point = measurementPoint(
+        entry->series,
+        m_impl->cursorX);
+    }
+
+    if (!point)
       continue;
 
-    if (!plot.contains(*position))
+    const auto position =
+      entry->series->positionAt(*point);
+
+    if (!position || !plot.contains(*position))
       continue;
 
     const QColor color =

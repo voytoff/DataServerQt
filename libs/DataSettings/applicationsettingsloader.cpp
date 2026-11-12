@@ -199,18 +199,62 @@ bool ApplicationSettingsLoader::load(
 
   if (sections.testFlag(SettingsSection::Table))
   {
+    s.beginGroup("Table");
+
     const int decimals =
       s.value(
-         "Table/Decimals",
+         "Decimals",
          result.table.decimals).toInt();
 
     if (decimals < 0 || decimals > 12)
     {
-      error = "Некорректное количество знаков после запятой";
+      error = "Некорректное количество знаков после запятой для таблиц";
       return false;
     }
 
     result.table.decimals = decimals;
+
+    s.endGroup();
+  }
+
+  // Chart
+
+  if (sections.testFlag(SettingsSection::Chart))
+  {
+    s.beginGroup("Chart");
+
+    result.chart.lineWidth =
+      std::clamp(
+        s.value(
+           "LineWidth",
+           result.chart.lineWidth).toInt(),
+        1,
+        3);
+
+    const QString mode =
+      s.value(
+         "MarkerMode",
+         "Interpolated").toString();
+
+    result.chart.markerMode =
+      mode == "NearestSample"
+        ? ChartMarkerMode::NearestSample
+        : ChartMarkerMode::Interpolated;
+
+    const int decimals =
+      s.value(
+         "Decimals",
+         result.chart.decimals).toInt();
+
+    if (decimals < 0 || decimals > 12)
+    {
+      error = "Некорректное количество знаков после запятой для графиков";
+      return false;
+    }
+
+    result.chart.decimals = decimals;
+
+    s.endGroup();
   }
 
   if (s.status() != QSettings::NoError)
@@ -365,9 +409,37 @@ bool ApplicationSettingsLoader::save(
 
   if (sections.testFlag(SettingsSection::Table))
   {
+    s.beginGroup("Table");
+
     s.setValue(
-      "Table/Decimals",
+      "Decimals",
       settings.table.decimals);
+
+    s.endGroup();
+  }
+
+  // Chart
+
+  if (sections.testFlag(SettingsSection::Chart))
+  {
+    s.beginGroup("Chart");
+
+    s.setValue(
+      "LineWidth",
+      settings.chart.lineWidth);
+
+    s.setValue(
+      "MarkerMode",
+      settings.chart.markerMode ==
+          ChartMarkerMode::NearestSample
+        ? "NearestSample"
+        : "Interpolated");
+
+    s.setValue(
+      "Decimals",
+      settings.chart.decimals);
+
+    s.endGroup();
   }
 
   s.sync();

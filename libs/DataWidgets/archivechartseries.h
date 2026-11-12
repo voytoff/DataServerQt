@@ -1,6 +1,5 @@
 #pragma once
 
-#include "datatypes.h"
 #include "datawidgets_export.h"
 
 #include <QObject>
@@ -57,15 +56,28 @@ public:
   [[nodiscard]]
   std::optional<QPointF> positionAt(
     double x) const;
+  [[nodiscard]]
+  std::optional<QPointF> positionAt(
+    const QPointF& point) const;
 
   [[nodiscard]]
   QColor color() const noexcept;
 
   void refreshAppearance();
 
+  void setLineWidth(int width);
+
+  [[nodiscard]]
+  int lineWidth() const noexcept;
+
+  [[nodiscard]]
+  std::optional<QPointF> nearestSample(
+    double x) const;
+
 private:
   void updateLegend();
 
+private:
   TimeChartView* m_view = nullptr;
 
   QLineSeries* m_legendSeries = nullptr;
@@ -77,6 +89,8 @@ private:
 
   QColor m_color = Qt::blue;
   bool m_visible = true;
+
+  int m_lineWidth = 1;
 };
 
 }

@@ -49,6 +49,7 @@ DataViewerMainWindow::DataViewerMainWindow(
   createActions();
   createUi();
 
+  updateChartSettings();
   restoreWindowSettings();
 
   setWindowTitle(tr("DataViewer"));
@@ -179,7 +180,10 @@ void DataViewerMainWindow::createActions()
     m_addTableAction,
     &QAction::triggered,
     this,
-    &DataViewerMainWindow::addTable);
+    [this]()
+    {
+      addTable();
+    });
 
   connect(
     m_settingsAction,
@@ -192,6 +196,24 @@ void DataViewerMainWindow::createActions()
     &QAction::triggered,
     this,
     &toggleColorScheme);
+}
+
+void DataViewerMainWindow::updateActions()
+{
+  const bool archiveOpen =
+    m_archiveReader &&
+    m_archiveReader->isOpen();
+
+  const auto* table = currentTable();
+
+  m_addTableAction->setEnabled(archiveOpen);
+
+  m_frequencyCombo->setEnabled(
+    archiveOpen &&
+    table &&
+    table->view);
+
+  updateFrequencyControl();
 }
 
 void DataViewerMainWindow::createUi()
@@ -235,7 +257,7 @@ void DataViewerMainWindow::createUi()
     [this](int)
     {
       updateSignalTreeChecks();
-      updateFrequencyControl();
+      updateActions();
     });
 
   connect(
@@ -266,6 +288,8 @@ void DataViewerMainWindow::openArchive(
 {
   m_path = path;
 
+  saveTableSettings();
+
   auto reader = std::make_unique<ArchiveReader>();
 
   if (!reader->open(path))
@@ -291,7 +315,23 @@ void DataViewerMainWindow::openArchive(
 
   m_chartView->setArchivePath(path);
 
+  Timestamp firstTimestamp;
+  Timestamp lastTimestamp;
+
+  if (m_archiveReader->timeRange(
+        firstTimestamp,
+        lastTimestamp))
+  {
+    m_chartView->setTimeOrigin(firstTimestamp);
+  }
+
   populateSignalTree();
+
+  restoreTableSettings();
+
+  const auto tables =
+    ViewerSettingsLoader::loadTables(
+      viewerSettingsFile());
 
   statusBar()->showMessage(
     tr("Архив: %1")
@@ -491,6 +531,29 @@ void DataViewerMainWindow::addTable()
   updateFrequencyControl();
 }
 
+void DataViewerMainWindow::addTable(
+  const ViewerTableSettings& settings)
+{
+  addTable();
+
+  auto* table = currentTable();
+
+  if (!table)
+    return;
+
+  table->view->setFrequency(
+    settings.frequency);
+
+  table->frequency =
+    table->view->frequency();
+
+  table->channels = settings.channels;
+
+  updateTableChannels(table);
+  updateSignalTreeChecks();
+  updateFrequencyControl();
+}
+
 void DataViewerMainWindow::closeTable(
   int index)
 {
@@ -671,10 +734,7 @@ void DataViewerMainWindow::updateTableChannels(
 
 void DataViewerMainWindow::updateFrequencyControl()
 {
-  auto* table = currentTable();
-
-  m_frequencyCombo->setEnabled(
-    table && table->view);
+  const auto* table = currentTable();
 
   if (!table || !table->view)
     return;
@@ -702,6 +762,28 @@ void DataViewerMainWindow::restoreWindowSettings()
     m_splitter);
 }
 
+void DataViewerMainWindow::restoreTableSettings()
+{
+  if (!m_archiveReader ||
+      !m_archiveReader->isOpen())
+  {
+    return;
+  }
+
+  const auto tables =
+    ViewerSettingsLoader::loadTables(
+      viewerSettingsFile());
+
+  for (const auto& settings : tables)
+  {
+    addTable(settings);
+  }
+
+  m_tabs->setCurrentWidget(m_chartView);
+
+  updateActions();
+}
+
 void DataViewerMainWindow::saveWindowSettings() const
 {
   WindowSettings::saveGeometry(
@@ -717,6 +799,12 @@ void DataViewerMainWindow::saveWindowSettings() const
 
 void DataViewerMainWindow::saveTableSettings() const
 {
+  if (!m_archiveReader ||
+      !m_archiveReader->isOpen())
+  {
+    return;
+  }
+
   std::vector<ViewerTableSettings> tables;
 
   tables.reserve(m_tables.size());
@@ -738,14 +826,15 @@ void DataViewerMainWindow::saveTableSettings() const
   }
 
   ViewerSettingsLoader::saveTables(
-    m_configFile,
+    viewerSettingsFile(),
     tables);
 }
 
 void DataViewerMainWindow::showSettings()
 {
   constexpr SettingsSections sections =
-    SettingsSection::Table;
+    SettingsSection::Table |
+    SettingsSection::Chart;
 
   ApplicationSettings settings;
   QString error;
@@ -769,7 +858,57 @@ void DataViewerMainWindow::showSettings()
     sections,
     this);
 
+  connect(
+    &dialog,
+    &ApplicationSettingsDialog::settingsApplied,
+    this,
+    [this](SettingsSections changed)
+    {
+      if (!changed.testFlag(SettingsSection::Chart))
+        return;
+
+      updateChartSettings();
+    });
+
   dialog.exec();
+}
+
+QString DataViewerMainWindow::viewerSettingsFile() const
+{
+  if (m_path.empty())
+    return {};
+
+  const auto path =
+    m_path / "viewer.ini";
+
+#ifdef Q_OS_WIN
+  return QString::fromStdWString(path.wstring());
+#else
+  const auto utf8 = path.u8string();
+
+  return QString::fromUtf8(
+    reinterpret_cast<const char*>(utf8.data()),
+    static_cast<qsizetype>(utf8.size()));
+#endif
+}
+
+void DataViewerMainWindow::updateChartSettings()
+{
+  ApplicationSettings settings;
+  QString error;
+
+  if (!ApplicationSettingsLoader::load(
+        m_configFile,
+        settings,
+        error,
+        SettingsSection::Chart,
+        true))
+  {
+    return;
+  }
+
+  m_chartView->setChartSettings(
+    settings.chart);
 }
 
 void DataViewerMainWindow::closeEvent(

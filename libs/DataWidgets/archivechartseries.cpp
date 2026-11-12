@@ -4,9 +4,11 @@
 #include <QColor>
 #include <QLegendMarker>
 #include <QLegend>
+#include <QChart>
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace qds
 {
@@ -83,7 +85,10 @@ void ArchiveChartSeries::setSegments(
       {
         auto* series = new QLineSeries();
 
-        series->setColor(m_color);
+        QPen pen = series->pen();
+        pen.setColor(m_color);
+        pen.setWidth(m_lineWidth);
+        series->setPen(pen);
 
         m_view->addSeries(series);
 
@@ -382,6 +387,43 @@ std::optional<QPointF> ArchiveChartSeries::positionAt(
     reference);
 }
 
+std::optional<QPointF>
+ArchiveChartSeries::positionAt(
+  const QPointF& point) const
+{
+  QXYSeries* reference = nullptr;
+
+  for (auto* series : m_lines)
+  {
+    if (series->isVisible() &&
+        !series->points().empty())
+    {
+      reference = series;
+      break;
+    }
+  }
+
+  if (!reference)
+  {
+    for (auto* series : m_points)
+    {
+      if (series->isVisible() &&
+          !series->points().empty())
+      {
+        reference = series;
+        break;
+      }
+    }
+  }
+
+  if (!reference)
+    return std::nullopt;
+
+  return m_view->chart()->mapToPosition(
+    point,
+    reference);
+}
+
 QColor ArchiveChartSeries::color() const noexcept
 {
   return m_color;
@@ -389,15 +431,49 @@ QColor ArchiveChartSeries::color() const noexcept
 
 void ArchiveChartSeries::refreshAppearance()
 {
-  m_legendSeries->setColor(m_color);
+  QPen legendPen = m_legendSeries->pen();
+  legendPen.setColor(m_color);
+  legendPen.setWidth(m_lineWidth);
+  m_legendSeries->setPen(legendPen);
 
   for (auto* series : m_lines)
-    series->setColor(m_color);
+  {
+    QPen pen = series->pen();
+    pen.setColor(m_color);
+    pen.setWidth(m_lineWidth);
+    series->setPen(pen);
+  }
 
   for (auto* series : m_points)
     series->setColor(m_color);
 
   updateLegend();
+}
+
+void ArchiveChartSeries::setLineWidth(int width)
+{
+  width = std::clamp(width, 1, 3);
+
+  if (m_lineWidth == width)
+    return;
+
+  m_lineWidth = width;
+
+  for (auto* series : m_lines)
+  {
+    QPen pen = series->pen();
+    pen.setWidth(m_lineWidth);
+    series->setPen(pen);
+  }
+
+  QPen pen = m_legendSeries->pen();
+  pen.setWidth(m_lineWidth);
+  m_legendSeries->setPen(pen);
+}
+
+int ArchiveChartSeries::lineWidth() const noexcept
+{
+  return m_lineWidth;
 }
 
 void ArchiveChartSeries::updateLegend()
@@ -418,6 +494,71 @@ void ArchiveChartSeries::updateLegend()
     for (auto* marker : legend->markers(series))
       marker->setVisible(false);
   }
+}
+
+std::optional<QPointF>
+ArchiveChartSeries::nearestSample(double x) const
+{
+  if (!m_visible || !std::isfinite(x))
+    return std::nullopt;
+
+  std::optional<QPointF> nearest;
+  double minDistance =
+    std::numeric_limits<double>::infinity();
+
+  const auto consider =
+    [&](const QPointF& point)
+  {
+    if (!std::isfinite(point.x()) ||
+        !std::isfinite(point.y()))
+    {
+      return;
+    }
+
+    const double distance =
+      std::abs(point.x() - x);
+
+    if (distance < minDistance)
+    {
+      minDistance = distance;
+      nearest = point;
+    }
+  };
+
+  const auto search =
+    [&](const auto& series)
+  {
+    if (!series->isVisible())
+      return;
+
+    const auto points = series->points();
+
+    if (points.empty())
+      return;
+
+    const auto it = std::lower_bound(
+      points.cbegin(),
+      points.cend(),
+      x,
+      [](const QPointF& point, double value)
+      {
+        return point.x() < value;
+      });
+
+    if (it != points.cend())
+      consider(*it);
+
+    if (it != points.cbegin())
+      consider(*(it - 1));
+  };
+
+  for (const auto* series : m_lines)
+    search(series);
+
+  for (const auto* series : m_points)
+    search(series);
+
+  return nearest;
 }
 
 }
