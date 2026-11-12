@@ -230,6 +230,12 @@ void BaseTableView::setPasteInsertRowsEnabled(
   m_pasteInsertRowsEnabled = enabled;
 }
 
+void BaseTableView::setRowHeight(
+  int height)
+{
+  verticalHeader()->setDefaultSectionSize(height);
+}
+
 void BaseTableView::keyPressEvent(
   QKeyEvent* event)
 {

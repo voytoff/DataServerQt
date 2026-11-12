@@ -41,6 +41,8 @@ public:
   void setPasteInsertRowsEnabled(
     bool enabled) noexcept;
 
+  void setRowHeight(int height);
+
 protected:
   void keyPressEvent(QKeyEvent* event) override;
 

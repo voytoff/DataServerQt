@@ -27,6 +27,48 @@ class QSplitter;
 class QComboBox;
 class ConfigurationSelector;
 
+/*
+CREATE TABLE measurement_unit (
+  id INT NOT NULL AUTO_INCREMENT,
+  name VARCHAR(128) NOT NULL,
+  symbol VARCHAR(32) NOT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_measurement_unit_name (name),
+  UNIQUE KEY uq_measurement_unit_symbol (symbol)
+)
+ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO measurement_unit (name, symbol)
+VALUES
+  ('Безразмерная величина', '1'),
+  ('Вольт', 'В'),
+  ('Милливольт', 'мВ'),
+  ('Ампер', 'А'),
+  ('Миллиампер', 'мА'),
+  ('Градус Цельсия', '°C'),
+  ('Паскаль', 'Па'),
+  ('Килопаскаль', 'кПа'),
+  ('Мегапаскаль', 'МПа'),
+  ('Герц', 'Гц'),
+  ('Метр', 'м'),
+  ('Миллиметр', 'мм'),
+  ('Секунда', 'с');
+
+
+  ALTER TABLE signal_type
+  ADD COLUMN measurement_unit_id INT DEFAULT NULL
+    AFTER description,
+  ADD KEY ix_signal_type_measurement_unit
+    (measurement_unit_id),
+  ADD CONSTRAINT fk_signal_type_measurement_unit
+    FOREIGN KEY (measurement_unit_id)
+    REFERENCES measurement_unit (id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT;
+ */
+
 namespace qds
 {
 

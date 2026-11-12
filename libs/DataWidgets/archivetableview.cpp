@@ -38,6 +38,7 @@ ArchiveTableView::ArchiveTableView(
   m_impl->model = new ArchiveTableModel(this);
 
   setModel(m_impl->model);
+  setRowHeight(18);
 
   setEditTriggers(QAbstractItemView::NoEditTriggers);
   setAlternatingRowColors(true);
@@ -48,8 +49,8 @@ ArchiveTableView::ArchiveTableView(
     QFontDatabase::FixedFont);
 
   font.setPointSize(9);
-  //font.setStyleHint(QFont::Monospace);
-  //font.setFixedPitch(true);
+  font.setStyleHint(QFont::Monospace);
+  font.setFixedPitch(true);
 
   setFont(font);
 

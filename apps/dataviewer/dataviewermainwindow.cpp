@@ -1,5 +1,6 @@
 #include "dataviewermainwindow.h"
 #include "applicationsettingsdialog.h"
+#include "rowheightdelegate.h"
 #include "viewersettingsloader.h"
 #include "windowsettings.h"
 #include "colorschemesettings.h"
@@ -32,6 +33,7 @@
 #include <QTabBar>
 #include <QTreeWidgetItemIterator>
 #include <QSignalBlocker>
+#include <QGraphicsLayout>
 
 #include <algorithm>
 
@@ -221,6 +223,8 @@ void DataViewerMainWindow::createUi()
   m_splitter = new QSplitter(Qt::Horizontal, this);
 
   m_signalTree = new QTreeWidget(m_splitter);
+  m_signalTree->setItemDelegate(
+    new RowHeightDelegate(22, m_signalTree));
 
   m_signalTree->setHeaderLabels({
     tr("Сигнал"),
@@ -237,14 +241,19 @@ void DataViewerMainWindow::createUi()
 
 
   m_tabs = new QTabWidget(m_splitter);
+  m_tabs->setIconSize(QSize(20, 20));
 
   m_tabs->setTabsClosable(true);
   m_tabs->setMovable(false);
 
   m_chartView = new ArchiveChartView(m_tabs);
 
+  if (m_chartView->chart()->layout())
+    m_chartView->chart()->layout()->setContentsMargins(0, 0, 0, 0);
+
   m_tabs->addTab(
     m_chartView,
+    themedSvgIcon(":/images/chart.svg"),
     tr("График"));
 
   m_splitter->addWidget(m_signalTree);
@@ -410,8 +419,17 @@ void DataViewerMainWindow::populateSignalTree()
         it = groups.emplace(key, group).first;
       }
 
+      const QString frequency =
+        tr("%1 Гц").arg(file.frequency);
+
       auto* item =
-        new QTreeWidgetItem(it->second, {name});
+        new QTreeWidgetItem(
+          it->second,
+          {name, frequency});
+
+      item->setTextAlignment(
+        1,
+        Qt::AlignRight | Qt::AlignVCenter);
 
       item->setFlags(
         item->flags() | Qt::ItemIsUserCheckable);
@@ -454,9 +472,9 @@ void DataViewerMainWindow::populateSignalTree()
 
       item->setIcon(0, QIcon(pixmap));
     }
-
-    updateSignalTreeChecks();
   }
+
+  updateSignalTreeChecks();
 
   m_signalTree->sortItems(
     0,

@@ -61,7 +61,7 @@ ConfigurationEditor::ConfigurationEditor(
     new QTreeView(this);
 
   m_configurationTree->setItemDelegate(
-    new RowHeightDelegate(24, m_configurationTree));
+    new RowHeightDelegate(22, m_configurationTree));
 
   auto* header = m_configurationTree->header();
 

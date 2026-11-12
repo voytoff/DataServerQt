@@ -5,5 +5,6 @@
         <file>images/theme.svg</file>
         <file>images/newtable.svg</file>
         <file>images/settings.svg</file>
+        <file>images/chart.svg</file>
     </qresource>
 </RCC>
