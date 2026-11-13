@@ -81,7 +81,7 @@ add_custom_command(
 
 target_link_libraries(dataserver
     PRIVATE
-      Configuration
+      configuration
       Formulas
       SignalStorage
       Engine

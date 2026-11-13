@@ -40,7 +40,7 @@ target_include_directories(dataarchive
 
 target_link_libraries(dataarchive
     PUBLIC
-      Configuration
+      configuration
       SignalStorage
       DataSource
       SignalProcessor

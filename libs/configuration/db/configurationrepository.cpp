@@ -1601,12 +1601,17 @@ WHERE configuration_id = :configuration_id
 bool ConfigurationRepository::signalTypes(
   std::vector<SignalTypeInfo>& types)
 {
-  types.clear();
+  std::vector<SignalTypeInfo> result;
 
   auto query = getQuery(R"(
-SELECT id, name, description
+SELECT
+  id,
+  name,
+  description,
+  measurement_unit_id
 FROM signal_type
-ORDER BY name)");
+ORDER BY name;
+  )");
 
   if (!exec(query))
     return false;
@@ -1615,12 +1620,30 @@ ORDER BY name)");
   {
     SignalTypeInfo info;
 
-    info.id.value = query.value("id").toUInt();
-    info.name = query.value("name").toString().toStdString();
-    info.description = query.value("description").toString().toStdString();
+    info.id = SignalTypeId{
+      query.value("id").toUInt()
+    };
 
-    types.push_back(std::move(info));
+    info.name =
+      query.value("name").toString().toStdString();
+
+    info.description =
+      query.value("description").toString().toStdString();
+
+    info.measurementUnitId = MeasurementUnitId{
+      query.value("measurement_unit_id").toUInt()
+    };
+
+    result.push_back(std::move(info));
   }
+
+  if (query.lastError().isValid())
+  {
+    setError(query);
+    return false;
+  }
+
+  types = std::move(result);
 
   return true;
 }
@@ -2347,6 +2370,208 @@ WHERE sensor_type_id = :sensor_type_id
   return loadCalibrationData(calibration);
 }
 
+bool ConfigurationRepository::measurementUnits(
+  std::vector<MeasurementUnit>& units)
+{
+  std::vector<MeasurementUnit> result;
+
+  auto query = getQuery(R"(
+SELECT
+  id,
+  name,
+  symbol
+FROM measurement_unit
+ORDER BY name;
+  )");
+
+  if (!exec(query))
+    return false;
+
+  while (query.next())
+  {
+    MeasurementUnit unit;
+
+    unit.id = MeasurementUnitId{
+      query.value("id").toUInt()
+    };
+
+    unit.name =
+      query.value("name").toString().toStdString();
+
+    unit.symbol =
+      query.value("symbol").toString().toStdString();
+
+    result.push_back(std::move(unit));
+  }
+
+  if (query.lastError().isValid())
+  {
+    setError(query);
+    return false;
+  }
+
+  units = std::move(result);
+
+  return true;
+}
+
+bool ConfigurationRepository::createMeasurementUnit(
+  const QString& name,
+  const QString& symbol,
+  MeasurementUnitId& id)
+{
+  const QString trimmedName = name.trimmed();
+  const QString trimmedSymbol = symbol.trimmed();
+
+  if (trimmedName.isEmpty() ||
+      trimmedSymbol.isEmpty())
+  {
+    return false;
+  }
+
+  auto query = getQuery(R"(
+INSERT INTO measurement_unit
+  (name, symbol)
+VALUES
+  (:name, :symbol);
+  )");
+
+  query.bindValue(":name", trimmedName);
+  query.bindValue(":symbol", trimmedSymbol);
+
+  if (!exec(query))
+    return false;
+
+  const auto newId = query.lastInsertId();
+
+  if (!newId.isValid() || newId.toUInt() == 0)
+    return false;
+
+  id = MeasurementUnitId{newId.toUInt()};
+
+  return true;
+}
+
+bool ConfigurationRepository::updateMeasurementUnit(
+  const MeasurementUnit& unit)
+{
+  if (!unit.id ||
+      unit.name.empty() ||
+      unit.symbol.empty())
+  {
+    return false;
+  }
+
+  auto query = getQuery(R"(
+UPDATE measurement_unit
+SET
+  name = :name,
+  symbol = :symbol
+WHERE id = :id;
+  )");
+
+  query.bindValue(":id", unit.id.value);
+
+  query.bindValue(
+    ":name",
+    QString::fromStdString(unit.name));
+
+  query.bindValue(
+    ":symbol",
+    QString::fromStdString(unit.symbol));
+
+  return exec(query);
+}
+
+bool ConfigurationRepository::removeMeasurementUnit(
+  MeasurementUnitId id)
+{
+  auto query = getQuery(R"(
+DELETE FROM measurement_unit
+WHERE id = :id;
+  )");
+
+  query.bindValue(":id", id.value);
+
+  return exec(query);
+}
+
+bool ConfigurationRepository::createSignalType(
+  const QString& name,
+  SignalTypeId& id)
+{
+  auto query = getQuery(R"(
+INSERT INTO signal_type
+  (name, description, measurement_unit_id)
+VALUES
+  (:name, '', NULL);
+  )");
+
+  query.bindValue(":name", name.trimmed());
+
+  if (!exec(query))
+    return false;
+
+  const auto newId = query.lastInsertId();
+
+  if (!newId.isValid() || newId.toUInt() == 0)
+    return false;
+
+  id = SignalTypeId{newId.toUInt()};
+
+  return true;
+}
+
+bool ConfigurationRepository::updateSignalType(
+  const SignalTypeInfo& type)
+{
+  auto query = getQuery(R"(
+UPDATE signal_type
+SET
+  name = :name,
+  description = :description,
+  measurement_unit_id = :measurement_unit_id
+WHERE id = :id;
+  )");
+
+  query.bindValue(":id", type.id.value);
+
+  query.bindValue(
+    ":name",
+    QString::fromStdString(type.name));
+
+  query.bindValue(
+    ":description",
+    QString::fromStdString(type.description));
+
+  if (type.measurementUnitId)
+  {
+    query.bindValue(
+      ":measurement_unit_id",
+      type.measurementUnitId.value);
+  }
+  else
+  {
+    query.bindValue(
+      ":measurement_unit_id",
+      QVariant(QMetaType::fromType<int>()));
+  }
+
+  return exec(query);
+}
+
+bool ConfigurationRepository::removeSignalType(
+  SignalTypeId id)
+{
+  auto query = getQuery(R"(
+DELETE FROM signal_type
+WHERE id = :id;
+  )");
+
+  query.bindValue(":id", id.value);
+
+  return exec(query);
+}
 
 bool ConfigurationRepository::loadCalibrationData(
   Calibration& calibration)

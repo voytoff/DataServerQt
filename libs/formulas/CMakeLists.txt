@@ -34,6 +34,6 @@ target_include_directories(Formulas
 
 target_link_libraries(Formulas
     PUBLIC
-        Configuration
+        configuration
         SignalStorage
 )

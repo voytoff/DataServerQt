@@ -16,6 +16,7 @@ SensorDialog::SensorDialog(
   : QDialog(parent)
 {
   setWindowTitle(tr("Новый датчик"));
+  setFixedSize(280, 120);
 
   auto* layout = new QFormLayout(this);
 
@@ -36,6 +37,12 @@ SensorDialog::SensorDialog(
   layout->addRow(
     tr("Тип датчика:"),
     m_typeCombo);
+
+  layout->addItem(
+    new QSpacerItem(
+      0, 0,
+      QSizePolicy::Minimum,
+      QSizePolicy::Expanding));
 
   auto* buttons = new QDialogButtonBox(
     QDialogButtonBox::Ok |

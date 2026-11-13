@@ -7,18 +7,18 @@
 #include "configurationsignalpropertiesmodel.h"
 #include "configurationtreemodel.h"
 #include "basetableview.h"
-#include "db/configurationrepository.h"
+#include "configurationrepository.h"
 #include "mainwindow.h"
 #include "sensormodel.h"
 #include "sensortypemodel.h"
 #include "sensorpropertiesmodel.h"
+#include "measurementunitmodel.h"
+#include "signaltypemodel.h"
 
 #include <QWidget>
 #include <QSortFilterProxyModel>
 
-class QSqlTableModel;
 class QSqlRelationalTableModel;
-class QTableView;
 class QTreeView;
 class QSqlDatabase;
 class QToolBar;
@@ -26,48 +26,6 @@ class QAction;
 class QSplitter;
 class QComboBox;
 class ConfigurationSelector;
-
-/*
-CREATE TABLE measurement_unit (
-  id INT NOT NULL AUTO_INCREMENT,
-  name VARCHAR(128) NOT NULL,
-  symbol VARCHAR(32) NOT NULL,
-  PRIMARY KEY (id),
-  UNIQUE KEY uq_measurement_unit_name (name),
-  UNIQUE KEY uq_measurement_unit_symbol (symbol)
-)
-ENGINE=InnoDB
-DEFAULT CHARSET=utf8mb4
-COLLATE=utf8mb4_unicode_ci;
-
-INSERT INTO measurement_unit (name, symbol)
-VALUES
-  ('Безразмерная величина', '1'),
-  ('Вольт', 'В'),
-  ('Милливольт', 'мВ'),
-  ('Ампер', 'А'),
-  ('Миллиампер', 'мА'),
-  ('Градус Цельсия', '°C'),
-  ('Паскаль', 'Па'),
-  ('Килопаскаль', 'кПа'),
-  ('Мегапаскаль', 'МПа'),
-  ('Герц', 'Гц'),
-  ('Метр', 'м'),
-  ('Миллиметр', 'мм'),
-  ('Секунда', 'с');
-
-
-  ALTER TABLE signal_type
-  ADD COLUMN measurement_unit_id INT DEFAULT NULL
-    AFTER description,
-  ADD KEY ix_signal_type_measurement_unit
-    (measurement_unit_id),
-  ADD CONSTRAINT fk_signal_type_measurement_unit
-    FOREIGN KEY (measurement_unit_id)
-    REFERENCES measurement_unit (id)
-    ON UPDATE CASCADE
-    ON DELETE RESTRICT;
- */
 
 namespace qds
 {
@@ -103,6 +61,8 @@ private:
   void updateSensorTypes();
   void updateSensors();
 
+  void updateSignalTypes();
+
   void editCalibration();
 
   void editConfiguration();
@@ -120,6 +80,11 @@ private:
   QModelIndex currentSignalIndex() const;
 
   void validateConfiguration();
+
+  /// Actions
+
+  void doAdd();
+  void doDelete();
 
 private:
   ConfigurationSelector* m_configurationCombo = nullptr;
@@ -178,6 +143,12 @@ private:
 
   QSortFilterProxyModel* m_rawSignalsProxy = nullptr;
   QSortFilterProxyModel* m_calculatedSignalsProxy = nullptr;
+
+  BaseTableView* m_measurementUnitsView = nullptr;
+  MeasurementUnitModel* m_measurementUnitModel = nullptr;
+
+  BaseTableView* m_signalTypesView = nullptr;
+  SignalTypeModel* m_signalTypeModel = nullptr;
 
 signals:
   void statusMessage(

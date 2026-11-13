@@ -6,6 +6,8 @@
 #include "configurationpropertiesdelegate.h"
 #include "configurationsignalpropertiesdelegate.h"
 #include "configurationsignaldialog.h"
+#include "measurementunitdelegate.h"
+#include "measurementunitdialog.h"
 #include "rowheightdelegate.h"
 #include "sensordialog.h"
 #include "calibrationdialog.h"
@@ -42,8 +44,10 @@
 #include <QSignalBlocker>
 #include <QApplication>
 #include <QStyleHints>
-
 #include <QToolButton>
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QFormLayout>
 
 namespace qds
 {
@@ -166,10 +170,8 @@ ConfigurationEditor::ConfigurationEditor(
     ConfigurationSignalModel::Source, true);
   //=============================================================
 
-
   m_signalPropertiesView =
     new BaseTableView(150, 4, 0, 4, 0, this);
-
 
   m_signalPropertiesModel =
     new ConfigurationSignalPropertiesModel(
@@ -179,24 +181,6 @@ ConfigurationEditor::ConfigurationEditor(
   m_signalPropertiesDelegate =
     new ConfigurationSignalPropertiesDelegate(
       m_signalPropertiesView);
-
-
-  std::vector<SignalTypeInfo> signalTypes;
-
-  if (!m_repository.signalTypes(signalTypes))
-  {
-    QMessageBox::warning(
-      this,
-      tr("Ошибка загрузки сигналов"),
-      m_repository.lastError().text());
-
-    return;
-  }
-
-  m_signalModel->setSignalTypes(signalTypes);
-  m_signalPropertiesModel->setSignalTypes(signalTypes);
-  m_signalPropertiesDelegate->setSignalTypes(std::move(signalTypes));
-
 
   m_signalPropertiesView->setModel(
     m_signalPropertiesModel);
@@ -261,6 +245,127 @@ ConfigurationEditor::ConfigurationEditor(
     themedSvgIcon(":/images/signal.svg"),
     tr("Сигналы"));
 
+  /// единицы измерения ======================================
+
+  m_measurementUnitsView =
+    new BaseTableView(150, 4, 0, 4, 0, this);
+
+  m_tabs->addTab(
+    m_measurementUnitsView,
+    themedSvgIcon(":/images/unit.svg"),
+    tr("Единицы измерения"));
+
+  m_measurementUnitModel =
+    new MeasurementUnitModel(
+      m_repository, this);
+
+  if (!m_measurementUnitModel->load())
+  {
+    const auto& error = m_repository.lastError();
+
+    QMessageBox::warning(
+      this,
+      tr("Ошибка загрузки единиц измерения"),
+      error.isValid()
+        ? error.text()
+        : tr("Не удалось загрузить единицы измерения"));
+  }
+
+  m_measurementUnitsView->setModel(
+    m_measurementUnitModel);
+
+  m_measurementUnitsView->hideColumn(0);
+
+  connect(
+    m_measurementUnitModel,
+    &MeasurementUnitModel::operationFailed,
+    this,
+    [this](const QString& message)
+    {
+      QMessageBox::warning(
+        this,
+        tr("Единицы измерения"),
+        message);
+    });
+
+  connect(
+    m_measurementUnitsView->selectionModel(),
+    &QItemSelectionModel::currentChanged,
+    this,
+    [this]()
+    {
+      updateActions();
+    });
+
+  /// типы сигналов ========================================
+
+  m_signalTypesView =
+    new BaseTableView(150, 4, 0, 4, 0, this);
+
+  m_tabs->addTab(
+    m_signalTypesView,
+    themedSvgIcon(":/images/ctype.svg"),
+    tr("Типы сигналов"));
+
+  m_signalTypeModel =
+    new SignalTypeModel(m_repository, this);
+
+  m_signalTypeModel->setMeasurementUnits(
+    m_measurementUnitModel->measurementUnits());
+
+  if (!m_signalTypeModel->load())
+  {
+    const auto& error = m_repository.lastError();
+
+    QMessageBox::warning(
+      this,
+      tr("Ошибка загрузки типов сигналов"),
+      error.isValid()
+        ? error.text()
+        : tr("Не удалось загрузить типы сигналов"));
+  }
+
+  m_signalTypesView->setModel(m_signalTypeModel);
+
+  m_signalTypesView->hideColumn(SignalTypeModel::Id);
+
+  m_signalTypesView->setItemDelegateForColumn(
+    SignalTypeModel::MeasurementUnit,
+    new MeasurementUnitDelegate(
+      *m_measurementUnitModel,
+      m_signalTypesView));
+
+  connect(
+    m_measurementUnitModel,
+    &MeasurementUnitModel::measurementUnitsChanged,
+    this,
+    [this]()
+    {
+      m_signalTypeModel->setMeasurementUnits(
+        m_measurementUnitModel->measurementUnits());
+    });
+
+  connect(
+    m_signalTypeModel,
+    &SignalTypeModel::operationFailed,
+    this,
+    [this](const QString& message)
+    {
+      QMessageBox::warning(
+        this,
+        tr("Ошибка изменения типа сигнала"),
+        message);
+    });
+
+  connect(
+    m_signalTypesView->selectionModel(),
+    &QItemSelectionModel::currentRowChanged,
+    this,
+    [this]()
+    {
+      updateActions();
+    });
+
   /// типы датчиков ========================================
   m_sensorTypesView =
     new BaseTableView(150, 4, 0, 4, 0, this);
@@ -313,7 +418,6 @@ ConfigurationEditor::ConfigurationEditor(
     m_sensorTypesView,
     themedSvgIcon(":/images/stype.svg"),
     tr("Типы датчиков"));
-
 
   /// датчики ======================================
   m_sensorsView =
@@ -788,9 +892,15 @@ ConfigurationEditor::ConfigurationEditor(
       updateSensors();
     });
 
-
-  //
   updateSensors();
+
+  connect(
+    m_signalTypeModel,
+    &SignalTypeModel::signalTypesChanged,
+    this,
+    &ConfigurationEditor::updateSignalTypes);
+
+  updateSignalTypes();
 }
 
 void ConfigurationEditor::restoreWindowSettings(
@@ -993,223 +1103,13 @@ void ConfigurationEditor::createToolbar(
     m_addAction,
     &QAction::triggered,
     this,
-    [this]()
-    {      
-      if (m_tabs->currentWidget() == m_sensorTypesView)
-      {
-        bool ok = false;
-
-        const QString name =
-          QInputDialog::getText(
-            this,
-            tr("Новый тип датчика"),
-            tr("Название:"),
-            QLineEdit::Normal,
-            {},
-            &ok).trimmed();
-
-        if (!ok || name.isEmpty())
-          return;
-
-        if (m_sensorTypeModel->createSensorType(name))
-        {
-          for (int row = 0;
-               row < m_sensorTypeModel->rowCount();
-               ++row)
-          {
-            const QModelIndex index =
-              m_sensorTypeModel->index(row, 1);
-
-            if (index.data().toString() == name)
-            {
-              m_sensorTypesView->selectRow(row);
-              m_sensorTypesView->scrollTo(index);
-              break;
-            }
-          }
-        }
-
-        return;
-      }
-      else if (m_tabs->currentWidget() == m_sensorsSplitter)
-      {
-        SensorDialog dialog(
-          m_sensorTypeModel->sensorTypes(),
-          this);
-
-        if (dialog.exec() != QDialog::Accepted)
-          return;
-
-        SensorId createdId;
-
-        if (m_sensorModel->createSensor(
-              dialog.sensorName(),
-              dialog.sensorTypeId(),
-              createdId))
-        {
-          const QModelIndex index =
-            m_sensorModel->indexOf(createdId);
-
-          if (index.isValid())
-          {
-            m_sensorsView->setCurrentIndex(index);
-            m_sensorsView->selectRow(index.row());
-            m_sensorsView->scrollTo(index);
-          }
-        }
-
-        return;
-      }
-      else if (m_tabs->currentWidget() == m_signalsSplitter)
-      {
-        if (!currentConfiguration())
-          return;
-
-        ConfigurationSignalDialog dialog(this);
-
-        if (dialog.exec() != QDialog::Accepted)
-          return;
-
-        const QString name = dialog.signalName();
-        const SignalKind kind = dialog.signalKind();
-
-        if (!m_signalModel->createSignal(name, kind))
-          return;
-
-        m_signalTabs->setCurrentIndex(
-          kind == SignalKind::Raw ? 0 : 1);
-
-        auto* view = currentSignalsView();
-
-        auto* proxy =
-          qobject_cast<QSortFilterProxyModel*>(
-            view->model());
-
-        if (!proxy)
-          return;
-
-        const QModelIndex sourceIndex =
-          m_signalModel->index(
-            m_signalModel->rowCount() - 1,
-            ConfigurationSignalModel::Name);
-
-        const QModelIndex proxyIndex =
-          proxy->mapFromSource(sourceIndex);
-
-        if (!proxyIndex.isValid())
-          return;
-
-        view->setCurrentIndex(proxyIndex);
-        view->selectRow(proxyIndex.row());
-        view->scrollTo(proxyIndex);
-
-        m_signalPropertiesModel->setItem(sourceIndex);
-
-        updateActions();
-
-        return;
-      }
-    });
+    &ConfigurationEditor::doAdd);
 
   connect(
     m_removeAction,
     &QAction::triggered,
     this,
-    [this]()
-    {
-      if (m_tabs->currentWidget() == m_sensorTypesView)
-      {
-        const QModelIndex current =
-          m_sensorTypesView->currentIndex();
-
-        const auto* type =
-          m_sensorTypeModel->sensorType(current);
-
-        if (!type)
-          return;
-
-        const QString name =
-          QString::fromStdString(type->name);
-
-        const auto answer = QMessageBox::question(
-          this,
-          tr("Удаление типа датчика"),
-          tr("Удалить тип датчика «%1»?\n"
-             "Это действие нельзя отменить.")
-            .arg(name),
-          QMessageBox::Yes | QMessageBox::No,
-          QMessageBox::No);
-
-        if (answer == QMessageBox::Yes)
-          m_sensorTypeModel->removeSensorType(current);
-
-        return;
-      }
-      else if (m_tabs->currentWidget() == m_sensorsSplitter)
-      {
-        const QModelIndex current =
-          m_sensorsView->currentIndex();
-
-        const auto* sensor =
-          m_sensorModel->sensor(current);
-
-        if (!sensor)
-          return;
-
-        const QString name =
-          QString::fromStdString(sensor->name);
-
-        const auto answer = QMessageBox::question(
-          this,
-          tr("Удаление датчика"),
-          tr("Удалить датчик «%1»?\n"
-             "Это действие нельзя отменить.")
-            .arg(name),
-          QMessageBox::Yes | QMessageBox::No,
-          QMessageBox::No);
-
-        if (answer == QMessageBox::Yes)
-          m_sensorModel->removeSensor(current);
-
-        return;
-      }
-      else if (m_tabs->currentWidget() == m_signalsSplitter)
-      {
-        const QModelIndex current =
-          currentSignalIndex();
-
-        const auto* signal =
-          m_signalModel->signal(current);
-
-        if (!signal)
-          return;
-
-        const QString name =
-          QString::fromStdString(signal->name);
-
-        const auto answer = QMessageBox::question(
-          this,
-          tr("Удаление сигнала"),
-          tr("Удалить сигнал «%1»?\n"
-             "Это действие нельзя отменить.")
-            .arg(name),
-          QMessageBox::Yes | QMessageBox::No,
-          QMessageBox::No);
-
-        if (answer != QMessageBox::Yes)
-          return;
-
-        if (!m_signalModel->removeSignal(current))
-          return;
-
-        m_signalPropertiesModel->setItem(
-          currentSignalIndex());
-
-        updateActions();
-
-        return;
-      }
-    });
+    &ConfigurationEditor::doDelete);
 
   connect(
     m_calibrationAction,
@@ -1259,16 +1159,32 @@ void ConfigurationEditor::updateActions()
   const bool hasSensor =
     m_sensorsView->currentIndex().isValid();
 
+  const bool measurementUnitsTab =
+    m_tabs->currentWidget() == m_measurementUnitsView;
+
+  const bool hasMeasurementUnit =
+    m_measurementUnitsView->currentIndex().isValid();
+
+  const bool signalTypesTab =
+    m_tabs->currentWidget() == m_signalTypesView;
+
+  const bool hasSignalType =
+    m_signalTypesView->currentIndex().isValid();
+
   m_addAction->setEnabled(
     (hasConfiguration && signalsTab) ||
     sensorTypesTab ||
-    sensorsTab);
+    sensorsTab ||
+    measurementUnitsTab ||
+    signalTypesTab);
 
   m_removeAction->setEnabled(
     (hasConfiguration && signalsTab && hasSignal) ||
     (sensorTypesTab && hasSensorType) ||
-    (sensorsTab && hasSensor));
-
+    (sensorsTab && hasSensor) ||
+    (measurementUnitsTab && hasMeasurementUnit) ||
+    (signalTypesTab && hasSignalType));
+  
   m_calibrationAction->setEnabled(
     (sensorTypesTab && hasSensorType) ||
     (sensorsTab && hasSensor));
@@ -1311,6 +1227,16 @@ void ConfigurationEditor::updateSensors()
   m_signalModel->setSensors(sensors);
   m_signalPropertiesModel->setSensors(sensors);
   m_signalPropertiesDelegate->setSensors(sensors);
+}
+
+void ConfigurationEditor::updateSignalTypes()
+{
+  const auto& types =
+    m_signalTypeModel->signalTypes();
+
+  m_signalModel->setSignalTypes(types);
+  m_signalPropertiesModel->setSignalTypes(types);
+  m_signalPropertiesDelegate->setSignalTypes(types);
 }
 
 void ConfigurationEditor::editCalibration()
@@ -1958,6 +1884,351 @@ void ConfigurationEditor::validateConfiguration()
 
   emit statusMessage(
     tr("Конфигурация успешно проверена."));
+}
+
+void ConfigurationEditor::doAdd()
+{
+  if (m_tabs->currentWidget() == m_sensorTypesView)
+  {
+    bool ok = false;
+
+    const QString name =
+      QInputDialog::getText(
+        this,
+        tr("Новый тип датчика"),
+        tr("Название:"),
+        QLineEdit::Normal,
+        {},
+        &ok).trimmed();
+
+    if (!ok || name.isEmpty())
+      return;
+
+    if (m_sensorTypeModel->createSensorType(name))
+    {
+      for (int row = 0;
+           row < m_sensorTypeModel->rowCount();
+           ++row)
+      {
+        const QModelIndex index =
+          m_sensorTypeModel->index(row, 1);
+
+        if (index.data().toString() == name)
+        {
+          m_sensorTypesView->selectRow(row);
+          m_sensorTypesView->scrollTo(index);
+          break;
+        }
+      }
+    }
+
+    return;
+  }
+  else if (m_tabs->currentWidget() == m_sensorsSplitter)
+  {
+    SensorDialog dialog(
+      m_sensorTypeModel->sensorTypes(),
+      this);
+
+    if (dialog.exec() != QDialog::Accepted)
+      return;
+
+    SensorId createdId;
+
+    if (m_sensorModel->createSensor(
+          dialog.sensorName(),
+          dialog.sensorTypeId(),
+          createdId))
+    {
+      const QModelIndex index =
+        m_sensorModel->indexOf(createdId);
+
+      if (index.isValid())
+      {
+        m_sensorsView->setCurrentIndex(index);
+        m_sensorsView->selectRow(index.row());
+        m_sensorsView->scrollTo(index);
+      }
+    }
+
+    return;
+  }
+  else if (m_tabs->currentWidget() == m_signalsSplitter)
+  {
+    if (!currentConfiguration())
+      return;
+
+    ConfigurationSignalDialog dialog(this);
+
+    if (dialog.exec() != QDialog::Accepted)
+      return;
+
+    const QString name = dialog.signalName();
+    const SignalKind kind = dialog.signalKind();
+
+    if (!m_signalModel->createSignal(name, kind))
+      return;
+
+    m_signalTabs->setCurrentIndex(
+      kind == SignalKind::Raw ? 0 : 1);
+
+    auto* view = currentSignalsView();
+
+    auto* proxy =
+      qobject_cast<QSortFilterProxyModel*>(
+        view->model());
+
+    if (!proxy)
+      return;
+
+    const QModelIndex sourceIndex =
+      m_signalModel->index(
+        m_signalModel->rowCount() - 1,
+        ConfigurationSignalModel::Name);
+
+    const QModelIndex proxyIndex =
+      proxy->mapFromSource(sourceIndex);
+
+    if (!proxyIndex.isValid())
+      return;
+
+    view->setCurrentIndex(proxyIndex);
+    view->selectRow(proxyIndex.row());
+    view->scrollTo(proxyIndex);
+
+    m_signalPropertiesModel->setItem(sourceIndex);
+
+    updateActions();
+
+    return;
+  }
+
+  else if (m_tabs->currentWidget() == m_measurementUnitsView)
+  {
+    MeasurementUnitDialog dialog(this);
+
+    if (dialog.exec() != QDialog::Accepted)
+      return;
+
+    const QString name = dialog.unitName();
+
+    if (m_measurementUnitModel->createMeasurementUnit(
+          name,
+          dialog.unitSymbol()))
+    {
+      for (int row = 0;
+           row < m_measurementUnitModel->rowCount();
+           ++row)
+      {
+        const QModelIndex index =
+          m_measurementUnitModel->index(row, 1);
+
+        if (index.data().toString() == name)
+        {
+          m_measurementUnitsView->setCurrentIndex(index);
+          m_measurementUnitsView->selectRow(row);
+          m_measurementUnitsView->scrollTo(index);
+          break;
+        }
+      }
+    }
+
+    updateActions();
+    return;
+  }
+  else if (m_tabs->currentWidget() == m_signalTypesView)
+  {
+    bool ok = false;
+
+    const QString name =
+      QInputDialog::getText(
+        this,
+        tr("Новый тип сигнала"),
+        tr("Название:"),
+        QLineEdit::Normal,
+        {},
+        &ok).trimmed();
+
+    if (!ok || name.isEmpty())
+      return;
+
+    if (m_signalTypeModel->createSignalType(name))
+    {
+      for (int row = 0;
+           row < m_signalTypeModel->rowCount();
+           ++row)
+      {
+        const QModelIndex index =
+          m_signalTypeModel->index(
+            row, SignalTypeModel::Name);
+
+        if (index.data().toString() == name)
+        {
+          m_signalTypesView->setCurrentIndex(index);
+          m_signalTypesView->selectRow(row);
+          m_signalTypesView->scrollTo(index);
+          break;
+        }
+      }
+    }
+
+    updateActions();
+    return;
+  }
+}
+
+void ConfigurationEditor::doDelete()
+{
+  if (m_tabs->currentWidget() == m_sensorTypesView)
+  {
+    const QModelIndex current =
+      m_sensorTypesView->currentIndex();
+
+    const auto* type =
+      m_sensorTypeModel->sensorType(current);
+
+    if (!type)
+      return;
+
+    const QString name =
+      QString::fromStdString(type->name);
+
+    const auto answer = QMessageBox::question(
+      this,
+      tr("Удаление типа датчика"),
+      tr("Удалить тип датчика «%1»?\n"
+         "Это действие нельзя отменить.")
+        .arg(name),
+      QMessageBox::Yes | QMessageBox::No,
+      QMessageBox::No);
+
+    if (answer == QMessageBox::Yes)
+      m_sensorTypeModel->removeSensorType(current);
+
+    return;
+  }
+  else if (m_tabs->currentWidget() == m_sensorsSplitter)
+  {
+    const QModelIndex current =
+      m_sensorsView->currentIndex();
+
+    const auto* sensor =
+      m_sensorModel->sensor(current);
+
+    if (!sensor)
+      return;
+
+    const QString name =
+      QString::fromStdString(sensor->name);
+
+    const auto answer = QMessageBox::question(
+      this,
+      tr("Удаление датчика"),
+      tr("Удалить датчик «%1»?\n"
+         "Это действие нельзя отменить.")
+        .arg(name),
+      QMessageBox::Yes | QMessageBox::No,
+      QMessageBox::No);
+
+    if (answer == QMessageBox::Yes)
+      m_sensorModel->removeSensor(current);
+
+    return;
+  }
+  else if (m_tabs->currentWidget() == m_signalsSplitter)
+  {
+    const QModelIndex current =
+      currentSignalIndex();
+
+    const auto* signal =
+      m_signalModel->signal(current);
+
+    if (!signal)
+      return;
+
+    const QString name =
+      QString::fromStdString(signal->name);
+
+    const auto answer = QMessageBox::question(
+      this,
+      tr("Удаление сигнала"),
+      tr("Удалить сигнал «%1»?\n"
+         "Это действие нельзя отменить.")
+        .arg(name),
+      QMessageBox::Yes | QMessageBox::No,
+      QMessageBox::No);
+
+    if (answer != QMessageBox::Yes)
+      return;
+
+    if (!m_signalModel->removeSignal(current))
+      return;
+
+    m_signalPropertiesModel->setItem(
+      currentSignalIndex());
+
+    updateActions();
+
+    return;
+  }
+  else if (m_tabs->currentWidget() == m_measurementUnitsView)
+  {
+    const QModelIndex current =
+      m_measurementUnitsView->currentIndex();
+
+    const auto* unit =
+      m_measurementUnitModel->measurementUnit(current);
+
+    if (!unit)
+      return;
+
+    const QString name =
+      QString::fromStdString(unit->name);
+
+    const auto answer = QMessageBox::question(
+      this,
+      tr("Удаление единицы измерения"),
+      tr("Удалить единицу измерения «%1»?\n"
+         "Это действие нельзя отменить.")
+        .arg(name),
+      QMessageBox::Yes | QMessageBox::No,
+      QMessageBox::No);
+
+    if (answer == QMessageBox::Yes)
+      m_measurementUnitModel->removeMeasurementUnit(current);
+
+    updateActions();
+    return;
+  }
+  else if (m_tabs->currentWidget() == m_signalTypesView)
+  {
+    const QModelIndex current =
+      m_signalTypesView->currentIndex();
+
+    const auto* type =
+      m_signalTypeModel->signalType(current);
+
+    if (!type)
+      return;
+
+    const QString name =
+      QString::fromStdString(type->name);
+
+    const auto answer = QMessageBox::question(
+      this,
+      tr("Удаление типа сигнала"),
+      tr("Удалить тип сигнала «%1»?\n"
+         "Это действие нельзя отменить.")
+        .arg(name),
+      QMessageBox::Yes | QMessageBox::No,
+      QMessageBox::No);
+
+    if (answer == QMessageBox::Yes)
+      m_signalTypeModel->removeSignalType(current);
+
+    updateActions();
+    return;
+  }
 }
 
 }

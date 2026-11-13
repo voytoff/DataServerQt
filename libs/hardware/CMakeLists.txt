@@ -63,6 +63,6 @@ target_include_directories(Hardware
 
 target_link_libraries(Hardware
     PUBLIC
-        Configuration
+        configuration
         Logger
 )

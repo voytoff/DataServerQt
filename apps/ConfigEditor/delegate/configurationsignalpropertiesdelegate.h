@@ -2,6 +2,8 @@
 
 #include "datatypes.h"
 #include "sensor.h"
+#include "signaltypeinfo.h"
+#include "tagsourceinfo.h"
 #include <QStyledItemDelegate>
 
 namespace qds

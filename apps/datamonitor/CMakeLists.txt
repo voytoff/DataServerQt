@@ -71,7 +71,7 @@ target_include_directories(datamonitor
 
 target_link_libraries(datamonitor
   PRIVATE
-    Configuration
+    configuration
     DataProtocol
     DataClient
     datasettings

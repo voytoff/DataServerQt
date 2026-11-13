@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.23)
-project(Configuration LANGUAGES CXX)
+project(configuration LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_AUTOMOC ON)
@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 REQUIRED COMPONENTS Core Sql)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Sql)
 
-add_library(Configuration SHARED
+add_library(configuration SHARED
   cratetype.h
   moduletype.h
   signaldefinition.h
@@ -19,7 +19,12 @@ add_library(Configuration SHARED
   configmodule.h
   sensortype.h
   sensor.h
+  signaltype.h
+  signaltypeinfo.h
+  tagsourceinfo.h
   calibrationkind.h
+  configurationinfo.h
+  measurementunit.h
   moduleruntimeconfiguration.h
   moduleinfo.cpp moduleinfo.h
   crateinfo.cpp crateinfo.h
@@ -30,18 +35,16 @@ add_library(Configuration SHARED
   db/calibrationrepository.h db/calibrationrepository.cpp
   db/configurationrepository.h db/configurationrepository.cpp
   db/sensorrepository.h db/sensorrepository.cpp
-  configurationinfo.h
-
 )
 
-target_include_directories(Configuration
+target_include_directories(configuration
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../datatypes
     ${CMAKE_CURRENT_SOURCE_DIR}/db
 )
 
-target_link_libraries(Configuration
+target_link_libraries(configuration
   PUBLIC
     Qt${QT_VERSION_MAJOR}::Core
   PRIVATE

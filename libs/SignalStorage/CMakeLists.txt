@@ -21,5 +21,5 @@ target_include_directories(SignalStorage
 
 target_link_libraries(SignalStorage
     PUBLIC
-        Configuration
+        configuration
 )

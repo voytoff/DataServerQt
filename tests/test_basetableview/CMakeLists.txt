@@ -38,7 +38,7 @@ target_include_directories(test_basetableview
 
 target_link_libraries(test_basetableview
   PRIVATE
-    Configuration
+    configuration
     QCustomPlot
     datawidgets
     dataarchive

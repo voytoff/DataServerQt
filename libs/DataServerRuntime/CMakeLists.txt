@@ -16,7 +16,7 @@ target_include_directories(DataServerRuntime
 
 target_link_libraries(DataServerRuntime
   PUBLIC
-    Configuration
+    configuration
     Formulas
     SignalStorage
     SignalProcessor

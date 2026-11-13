@@ -27,7 +27,7 @@ target_include_directories(DataClient
 
 target_link_libraries(DataClient
   PRIVATE
-    Configuration
+    configuration
     Subscriptions
     Qt${QT_VERSION_MAJOR}::Core
   PUBLIC

@@ -42,7 +42,7 @@ target_include_directories(DataSource
 target_link_libraries(DataSource
   PUBLIC
     Core
-    Configuration
+    configuration
     Hardware
     SignalStorage
   PRIVATE

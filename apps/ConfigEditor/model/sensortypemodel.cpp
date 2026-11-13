@@ -1,7 +1,7 @@
 #include "sensortypemodel.h"
 
-#include "db/configurationrepository.h"
-#include "db/sensorrepository.h"
+#include "configurationrepository.h"
+#include "sensorrepository.h"
 
 #include <algorithm>
 

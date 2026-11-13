@@ -25,9 +25,8 @@ target_link_libraries(Publisher PRIVATE
     PRIVATE
         Qt${QT_VERSION_MAJOR}::Core
     PUBLIC
-        Configuration
+        configuration
         DataSource
-    #LiveStorage
         Subscriptions
         DataProtocol
 )

@@ -74,7 +74,7 @@ target_include_directories(unit_tests
 target_link_libraries(unit_tests
   PRIVATE
     Core
-    Configuration
+    configuration
     DataServerRuntime
     Subscriptions
     DataProtocol

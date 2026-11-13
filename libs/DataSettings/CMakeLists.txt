@@ -34,7 +34,7 @@ target_include_directories(datasettings
 
 target_link_libraries(datasettings
   PUBLIC
-    Configuration
+    configuration
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Sql

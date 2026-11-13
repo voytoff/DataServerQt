@@ -74,7 +74,7 @@ target_link_libraries(dataviewer
     Qt${QT_VERSION_MAJOR}::Sql
     Qt${QT_VERSION_MAJOR}::Svg
     Qt${QT_VERSION_MAJOR}::Charts
-    Configuration
+    configuration
     datasettings
     datawidgets
     signalprocessing

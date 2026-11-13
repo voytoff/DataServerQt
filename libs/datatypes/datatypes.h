@@ -27,6 +27,7 @@ struct ConfigurationIdTag {};
 struct SensorTypeIdTag{};
 struct SensorIdTag{};
 struct RequestIdTag{};
+struct MeasurementUnitIdTag{};
 
 using SignalId =
   StrongId<SignalIdTag>;
@@ -63,19 +64,8 @@ using SensorId =
 using RequestId =
   StrongId<RequestIdTag>;
 
-
-struct SignalTypeInfo
-{
-  SignalTypeId id = {0};
-  std::string name;
-  std::string description;
-};
-
-struct TagSourceInfo
-{
-  TagId id = {0};
-  std::string name;
-};
+using MeasurementUnitId =
+  StrongId<MeasurementUnitIdTag>;
 
 struct Sample
 {

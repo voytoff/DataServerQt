@@ -38,6 +38,10 @@ qt_add_executable(configeditor
     plot/calibrationplot.h plot/calibrationplot.cpp
     dlg/configurationdialog.h dlg/configurationdialog.cpp dlg/configurationdialog.ui
     modulesettingsformatter.h modulesettingsformatter.cpp
+    model/measurementunitmodel.h model/measurementunitmodel.cpp
+    model/signaltypemodel.h model/signaltypemodel.cpp
+    delegate/measurementunitdelegate.h delegate/measurementunitdelegate.cpp
+    dlg/measurementunitdialog.h dlg/measurementunitdialog.cpp
 )
 
 if(WIN32)
@@ -98,7 +102,7 @@ target_link_libraries(configeditor
     Qt${QT_VERSION_MAJOR}::Svg
     Qt${QT_VERSION_MAJOR}::Charts
     Qt${QT_VERSION_MAJOR}::PrintSupport
-    Configuration
+    configuration
     datasettings
     datawidgets
     QCustomPlot

@@ -21,7 +21,7 @@ target_include_directories(configurationvalidation
 
 target_link_libraries(configurationvalidation
   PUBLIC
-    Configuration
+    configuration
     Formulas
     SignalStorage
   PRIVATE

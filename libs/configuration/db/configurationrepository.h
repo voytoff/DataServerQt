@@ -5,8 +5,13 @@
 #include "configmodule.h"
 #include "configurationinfo.h"
 #include "datatypes.h"
+#include "measurementunit.h"
 #include "sensorrepository.h"
+#include "signaltype.h"
+#include "signaltypeinfo.h"
 #include "systemconfiguration.h"
+#include "tagsourceinfo.h"
+
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QString>
@@ -261,6 +266,34 @@ public:
     SensorTypeId sensorTypeId,
     CalibrationKind kind,
     Calibration& calibration);
+
+  /// единицы измерения ========================================
+
+  bool measurementUnits(
+    std::vector<MeasurementUnit>& units);
+
+  bool createMeasurementUnit(
+    const QString& name,
+    const QString& symbol,
+    MeasurementUnitId& id);
+
+  bool updateMeasurementUnit(
+    const MeasurementUnit& unit);
+
+  bool removeMeasurementUnit(
+    MeasurementUnitId id);
+
+  /// типы сигналов ============================================
+
+  bool createSignalType(
+    const QString& name,
+    SignalTypeId& id);
+
+  bool updateSignalType(
+    const SignalTypeInfo& type);
+
+  bool removeSignalType(
+    SignalTypeId id);
 
 private:
   QSqlQuery getQuery(
