@@ -265,18 +265,24 @@ WHERE
 
   // загружаем сигналы
   query = getQuery(R"(
+
 SELECT
-  id,
-  configuration_id,
-  name,
-  kind,
-  tag_id,
-  sensor_id,
-  signal_type_id,
-  formula,
-  archive_rate
-FROM configuration_signal_definition
-WHERE configuration_id = :id;)",
+  csd.id,
+  csd.configuration_id,
+  csd.name,
+  csd.kind,
+  csd.tag_id,
+  csd.sensor_id,
+  csd.signal_type_id,
+  csd.formula,
+  csd.archive_rate,
+  mu.symbol AS unit
+FROM configuration_signal_definition csd
+LEFT JOIN signal_type st
+  ON st.id = csd.signal_type_id
+LEFT JOIN measurement_unit mu
+  ON mu.id = st.measurement_unit_id
+WHERE csd.configuration_id = :id;)",
     {
       {":id", configuration.value}
     });
@@ -302,6 +308,9 @@ WHERE configuration_id = :id;)",
       SignalTypeId{
       query.value("signal_type_id").toUInt()
     };
+
+    definition.unit =
+      query.value("unit").toString().toStdString();
 
     definition.archiveRate =
       static_cast<ArchiveRate>(
@@ -1763,18 +1772,24 @@ WHERE id = :id;
   return exec(query);
 }
 
+/** Создает новый тип датчика */
 bool ConfigurationRepository::createSensorType(
   const QString& name,
+  CalibrationKind kind,
   SensorTypeId& id)
 {
   auto query = getQuery(R"(
 INSERT INTO sensor_type
   (name, description, calibration_kind)
 VALUES
-  (:name, '', 0);
+  (:name, '', :calibration_kind);
   )");
 
   query.bindValue(":name", name);
+
+  query.bindValue(
+    ":calibration_kind",
+    static_cast<int>(kind));
 
   if (!exec(query))
     return false;

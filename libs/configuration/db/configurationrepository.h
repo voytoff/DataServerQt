@@ -228,6 +228,7 @@ public:
 
   bool createSensorType(
     const QString& name,
+    CalibrationKind kind,
     SensorTypeId& id);
 
   bool removeSensorType(

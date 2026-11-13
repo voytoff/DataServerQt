@@ -86,6 +86,9 @@ struct SignalDefinition
   ArchiveRate archiveRate = ArchiveRate::Hz10;
   SignalTypeId signalType;
 
+  // Обозначение единицы измерения.
+  std::string unit;
+
   // Для Calculated.
   std::string formula;
 

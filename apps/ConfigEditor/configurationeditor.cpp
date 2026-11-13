@@ -12,6 +12,8 @@
 #include "sensordialog.h"
 #include "calibrationdialog.h"
 #include "configurationdialog.h"
+#include "sensortypedialog.h"
+#include "signaltypedialog.h"
 #include "themedsvgicon.h"
 #include "applicationsettingsdialog.h"
 #include "settingssection.h"
@@ -1888,23 +1890,19 @@ void ConfigurationEditor::validateConfiguration()
 
 void ConfigurationEditor::doAdd()
 {
+
   if (m_tabs->currentWidget() == m_sensorTypesView)
   {
-    bool ok = false;
+    SensorTypeDialog dialog(this);
 
-    const QString name =
-      QInputDialog::getText(
-        this,
-        tr("Новый тип датчика"),
-        tr("Название:"),
-        QLineEdit::Normal,
-        {},
-        &ok).trimmed();
-
-    if (!ok || name.isEmpty())
+    if (dialog.exec() != QDialog::Accepted)
       return;
 
-    if (m_sensorTypeModel->createSensorType(name))
+    const QString name = dialog.typeName();
+
+    if (m_sensorTypeModel->createSensorType(
+          name,
+          dialog.calibrationKind()))
     {
       for (int row = 0;
            row < m_sensorTypeModel->rowCount();
@@ -1915,6 +1913,7 @@ void ConfigurationEditor::doAdd()
 
         if (index.data().toString() == name)
         {
+          m_sensorTypesView->setCurrentIndex(index);
           m_sensorTypesView->selectRow(row);
           m_sensorTypesView->scrollTo(index);
           break;
@@ -1922,6 +1921,7 @@ void ConfigurationEditor::doAdd()
       }
     }
 
+    updateActions();
     return;
   }
   else if (m_tabs->currentWidget() == m_sensorsSplitter)
@@ -2002,7 +2002,6 @@ void ConfigurationEditor::doAdd()
 
     return;
   }
-
   else if (m_tabs->currentWidget() == m_measurementUnitsView)
   {
     MeasurementUnitDialog dialog(this);
@@ -2036,21 +2035,15 @@ void ConfigurationEditor::doAdd()
     updateActions();
     return;
   }
+
   else if (m_tabs->currentWidget() == m_signalTypesView)
   {
-    bool ok = false;
+    SignalTypeDialog dialog(this);
 
-    const QString name =
-      QInputDialog::getText(
-        this,
-        tr("Новый тип сигнала"),
-        tr("Название:"),
-        QLineEdit::Normal,
-        {},
-        &ok).trimmed();
-
-    if (!ok || name.isEmpty())
+    if (dialog.exec() != QDialog::Accepted)
       return;
+
+    const QString name = dialog.typeName();
 
     if (m_signalTypeModel->createSignalType(name))
     {
@@ -2075,6 +2068,7 @@ void ConfigurationEditor::doAdd()
     updateActions();
     return;
   }
+
 }
 
 void ConfigurationEditor::doDelete()

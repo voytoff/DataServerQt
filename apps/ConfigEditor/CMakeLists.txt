@@ -42,6 +42,8 @@ qt_add_executable(configeditor
     model/signaltypemodel.h model/signaltypemodel.cpp
     delegate/measurementunitdelegate.h delegate/measurementunitdelegate.cpp
     dlg/measurementunitdialog.h dlg/measurementunitdialog.cpp
+    dlg/sensortypedialog.h dlg/sensortypedialog.cpp
+    dlg/signaltypedialog.h dlg/signaltypedialog.cpp
 )
 
 if(WIN32)

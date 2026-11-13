@@ -232,16 +232,21 @@ const SensorType* SensorTypeModel::sensorType(
 }
 
 bool SensorTypeModel::createSensorType(
-  const QString& name)
+  const QString& name,
+  CalibrationKind kind)
 {
   const QString trimmed = name.trimmed();
 
   if (trimmed.isEmpty())
     return false;
 
+  if (kind != CalibrationKind::Table &&
+      kind != CalibrationKind::Polynomial)
+    return false;
+
   SensorTypeId id;
 
-  if (!m_repository.createSensorType(trimmed, id))
+  if (!m_repository.createSensorType(trimmed, kind, id))
   {
     const auto& error = m_repository.lastError();
 
@@ -256,6 +261,7 @@ bool SensorTypeModel::createSensorType(
   SensorType type;
 
   type.id = id;
+  type.calibrationKind = kind;
   type.name = trimmed.toStdString();
   type.calibrationKind = CalibrationKind::Table;
 
@@ -273,9 +279,7 @@ bool SensorTypeModel::createSensorType(
     static_cast<int>(it - m_types.begin());
 
   beginInsertRows({}, row, row);
-
   m_types.insert(it, std::move(type));
-
   endInsertRows();
 
   emit sensorTypesChanged();

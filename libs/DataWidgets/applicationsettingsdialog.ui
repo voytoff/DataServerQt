@@ -241,7 +241,30 @@
          </property>
         </widget>
        </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="showUnitsInHeadersLabel">
+         <property name="acceptDrops">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Показывать единицы измерения в заголовках столбцов&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
        <item row="1" column="1">
+        <widget class="QCheckBox" name="showUnitsInHeadersCheckBox">
+         <property name="toolTip">
+          <string>Добавлять единицы измерения к названиям сигналов в заголовках таблицы</string>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
         <spacer name="verticalSpacer_4">
          <property name="orientation">
           <enum>Qt::Orientation::Vertical</enum>

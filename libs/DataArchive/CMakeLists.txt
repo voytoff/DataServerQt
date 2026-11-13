@@ -30,6 +30,7 @@ add_library(dataarchive SHARED
     archivesignalpoint.h
     archivetableblock.h
     archivetablesource.h archivetablesource.cpp
+    archivedescriptionreader.h archivedescriptionreader.cpp
 )
 
 target_include_directories(dataarchive

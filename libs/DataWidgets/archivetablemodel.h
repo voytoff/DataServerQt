@@ -17,6 +17,7 @@ struct ArchiveTableChannel
 {
   SignalId id;
   QString name;
+  QString unit;
 };
 
 class DATAWIDGETS_EXPORT ArchiveTableModel
@@ -25,12 +26,6 @@ class DATAWIDGETS_EXPORT ArchiveTableModel
   Q_OBJECT
 
 public:
-
-  enum class PropertyId
-  {
-    //...
-  };
-
   explicit ArchiveTableModel(
     QObject* parent = nullptr);
 
@@ -94,6 +89,11 @@ public:
   [[nodiscard]]
   int decimals() const noexcept;
 
+  void setShowUnitsInHeaders(bool enabled);
+
+  [[nodiscard]]
+  bool showUnitsInHeaders() const noexcept;
+
 private:
   void updateGrid() noexcept;
 
@@ -123,6 +123,8 @@ private:
   std::map<uint64_t, ArchiveTableBlock> m_blocks;
 
   int m_decimals = 6;
+
+  bool m_showUnitsInHeaders = false;
 };
 
 }

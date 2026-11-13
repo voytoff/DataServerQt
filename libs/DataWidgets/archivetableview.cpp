@@ -201,6 +201,17 @@ int ArchiveTableView::decimals() const noexcept
   return m_impl->model->decimals();
 }
 
+void ArchiveTableView::setShowUnitsInHeaders(
+  bool enabled)
+{
+  m_impl->model->setShowUnitsInHeaders(enabled);
+}
+
+bool ArchiveTableView::showUnitsInHeaders() const noexcept
+{
+  return m_impl->model->showUnitsInHeaders();
+}
+
 void ArchiveTableView::resizeEvent(
   QResizeEvent* event)
 {

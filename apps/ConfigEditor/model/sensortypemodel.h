@@ -49,7 +49,8 @@ public:
     const QModelIndex& index) const noexcept;
 
   bool createSensorType(
-    const QString& name);
+    const QString& name,
+    CalibrationKind kind);
 
   bool removeSensorType(
     const QModelIndex& index);

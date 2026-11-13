@@ -338,10 +338,6 @@ void DataViewerMainWindow::openArchive(
 
   restoreTableSettings();
 
-  const auto tables =
-    ViewerSettingsLoader::loadTables(
-      viewerSettingsFile());
-
   statusBar()->showMessage(
     tr("Архив: %1")
       .arg(QString::fromStdString(path.string())));
@@ -455,7 +451,10 @@ void DataViewerMainWindow::populateSignalTree()
             .arg(header->lastTimestamp);
       }
 
-      tooltip += tr("\nЕдиница измерения: —");
+      tooltip += tr("\nЕдиница измерения: %1")
+        .arg(signal.unit.empty()
+          ? QStringLiteral("—")
+          : QString::fromStdString(signal.unit));
 
       item->setToolTip(0, tooltip);
 
@@ -511,6 +510,9 @@ void DataViewerMainWindow::addTable()
   {
     view->setDecimals(
       settings.table.decimals);
+
+    view->setShowUnitsInHeaders(
+      settings.table.showUnitsInHeaders);
   }
 
   Timestamp firstTimestamp;
@@ -706,43 +708,46 @@ bool DataViewerMainWindow::isSignalSelected(
            id) != signalIds->end();
 }
 
+
 void DataViewerMainWindow::updateTableChannels(
   TableContext* table)
 {
-  if (!table || !table->view)
+  if (!table || !table->view ||
+      !m_archiveReader ||
+      !m_archiveReader->isOpen())
+  {
     return;
+  }
+
+  const auto& description =
+    m_archiveReader->description();
 
   std::vector<ArchiveTableChannel> channels;
   channels.reserve(table->channels.size());
 
   for (const SignalId id : table->channels)
   {
-    QTreeWidgetItemIterator it(m_signalTree);
+    bool found = false;
 
-    while (*it)
+    for (const auto& file : description.files)
     {
-      auto* item = *it;
-      ++it;
-
-      if (!(item->flags() &
-            Qt::ItemIsUserCheckable))
+      for (const auto& signal : file.signalIds)
       {
-        continue;
+        if (signal.id != id)
+          continue;
+
+        channels.push_back({
+          signal.id,
+          QString::fromStdString(signal.name),
+          QString::fromStdString(signal.unit)
+        });
+
+        found = true;
+        break;
       }
 
-      const SignalId itemId{
-        item->data(0, Qt::UserRole).toUInt()
-      };
-
-      if (itemId != id)
-        continue;
-
-      channels.push_back({
-        id,
-        item->text(0)
-      });
-
-      break;
+      if (found)
+        break;
     }
   }
 
@@ -882,10 +887,11 @@ void DataViewerMainWindow::showSettings()
     this,
     [this](SettingsSections changed)
     {
-      if (!changed.testFlag(SettingsSection::Chart))
-        return;
+      if (changed.testFlag(SettingsSection::Chart))
+        updateChartSettings();
 
-      updateChartSettings();
+      if (changed.testFlag(SettingsSection::Table))
+        updateTableSettings();
     });
 
   dialog.exec();
@@ -927,6 +933,34 @@ void DataViewerMainWindow::updateChartSettings()
 
   m_chartView->setChartSettings(
     settings.chart);
+}
+
+void DataViewerMainWindow::updateTableSettings()
+{
+  ApplicationSettings settings;
+  QString error;
+
+  if (!ApplicationSettingsLoader::load(
+        m_configFile,
+        settings,
+        error,
+        SettingsSection::Table,
+        true))
+  {
+    return;
+  }
+
+  for (const auto& table : m_tables)
+  {
+    if (!table->view)
+      continue;
+
+    table->view->setDecimals(
+      settings.table.decimals);
+
+    table->view->setShowUnitsInHeaders(
+      settings.table.showUnitsInHeaders);
+  }
 }
 
 void DataViewerMainWindow::closeEvent(

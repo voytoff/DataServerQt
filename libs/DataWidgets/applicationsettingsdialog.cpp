@@ -290,6 +290,9 @@ void ApplicationSettingsDialog::loadSettings()
   ui->decimalsSpinBox->setValue(
     m_settings.table.decimals);
 
+  ui->showUnitsInHeadersCheckBox->setChecked(
+    m_settings.table.showUnitsInHeaders);
+
   ui->spinChartLineWidth->setValue(
     m_settings.chart.lineWidth);
 
@@ -374,6 +377,9 @@ ApplicationSettings ApplicationSettingsDialog::editedSettings() const
   {
     result.table.decimals =
       ui->decimalsSpinBox->value();
+
+    result.table.showUnitsInHeaders =
+      ui->showUnitsInHeadersCheckBox->isChecked();
   }
 
   if (m_sections.testFlag(SettingsSection::Chart))
@@ -425,9 +431,13 @@ SettingsSections ApplicationSettingsDialog::changedSections(
     changed |= SettingsSection::Log;
   }
 
-  if (m_sections.testFlag(SettingsSection::Table) &&
-      m_settings.table.decimals != settings.table.decimals)
+  if (m_sections.testFlag(SettingsSection::Table))
   {
+    const auto& a = m_settings.table;
+    const auto& b = settings.table;
+
+    if (a.decimals != b.decimals ||
+        a.showUnitsInHeaders != b.showUnitsInHeaders)
     changed |= SettingsSection::Table;
   }
 

@@ -44,6 +44,10 @@ QJsonObject signalToJson(
     QString::fromStdString(
       signal.name);
 
+  object["unit"] =
+    QString::fromStdString(
+      signal.unit);
+
   object["kind"] =
     signalKindToString(
       signal.kind);

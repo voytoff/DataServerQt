@@ -37,6 +37,7 @@ CalibrationPlot::CalibrationPlot(
   m_plot->yAxis->setRange(0, 1);
 }
 
+
 void CalibrationPlot::setCalibration(
   const Calibration& calibration)
 {
@@ -57,8 +58,11 @@ void CalibrationPlot::setCalibration(
   {
     m_plot->rescaleAxes();
 
-    QCPRange xRange = m_plot->xAxis->range();
-    QCPRange yRange = m_plot->yAxis->range();
+    const QCPRange xRange =
+      m_plot->xAxis->range();
+
+    const QCPRange yRange =
+      m_plot->yAxis->range();
 
     if (!std::isfinite(xRange.lower) ||
         !std::isfinite(xRange.upper) ||
@@ -73,22 +77,25 @@ void CalibrationPlot::setCalibration(
     {
       m_plot->yAxis->setRange(-1.0, 1.0);
     }
-  }
 
-  if (calibration.points.size() == 1)
-  {
-    const auto& point = calibration.points.front();
+    if (calibration.kind == CalibrationKind::Table &&
+        calibration.points.size() == 1)
+    {
+      const auto& point = calibration.points.front();
 
-    m_plot->xAxis->setRange(point.x - 1.0, point.x + 1.0);
-    m_plot->yAxis->setRange(point.y - 1.0, point.y + 1.0);
-  }
-  else
-  {
-    m_plot->rescaleAxes();
+      m_plot->xAxis->setRange(
+        point.x - 1.0,
+        point.x + 1.0);
+
+      m_plot->yAxis->setRange(
+        point.y - 1.0,
+        point.y + 1.0);
+    }
   }
 
   m_plot->replot();
 }
+
 
 void CalibrationPlot::updateTable(
   const Calibration& calibration)
@@ -207,9 +214,13 @@ void CalibrationPlot::updatePolynomial(
     QPen(QColor(200, 70, 60), 2));
 }
 
+
 void CalibrationPlot::clear()
 {
   m_plot->clearGraphs();
+
+  m_plot->xAxis->setRange(0.0, 1.0);
+  m_plot->yAxis->setRange(0.0, 1.0);
 }
 
 }

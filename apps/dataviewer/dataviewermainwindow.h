@@ -88,7 +88,10 @@ private:
 
   QString viewerSettingsFile() const;
 
+private:
   void updateChartSettings();
+
+  void updateTableSettings();
 
 private:
   std::filesystem::path m_path;

@@ -6,6 +6,7 @@ namespace qds
 struct TableSettings
 {
   int decimals = 6;
+  bool showUnitsInHeaders = false;
 };
 
 enum class ChartMarkerMode

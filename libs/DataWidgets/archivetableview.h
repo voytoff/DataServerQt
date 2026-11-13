@@ -55,6 +55,11 @@ public:
   [[nodiscard]]
   int decimals() const noexcept;
 
+  void setShowUnitsInHeaders(bool enabled);
+
+  [[nodiscard]]
+  bool showUnitsInHeaders() const noexcept;
+
 protected:
   void resizeEvent(
     QResizeEvent* event) override;

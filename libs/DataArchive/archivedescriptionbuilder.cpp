@@ -82,6 +82,7 @@ bool ArchiveDescriptionBuilder::build(
 
     signal.id = definition.id;
     signal.name = definition.name;
+    signal.unit = definition.unit;
     signal.kind = definition.kind;
 
     if (tag)

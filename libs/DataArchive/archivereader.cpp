@@ -1,10 +1,8 @@
 #include "archivereader.h"
 
-#include <string>
-#include <format>
-#include <fstream>
 #include <algorithm>
 #include <stdexcept>
+#include "archivedescriptionreader.h"
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -15,160 +13,35 @@
 namespace qds
 {
 
-bool ArchiveReader::open(const std::filesystem::path &directory)
+bool ArchiveReader::open(
+  const std::filesystem::path& directory)
 {
   if (m_open)
     return false;
 
   ArchiveDescription tmp;
-  std::vector<File> tmpFiles;
 
-  const auto path = std::format("{0}/{1}", directory.string(), DescriptionFileName);
-  std::fstream jsonFile(
-    path,
-    std::ios::in);
+  ArchiveDescriptionReader reader;
 
-  if (!jsonFile)
-    return false;
-
-  std::string json = std::string(
-    (std::istreambuf_iterator<char>(jsonFile)),
-    std::istreambuf_iterator<char>()
-    );
-
-  if (json.empty())
-    return false;
-
-  QByteArray jsonData = QByteArray::fromStdString(json);
-
-  QJsonParseError error;
-
-  const QJsonDocument document =
-    QJsonDocument::fromJson(
-      jsonData,
-      &error);
-
-  if (error.error != QJsonParseError::NoError)
-    return false;
-
-  if (!document.isObject())
-    return false;
-
-  const QJsonObject root =
-    document.object();
-
-  if(root.empty())
-    return false;
-
-  tmp.version =
-    root["version"].toInt();
-
-  if (tmp.version != ArchiveDescriptionVersion)
-    return false;
-
-  if (!root["files"].isArray())
-    return false;
-
-  const QJsonArray &files =
-    root["files"].toArray();
-
-  if (files.isEmpty())
-    return false;
-
-  for (const auto &file : files)
+  if (!reader.read(
+        directory / DescriptionFileName,
+        tmp))
   {
-    if (!file.isObject())
-      return false;
+    return false;
+  }
 
-    ArchiveFileDescription description;
-    const auto &fileObj = file.toObject();
+  std::vector<File> tmpFiles;
+  tmpFiles.reserve(tmp.files.size());
 
-    description.frequency =
-      fileObj["frequency"].toInt();
+  for (const auto& description : tmp.files)
+  {
+    File file;
 
-    if (!isValidArchiveFrequency(
-          description.frequency))
-    {
-      return false;
-    }
-
-    description.dataType =
-      fileObj["dataType"].toString().toStdString();
-
-    if (description.dataType != "float")
-      return false;
-
-    description.name =
-      fileObj["name"].toString().toStdString();
-
-    if (!fileObj["signals"].isArray())
-      return false;
-
-    const QJsonArray &signalIds = fileObj["signals"].toArray();
-
-    for (const auto &item : signalIds)
-    {
-      if (!item.isObject())
-        return false;
-
-      const auto &signalObj = item.toObject();
-
-      ArchiveSignal signal;
-
-      signal.index =
-        static_cast<uint32_t>(signalObj["index"].toInt());
-
-      signal.id =
-        SignalId{static_cast<uint32_t>(signalObj["id"].toInt())};
-
-      signal.name =
-        signalObj["name"].toString().toStdString();
-
-      signal.kind =
-        signalKindFromString(
-          signalObj["kind"].toString().toStdString());
-
-      if (signal.kind == SignalKind::Raw)
-      {
-        if (!signalObj.contains("channel") ||
-            !signalObj.contains("module"))
-        {
-          return false;
-        }
-
-        signal.channel =
-          ChannelId{static_cast<uint32_t>(signalObj["channel"].toInt())};
-
-        signal.module =
-          ModuleId{static_cast<uint32_t>(signalObj["module"].toInt())};
-      }
-      else if (signal.kind == SignalKind::Calculated)
-      {
-        if (signalObj.contains("channel") ||
-            signalObj.contains("module"))
-        {
-          return false;
-        }
-      }
-      else
-        return false;
-
-      description.signalIds.push_back(
-        std::move(signal));
-    }
-
-    if (description.signalIds.empty())
-      return false;
-
-    File reader;
-    reader.description = description;
-    reader.path = directory / description.name;
-
-    tmp.files.push_back(
-      std::move(description));
+    file.description = description;
+    file.path = directory / description.name;
 
     tmpFiles.push_back(
-      std::move(reader));
+      std::move(file));
   }
 
   m_directory = directory;
@@ -176,6 +49,7 @@ bool ArchiveReader::open(const std::filesystem::path &directory)
   m_files = std::move(tmpFiles);
 
   m_open = true;
+
   return true;
 }
 

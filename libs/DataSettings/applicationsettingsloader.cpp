@@ -214,6 +214,11 @@ bool ApplicationSettingsLoader::load(
 
     result.table.decimals = decimals;
 
+    result.table.showUnitsInHeaders =
+      s.value(
+         "ShowUnitsInHeaders",
+         result.table.showUnitsInHeaders).toBool();
+
     s.endGroup();
   }
 
@@ -414,6 +419,10 @@ bool ApplicationSettingsLoader::save(
     s.setValue(
       "Decimals",
       settings.table.decimals);
+
+    s.setValue(
+      "ShowUnitsInHeaders",
+      settings.table.showUnitsInHeaders);
 
     s.endGroup();
   }

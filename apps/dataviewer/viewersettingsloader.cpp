@@ -135,4 +135,5 @@ bool ViewerSettingsLoader::saveTables(
   return settings.status() == QSettings::NoError;
 }
 
+
 }

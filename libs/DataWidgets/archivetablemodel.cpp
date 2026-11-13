@@ -211,7 +211,16 @@ QVariant ArchiveTableModel::headerData(
   if (channelIndex >= 0 &&
       channelIndex < static_cast<int>(m_channels.size()))
   {
-    return m_channels[channelIndex].name;
+    const auto& channel = m_channels[channelIndex];
+
+    if (m_showUnitsInHeaders &&
+        !channel.unit.isEmpty())
+    {
+      return QStringLiteral("%1, %2")
+      .arg(channel.name, channel.unit);
+    }
+
+    return channel.name;
   }
 
   return {};
@@ -408,6 +417,29 @@ void ArchiveTableModel::setDecimals(int decimals)
 int ArchiveTableModel::decimals() const noexcept
 {
   return m_decimals;
+}
+
+
+void ArchiveTableModel::setShowUnitsInHeaders(
+  bool enabled)
+{
+  if (m_showUnitsInHeaders == enabled)
+    return;
+
+  m_showUnitsInHeaders = enabled;
+
+  if (m_channels.empty())
+    return;
+
+  emit headerDataChanged(
+    Qt::Horizontal,
+    2,
+    columnCount() - 1);
+}
+
+bool ArchiveTableModel::showUnitsInHeaders() const noexcept
+{
+  return m_showUnitsInHeaders;
 }
 
 void ArchiveTableModel::updateGrid() noexcept
