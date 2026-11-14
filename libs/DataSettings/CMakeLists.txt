@@ -11,15 +11,16 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Sql)
 
 
 add_library(datasettings SHARED
+  datasettings.h
+  settingssection.h
+  databasesettings.h
   datasettings_export.h
   applicationsettings.h
+  archivetableexportsettings.h
   applicationsettingsloader.h applicationsettingsloader.cpp
-  databasesettings.h
   databaseconnection.h databaseconnection.cpp
-  settingssection.h
   windowsettings.h windowsettings.cpp
   colorschemesettings.h colorschemesettings.cpp
-  datasettings.h
 )
 
 target_compile_definitions(datasettings

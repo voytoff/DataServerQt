@@ -1,5 +1,6 @@
 #include "archivetablesource.h"
 #include "archivereader.h"
+#include "timeconstants.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -34,7 +35,6 @@ bool ArchiveTableSource::readBlock(
     return false;
   }
 
-  constexpr uint64_t MicrosecondsPerSecond = 1'000'000;
   constexpr std::size_t ReadBlockSize = 1024;
 
   const uint64_t interval =

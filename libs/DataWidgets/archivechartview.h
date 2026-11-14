@@ -37,6 +37,7 @@ public:
   bool addSignal(
     SignalId id,
     const QString& name,
+    const QString& unit,
     const QColor& color);
 
   void clearSignals();

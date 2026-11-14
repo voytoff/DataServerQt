@@ -23,6 +23,8 @@ struct ChartSettings
     ChartMarkerMode::Interpolated;
 
   int decimals = 3;
+
+  bool showUnitsInMeasurementPanel = false;
 };
 
 }

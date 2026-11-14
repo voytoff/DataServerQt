@@ -1,5 +1,6 @@
 #include "archivetablemodel.h"
 #include "archivetableblock.h"
+#include "timeconstants.h"
 
 #include <QDateTime>
 
@@ -15,8 +16,6 @@ namespace qds
 
 namespace
 {
-
-constexpr uint64_t MicrosecondsPerSecond = 1'000'000;
 
 bool validFrequency(uint32_t frequency)
 {
@@ -42,20 +41,9 @@ int ArchiveTableModel::rowCount(
   if (parent.isValid() || !m_hasTimeRange)
     return 0;
 
-  constexpr uint64_t MicrosecondsPerSecond = 1'000'000;
-
-  const uint64_t step =
-    MicrosecondsPerSecond / m_frequency;
-
-  const uint64_t duration =
-    m_gridEnd - m_gridStart;
-
-  const uint64_t count =
-    duration / step + 1;
-
   return static_cast<int>(
     std::min<uint64_t>(
-      count,
+      m_grid.rowCount(),
       std::numeric_limits<int>::max()));
 }
 
@@ -93,22 +81,15 @@ QVariant ArchiveTableModel::data(
     return {};
   }
 
-  constexpr uint64_t MicrosecondsPerSecond = 1'000'000;
-
-  const uint64_t step =
-    MicrosecondsPerSecond / m_frequency;
-
-  const uint64_t offset =
-    static_cast<uint64_t>(index.row()) * step;
+  const uint64_t row =
+    static_cast<uint64_t>(index.row());
 
   //const uint64_t timestamp =
   //  m_gridStart + offset;
 
   if (index.column() == 0)
   {
-    const double seconds =
-      static_cast<double>(offset) /
-      MicrosecondsPerSecond;
+    const double seconds = m_grid.seconds(row);
 
     if (role == Qt::EditRole)
       return seconds;
@@ -123,12 +104,9 @@ QVariant ArchiveTableModel::data(
   }
   else if (index.column() == 1)
   {
-    const qint64 milliseconds =
-      m_displayWallOrigin / 1000 +
-      static_cast<qint64>(offset / 1000);
-
     const QDateTime dateTime =
-      QDateTime::fromMSecsSinceEpoch(milliseconds);
+      QDateTime::fromMSecsSinceEpoch(
+        m_grid.wallMilliseconds(row));
 
     if (role == Qt::EditRole)
       return dateTime;
@@ -148,9 +126,6 @@ QVariant ArchiveTableModel::data(
 
     return dateTime.toString(format);
   }
-
-  const uint64_t row =
-    static_cast<uint64_t>(index.row());
 
   auto it = m_blocks.upper_bound(row);
 
@@ -444,36 +419,17 @@ bool ArchiveTableModel::showUnitsInHeaders() const noexcept
 
 void ArchiveTableModel::updateGrid() noexcept
 {
-  m_gridStart = 0;
-  m_gridEnd = 0;
-  m_displayWallOrigin = 0;
+  m_grid = {};
 
   if (!m_hasTimeRange)
     return;
 
-  constexpr int64_t MicrosecondsPerSecond = 1'000'000;
-
-  m_gridStart = m_firstTimestamp.value;
-  m_gridEnd = m_lastTimestamp.value;
-
-  const int64_t offset =
-    static_cast<int64_t>(
-      m_firstTimestamp.value -
-      m_referenceTimestamp.value);
-
-  const int64_t firstWallTime =
-    m_referenceWallTime.unixMicroseconds + offset;
-
-  // Округление к ближайшей целой секунде.
-  const int64_t seconds =
-    firstWallTime / MicrosecondsPerSecond;
-
-  const int64_t remainder =
-    firstWallTime % MicrosecondsPerSecond;
-
-  m_displayWallOrigin =
-    (seconds + (remainder >= 500'000 ? 1 : 0)) *
-    MicrosecondsPerSecond;
+  m_grid = ArchiveTableGrid::create(
+    m_firstTimestamp,
+    m_lastTimestamp,
+    m_referenceTimestamp,
+    m_referenceWallTime,
+    m_frequency);
 }
 
 void ArchiveTableModel::clear()

@@ -9,9 +9,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 REQUIRED COMPONENTS          Core Widgets Sql Svg Charts)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Sql Svg Charts)
 
+set(DATAWIDGETS_RESOURCE_FILES res.qrc)
+qt6_add_resources(DATAWIDGETS_PROJECT_RESOURCES ${DATAWIDGETS_RESOURCE_FILES})
+
 add_library(datawidgets SHARED
+  ${DATAWIDGETS_PROJECT_RESOURCES}
   datawidgets_export.h
   themedsvgicon.h
+  archivetablegrid.h
   basetableview.h basetableview.cpp
   configurationselector.h configurationselector.cpp
   themedsvgiconengine.h themedsvgiconengine.cpp
@@ -31,6 +36,7 @@ add_library(datawidgets SHARED
   archivetablecontroller.h archivetablecontroller.cpp
   archivetableworker.h archivetableworker.cpp
   archivetableview.h archivetableview.cpp
+  archivetablewriter.h archivetablewriter.cpp
 )
 
 target_include_directories(datawidgets

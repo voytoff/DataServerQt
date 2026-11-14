@@ -1466,11 +1466,13 @@ void TestModule::createFinalArchiveChartView()
   view->addSignal(
     SignalId{26},
     "Канал 1 (100 Гц)",
+    "мПа",
     Qt::blue);
 
   view->addSignal(
     SignalId{27},
     "Канал 2 (10 Гц)",
+    "С",
     Qt::red);
 
   window->setCentralWidget(view);
@@ -1497,6 +1499,7 @@ void TestModule::createFinalArchiveChartView()
       if (view->addSignal(
             SignalId{26},
             "Канал 1 (100 Гц)",
+            "кг",
             Qt::blue))
       {
         add1->setEnabled(false);
@@ -1526,6 +1529,7 @@ void TestModule::createFinalArchiveChartView()
       if (view->addSignal(
             SignalId{27},
             "Канал 2 (10 Гц)",
+            "с",
             Qt::red))
       {
         add2->setEnabled(false);
@@ -1607,11 +1611,13 @@ void TestModule::createFinalArchiveChartView2(QApplication* app)
   view->addSignal(
     SignalId{10},
     "Канал 1 (100 Гц)",
+    "Па",
     Qt::blue);
 
   view->addSignal(
     SignalId{11},
     "Канал 2 (10 Гц)",
+    "сек",
     Qt::red);
 
 

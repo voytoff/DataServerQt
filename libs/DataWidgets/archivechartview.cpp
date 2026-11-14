@@ -137,6 +137,8 @@ struct ArchiveChartView::SignalContext
   Timestamp firstTimestamp{};
   Timestamp lastTimestamp{};
 
+  QString unit;
+
   bool ready = false;
 };
 
@@ -233,6 +235,7 @@ void ArchiveChartView::setArchivePath(
 bool ArchiveChartView::addSignal(
   SignalId id,
   const QString& name,
+  const QString &unit,
   const QColor& color)
 {
   if (m_impl->archivePath.empty())
@@ -245,8 +248,10 @@ bool ArchiveChartView::addSignal(
   }
 
   auto entry = std::make_unique<SignalContext>();
+
   entry->id = id;
   entry->name = name;
+  entry->unit = unit;
 
   auto* controller = new ArchiveChartController(
     m_impl->archivePath,
@@ -257,6 +262,11 @@ bool ArchiveChartView::addSignal(
   series->setName(name);
   series->setColor(color);
 
+  const QString axisTitle =
+    unit.isEmpty()
+      ? name
+      : QStringLiteral("%1, %2").arg(name, unit);
+
   if (!m_impl->entries.empty())
   {
     const auto index = m_impl->entries.size();
@@ -266,7 +276,7 @@ bool ArchiveChartView::addSignal(
         ? Qt::AlignLeft
         : Qt::AlignRight);
 
-    axis->setTitleText(name);
+    axis->setTitleText(axisTitle);
 
     entry->axisY = axis;
     series->setValueAxis(axis);
@@ -274,7 +284,7 @@ bool ArchiveChartView::addSignal(
   else
   {
     entry->axisY = valueChartAxis();
-    entry->axisY->setTitleText(name);
+    entry->axisY->setTitleText(axisTitle);
   }
 
   series->setLineWidth(
@@ -567,6 +577,7 @@ void ArchiveChartView::updateTimeRange()
   setAvailableTimeRange(minimum, maximum);
 }
 
+
 void ArchiveChartView::drawMeasurementPanel(
   QPainter* painter)
 {
@@ -578,6 +589,7 @@ void ArchiveChartView::drawMeasurementPanel(
     QString name;
     QString time;
     QString value;
+    QString unit;
     QColor color;
   };
 
@@ -587,6 +599,9 @@ void ArchiveChartView::drawMeasurementPanel(
   const bool nearestMode =
     m_impl->chartSettings.markerMode ==
     ChartMarkerMode::NearestSample;
+
+  const bool showUnits =
+    m_impl->chartSettings.showUnitsInMeasurementPanel;
 
   for (const auto& entry : m_impl->entries)
   {
@@ -625,8 +640,14 @@ void ArchiveChartView::drawMeasurementPanel(
             tr(" с")
         : QString(),
       point
-        ? QString::number(point->y(), 'f', m_impl->chartSettings.decimals)
+        ? QString::number(
+            point->y(),
+            'f',
+            m_impl->chartSettings.decimals)
         : QStringLiteral("—"),
+      showUnits && point
+        ? entry->unit
+        : QString(),
       entry->series->color()
     });
   }
@@ -647,6 +668,8 @@ void ArchiveChartView::drawMeasurementPanel(
   constexpr qreal markerSize = 8.0;
   constexpr qreal spacing = 8.0;
   constexpr qreal rowSpacing = 5.0;
+  constexpr qreal columnSpacing = 12.0;
+  constexpr qreal unitSpacing = 5.0;
 
   const qreal lineHeight = metrics.height();
   const qreal rowHeight = lineHeight + rowSpacing;
@@ -656,8 +679,9 @@ void ArchiveChartView::drawMeasurementPanel(
       .arg(m_impl->cursorX, 0, 'f', 3);
 
   qreal nameWidth = 0.0;
-  qreal valueWidth = 0.0;
   qreal timeWidth = 0.0;
+  qreal valueWidth = 0.0;
+  qreal unitWidth = 0.0;
 
   for (const auto& row : rows)
   {
@@ -672,10 +696,14 @@ void ArchiveChartView::drawMeasurementPanel(
     valueWidth = std::max(
       valueWidth,
       qreal(metrics.horizontalAdvance(row.value)));
+
+    unitWidth = std::max(
+      unitWidth,
+      qreal(metrics.horizontalAdvance(row.unit)));
   }
 
-  // зафиксируем промежутки
-  constexpr qreal columnSpacing = 12.0;
+  const bool hasUnits =
+    showUnits && unitWidth > 0.0;
 
   const qreal headerWidth =
     metrics.horizontalAdvance(timeText) +
@@ -689,13 +717,14 @@ void ArchiveChartView::drawMeasurementPanel(
     (nearestMode
        ? timeWidth + columnSpacing
        : 0.0) +
-    valueWidth;
+    valueWidth +
+    (hasUnits
+       ? unitSpacing + unitWidth
+       : 0.0);
 
   const qreal panelWidth =
     padding * 2.0 +
-    std::max(
-      contentWidth,
-      headerWidth);
+    std::max(contentWidth, headerWidth);
 
   const qreal panelHeight =
     padding * 2.0 +
@@ -736,7 +765,6 @@ void ArchiveChartView::drawMeasurementPanel(
     6.0);
 
   const qreal left = panelRect.left() + padding;
-  const qreal right = panelRect.right() - padding;
 
   qreal baseline =
     panelRect.top() + padding + metrics.ascent();
@@ -752,8 +780,6 @@ void ArchiveChartView::drawMeasurementPanel(
       textColor);
   }
 
-  painter->setPen(textColor);
-
   painter->drawText(
     QPointF(
       left + (isMeasurementCursorLocked() ? 20.0 : 0.0),
@@ -761,6 +787,24 @@ void ArchiveChartView::drawMeasurementPanel(
     timeText);
 
   baseline += lineHeight + 8.0;
+
+  // Координаты колонок.
+  const qreal nameX =
+    left + markerSize + spacing;
+
+  const qreal timeX =
+    nameX + nameWidth + columnSpacing;
+
+  const qreal valueX =
+    nearestMode
+      ? timeX + timeWidth + columnSpacing
+      : timeX;
+
+  const qreal valueRight =
+    valueX + valueWidth;
+
+  const qreal unitX =
+    valueRight + unitSpacing;
 
   // Значения сигналов.
   for (const auto& row : rows)
@@ -782,12 +826,6 @@ void ArchiveChartView::drawMeasurementPanel(
 
     painter->setPen(textColor);
 
-    const qreal nameX =
-      left + markerSize + spacing;
-
-    const qreal timeX =
-      nameX + nameWidth + columnSpacing;
-
     painter->drawText(
       QPointF(nameX, baseline),
       row.name);
@@ -799,11 +837,21 @@ void ArchiveChartView::drawMeasurementPanel(
         row.time);
     }
 
+    // Числовое значение выравниваем вправо.
     painter->drawText(
       QPointF(
-        right - metrics.horizontalAdvance(row.value),
+        valueRight -
+          metrics.horizontalAdvance(row.value),
         baseline),
       row.value);
+
+    // Единицу измерения выравниваем влево.
+    if (hasUnits && !row.unit.isEmpty())
+    {
+      painter->drawText(
+        QPointF(unitX, baseline),
+        row.unit);
+    }
 
     baseline += rowHeight;
   }
@@ -925,7 +973,13 @@ bool ArchiveChartView::removeSignal(SignalId id)
       (*next)->series->setValueAxis(valueChartAxis());
       (*next)->axisY = valueChartAxis();
 
-      valueChartAxis()->setTitleText((*next)->name);
+      const auto& signal = **next;
+
+      valueChartAxis()->setTitleText(
+        signal.unit.isEmpty()
+          ? signal.name
+          : QStringLiteral("%1, %2")
+            .arg(signal.name, signal.unit));
 
       if (oldAxis != valueChartAxis())
         removeValueAxis(oldAxis);

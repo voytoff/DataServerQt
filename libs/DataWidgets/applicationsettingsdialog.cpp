@@ -305,6 +305,10 @@ void ApplicationSettingsDialog::loadSettings()
 
   ui->spinChartDecimals->setValue(
     m_settings.chart.decimals);
+
+  ui->showUnitsInMeasurementPanelCheckBox->setChecked(
+    m_settings.chart.showUnitsInMeasurementPanel);
+
 }
 
 bool ApplicationSettingsDialog::saveSettings()
@@ -393,6 +397,9 @@ ApplicationSettings ApplicationSettingsDialog::editedSettings() const
 
     result.chart.decimals =
       ui->spinChartDecimals->value();
+
+    result.chart.showUnitsInMeasurementPanel =
+      ui->showUnitsInMeasurementPanelCheckBox->isChecked();
   }
 
   return result;
@@ -448,7 +455,8 @@ SettingsSections ApplicationSettingsDialog::changedSections(
 
     if (a.lineWidth != b.lineWidth ||
         a.markerMode != b.markerMode ||
-        a.decimals != b.decimals)
+        a.decimals != b.decimals ||
+        a.showUnitsInMeasurementPanel != b.showUnitsInMeasurementPanel)
     {
       changed |= SettingsSection::Chart;
     }

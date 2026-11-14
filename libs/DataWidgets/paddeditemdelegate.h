@@ -20,6 +20,10 @@ public:
     int dy2 = 0,
     QObject* parent = nullptr);
 
+  QSize sizeHint(
+    const QStyleOptionViewItem& option,
+    const QModelIndex& index) const override;
+
 protected:
   void initStyleOption(
     QStyleOptionViewItem* option,

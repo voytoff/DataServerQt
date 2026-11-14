@@ -437,6 +437,11 @@ void DataViewerMainWindow::populateSignalTree()
         Qt::UserRole,
         signal.id.value);
 
+      item->setData(
+        0,
+        Qt::UserRole + 1,
+        QString::fromStdString(signal.unit));
+
       QString tooltip =
         tr("Частота: %1 Гц").arg(file.frequency);
 
@@ -672,6 +677,7 @@ void DataViewerMainWindow::onSignalChecked(
     if (m_chartView->addSignal(
           id,
           item->text(0),
+          item->data(0, Qt::UserRole + 1).toString(),
           ChartPalette::signalColor(id.value)))
     {
       m_chartSignals.push_back(id);

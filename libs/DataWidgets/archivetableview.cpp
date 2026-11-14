@@ -1,10 +1,12 @@
 #include "archivetableview.h"
-
 #include "archivetablecontroller.h"
 #include "archivetablemodel.h"
+#include "themedsvgicon.h"
 
 #include <QScrollBar>
 #include <QFontDatabase>
+#include <QHeaderView>
+#include <QMenu>
 
 #include <memory>
 #include <utility>
@@ -53,6 +55,50 @@ ArchiveTableView::ArchiveTableView(
   font.setFixedPitch(true);
 
   setFont(font);
+
+  // контекстное меню заголовков
+  auto* header = horizontalHeader();
+
+  header->setContextMenuPolicy(
+    Qt::CustomContextMenu);
+
+  connect(
+    header,
+    &QWidget::customContextMenuRequested,
+    this,
+    [this, header](const QPoint& pos)
+    {
+      const int column =
+        header->logicalIndexAt(pos);
+
+      QMenu menu(this);
+
+      if (column >= 0)
+      {
+        menu.addAction(
+          themedSvgIcon(":/images/fit.svg"),
+          tr("Подобрать ширину столбца"),
+          this,
+          [this, column]()
+          {
+            resizeColumnToContents(column);
+          });
+
+        menu.addSeparator();
+      }
+
+      menu.addAction(
+        themedSvgIcon(":/images/columns.svg"),
+        tr("Подобрать ширину всех столбцов"),
+        this,
+        [this]()
+        {
+          autoResizeColumns();
+        });
+
+      menu.exec(
+        header->mapToGlobal(pos));
+    });
 
   connect(
     verticalScrollBar(),
@@ -161,6 +207,7 @@ void ArchiveTableView::setChannels(
   m_impl->model->setChannels(
     std::move(channels));
 
+  updateDefaultColumnWidths();
   requestVisibleData();
 }
 
@@ -190,10 +237,11 @@ void ArchiveTableView::setTimeRange(
 
 void ArchiveTableView::setDecimals(int decimals)
 {
-  if (!m_impl->model)
+  if (m_impl->model->decimals() == decimals)
     return;
 
   m_impl->model->setDecimals(decimals);
+  updateDefaultColumnWidths();
 }
 
 int ArchiveTableView::decimals() const noexcept
@@ -204,12 +252,66 @@ int ArchiveTableView::decimals() const noexcept
 void ArchiveTableView::setShowUnitsInHeaders(
   bool enabled)
 {
+  if (m_impl->model->showUnitsInHeaders() == enabled)
+    return;
+
   m_impl->model->setShowUnitsInHeaders(enabled);
+
+  updateDefaultColumnWidths();
 }
 
 bool ArchiveTableView::showUnitsInHeaders() const noexcept
 {
   return m_impl->model->showUnitsInHeaders();
+}
+
+void ArchiveTableView::updateDefaultColumnWidths()
+{
+  auto* tableModel = m_impl->model;
+
+  if (!tableModel)
+    return;
+
+  const QFontMetrics metrics(font());
+
+  constexpr int padding = 18;
+
+  const int count = tableModel->columnCount();
+
+  for (int column = 0; column < count; ++column)
+  {
+    const QString header =
+      tableModel->headerData(
+                  column,
+                  Qt::Horizontal,
+                  Qt::DisplayRole).toString();
+
+    QString sample;
+
+    if (column == 0)
+    {
+      sample = QStringLiteral("000000,000");
+    }
+    else if (column == 1)
+    {
+      sample =
+        QStringLiteral("06.11.2026 13:27:42.000");
+    }
+    else
+    {
+      sample =
+        QStringLiteral("-000000,") +
+        QString(tableModel->decimals(), QLatin1Char('0'));
+    }
+
+    const int width =
+      std::max(
+        metrics.horizontalAdvance(header),
+        metrics.horizontalAdvance(sample)) +
+      padding;
+
+    setColumnWidth(column, width);
+  }
 }
 
 void ArchiveTableView::resizeEvent(

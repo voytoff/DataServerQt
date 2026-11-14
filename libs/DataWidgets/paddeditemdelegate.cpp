@@ -19,6 +19,19 @@ PaddedItemDelegate::PaddedItemDelegate(
 {
 }
 
+QSize PaddedItemDelegate::sizeHint(
+  const QStyleOptionViewItem& option,
+  const QModelIndex& index) const
+{
+  QSize size =
+    QStyledItemDelegate::sizeHint(option, index);
+
+  size.rwidth() += m_dx1 + m_dx2;
+  size.rheight() += m_dy1 + m_dy2;
+
+  return size;
+}
+
 void PaddedItemDelegate::initStyleOption(
   QStyleOptionViewItem* option,
   const QModelIndex& index) const

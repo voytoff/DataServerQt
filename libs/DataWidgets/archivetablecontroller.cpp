@@ -94,8 +94,7 @@ void ArchiveTableController::dispatchPendingRequest()
     std::make_shared<std::atomic_bool>(false);
 
   m_activeRequestId = request.id;
-  m_activeCancel =
-    std::make_shared<std::atomic_bool>(false);
+  m_activeCancel = cancel;
 
   m_busy = true;
 

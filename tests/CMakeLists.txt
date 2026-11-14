@@ -78,7 +78,7 @@ target_link_libraries(unit_tests
     DataServerRuntime
     Subscriptions
     DataProtocol
-    DataServerCore
+    dataservercore
     Publisher
     UdpSender
     DataSource

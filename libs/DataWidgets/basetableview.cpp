@@ -236,6 +236,18 @@ void BaseTableView::setRowHeight(
   verticalHeader()->setDefaultSectionSize(height);
 }
 
+void BaseTableView::autoResizeColumns()
+{
+  auto* header = horizontalHeader();
+
+  header->setSectionResizeMode(
+    QHeaderView::Interactive);
+
+  header->setResizeContentsPrecision(50);
+
+  resizeColumnsToContents();
+}
+
 void BaseTableView::keyPressEvent(
   QKeyEvent* event)
 {

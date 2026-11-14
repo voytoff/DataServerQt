@@ -43,6 +43,8 @@ public:
 
   void setRowHeight(int height);
 
+  void autoResizeColumns();
+
 protected:
   void keyPressEvent(QKeyEvent* event) override;
 

@@ -259,6 +259,11 @@ bool ApplicationSettingsLoader::load(
 
     result.chart.decimals = decimals;
 
+    result.chart.showUnitsInMeasurementPanel =
+      s.value(
+         "ShowUnitsInMeasurementPanel",
+         result.chart.showUnitsInMeasurementPanel).toBool();
+
     s.endGroup();
   }
 
@@ -447,6 +452,10 @@ bool ApplicationSettingsLoader::save(
     s.setValue(
       "Decimals",
       settings.chart.decimals);
+
+    s.setValue(
+      "ShowUnitsInMeasurementPanel",
+      settings.chart.showUnitsInMeasurementPanel);
 
     s.endGroup();
   }

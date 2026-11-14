@@ -3,6 +3,7 @@
 #include "archivetableblock.h"
 #include "datawidgets_export.h"
 #include "datatypes.h"
+#include "archivetablegrid.h"
 
 #include <QAbstractTableModel>
 #include <QString>
@@ -112,12 +113,15 @@ private:
 
   bool m_hasTimeRange = false;
 
+  ArchiveTableGrid m_grid;
+  //==============================
   uint64_t m_gridStart = 0;
   uint64_t m_gridEnd = 0;
 
   Timestamp m_gridOrigin;
 
   int64_t m_displayWallOrigin = 0;
+  //==============================
 
   // ключом будет firstRow блока
   std::map<uint64_t, ArchiveTableBlock> m_blocks;

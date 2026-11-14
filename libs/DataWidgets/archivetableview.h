@@ -60,6 +60,8 @@ public:
   [[nodiscard]]
   bool showUnitsInHeaders() const noexcept;
 
+  void updateDefaultColumnWidths();
+
 protected:
   void resizeEvent(
     QResizeEvent* event) override;
