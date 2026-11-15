@@ -1,6 +1,7 @@
 #pragma once
 
 #include "archivereader.h"
+#include "archivetableexportsettings.h"
 #include "viewersettingsloader.h"
 
 #include <QMainWindow>
@@ -17,6 +18,7 @@ class QTableView;
 class QComboBox;
 class QAction;
 class QToolBar;
+class QToolButton;
 
 namespace qds
 {
@@ -93,6 +95,9 @@ private:
 
   void updateTableSettings();
 
+  void exportTable(
+    ArchiveTableExportFormat format);
+
 private:
   std::filesystem::path m_path;
 
@@ -108,6 +113,9 @@ private:
   QAction* m_themeAction = nullptr;
   QAction* m_addTableAction = nullptr;
   QAction* m_settingsAction = nullptr;
+  QToolButton* m_exportButton = nullptr;
+  QAction* m_exportXlsxAction = nullptr;
+  QAction* m_exportOdsAction = nullptr;
 
   std::vector<SignalId> m_chartSignals;
   std::vector<std::unique_ptr<TableContext>> m_tables;

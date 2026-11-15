@@ -1,0 +1,900 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE QtCreatorProject>
+<!-- Written by QtCreator 20.0.2, 2026-11-15T17:28:03. -->
+<qtcreator>
+ <data>
+  <variable>EnvironmentId</variable>
+  <value type="QByteArray">{9a354136-5830-4811-9261-1b28373b12ff}</value>
+ </data>
+ <data>
+  <variable>ProjectExplorer.Project.ActiveTarget</variable>
+  <value type="qlonglong">0</value>
+ </data>
+ <data>
+  <variable>ProjectExplorer.Project.EditorSettings</variable>
+  <valuemap type="QVariantMap">
+   <value type="bool" key="EditorConfiguration.AutoDetect">true</value>
+   <valuemap type="QVariantMap" key="EditorConfiguration.CodeStyle.0">
+    <value type="QString" key="language">Cpp</value>
+    <valuemap type="QVariantMap" key="value">
+     <value type="QByteArray" key="CurrentPreferences">CppGlobal</value>
+    </valuemap>
+   </valuemap>
+   <valuemap type="QVariantMap" key="EditorConfiguration.CodeStyle.1">
+    <value type="QString" key="language">QmlJS</value>
+    <valuemap type="QVariantMap" key="value">
+     <value type="QByteArray" key="CurrentPreferences">QmlJSGlobal</value>
+    </valuemap>
+   </valuemap>
+   <value type="qlonglong" key="EditorConfiguration.CodeStyle.Count">2</value>
+   <value type="QByteArray" key="EditorConfiguration.Codec">UTF-8</value>
+   <value type="int" key="EditorConfiguration.IndentSize">4</value>
+   <value type="int" key="EditorConfiguration.PaddingMode">1</value>
+   <value type="bool" key="EditorConfiguration.SpacesForTabs">true</value>
+   <value type="int" key="EditorConfiguration.TabSize">8</value>
+   <value type="bool" key="EditorConfiguration.UseGlobal">true</value>
+  </valuemap>
+ </data>
+ <data>
+  <variable>ProjectExplorer.Project.PluginSettings</variable>
+  <valuemap type="QVariantMap">
+   <valuemap type="QVariantMap" key="AutoTest.ActiveFrameworks">
+    <value type="bool" key="AutoTest.Framework.Boost">true</value>
+    <value type="bool" key="AutoTest.Framework.CTest">false</value>
+    <value type="bool" key="AutoTest.Framework.Catch">true</value>
+    <value type="bool" key="AutoTest.Framework.GTest">true</value>
+    <value type="bool" key="AutoTest.Framework.QtQuickTest">true</value>
+    <value type="bool" key="AutoTest.Framework.QtTest">true</value>
+   </valuemap>
+   <value type="bool" key="AutoTest.ApplyFilter">false</value>
+   <valuemap type="QVariantMap" key="AutoTest.CheckStates">
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_common.h:test_common">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_common.h:test_configuration_moduleTags">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configeditor.h:test_configurationRepository_configModules">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configeditor.h:test_configurationRepository_moduleLifecycle">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configeditor.h:test_configurationRepository_moduleLifecycle_withTags">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configeditor.h:tst_configeditor">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configuration.h:test_applicationSettingsLoader_saveConfigurationId">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configuration.h:test_configuration_crates">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configuration.h:test_configuration_duplicateSignalDefinitions">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configuration.h:test_configuration_duplicateTagIds">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configuration.h:test_configuration_empty">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configuration.h:test_configuration_failTagModule">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configuration.h:test_configuration_findSignalDefinition">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configuration.h:test_configuration_moduleChannelCount">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configuration.h:test_configuration_moduleTags">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configuration.h:test_configuration_modules">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configuration.h:test_configuration_orderIds">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configuration.h:test_configuration_parse_module_ids">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configuration.h:test_configuration_polynomial">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configuration.h:test_configuration_signalDefinitions">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configuration.h:test_configuration_sparseSignalDefinitionIds">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configuration.h:test_configuration_sparseTagIds">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configuration.h:test_configuration_tags">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configuration.h:test_createPolynomialCalibration">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configuration.h:test_createTableCalibration">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configuration.h:test_loadSensors">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configuration.h:test_sensorRepository">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configuration.h:test_updateCalibrationImmutableFields">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configuration.h:test_updatePolynomialCalibration">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configuration.h:test_updateTableCalibration">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configuration.h:test_updateTableCalibrationRollback">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_configuration.h:tst_configuration">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_core.h:test_fakeClock">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_core.h:test_schedulerClock">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_core.h:test_systemClock">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_core.h:test_timeAxis">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_core.h:test_timeRangeController">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_core.h:test_visibleTimeRangeChanged">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_core.h:tst_core">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_DataBlockQueue_anchor_block">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_DataBlockQueue_anchor_only">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_DataBlockQueue_stream_events">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_DataBlockQueue_three_blocks">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_DataStreamEventSink_base">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_DataStreamEvent_base">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_DataStreamProcessor_archiveFailure">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_DataStreamProcessor_block_with_multiple_frames">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_DataStreamProcessor_livetime">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_DataStreamProcessor_wait_for_all">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_DataStreamReader_bad_block">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_DataStreamReader_block">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_DataStreamReader_block_before_anchor">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_DataStreamTime_base">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_DataStreamTime_frameRate_0">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_DataStreamTime_frameRate_44100">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_DataStreamTime_restart">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_DataStreamWorker_base">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_DataStreamWorker_restart">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_FrameAssembler_allow_incomplete">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_FrameAssembler_wait_for_all_modules">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_LCardDataSource_some_modules_to_archive">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_LCardDataSource_stream_events">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_LCardDataSource_to_archive">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_archiveDescription_archiveDescriptionBuilder">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_archiveDescription_writeCalculatedSignals">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_archiveDescription_writeMultipleFiles">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_archiveDescription_writeRawSignals">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_archiveFile_badChannelCount">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_archiveFile_badMagic">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_archiveFile_checkFileSize">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_archiveFile_emptyFile">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_archiveFile_invalidHeaderSize">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_archiveFile_invalidRecordSize">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_archiveFile_invalidVersion">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_archiveFile_reCreates">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_archiveFile_saveHeader">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_archiveFile_saveHeaderInReadMode">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_archiveFile_saveHeaderNotChangePosition">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_archiveFile_saveZerroArray">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_archiveFile_seekToDataAfterHeader">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_archiveFile_seekToZerro">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_archivewriter_badChannelCount">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_archivewriter_create_open">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_archivewriter_doubleClose">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_archivewriter_writeAfterClose">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_archivewriter_writeOneRecord">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_archivewriter_writeSomeRecords">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_dataFileHeader_base">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:test_dataFileHeader_headerSize">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataarchive.h:tst_dataarchive">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_database.h:test_archiveReader_findRecord">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_database.h:test_archiveReader_missingFrames">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_database.h:test_archiveReader_open">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_database.h:test_archiveReader_read">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_database.h:test_archiveReader_readFrame">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_database.h:test_archiveReader_readRecord">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_database.h:test_archiveSignalSource">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_database.h:test_archiveSignalSource_NaN_Inf">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_database.h:test_archiveSignalSource_boundaryGap">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_database.h:test_archiveSignalSource_boundaryPoints">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_database.h:test_archiveSignalSource_cancel">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_database.h:test_archiveSignalSource_continuousSignal">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_database.h:test_archiveSignalSource_extremePoints">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_database.h:test_archiveSignalSource_gaps">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_database.h:test_archiveSignalSource_largeSignal">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_database.h:test_archiveSignalSource_manySegments">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_database.h:test_archiveSignalSource_multipleExtremes">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_database.h:test_archiveSignalSource_readPlot">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_database.h:test_archiveSignalSource_segmentDownsampling">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_database.h:test_archiveSignalSource_shortBurst">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_database.h:test_database_archive">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_database.h:test_database_loadConfiguration">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_database.h:test_database_pipeline">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_database.h:test_publisher">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_database.h:test_publisher_raw_calculated">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_database.h:tst_database">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataclient.cpp:InternalError">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataclient.cpp:InvalidState">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataclient.cpp:recoveryTemporaryError_data">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataclient.h:autoRecovery">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataclient.h:cancelRecovery">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataclient.h:dataTimeout">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataclient.h:duplicateLiveData">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataclient.h:invalidLiveDataSubscription">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataclient.h:invalidSubscriptionResponse">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataclient.h:invalidUnsubscribeResponse">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataclient.h:liveData">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataclient.h:protocolError">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataclient.h:recoveryRejected">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataclient.h:recoveryTemporaryError">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataclient.h:sequenceResetAfterResubscribe">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataclient.h:sequenceWraparound">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataclient.h:subscribeRejected">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataclient.h:subscribeRequest">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataclient.h:subscribeResponse">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataclient.h:subscribeRetry">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataclient.h:subscribeTimeout">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataclient.h:tst_dataclient">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataclient.h:unsubscribe">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataclient.h:unsubscribeRetry">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataclient.h:unsubscribeTimeout">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataprotocol.h:test_dataprotocol">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataprotocol.h:test_subscribeListPacket">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataprotocol.h:test_subscribeResponsePacket">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:subscriptionAutoCleanup">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_SystemBuilder_buildAfterFailure">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_SystemBuilder_failedThenSuccess">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_dataEngine_process_success">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_dataEngine_process_without_initialize">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_dataServer_failModule">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_dataServer_failStart_invalidUdpPort">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_dataServer_failStart_moduleType">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_dataServer_failSubscribe_duplicateSignalId">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_dataServer_failSubscribe_emptyList">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_dataServer_failSubscribe_invalidRate">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_dataServer_failSubscribe_invalidSignalId">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_dataServer_failSubscribe_tooManySignals">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_dataServer_publish_archive_pipeline">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_dataServer_restart_after_runtime_failure">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_dataServer_start_after_failed_start">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_dataServer_start_stop">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_dataServer_start_twice">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_dataServer_stop_before_start">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_dataServer_stop_on_dataSourceFailure">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_dataServer_subscriptionId_after_restart">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_dataServer_udp_pipeline">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_dataServer_unsubscribe_invalidId">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_dataServer_unsubscribe_ok">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_systemBuilder_buildRuntime">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_systemBuilder_failDataSourceManager">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_systemBuilder_failErrorFormula">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_systemBuilder_pipeline">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:test_systemBuilder_success">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_dataserver.h:tst_dataserver">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_datasource.h:test_dataSourceFactory_registerType_create">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_datasource.h:test_dataSourceManager_successInit">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_datasource.h:test_dataStreamSourceFactory">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_datasource.h:test_dataStreamSourceManager">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_datasource.h:test_dataStreamSourceManager_failModule">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_datasource.h:test_dataStreamSourceManager_initializeRollback">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_datasource.h:test_dataStreamSourceManager_reinitialize">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_datasource.h:test_dataStreamSourceManager_restart_after_runtime_failure">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_datasource.h:test_dataStreamSourceManager_startRollback">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_datasource.h:test_datasource_absent_datasource">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_datasource.h:test_datasource_acquire_repeat">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_datasource.h:test_datasource_empty_config">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_datasource.h:test_datasource_fail_datasource">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_datasource.h:test_datasource_fail_repeat">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_datasource.h:test_datasource_layout">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_datasource.h:test_datasource_layout_raw_calculated">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_datasource.h:test_datasource_layout_someModules">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_datasource.h:test_datasource_layout_two_build">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_datasource.h:test_datasource_manager">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_datasource.h:test_datasource_missing_datasource">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_datasource.h:test_datasource_repeat_initialize">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_datasource.h:test_datasource_start_stop">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_datasource.h:tst_datasource">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_engine.h:test_DataEngine_no_frame">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_engine.h:test_DataEngine_publish_latest">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_engine.h:test_DataEngine_restart">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_engine.h:tst_engine">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_calculationOrder_base">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_calculationOrder_cba">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_calculationOrder_chain">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_calculationOrder_cycle">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_calculationOrder_selfReference">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_calculationOrder_serious">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulaCalculator_base">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulaCalculator_calculate">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulaEvaluator_base">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_evaluator_divideByZero">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_evaluator_failSignalReference">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_evaluator_formulaFunctionRepository">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_evaluator_multiply">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_evaluator_negate">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_evaluator_number">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_evaluator_raw0">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_evaluator_raw0AndRaw1">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_evaluator_subtract">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_formulaFunctionRepository_clear">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_formulaFunctionRepository_find">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_formulaFunctionRepository_uniqueNames">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_functionCall_failCountParams">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_functionCall_failValueParams">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_functionCall_missingParams">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_functionCall_sqrtSignal">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_functionCall_unknown">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_functionRepository_abs_negate">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_functionRepository_invalidAdd">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_functionRepository_max">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_functionRepository_max_failParams">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_functionRepository_max_missingParams">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_functionRepository_min">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_functionRepository_min_failParams">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_functionRepository_min_missingParams">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_functionRepository_nesteFunctions">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_identifierResolver">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_identifierResolverCalculated">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_identifierResolver_unknown">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_lexer_identifiers">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_lexer_invalid">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_lexer_numbers">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_lexer_operators">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_add">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_errorBktEnds">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_errorEqualsEnds">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_errorMultiplyEnds">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_errorOperatorEnds">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_errorOperatorEqualsEnds">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_errorPluseEnds">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_functionCall">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_functionCallAndArguments">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_functionCall_SomeArguments">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_functionCall_errorArgumentEnds">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_functionCall_errorBktEnds">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_functionCall_errorComaArgumentsEnds">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_functionCall_errorComaArgumentsStart">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_functionCall_errorDuplicateBkts">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_functionCall_errorMissingComaArguments">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_functionCall_multipleArguments">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_identifier">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_leftAssociative">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_nestedFunctionCall">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_nestedFunctionCallFuncArguments">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_number">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_operatorPrecedence">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_parentheses">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_tree_base">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_unaryMinus">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_unaryMinusWithIdentifer">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formulas_parser_unaryMinusWithOperator">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:test_formuls_lexer_base">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_formulas.h:tst_formulas">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_hardware.h:test_LCardDataSource_restart_after_runtime_failure">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_hardware.h:test_LCardDataSource_runtime_failure">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_hardware.h:test_acquire_returns_last_frame">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_hardware.h:test_fakeLCardModule_base">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_hardware.h:test_lCardDataSource">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_hardware.h:test_lCardDataSource_data_integrity">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_hardware.h:test_lCardDataSource_fake_push_archive">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_hardware.h:test_ltr11configurationbuilder">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_hardware.h:tst_hardware">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_logger.h:test_logger_base">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_logger.h:test_logger_levels">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_logger.h:test_logger_midnight">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_logger.h:test_logger_multithread">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_logger.h:tst_logger">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_ltr11module.h:test_LCardDataSource_base">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_ltr11module.h:test_LCardDataSource_update_frequency">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_ltr11module.h:test_Ltr11ConfigurationFactory">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_ltr11module.h:test_Ltr11Module_base">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_ltr11module.h:test_Ltr11Module_without_print">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_ltr11module.h:test_ltr11configurationvalidator">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_ltr11module.h:tst_ltr11module">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_packetdispatcher.h:duplicateRequest">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_packetdispatcher.h:duplicateRequestMismatch">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_packetdispatcher.h:duplicateUnrequest">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_packetdispatcher.h:subscriptionAutoRenew">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_packetdispatcher.h:subscriptionRenew">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_packetdispatcher.h:subscriptionTtl">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_packetdispatcher.h:tst_packetdispatcher">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_packetdispatcher.h:tst_packetdispatcher_duplicateSignal">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_packetdispatcher.h:tst_packetdispatcher_emptyList">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_packetdispatcher.h:tst_packetdispatcher_invalidPacket">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_packetdispatcher.h:tst_packetdispatcher_invalidRate">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_packetdispatcher.h:tst_packetdispatcher_invalidSignal">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_packetdispatcher.h:tst_packetdispatcher_invalidSignalCount">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_packetdispatcher.h:tst_packetdispatcher_ping">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_packetdispatcher.h:tst_packetdispatcher_pingExtraData">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_packetdispatcher.h:tst_packetdispatcher_subscribeExtraData">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_packetdispatcher.h:tst_packetdispatcher_subscribeWithoutPayload">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_packetdispatcher.h:tst_packetdispatcher_subscriptionIdReuse">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_packetdispatcher.h:tst_packetdispatcher_tooManySignals">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_packetdispatcher.h:tst_packetdispatcher_unknownPacket">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_packetdispatcher.h:tst_packetdispatcher_unsubscribe">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_packetdispatcher.h:tst_packetdispatcher_unsubscribeExtraData">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_packetdispatcher.h:tst_packetdispatcher_unsubscribeinvalidId">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_packetdispatcher.h:tst_packetdispatcher_validSignal">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_publisher.h:test_publish_failSignal">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_publisher.h:test_publish_failSubscription">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_publisher.h:test_publish_phase_preserving">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_publisher.h:test_publish_publishRate">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_publisher.h:test_publish_reuseWriter">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_publisher.h:test_publish_sendFailure">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_publisher.h:test_publish_sendFailure_afterStart">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_publisher.h:test_publish_sequenceWraparound">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_publisher.h:test_publish_subscriptionRateAboveFrameRate">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_publisher.h:test_publish_subscriptionRateNotDivisor">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_publisher.h:test_publish_zeroFrameRate">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_publisher.h:test_publish_zeroSubscriptionRate">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_publisher.h:tst_publisher">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_signalprocessor.h:test_calculationPlan_base">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_signalprocessor.h:test_calculationPlan_cycle">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_signalprocessor.h:test_calculationPlan_failAst">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_signalprocessor.h:test_calculationPlan_rebuildInvalid">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_signalprocessor.h:test_signalProcessor_calculate">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_signalprocessor.h:test_signalProcessor_calibrationByType">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_signalprocessor.h:test_signalProcessor_calibrationOwn">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_signalprocessor.h:test_signalProcessor_fail">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_signalprocessor.h:tst_signalprocessor">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_signalstorage.h:test_bufferManager_thread_safe">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_signalstorage.h:test_bufferManager_thread_safe2">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_signalstorage.h:test_buffer_manager">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_signalstorage.h:test_datasource_layout_contains">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_signalstorage.h:test_datasource_layout_rebuild">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_signalstorage.h:test_datasource_layout_reference">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_signalstorage.h:test_datasource_layout_unknownModule">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_signalstorage.h:test_raw_memory">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_signalstorage.h:test_signalMemoryLayout_rawOffset_rawCount">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_signalstorage.h:test_signalstorage_base">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_signalstorage.h:tst_signalstorage">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_subscriptions.h:test_subscriptions_add_remove">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_subscriptions.h:test_subscriptions_id_not_reused">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_subscriptions.h:test_subscriptions_unique_ids">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_subscriptions.h:tst_subscriptions">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpsender.h:test_send">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpsender.h:test_send_bad_address">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpsender.h:test_send_empty">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpsender.h:tst_udpsender">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpserver.h:test_invalidProtocolMagic">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpserver.h:test_invalidProtocolVersion">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpserver.h:test_invalid_packet">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpserver.h:test_packet_incompleteHeader">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpserver.h:test_packet_payloadSizeMismatch">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpserver.h:test_packet_payloadSizeTooSmall">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpserver.h:test_ping">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpserver.h:test_pingBurst1000">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpserver.h:test_ping_extraData">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpserver.h:test_ping_followedByPing">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpserver.h:test_subscribeList_duplicateTag">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpserver.h:test_subscribeList_empty">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpserver.h:test_subscribeList_emptyPayload">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpserver.h:test_subscribeList_invalidRate">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpserver.h:test_subscribeList_invalidTag">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpserver.h:test_subscribeList_ok">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpserver.h:test_subscribeList_tooManyTags">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpserver.h:test_subscribeList_truncatedTagArray">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpserver.h:test_unknown_packet">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpserver.h:test_unsubscribe_emptyPayload">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpserver.h:test_unsubscribe_extraData">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpserver.h:test_unsubscribe_invalidId">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpserver.h:test_unsubscribe_ok">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpserver.h:test_unsubscribe_twice">Unchecked</value>
+    <value type="Qt::CheckState" key="1@D:/Qt/DataServerQt/tests/tst_udpserver.h:tst_udpserver">Unchecked</value>
+   </valuemap>
+   <valuelist type="QVariantList" key="AutoTest.PathFilters"/>
+   <value type="int" key="AutoTest.RunAfterBuild">0</value>
+   <value type="bool" key="AutoTest.UseGlobal">true</value>
+   <valuemap type="QVariantMap" key="ClangTools">
+    <valuelist type="QVariantList" key="ClangTools.SelectedDirs"/>
+    <valuelist type="QVariantList" key="ClangTools.SelectedFiles"/>
+    <valuelist type="QVariantList" key="ClangTools.SuppressedDiagnostics"/>
+    <value type="bool" key="ClangTools.UseGlobalSettings">true</value>
+   </valuemap>
+   <valuemap type="QVariantMap" key="CppEditor.QuickFix">
+    <value type="bool" key="UseGlobalSettings">true</value>
+   </valuemap>
+   <valuemap type="QVariantMap" key="CppcheckManual"/>
+   <value type="QDateTime" key="GitLab.LastRequest"></value>
+   <value type="QString" key="GitLab.Project"></value>
+   <value type="QString" key="GitLab.Server"></value>
+   <value type="int" key="RcSync">0</value>
+  </valuemap>
+ </data>
+ <data>
+  <variable>ProjectExplorer.Project.Target.0</variable>
+  <valuemap type="QVariantMap">
+   <value type="QString" key="DeviceType">Desktop</value>
+   <value type="bool" key="HasPerBcDcs">true</value>
+   <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">Desktop Qt 6.11.1 MinGW 64-bit</value>
+   <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">Desktop Qt 6.11.1 MinGW 64-bit</value>
+   <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">qt.qt6.6111.win64_mingw_kit</value>
+   <value type="qlonglong" key="ProjectExplorer.Target.ActiveBuildConfiguration">0</value>
+   <value type="qlonglong" key="ProjectExplorer.Target.ActiveDeployConfiguration">0</value>
+   <value type="qlonglong" key="ProjectExplorer.Target.ActiveRunConfiguration">5</value>
+   <valuemap type="QVariantMap" key="ProjectExplorer.Target.BuildConfiguration.0">
+    <value type="QString" key="CMake.Build.Type">Debug</value>
+    <value type="int" key="CMake.Configure.BaseEnvironment">2</value>
+    <value type="bool" key="CMake.Configure.ClearSystemEnvironment">false</value>
+    <value type="UnknownType" key="CMake.Configure.UserEnvironmentChanges"></value>
+    <value type="QString" key="CMake.Initial.Parameters">-DCMAKE_BUILD_TYPE:STRING=Debug
+-DCMAKE_COLOR_DIAGNOSTICS:BOOL=ON
+-DCMAKE_CXX_COMPILER:FILEPATH=%{Compiler:Executable:Cxx}
+-DCMAKE_C_COMPILER:FILEPATH=%{Compiler:Executable:C}
+-DCMAKE_GENERATOR:STRING=MinGW Makefiles
+-DCMAKE_PREFIX_PATH:PATH=%{Qt:QT_INSTALL_PREFIX}
+-DCMAKE_PROJECT_INCLUDE_BEFORE:FILEPATH=%{BuildConfig:BuildDirectory:NativeFilePath}/.qtcreator/cmake-helper/qtcreator-project.cmake
+-DQT_CREATOR_ENABLE_MAINTENANCE_TOOL_PROVIDER:BOOL=ON
+-DQT_CREATOR_ENABLE_PACKAGE_MANAGER_SETUP:BOOL=ON
+-DQT_ENABLE_QML_DEBUG:BOOL=%{Qt:QT_ENABLE_QML_DEBUG}
+-DQT_QMAKE_EXECUTABLE:FILEPATH=%{Qt:qmakeExecutable}</value>
+    <value type="int" key="EnableQmlDebugging">0</value>
+    <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory">.\build\%{FileSystemFriendly:%{Kit:Name}_%{BuildConfig:Name}}</value>
+    <valuemap type="QVariantMap" key="ProjectExplorer.BuildConfiguration.BuildStepList.0">
+     <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.0">
+      <value type="QString" key="CMakeProjectManager.MakeStep.BuildPreset"></value>
+      <valuelist type="QVariantList" key="CMakeProjectManager.MakeStep.BuildTargets">
+       <value type="QString">all</value>
+      </valuelist>
+      <value type="bool" key="CMakeProjectManager.MakeStep.ClearSystemEnvironment">false</value>
+      <value type="UnknownType" key="CMakeProjectManager.MakeStep.UserEnvironmentChanges"></value>
+      <value type="bool" key="ProjectExplorer.BuildStep.Enabled">true</value>
+      <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">Build</value>
+      <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">CMakeProjectManager.MakeStep</value>
+     </valuemap>
+     <value type="qlonglong" key="ProjectExplorer.BuildStepList.StepsCount">1</value>
+     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">Build</value>
+     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">Build</value>
+     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">ProjectExplorer.BuildSteps.Build</value>
+    </valuemap>
+    <valuemap type="QVariantMap" key="ProjectExplorer.BuildConfiguration.BuildStepList.1">
+     <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.0">
+      <value type="QString" key="CMakeProjectManager.MakeStep.BuildPreset"></value>
+      <valuelist type="QVariantList" key="CMakeProjectManager.MakeStep.BuildTargets">
+       <value type="QString">clean</value>
+      </valuelist>
+      <value type="bool" key="CMakeProjectManager.MakeStep.ClearSystemEnvironment">false</value>
+      <value type="UnknownType" key="CMakeProjectManager.MakeStep.UserEnvironmentChanges"></value>
+      <value type="bool" key="ProjectExplorer.BuildStep.Enabled">true</value>
+      <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">Build</value>
+      <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">CMakeProjectManager.MakeStep</value>
+     </valuemap>
+     <value type="qlonglong" key="ProjectExplorer.BuildStepList.StepsCount">1</value>
+     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">Clean</value>
+     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">Clean</value>
+     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">ProjectExplorer.BuildSteps.Clean</value>
+    </valuemap>
+    <value type="int" key="ProjectExplorer.BuildConfiguration.BuildStepListCount">2</value>
+    <value type="bool" key="ProjectExplorer.BuildConfiguration.ClearSystemEnvironment">false</value>
+    <valuelist type="QVariantList" key="ProjectExplorer.BuildConfiguration.CustomParsers"/>
+    <value type="bool" key="ProjectExplorer.BuildConfiguration.ParseStandardOutput">false</value>
+    <value type="UnknownType" key="ProjectExplorer.BuildConfiguration.UserEnvironmentChanges"></value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">Debug</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">CMakeProjectManager.CMakeBuildConfiguration</value>
+    <value type="qlonglong" key="ProjectExplorer.Target.ActiveDeployConfiguration">0</value>
+    <value type="qlonglong" key="ProjectExplorer.Target.ActiveRunConfiguration">5</value>
+    <valuemap type="QVariantMap" key="ProjectExplorer.Target.DeployConfiguration.0">
+     <valuemap type="QVariantMap" key="ProjectExplorer.BuildConfiguration.BuildStepList.0">
+      <value type="qlonglong" key="ProjectExplorer.BuildStepList.StepsCount">0</value>
+      <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">Deploy</value>
+      <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">Deploy</value>
+      <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">ProjectExplorer.BuildSteps.Deploy</value>
+     </valuemap>
+     <value type="int" key="ProjectExplorer.BuildConfiguration.BuildStepListCount">1</value>
+     <valuemap type="QVariantMap" key="ProjectExplorer.DeployConfiguration.CustomData"/>
+     <value type="bool" key="ProjectExplorer.DeployConfiguration.CustomDataEnabled">false</value>
+     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">ProjectExplorer.DefaultDeployConfiguration</value>
+    </valuemap>
+    <valuemap type="QVariantMap" key="ProjectExplorer.Target.DeployConfiguration.1">
+     <valuemap type="QVariantMap" key="ProjectExplorer.BuildConfiguration.BuildStepList.0">
+      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.0">
+       <value type="QString" key="CMakeProjectManager.MakeStep.BuildPreset"></value>
+       <valuelist type="QVariantList" key="CMakeProjectManager.MakeStep.BuildTargets">
+        <value type="QString"></value>
+       </valuelist>
+       <value type="bool" key="CMakeProjectManager.MakeStep.ClearSystemEnvironment">false</value>
+       <value type="UnknownType" key="CMakeProjectManager.MakeStep.UserEnvironmentChanges"></value>
+       <value type="bool" key="ProjectExplorer.BuildStep.Enabled">true</value>
+       <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">Build</value>
+       <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">ApplicationManagerPlugin.Deploy.CMakePackageStep</value>
+      </valuemap>
+      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.1">
+       <value type="QString" key="ApplicationManagerPlugin.Deploy.InstallPackageStep.Arguments">install-package --acknowledge</value>
+       <value type="bool" key="ProjectExplorer.BuildStep.Enabled">true</value>
+       <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">Install Application Manager package</value>
+       <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">ApplicationManagerPlugin.Deploy.InstallPackageStep</value>
+       <valuelist type="QVariantList" key="ProjectExplorer.RunConfiguration.LastDeployedFiles"/>
+       <valuelist type="QVariantList" key="ProjectExplorer.RunConfiguration.LastDeployedHosts"/>
+       <valuelist type="QVariantList" key="ProjectExplorer.RunConfiguration.LastDeployedRemotePaths"/>
+       <valuelist type="QVariantList" key="ProjectExplorer.RunConfiguration.LastDeployedSysroots"/>
+       <valuelist type="QVariantList" key="RemoteLinux.LastDeployedLocalTimes"/>
+       <valuelist type="QVariantList" key="RemoteLinux.LastDeployedRemoteTimes"/>
+      </valuemap>
+      <value type="qlonglong" key="ProjectExplorer.BuildStepList.StepsCount">2</value>
+      <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">Deploy</value>
+      <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">Deploy</value>
+      <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">ProjectExplorer.BuildSteps.Deploy</value>
+     </valuemap>
+     <value type="int" key="ProjectExplorer.BuildConfiguration.BuildStepListCount">1</value>
+     <valuemap type="QVariantMap" key="ProjectExplorer.DeployConfiguration.CustomData"/>
+     <value type="bool" key="ProjectExplorer.DeployConfiguration.CustomDataEnabled">false</value>
+     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">ApplicationManagerPlugin.Deploy.Configuration</value>
+    </valuemap>
+    <value type="qlonglong" key="ProjectExplorer.Target.DeployConfigurationCount">2</value>
+    <valuemap type="QVariantMap" key="ProjectExplorer.Target.PluginSettings">
+     <value type="bool" key="AndroidBuildTargetDirSupport">false</value>
+     <valuelist type="QVariantList" key="ApplicationmanagerPackageTargets"/>
+     <value type="bool" key="UseAndroidBuildTargetDir">false</value>
+    </valuemap>
+    <valuemap type="QVariantMap" key="ProjectExplorer.Target.RunConfiguration.0">
+     <value type="bool" key="Analyzer.Perf.Settings.UseGlobalSettings">true</value>
+     <value type="bool" key="Analyzer.QmlProfiler.Settings.UseGlobalSettings">true</value>
+     <value type="int" key="Analyzer.Valgrind.Callgrind.CostFormat">0</value>
+     <value type="bool" key="Analyzer.Valgrind.Settings.UseGlobalSettings">true</value>
+     <valuelist type="QVariantList" key="Analyzer.Valgrind.SuppressionFiles"/>
+     <valuelist type="QVariantList" key="CustomOutputParsers"/>
+     <value type="int" key="PE.EnvironmentAspect.Base">2</value>
+     <value type="UnknownType" key="PE.EnvironmentAspect.Changes"></value>
+     <value type="bool" key="PE.EnvironmentAspect.PrintOnRun">false</value>
+     <value type="QString" key="PerfRecordArgsId">-e cpu-cycles --call-graph &quot;dwarf,4096&quot; -F 250</value>
+     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName"></value>
+     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">CMakeProjectManager.CMakeRunConfiguration.</value>
+     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">configeditor</value>
+     <value type="bool" key="ProjectExplorer.RunConfiguration.Customized">true</value>
+     <value type="QString" key="ProjectExplorer.RunConfiguration.UniqueId"></value>
+     <value type="QString" key="RunConfiguration.Arguments">--config configedit.ini</value>
+     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
+     <value type="bool" key="RunConfiguration.UseLibrarySearchPath">true</value>
+     <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
+     <value type="QString" key="RunConfiguration.WorkingDirectory.default">%{RunConfig:Executable:Path}</value>
+    </valuemap>
+    <valuemap type="QVariantMap" key="ProjectExplorer.Target.RunConfiguration.1">
+     <value type="bool" key="Analyzer.Perf.Settings.UseGlobalSettings">true</value>
+     <value type="bool" key="Analyzer.QmlProfiler.Settings.UseGlobalSettings">true</value>
+     <value type="int" key="Analyzer.Valgrind.Callgrind.CostFormat">0</value>
+     <value type="bool" key="Analyzer.Valgrind.Settings.UseGlobalSettings">true</value>
+     <valuelist type="QVariantList" key="Analyzer.Valgrind.SuppressionFiles"/>
+     <valuelist type="QVariantList" key="CustomOutputParsers"/>
+     <value type="int" key="PE.EnvironmentAspect.Base">2</value>
+     <value type="UnknownType" key="PE.EnvironmentAspect.Changes"></value>
+     <value type="bool" key="PE.EnvironmentAspect.PrintOnRun">false</value>
+     <value type="QString" key="PerfRecordArgsId">-e cpu-cycles --call-graph &quot;dwarf,4096&quot; -F 250</value>
+     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName"></value>
+     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">CMakeProjectManager.CMakeRunConfiguration.</value>
+     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">datamonitor</value>
+     <value type="bool" key="ProjectExplorer.RunConfiguration.Customized">true</value>
+     <value type="QString" key="ProjectExplorer.RunConfiguration.UniqueId"></value>
+     <value type="QString" key="RunConfiguration.Arguments">--config monitor.ini</value>
+     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
+     <value type="bool" key="RunConfiguration.UseLibrarySearchPath">true</value>
+     <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
+     <value type="QString" key="RunConfiguration.WorkingDirectory.default">%{RunConfig:Executable:Path}</value>
+    </valuemap>
+    <valuemap type="QVariantMap" key="ProjectExplorer.Target.RunConfiguration.2">
+     <value type="bool" key="Analyzer.Perf.Settings.UseGlobalSettings">true</value>
+     <value type="bool" key="Analyzer.QmlProfiler.Settings.UseGlobalSettings">true</value>
+     <value type="int" key="Analyzer.Valgrind.Callgrind.CostFormat">0</value>
+     <value type="bool" key="Analyzer.Valgrind.Settings.UseGlobalSettings">true</value>
+     <valuelist type="QVariantList" key="Analyzer.Valgrind.SuppressionFiles"/>
+     <valuelist type="QVariantList" key="CustomOutputParsers"/>
+     <value type="int" key="PE.EnvironmentAspect.Base">2</value>
+     <value type="UnknownType" key="PE.EnvironmentAspect.Changes"></value>
+     <value type="bool" key="PE.EnvironmentAspect.PrintOnRun">false</value>
+     <value type="QString" key="PerfRecordArgsId">-e cpu-cycles --call-graph &quot;dwarf,4096&quot; -F 250</value>
+     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName"></value>
+     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">CMakeProjectManager.CMakeRunConfiguration.</value>
+     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">dataserver</value>
+     <value type="bool" key="ProjectExplorer.RunConfiguration.Customized">true</value>
+     <value type="QString" key="ProjectExplorer.RunConfiguration.UniqueId"></value>
+     <value type="QString" key="RunConfiguration.Arguments">--config dataserver.ini</value>
+     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
+     <value type="bool" key="RunConfiguration.UseLibrarySearchPath">true</value>
+     <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
+     <value type="QString" key="RunConfiguration.WorkingDirectory.default">%{RunConfig:Executable:Path}</value>
+    </valuemap>
+    <valuemap type="QVariantMap" key="ProjectExplorer.Target.RunConfiguration.3">
+     <value type="bool" key="Analyzer.Perf.Settings.UseGlobalSettings">true</value>
+     <value type="bool" key="Analyzer.QmlProfiler.Settings.UseGlobalSettings">true</value>
+     <value type="int" key="Analyzer.Valgrind.Callgrind.CostFormat">0</value>
+     <value type="bool" key="Analyzer.Valgrind.Settings.UseGlobalSettings">true</value>
+     <valuelist type="QVariantList" key="Analyzer.Valgrind.SuppressionFiles"/>
+     <valuelist type="QVariantList" key="CustomOutputParsers"/>
+     <value type="int" key="PE.EnvironmentAspect.Base">2</value>
+     <value type="UnknownType" key="PE.EnvironmentAspect.Changes"></value>
+     <value type="bool" key="PE.EnvironmentAspect.PrintOnRun">false</value>
+     <value type="QString" key="PerfRecordArgsId">-e cpu-cycles --call-graph &quot;dwarf,4096&quot; -F 250</value>
+     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName"></value>
+     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">CMakeProjectManager.CMakeRunConfiguration.</value>
+     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">test_basetableview</value>
+     <value type="bool" key="ProjectExplorer.RunConfiguration.Customized">false</value>
+     <value type="QString" key="ProjectExplorer.RunConfiguration.UniqueId"></value>
+     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
+     <value type="bool" key="RunConfiguration.UseLibrarySearchPath">true</value>
+     <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
+     <value type="QString" key="RunConfiguration.WorkingDirectory.default">%{RunConfig:Executable:Path}</value>
+    </valuemap>
+    <valuemap type="QVariantMap" key="ProjectExplorer.Target.RunConfiguration.4">
+     <value type="bool" key="Analyzer.Perf.Settings.UseGlobalSettings">true</value>
+     <value type="bool" key="Analyzer.QmlProfiler.Settings.UseGlobalSettings">true</value>
+     <value type="int" key="Analyzer.Valgrind.Callgrind.CostFormat">0</value>
+     <value type="bool" key="Analyzer.Valgrind.Settings.UseGlobalSettings">true</value>
+     <valuelist type="QVariantList" key="Analyzer.Valgrind.SuppressionFiles"/>
+     <valuelist type="QVariantList" key="CustomOutputParsers"/>
+     <value type="int" key="PE.EnvironmentAspect.Base">2</value>
+     <value type="UnknownType" key="PE.EnvironmentAspect.Changes"></value>
+     <value type="bool" key="PE.EnvironmentAspect.PrintOnRun">false</value>
+     <value type="QString" key="PerfRecordArgsId">-e cpu-cycles --call-graph &quot;dwarf,4096&quot; -F 250</value>
+     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName"></value>
+     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">CMakeProjectManager.CMakeRunConfiguration.</value>
+     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">unit_tests</value>
+     <value type="bool" key="ProjectExplorer.RunConfiguration.Customized">false</value>
+     <value type="QString" key="ProjectExplorer.RunConfiguration.UniqueId"></value>
+     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
+     <value type="bool" key="RunConfiguration.UseLibrarySearchPath">true</value>
+     <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
+     <value type="QString" key="RunConfiguration.WorkingDirectory.default">%{RunConfig:Executable:Path}</value>
+    </valuemap>
+    <valuemap type="QVariantMap" key="ProjectExplorer.Target.RunConfiguration.5">
+     <value type="bool" key="Analyzer.Perf.Settings.UseGlobalSettings">true</value>
+     <value type="bool" key="Analyzer.QmlProfiler.Settings.UseGlobalSettings">true</value>
+     <value type="int" key="Analyzer.Valgrind.Callgrind.CostFormat">0</value>
+     <value type="bool" key="Analyzer.Valgrind.Settings.UseGlobalSettings">true</value>
+     <valuelist type="QVariantList" key="Analyzer.Valgrind.SuppressionFiles"/>
+     <valuelist type="QVariantList" key="CustomOutputParsers"/>
+     <value type="int" key="PE.EnvironmentAspect.Base">2</value>
+     <value type="UnknownType" key="PE.EnvironmentAspect.Changes"></value>
+     <value type="bool" key="PE.EnvironmentAspect.PrintOnRun">false</value>
+     <value type="QString" key="PerfRecordArgsId">-e cpu-cycles --call-graph &quot;dwarf,4096&quot; -F 250</value>
+     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName"></value>
+     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">CMakeProjectManager.CMakeRunConfiguration.</value>
+     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">dataviewer</value>
+     <value type="bool" key="ProjectExplorer.RunConfiguration.Customized">false</value>
+     <value type="QString" key="ProjectExplorer.RunConfiguration.UniqueId"></value>
+     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
+     <value type="bool" key="RunConfiguration.UseLibrarySearchPath">true</value>
+     <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
+     <value type="QString" key="RunConfiguration.WorkingDirectory.default">%{RunConfig:Executable:Path}</value>
+    </valuemap>
+    <value type="qlonglong" key="ProjectExplorer.Target.RunConfigurationCount">6</value>
+   </valuemap>
+   <value type="qlonglong" key="ProjectExplorer.Target.BuildConfigurationCount">1</value>
+   <valuemap type="QVariantMap" key="ProjectExplorer.Target.DeployConfiguration.0">
+    <valuemap type="QVariantMap" key="ProjectExplorer.BuildConfiguration.BuildStepList.0">
+     <value type="qlonglong" key="ProjectExplorer.BuildStepList.StepsCount">0</value>
+     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">Deploy</value>
+     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">Deploy</value>
+     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">ProjectExplorer.BuildSteps.Deploy</value>
+    </valuemap>
+    <value type="int" key="ProjectExplorer.BuildConfiguration.BuildStepListCount">1</value>
+    <valuemap type="QVariantMap" key="ProjectExplorer.DeployConfiguration.CustomData"/>
+    <value type="bool" key="ProjectExplorer.DeployConfiguration.CustomDataEnabled">false</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">ProjectExplorer.DefaultDeployConfiguration</value>
+   </valuemap>
+   <valuemap type="QVariantMap" key="ProjectExplorer.Target.DeployConfiguration.1">
+    <valuemap type="QVariantMap" key="ProjectExplorer.BuildConfiguration.BuildStepList.0">
+     <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.0">
+      <value type="QString" key="CMakeProjectManager.MakeStep.BuildPreset"></value>
+      <valuelist type="QVariantList" key="CMakeProjectManager.MakeStep.BuildTargets">
+       <value type="QString"></value>
+      </valuelist>
+      <value type="bool" key="CMakeProjectManager.MakeStep.ClearSystemEnvironment">false</value>
+      <value type="UnknownType" key="CMakeProjectManager.MakeStep.UserEnvironmentChanges"></value>
+      <value type="bool" key="ProjectExplorer.BuildStep.Enabled">true</value>
+      <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">Build</value>
+      <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">ApplicationManagerPlugin.Deploy.CMakePackageStep</value>
+     </valuemap>
+     <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.1">
+      <value type="QString" key="ApplicationManagerPlugin.Deploy.InstallPackageStep.Arguments">install-package --acknowledge</value>
+      <value type="bool" key="ProjectExplorer.BuildStep.Enabled">true</value>
+      <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">Install Application Manager package</value>
+      <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">ApplicationManagerPlugin.Deploy.InstallPackageStep</value>
+      <valuelist type="QVariantList" key="ProjectExplorer.RunConfiguration.LastDeployedFiles"/>
+      <valuelist type="QVariantList" key="ProjectExplorer.RunConfiguration.LastDeployedHosts"/>
+      <valuelist type="QVariantList" key="ProjectExplorer.RunConfiguration.LastDeployedRemotePaths"/>
+      <valuelist type="QVariantList" key="ProjectExplorer.RunConfiguration.LastDeployedSysroots"/>
+      <valuelist type="QVariantList" key="RemoteLinux.LastDeployedLocalTimes"/>
+      <valuelist type="QVariantList" key="RemoteLinux.LastDeployedRemoteTimes"/>
+     </valuemap>
+     <value type="qlonglong" key="ProjectExplorer.BuildStepList.StepsCount">2</value>
+     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">Deploy</value>
+     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">Deploy</value>
+     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">ProjectExplorer.BuildSteps.Deploy</value>
+    </valuemap>
+    <value type="int" key="ProjectExplorer.BuildConfiguration.BuildStepListCount">1</value>
+    <valuemap type="QVariantMap" key="ProjectExplorer.DeployConfiguration.CustomData"/>
+    <value type="bool" key="ProjectExplorer.DeployConfiguration.CustomDataEnabled">false</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">ApplicationManagerPlugin.Deploy.Configuration</value>
+   </valuemap>
+   <value type="qlonglong" key="ProjectExplorer.Target.DeployConfigurationCount">2</value>
+   <valuemap type="QVariantMap" key="ProjectExplorer.Target.RunConfiguration.0">
+    <value type="bool" key="Analyzer.Perf.Settings.UseGlobalSettings">true</value>
+    <value type="bool" key="Analyzer.QmlProfiler.Settings.UseGlobalSettings">true</value>
+    <value type="int" key="Analyzer.Valgrind.Callgrind.CostFormat">0</value>
+    <value type="bool" key="Analyzer.Valgrind.Settings.UseGlobalSettings">true</value>
+    <valuelist type="QVariantList" key="Analyzer.Valgrind.SuppressionFiles"/>
+    <valuelist type="QVariantList" key="CustomOutputParsers"/>
+    <value type="int" key="PE.EnvironmentAspect.Base">2</value>
+    <value type="UnknownType" key="PE.EnvironmentAspect.Changes"></value>
+    <value type="bool" key="PE.EnvironmentAspect.PrintOnRun">false</value>
+    <value type="QString" key="PerfRecordArgsId">-e cpu-cycles --call-graph &quot;dwarf,4096&quot; -F 250</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName"></value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">CMakeProjectManager.CMakeRunConfiguration.</value>
+    <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">configeditor</value>
+    <value type="bool" key="ProjectExplorer.RunConfiguration.Customized">true</value>
+    <value type="QString" key="ProjectExplorer.RunConfiguration.UniqueId"></value>
+    <value type="QString" key="RunConfiguration.Arguments">--config configedit.ini</value>
+    <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
+    <value type="bool" key="RunConfiguration.UseLibrarySearchPath">true</value>
+    <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
+    <value type="QString" key="RunConfiguration.WorkingDirectory.default">%{RunConfig:Executable:Path}</value>
+   </valuemap>
+   <valuemap type="QVariantMap" key="ProjectExplorer.Target.RunConfiguration.1">
+    <value type="bool" key="Analyzer.Perf.Settings.UseGlobalSettings">true</value>
+    <value type="bool" key="Analyzer.QmlProfiler.Settings.UseGlobalSettings">true</value>
+    <value type="int" key="Analyzer.Valgrind.Callgrind.CostFormat">0</value>
+    <value type="bool" key="Analyzer.Valgrind.Settings.UseGlobalSettings">true</value>
+    <valuelist type="QVariantList" key="Analyzer.Valgrind.SuppressionFiles"/>
+    <valuelist type="QVariantList" key="CustomOutputParsers"/>
+    <value type="int" key="PE.EnvironmentAspect.Base">2</value>
+    <value type="UnknownType" key="PE.EnvironmentAspect.Changes"></value>
+    <value type="bool" key="PE.EnvironmentAspect.PrintOnRun">false</value>
+    <value type="QString" key="PerfRecordArgsId">-e cpu-cycles --call-graph &quot;dwarf,4096&quot; -F 250</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName"></value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">CMakeProjectManager.CMakeRunConfiguration.</value>
+    <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">datamonitor</value>
+    <value type="bool" key="ProjectExplorer.RunConfiguration.Customized">true</value>
+    <value type="QString" key="ProjectExplorer.RunConfiguration.UniqueId"></value>
+    <value type="QString" key="RunConfiguration.Arguments">--config monitor.ini</value>
+    <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
+    <value type="bool" key="RunConfiguration.UseLibrarySearchPath">true</value>
+    <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
+    <value type="QString" key="RunConfiguration.WorkingDirectory.default">%{RunConfig:Executable:Path}</value>
+   </valuemap>
+   <valuemap type="QVariantMap" key="ProjectExplorer.Target.RunConfiguration.2">
+    <value type="bool" key="Analyzer.Perf.Settings.UseGlobalSettings">true</value>
+    <value type="bool" key="Analyzer.QmlProfiler.Settings.UseGlobalSettings">true</value>
+    <value type="int" key="Analyzer.Valgrind.Callgrind.CostFormat">0</value>
+    <value type="bool" key="Analyzer.Valgrind.Settings.UseGlobalSettings">true</value>
+    <valuelist type="QVariantList" key="Analyzer.Valgrind.SuppressionFiles"/>
+    <valuelist type="QVariantList" key="CustomOutputParsers"/>
+    <value type="int" key="PE.EnvironmentAspect.Base">2</value>
+    <value type="UnknownType" key="PE.EnvironmentAspect.Changes"></value>
+    <value type="bool" key="PE.EnvironmentAspect.PrintOnRun">false</value>
+    <value type="QString" key="PerfRecordArgsId">-e cpu-cycles --call-graph &quot;dwarf,4096&quot; -F 250</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName"></value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">CMakeProjectManager.CMakeRunConfiguration.</value>
+    <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">dataserver</value>
+    <value type="bool" key="ProjectExplorer.RunConfiguration.Customized">true</value>
+    <value type="QString" key="ProjectExplorer.RunConfiguration.UniqueId"></value>
+    <value type="QString" key="RunConfiguration.Arguments">--config dataserver.ini</value>
+    <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
+    <value type="bool" key="RunConfiguration.UseLibrarySearchPath">true</value>
+    <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
+    <value type="QString" key="RunConfiguration.WorkingDirectory.default">%{RunConfig:Executable:Path}</value>
+   </valuemap>
+   <valuemap type="QVariantMap" key="ProjectExplorer.Target.RunConfiguration.3">
+    <value type="bool" key="Analyzer.Perf.Settings.UseGlobalSettings">true</value>
+    <value type="bool" key="Analyzer.QmlProfiler.Settings.UseGlobalSettings">true</value>
+    <value type="int" key="Analyzer.Valgrind.Callgrind.CostFormat">0</value>
+    <value type="bool" key="Analyzer.Valgrind.Settings.UseGlobalSettings">true</value>
+    <valuelist type="QVariantList" key="Analyzer.Valgrind.SuppressionFiles"/>
+    <valuelist type="QVariantList" key="CustomOutputParsers"/>
+    <value type="int" key="PE.EnvironmentAspect.Base">2</value>
+    <value type="UnknownType" key="PE.EnvironmentAspect.Changes"></value>
+    <value type="bool" key="PE.EnvironmentAspect.PrintOnRun">false</value>
+    <value type="QString" key="PerfRecordArgsId">-e cpu-cycles --call-graph &quot;dwarf,4096&quot; -F 250</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName"></value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">CMakeProjectManager.CMakeRunConfiguration.</value>
+    <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">test_basetableview</value>
+    <value type="bool" key="ProjectExplorer.RunConfiguration.Customized">false</value>
+    <value type="QString" key="ProjectExplorer.RunConfiguration.UniqueId"></value>
+    <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
+    <value type="bool" key="RunConfiguration.UseLibrarySearchPath">true</value>
+    <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
+    <value type="QString" key="RunConfiguration.WorkingDirectory.default">%{RunConfig:Executable:Path}</value>
+   </valuemap>
+   <valuemap type="QVariantMap" key="ProjectExplorer.Target.RunConfiguration.4">
+    <value type="bool" key="Analyzer.Perf.Settings.UseGlobalSettings">true</value>
+    <value type="bool" key="Analyzer.QmlProfiler.Settings.UseGlobalSettings">true</value>
+    <value type="int" key="Analyzer.Valgrind.Callgrind.CostFormat">0</value>
+    <value type="bool" key="Analyzer.Valgrind.Settings.UseGlobalSettings">true</value>
+    <valuelist type="QVariantList" key="Analyzer.Valgrind.SuppressionFiles"/>
+    <valuelist type="QVariantList" key="CustomOutputParsers"/>
+    <value type="int" key="PE.EnvironmentAspect.Base">2</value>
+    <value type="UnknownType" key="PE.EnvironmentAspect.Changes"></value>
+    <value type="bool" key="PE.EnvironmentAspect.PrintOnRun">false</value>
+    <value type="QString" key="PerfRecordArgsId">-e cpu-cycles --call-graph &quot;dwarf,4096&quot; -F 250</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName"></value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">CMakeProjectManager.CMakeRunConfiguration.</value>
+    <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">unit_tests</value>
+    <value type="bool" key="ProjectExplorer.RunConfiguration.Customized">false</value>
+    <value type="QString" key="ProjectExplorer.RunConfiguration.UniqueId"></value>
+    <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
+    <value type="bool" key="RunConfiguration.UseLibrarySearchPath">true</value>
+    <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
+    <value type="QString" key="RunConfiguration.WorkingDirectory.default">%{RunConfig:Executable:Path}</value>
+   </valuemap>
+   <valuemap type="QVariantMap" key="ProjectExplorer.Target.RunConfiguration.5">
+    <value type="bool" key="Analyzer.Perf.Settings.UseGlobalSettings">true</value>
+    <value type="bool" key="Analyzer.QmlProfiler.Settings.UseGlobalSettings">true</value>
+    <value type="int" key="Analyzer.Valgrind.Callgrind.CostFormat">0</value>
+    <value type="bool" key="Analyzer.Valgrind.Settings.UseGlobalSettings">true</value>
+    <valuelist type="QVariantList" key="Analyzer.Valgrind.SuppressionFiles"/>
+    <valuelist type="QVariantList" key="CustomOutputParsers"/>
+    <value type="int" key="PE.EnvironmentAspect.Base">2</value>
+    <value type="UnknownType" key="PE.EnvironmentAspect.Changes"></value>
+    <value type="bool" key="PE.EnvironmentAspect.PrintOnRun">false</value>
+    <value type="QString" key="PerfRecordArgsId">-e cpu-cycles --call-graph &quot;dwarf,4096&quot; -F 250</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName"></value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">CMakeProjectManager.CMakeRunConfiguration.</value>
+    <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">dataviewer</value>
+    <value type="bool" key="ProjectExplorer.RunConfiguration.Customized">false</value>
+    <value type="QString" key="ProjectExplorer.RunConfiguration.UniqueId"></value>
+    <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
+    <value type="bool" key="RunConfiguration.UseLibrarySearchPath">true</value>
+    <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
+    <value type="QString" key="RunConfiguration.WorkingDirectory.default">%{RunConfig:Executable:Path}</value>
+   </valuemap>
+   <value type="qlonglong" key="ProjectExplorer.Target.RunConfigurationCount">6</value>
+  </valuemap>
+ </data>
+ <data>
+  <variable>ProjectExplorer.Project.TargetCount</variable>
+  <value type="qlonglong">1</value>
+ </data>
+ <data>
+  <variable>Version</variable>
+  <value type="int">22</value>
+ </data>
+</qtcreator>

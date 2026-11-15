@@ -34,6 +34,8 @@
 #include <QTreeWidgetItemIterator>
 #include <QSignalBlocker>
 #include <QGraphicsLayout>
+#include <QToolButton>
+#include <QMenu>
 
 #include <algorithm>
 
@@ -50,6 +52,8 @@ DataViewerMainWindow::DataViewerMainWindow(
 
   createActions();
   createUi();
+
+  updateActions();
 
   updateChartSettings();
   restoreWindowSettings();
@@ -104,6 +108,37 @@ void DataViewerMainWindow::createActions()
 
   m_toolBar->addSeparator();
 
+  // Экспорт таблицы.
+  m_exportButton = new QToolButton(this);
+
+  m_exportButton->setIcon(
+    themedSvgIcon(":/images/export.svg"));
+
+  m_exportButton->setToolTip(
+    tr("Экспорт активной таблицы"));
+
+  m_exportButton->setPopupMode(
+    QToolButton::InstantPopup);
+
+  m_exportButton->setToolButtonStyle(
+    Qt::ToolButtonIconOnly);
+
+  auto* exportMenu = new QMenu(m_exportButton);
+
+  m_exportXlsxAction = exportMenu->addAction(
+    themedSvgIcon(":/images/excel.svg"),
+    tr("Excel (.xlsx)"));
+
+  m_exportOdsAction = exportMenu->addAction(
+    tr("OpenDocument (.ods)"));
+
+  m_exportButton->setMenu(exportMenu);
+
+  m_toolBar->addWidget(m_exportButton);
+
+  m_toolBar->addSeparator();
+
+  // Настройки
   m_settingsAction = m_toolBar->addAction(
     themedSvgIcon(":/images/settings.svg"),
     tr("Настройки"));
@@ -208,12 +243,16 @@ void DataViewerMainWindow::updateActions()
 
   const auto* table = currentTable();
 
-  m_addTableAction->setEnabled(archiveOpen);
-
-  m_frequencyCombo->setEnabled(
+  const bool tableAvailable =
     archiveOpen &&
     table &&
-    table->view);
+    table->view;
+
+  m_addTableAction->setEnabled(archiveOpen);
+
+  m_exportButton->setEnabled(tableAvailable);
+
+  m_frequencyCombo->setEnabled(tableAvailable);
 
   updateFrequencyControl();
 }
@@ -606,6 +645,7 @@ void DataViewerMainWindow::closeTable(
   widget->deleteLater();
 
   updateSignalTreeChecks();
+  updateActions();
 }
 
 void DataViewerMainWindow::updateSignalTreeChecks()

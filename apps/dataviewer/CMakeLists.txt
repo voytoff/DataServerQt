@@ -79,4 +79,5 @@ target_link_libraries(dataviewer
     datawidgets
     signalprocessing
     dataarchive
+    dataexport
 )

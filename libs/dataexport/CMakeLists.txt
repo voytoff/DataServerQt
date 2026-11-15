@@ -12,6 +12,7 @@ add_library(dataexport SHARED
   archivetableexportsettings.h
   archivetablewriter.h
   archivetableexporter.h archivetableexporter.cpp
+  xlsxtablewriter.h xlsxtablewriter.cpp
 )
 
 target_compile_definitions(dataexport
@@ -28,4 +29,6 @@ target_link_libraries(dataexport
     Qt${QT_VERSION_MAJOR}::Core
     dataarchive
     datawidgets
+  PRIVATE
+    xlsxwriter
 )
