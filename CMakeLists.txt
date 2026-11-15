@@ -33,6 +33,8 @@ add_subdirectory(libs/datawidgets)
 add_subdirectory(libs/datasettings)
 add_subdirectory(libs/configurationvalidation)
 add_subdirectory(libs/modulevalidators)
+add_subdirectory(libs/signalprocessing)
+add_subdirectory(libs/dataexport)
 
 add_subdirectory(3rdparty/qcustomplot)
 
@@ -44,4 +46,3 @@ add_subdirectory(apps/dataserver)
 add_subdirectory(apps/configeditor)
 add_subdirectory(apps/datamonitor)
 add_subdirectory(apps/dataviewer)
-add_subdirectory(libs/signalprocessing)

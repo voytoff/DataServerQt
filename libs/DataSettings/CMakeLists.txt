@@ -9,14 +9,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 REQUIRED COMPONENTS          Core Widgets Sql)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Sql)
 
-
 add_library(datasettings SHARED
   datasettings.h
   settingssection.h
   databasesettings.h
   datasettings_export.h
   applicationsettings.h
-  archivetableexportsettings.h
   applicationsettingsloader.h applicationsettingsloader.cpp
   databaseconnection.h databaseconnection.cpp
   windowsettings.h windowsettings.cpp
