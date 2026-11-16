@@ -52,6 +52,7 @@ static bool ensureDirectory(
 
 int main(int argc, char *argv[]) {
   QApplication app(argc, argv);
+  app.setApplicationName("DataServer");
 
   QTranslator qtTranslator;
 

@@ -3,6 +3,7 @@
 
 #include <QSettings>
 #include <QStringList>
+#include <QDir>
 
 namespace qds
 {
@@ -135,5 +136,45 @@ bool ViewerSettingsLoader::saveTables(
   return settings.status() == QSettings::NoError;
 }
 
+QString ViewerSettingsLoader::lastDirectory(
+  const QString& fileName,
+  const QString& defaultDirectory)
+{
+  if (fileName.isEmpty())
+    return defaultDirectory;
+
+  QSettings settings(
+    fileName,
+    QSettings::IniFormat);
+
+  const QString directory =
+    settings.value(
+      "Export/LastDirectory",
+      defaultDirectory).toString();
+
+  return QDir(directory).exists()
+    ? directory
+    : defaultDirectory;
+}
+
+bool ViewerSettingsLoader::setLastDirectory(
+  const QString& fileName,
+  const QString& lastDirectory)
+{
+  if (fileName.isEmpty())
+    return false;
+
+  QSettings settings(
+    fileName,
+    QSettings::IniFormat);
+
+  settings.setValue(
+    "Export/LastDirectory",
+    lastDirectory);
+
+  settings.sync();
+
+  return settings.status() == QSettings::NoError;
+}
 
 }

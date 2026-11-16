@@ -19,6 +19,8 @@ qt_add_executable(dataviewer
   main.cpp
   dataviewermainwindow.h dataviewermainwindow.cpp
   viewersettingsloader.h viewersettingsloader.cpp
+  archivetableexportdialog.h archivetableexportdialog.cpp archivetableexportdialog.ui
+  archivetableexportworker.h archivetableexportworker.cpp
 )
 
 if(WIN32)

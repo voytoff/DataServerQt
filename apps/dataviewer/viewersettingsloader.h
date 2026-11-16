@@ -25,6 +25,14 @@ public:
   static bool saveTables(
     const QString& fileName,
     const std::vector<ViewerTableSettings>& tables);
+
+  static QString lastDirectory(
+    const QString& fileName,
+    const QString &defaultDirectory);
+
+  static bool setLastDirectory(
+    const QString& fileName,
+    const QString& lastDirectory);
 };
 
 }

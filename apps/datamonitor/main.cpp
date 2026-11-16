@@ -28,6 +28,7 @@ static bool showError(
 int main(int argc, char* argv[])
 {
   QApplication app(argc, argv);
+  app.setApplicationName("DataMonitor");
 
   app.setApplicationName("DataMonitor");
 

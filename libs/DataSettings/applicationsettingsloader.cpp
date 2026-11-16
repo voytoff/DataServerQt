@@ -5,6 +5,8 @@
 #include <QFileInfo>
 #include <QSqlDatabase>
 #include <QSqlError>
+#include <QDir>
+#include <QStandardPaths>
 
 namespace qds
 {
@@ -27,12 +29,40 @@ bool ApplicationSettingsLoader::load(
 
   QCommandLineOption configOption(
     "config",
-    "DataServer INI file",
-    "file",
-    "dataserver.ini");
+    "Application INI file",
+    "file");
 
   parser.addOption(configOption);
   parser.process(app);
+
+  QString fileName;
+
+  if (parser.isSet(configOption))
+  {
+    // Явно указанный путь имеет приоритет.
+    fileName = parser.value(configOption);
+  }
+  else
+  {
+    // Каталог настроек пользователя.
+    const QString directory =
+      QStandardPaths::writableLocation(
+        QStandardPaths::AppConfigLocation);
+
+    if (directory.isEmpty() ||
+        !QDir().mkpath(directory))
+    {
+      error =
+        "Не удалось создать каталог настроек:\n" +
+        directory;
+
+      return false;
+    }
+
+    fileName =
+      QDir(directory).filePath(
+        app.applicationName().toLower() + ".ini");
+  }
 
   const SettingsSections sections =
     requireServerSettings
@@ -42,7 +72,7 @@ bool ApplicationSettingsLoader::load(
       : SettingsSection::Database;
 
   return load(
-    parser.value(configOption),
+    fileName,
     settings,
     error,
     sections);

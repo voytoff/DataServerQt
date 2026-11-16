@@ -90,13 +90,15 @@ private:
 
   QString viewerSettingsFile() const;
 
-private:
   void updateChartSettings();
 
   void updateTableSettings();
 
   void exportTable(
     ArchiveTableExportFormat format);
+
+  void startTableExport(
+    ArchiveTableExportSettings settings);
 
 private:
   std::filesystem::path m_path;
@@ -123,6 +125,10 @@ private:
   std::unique_ptr<ArchiveReader> m_archiveReader;
 
   QString m_configFile;
+
+  QThread* m_exportThread = nullptr;
+  std::shared_ptr<std::atomic_bool> m_exportCancel;
+  bool m_closeAfterExport = false;
 
 };
 

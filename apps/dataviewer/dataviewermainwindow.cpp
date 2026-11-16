@@ -1,17 +1,23 @@
 #include "dataviewermainwindow.h"
 #include "applicationsettingsdialog.h"
+#include "archivetableexportdialog.h"
 #include "rowheightdelegate.h"
 #include "viewersettingsloader.h"
 #include "windowsettings.h"
 #include "colorschemesettings.h"
 #include "applicationsettingsloader.h"
-
+#include "archivetableexportworker.h"
 #include "archivechartview.h"
 #include "archivetablemodel.h"
 #include "archivetableview.h"
 #include "colorscheme.h"
 #include "themedsvgicon.h"
 #include "chartpalette.h"
+
+#include <atomic>
+#include <memory>
+#include <utility>
+#include <algorithm>
 
 #include <QCloseEvent>
 #include <QAction>
@@ -36,8 +42,8 @@
 #include <QGraphicsLayout>
 #include <QToolButton>
 #include <QMenu>
-
-#include <algorithm>
+#include <QProgressDialog>
+#include <QThread>
 
 namespace qds
 {
@@ -233,6 +239,14 @@ void DataViewerMainWindow::createActions()
     &QAction::triggered,
     this,
     &toggleColorScheme);
+
+  connect(
+    m_exportXlsxAction,
+    &QAction::triggered,
+    this,
+    [this]() {
+      exportTable(ArchiveTableExportFormat::Xlsx);
+    });
 }
 
 void DataViewerMainWindow::updateActions()
@@ -253,6 +267,9 @@ void DataViewerMainWindow::updateActions()
   m_exportButton->setEnabled(tableAvailable);
 
   m_frequencyCombo->setEnabled(tableAvailable);
+
+  m_exportButton->setEnabled(
+    tableAvailable && !m_exportThread);
 
   updateFrequencyControl();
 }
@@ -1009,14 +1026,308 @@ void DataViewerMainWindow::updateTableSettings()
   }
 }
 
+void DataViewerMainWindow::exportTable(
+  ArchiveTableExportFormat format)
+{
+  if (!m_archiveReader ||
+      !m_archiveReader->isOpen())
+    return;
+
+  const auto* table = currentTable();
+
+  if (!table || !table->view)
+    return;
+
+  ArchiveTableExportSettings settings;
+
+  settings.archivePath = m_path;
+  settings.format = format;
+  settings.frequency = table->view->frequency();
+  settings.showUnitsInHeaders =
+    table->view->showUnitsInHeaders();
+
+  if (!m_archiveReader->timeRange(
+        settings.firstTimestamp,
+        settings.lastTimestamp))
+  {
+    QMessageBox::warning(
+      this,
+      tr("Экспорт таблицы"),
+      tr("Не удалось определить временной диапазон архива."));
+    return;
+  }
+
+  if (!m_archiveReader->timeReference(
+        settings.referenceTimestamp,
+        settings.referenceWallTime))
+  {
+    QMessageBox::warning(
+      this,
+      tr("Экспорт таблицы"),
+      tr("Не удалось определить начальное время архива."));
+    return;
+  }
+
+  const auto& description =
+    m_archiveReader->description();
+
+  // Каналы в порядке активной таблицы.
+  for (const SignalId id : table->channels)
+  {
+    for (const auto& file : description.files)
+    {
+      const auto it = std::find_if(
+        file.signalIds.begin(),
+        file.signalIds.end(),
+        [id](const auto& signal)
+        {
+          return signal.id == id;
+        });
+
+      if (it == file.signalIds.end())
+        continue;
+
+      settings.channels.push_back({
+        it->id,
+        QString::fromStdString(it->name),
+        QString::fromStdString(it->unit)
+      });
+
+      break;
+    }
+  }
+
+  ArchiveTableExportDialog dialog(settings, this);
+
+  if (dialog.exec() != QDialog::Accepted)
+    return;
+
+  settings = dialog.settings();
+
+  const bool xlsx =
+    settings.format == ArchiveTableExportFormat::Xlsx;
+
+  const QString extension =
+    xlsx ? QStringLiteral("xlsx")
+         : QStringLiteral("ods");
+
+  const QString filter =
+    xlsx
+      ? tr("Excel (*.xlsx)")
+      : tr("OpenDocument (*.ods)");
+
+  const QString defaultDirectory =
+    QString::fromStdWString(m_path.wstring());
+
+  const QString directory =
+    ViewerSettingsLoader::lastDirectory(
+      m_configFile,
+      defaultDirectory);
+
+  const QString filename =
+    QFileDialog::getSaveFileName(
+      this,
+      tr("Экспорт таблицы"),
+      QDir(directory).filePath(
+        QStringLiteral("table.") + extension),
+      filter);
+
+  if (filename.isEmpty())
+    return;
+
+  ViewerSettingsLoader::setLastDirectory(
+    m_configFile,
+    QFileInfo(filename).absolutePath());
+
+  settings.outputPath =
+    std::filesystem::path(filename.toStdWString());
+
+  startTableExport(std::move(settings));
+}
+
+
+void DataViewerMainWindow::startTableExport(
+  ArchiveTableExportSettings settings)
+{
+  if (m_exportThread)
+    return;
+
+  m_exportCancel =
+    std::make_shared<std::atomic_bool>(false);
+  auto cancel = m_exportCancel;
+
+  auto* progress = new QProgressDialog(
+    tr("Экспорт архивных данных..."),
+    tr("Отмена"),
+    0,
+    1000,
+    this);
+
+  progress->setWindowTitle(
+    tr("Экспорт таблицы"));
+
+  progress->setWindowModality(
+    Qt::WindowModal);
+
+  progress->setMinimumDuration(0);
+  progress->setAutoClose(false);
+  progress->setAutoReset(false);
+  progress->setValue(0);
+
+  m_exportThread = new QThread;
+  auto* thread = m_exportThread;
+
+  auto* worker = new ArchiveTableExportWorker(
+    std::move(settings),
+    cancel);
+
+  worker->moveToThread(thread);
+
+  updateActions();
+
+  connect(
+    thread,
+    &QThread::started,
+    worker,
+    &ArchiveTableExportWorker::run);
+
+  connect(
+    worker,
+    &ArchiveTableExportWorker::progressChanged,
+    progress,
+    [progress](uint64_t completed, uint64_t total)
+    {
+      if (total == 0)
+        return;
+
+      const int value =
+        static_cast<int>(
+          static_cast<long double>(completed) *
+          1000 / total);
+
+      progress->setValue(value);
+    });
+
+  connect(
+    progress,
+    &QProgressDialog::canceled,
+    this,
+    [cancel]()
+    {
+      cancel->store(true);
+    });
+
+  connect(
+    worker,
+    &ArchiveTableExportWorker::finished,
+    thread,
+    &QThread::quit,
+    Qt::DirectConnection);
+
+  connect(
+    thread,
+    &QThread::finished,
+    worker,
+    &QObject::deleteLater);
+
+  connect(
+    thread,
+    &QThread::finished,
+    thread,
+    &QObject::deleteLater);
+
+  connect(
+    worker,
+    &ArchiveTableExportWorker::finished,
+    this,
+    [this, progress](bool success, const QString& error)
+    {
+      progress->hide();
+      progress->deleteLater();
+
+      if (success)
+      {
+        statusBar()->showMessage(
+          tr("Экспорт таблицы завершён"),
+          5000);
+      }
+      else if (error != tr("Экспорт отменён"))
+      {
+        QMessageBox::warning(
+          this,
+          tr("Экспорт таблицы"),
+          error);
+      }
+    });
+
+  connect(
+    thread,
+    &QThread::finished,
+    this,
+    [this, thread]()
+    {
+      if (m_exportThread != thread)
+        return;
+
+      m_exportThread = nullptr;
+      m_exportCancel.reset();
+
+      updateActions();
+
+      if (m_closeAfterExport)
+        close();
+    });
+
+  thread->start();
+  progress->show();
+}
+
 void DataViewerMainWindow::closeEvent(
   QCloseEvent* event)
 {
+  if (m_exportThread)
+  {
+    QMessageBox message(this);
+
+    message.setIcon(QMessageBox::Question);
+    message.setWindowTitle(
+      tr("Выполняется экспорт"));
+
+    message.setText(
+      tr("Экспорт таблицы ещё не завершён."));
+
+    message.setInformativeText(
+      tr("Прервать экспорт и закрыть приложение?"));
+
+    auto* stopButton = message.addButton(
+      tr("Прервать и закрыть"),
+      QMessageBox::AcceptRole);
+
+    message.addButton(
+      tr("Продолжить экспорт"),
+      QMessageBox::RejectRole);
+
+    message.exec();
+
+    if (message.clickedButton() != stopButton)
+    {
+      event->ignore();
+      return;
+    }
+
+    m_exportCancel->store(true);
+
+    // Ожидаем завершения рабочего потока.
+    m_closeAfterExport = true;
+    m_exportCancel->store(true);
+    event->ignore();
+    return;
+  }
+
   saveWindowSettings();
   saveTableSettings();
 
-  ColorSchemeSettings::save(
-    m_configFile);
+  ColorSchemeSettings::save(m_configFile);
 
   QMainWindow::closeEvent(event);
 }

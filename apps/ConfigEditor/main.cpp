@@ -18,7 +18,7 @@ static bool showError(
 
   QMessageBox::critical(
     nullptr,
-    QObject::tr("ConfigurationEditor — ошибка запуска"),
+    QObject::tr("ConfigEditor — ошибка запуска"),
     message);
 
   return false;
@@ -27,8 +27,7 @@ static bool showError(
 int main(int argc, char* argv[])
 {
   QApplication app(argc, argv);
-
-  app.setApplicationName("ConfigurationEditor");
+  app.setApplicationName("ConfigEditor");
 
   QTranslator qtTranslator;
 
