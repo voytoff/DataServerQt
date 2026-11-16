@@ -133,14 +133,20 @@ void ArchiveTableExportWorker::run()
   XlsxTableWriter writer(settings.outputPath);
   ArchiveTableExporter exporter;
 
-  const bool success = exporter.exportTable(
-    settings,
-    writer,
-    m_cancel.get(),
-    [this](uint64_t completed, uint64_t total)
-    {
-      emit progressChanged(completed, total);
-    });
+  const bool success =
+    exporter.exportTable(
+      settings,
+      writer,
+      m_cancel.get(),
+      [this](uint64_t completed, uint64_t total)
+      {
+        emit progressChanged(completed, total);
+      },
+      [this]()
+      {
+        emit stageChanged(
+          tr("Завершение экспорта…"));
+      });
 
   if (!success)
   {

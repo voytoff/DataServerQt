@@ -1168,6 +1168,7 @@ void DataViewerMainWindow::startTableExport(
 
   progress->setWindowModality(
     Qt::WindowModal);
+  //  Qt::NonModal);
 
   progress->setMinimumDuration(0);
   progress->setAutoClose(false);
@@ -1276,6 +1277,15 @@ void DataViewerMainWindow::startTableExport(
 
       if (m_closeAfterExport)
         close();
+    });
+
+  connect(
+    worker,
+    &ArchiveTableExportWorker::stageChanged,
+    progress,
+    [progress](const QString& text)
+    {
+      progress->setLabelText(text);
     });
 
   thread->start();

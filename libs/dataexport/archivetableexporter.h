@@ -13,6 +13,9 @@
 namespace qds
 {
 
+using StageCallback =
+  std::function<void()>;
+
 class DATAEXPORT_EXPORT ArchiveTableExporter
 {
 public:
@@ -23,7 +26,8 @@ public:
     const ArchiveTableExportSettings& settings,
     ArchiveTableWriter& writer,
     const std::atomic_bool* cancel = nullptr,
-    ProgressCallback progress = {});
+    ProgressCallback progress = {},
+    StageCallback finalizing = {});
 
   [[nodiscard]]
   QString errorString() const;

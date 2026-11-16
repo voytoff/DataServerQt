@@ -17,7 +17,8 @@ bool ArchiveTableExporter::exportTable(
   const ArchiveTableExportSettings& settings,
   ArchiveTableWriter& writer,
   const std::atomic_bool* cancel,
-  ProgressCallback progress)
+  ProgressCallback progress,
+  StageCallback finalizing)
 {
   m_error.clear();
 
@@ -213,6 +214,9 @@ bool ArchiveTableExporter::exportTable(
     writer.abort();
     return false;
   }
+
+  if (finalizing)
+    finalizing();
 
   if (!writer.finish())
   {

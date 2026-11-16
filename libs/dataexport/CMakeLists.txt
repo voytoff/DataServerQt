@@ -13,6 +13,7 @@ add_library(dataexport SHARED
   archivetablewriter.h
   archivetableexporter.h archivetableexporter.cpp
   xlsxtablewriter.h xlsxtablewriter.cpp
+  odstablewriter.h odstablewriter.cpp
 )
 
 target_compile_definitions(dataexport
@@ -31,4 +32,5 @@ target_link_libraries(dataexport
     datawidgets
   PRIVATE
     xlsxwriter
+    libzip::zip
 )

@@ -25,18 +25,22 @@ public:
 public slots:
   void run();
 
+private:
+  ArchiveTableExportSettings m_settings;
+  std::shared_ptr<std::atomic_bool> m_cancel;
+
 signals:
   void progressChanged(
     uint64_t completed,
     uint64_t total);
 
+  void stageChanged(
+    const QString& text);
+
   void finished(
     bool success,
     const QString& error);
 
-private:
-  ArchiveTableExportSettings m_settings;
-  std::shared_ptr<std::atomic_bool> m_cancel;
 };
 
 }

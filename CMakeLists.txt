@@ -74,6 +74,28 @@ set(USE_NO_MD5 ON CACHE BOOL "" FORCE)
 
 add_subdirectory(3rdparty/libxlsxwriter)
 
+# libzip
+# git clone --depth 1 --branch v1.11.4 https://github.com/nih-at/libzip.git
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+
+set(BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+set(BUILD_REGRESS OFF CACHE BOOL "" FORCE)
+set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(BUILD_DOC OFF CACHE BOOL "" FORCE)
+
+set(ENABLE_BZIP2 OFF CACHE BOOL "" FORCE)
+set(ENABLE_LZMA OFF CACHE BOOL "" FORCE)
+set(ENABLE_ZSTD OFF CACHE BOOL "" FORCE)
+set(ENABLE_OPENSSL OFF CACHE BOOL "" FORCE)
+set(ENABLE_GNUTLS OFF CACHE BOOL "" FORCE)
+set(ENABLE_MBEDTLS OFF CACHE BOOL "" FORCE)
+
+set(LIBZIP_DO_INSTALL OFF CACHE BOOL "" FORCE)
+
+add_subdirectory(3rdparty/libzip)
+
+#======================================================================
+
 enable_testing()
 add_subdirectory(tests)
 add_subdirectory(tests/test_basetableview)
