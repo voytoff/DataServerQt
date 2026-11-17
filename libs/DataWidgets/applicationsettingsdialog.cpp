@@ -57,7 +57,8 @@ std::filesystem::path stringToPath(const QString& value)
 ApplicationSettingsDialog::ApplicationSettingsDialog(
   const ApplicationSettings& settings,
   SettingsSections sections,
-  QWidget* parent)
+  QWidget* parent,
+  bool initialSetup)
   : QDialog(parent),
   ui(std::make_unique<Ui::ApplicationSettingsDialog>()),
   m_settings(settings),
@@ -66,7 +67,16 @@ ApplicationSettingsDialog::ApplicationSettingsDialog(
   ui->setupUi(this);
   ui->tabWidget->setCurrentIndex(0);
 
-  setWindowTitle(tr("Настройки приложения"));
+  setWindowTitle(
+    initialSetup
+      ? tr("Первоначальная настройка приложения")
+      : tr("Настройки приложения"));
+
+  if (initialSetup)
+  {
+    ui->buttonBox->button(
+      QDialogButtonBox::Apply)->hide();
+  }
 
   ui->tabWidget->setDocumentMode(true);
 

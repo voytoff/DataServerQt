@@ -58,8 +58,6 @@ int main(int argc, char* argv[])
     QStyleFactory::create("windows11"));
 
 
-
-
   qds::ApplicationSettings settings;
   QSqlDatabase database;
 
@@ -110,7 +108,9 @@ int main(int argc, char* argv[])
 
     qds::ApplicationSettingsDialog dialog(
       settings,
-      qds::SettingsSection::Database);
+      qds::SettingsSection::Database,
+      nullptr,
+      !QFileInfo::exists(configFile));
 
     if (dialog.exec() != QDialog::Accepted)
       return 0;

@@ -25,7 +25,8 @@ public:
   explicit ApplicationSettingsDialog(
     const ApplicationSettings& settings,
     SettingsSections sections,
-    QWidget* parent = nullptr);
+    QWidget* parent = nullptr,
+    bool initialSetup = false);
 
   ~ApplicationSettingsDialog() override;
 
