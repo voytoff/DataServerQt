@@ -1,3 +1,4 @@
+#include "applicationinitializer.h"
 #include "applicationsettingsloader.h"
 #include "databaseconnection.h"
 #include "mainwindow.h"
@@ -30,8 +31,6 @@ int main(int argc, char* argv[])
   QApplication app(argc, argv);
   app.setApplicationName("DataMonitor");
 
-  app.setApplicationName("DataMonitor");
-
   QTranslator qtTranslator;
 
   const QString lang =
@@ -58,26 +57,15 @@ int main(int argc, char* argv[])
     QStyleFactory::create("windows11"));
 
   qds::ApplicationSettings settings;
-  QString error;
-
-  if (!qds::ApplicationSettingsLoader::load(
-        app,
-        settings,
-        error))
-  {
-    showError(error);
-    return 1;
-  }
-
   QSqlDatabase database;
 
-  if (!qds::DatabaseConnection::open(
-        settings.database,
+  if (!qds::initializeApplication(
+        app,
+        settings,
         database,
-        error))
+        qds::SettingsSection::Database))
   {
-    showError(error);
-    return 1;
+    return 0;
   }
 
   qds::ColorSchemeSettings::restore(

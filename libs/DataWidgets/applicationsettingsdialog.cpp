@@ -59,10 +59,11 @@ ApplicationSettingsDialog::ApplicationSettingsDialog(
   SettingsSections sections,
   QWidget* parent,
   bool initialSetup)
-  : QDialog(parent),
-  ui(std::make_unique<Ui::ApplicationSettingsDialog>()),
-  m_settings(settings),
-  m_sections(sections)
+  : QDialog(parent)
+  , ui(std::make_unique<Ui::ApplicationSettingsDialog>())
+  , m_settings(settings)
+  , m_sections(sections)
+  , m_initialSetup(initialSetup)
 {
   ui->setupUi(this);
   ui->tabWidget->setCurrentIndex(0);
@@ -72,7 +73,7 @@ ApplicationSettingsDialog::ApplicationSettingsDialog(
       ? tr("Первоначальная настройка приложения")
       : tr("Настройки приложения"));
 
-  if (initialSetup)
+  if (m_initialSetup)
   {
     ui->buttonBox->button(
       QDialogButtonBox::Apply)->hide();
@@ -124,7 +125,10 @@ ApplicationSettingsDialog::ApplicationSettingsDialog(
     ui->testConnectionButton,
     &QPushButton::clicked,
     this,
-    &ApplicationSettingsDialog::testDatabaseConnection);
+    [this]()
+    {
+      testDatabaseConnection();
+    });
 
 
   const QIcon folderIcon =
@@ -169,6 +173,13 @@ void ApplicationSettingsDialog::apply()
 
 void ApplicationSettingsDialog::accept()
 {
+  if (m_initialSetup &&
+      m_sections.testFlag(SettingsSection::Database) &&
+      !testDatabaseConnection(false))
+  {
+    return;
+  }
+
   if (!saveSettings())
     return;
 
@@ -199,7 +210,8 @@ void ApplicationSettingsDialog::browseLogDirectory()
     ui->logDirectoryEdit->setText(directory);
 }
 
-void ApplicationSettingsDialog::testDatabaseConnection()
+bool ApplicationSettingsDialog::testDatabaseConnection(
+  bool showSuccess)
 {
   const DatabaseSettings dbSettings =
     editedSettings().database;
@@ -214,7 +226,7 @@ void ApplicationSettingsDialog::testDatabaseConnection()
       tr("Проверка соединения"),
       tr("Заполните параметры подключения к базе данных."));
 
-    return;
+    return false;
   }
 
   if (!QSqlDatabase::isDriverAvailable(dbSettings.plugin))
@@ -225,7 +237,7 @@ void ApplicationSettingsDialog::testDatabaseConnection()
       tr("Драйвер базы данных %1 недоступен.")
         .arg(dbSettings.plugin));
 
-    return;
+    return false;
   }
 
   const QString connectionName =
@@ -262,13 +274,18 @@ void ApplicationSettingsDialog::testDatabaseConnection()
       tr("Не удалось подключиться к базе данных:\n%1")
         .arg(error));
 
-    return;
+    return false;
   }
 
-  QMessageBox::information(
-    this,
-    tr("Проверка соединения"),
-    tr("Соединение с базой данных успешно установлено."));
+  if (showSuccess)
+  {
+    QMessageBox::information(
+      this,
+      tr("Проверка соединения"),
+      tr("Соединение с базой данных успешно установлено."));
+  }
+
+  return true;
 }
 
 void ApplicationSettingsDialog::loadSettings()

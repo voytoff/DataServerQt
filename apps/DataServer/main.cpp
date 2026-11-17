@@ -1,5 +1,4 @@
-#include "applicationsettingsloader.h"
-#include "databaseconnection.h"
+#include "applicationinitializer.h"
 #include "mainwindow.h"
 #include "servercontroller.h"
 #include "colorschemesettings.h"
@@ -79,17 +78,22 @@ int main(int argc, char *argv[]) {
   app.setStyle(
     QStyleFactory::create("windows11"));
 
-  qds::ApplicationSettings settings;
-  QString error;
 
-  if (!qds::ApplicationSettingsLoader::load(
+  qds::ApplicationSettings settings;
+  QSqlDatabase database;
+
+  const qds::SettingsSections sections =
+    qds::SettingsSection::Database |
+    qds::SettingsSection::Archive |
+    qds::SettingsSection::Log;
+
+  if (!qds::initializeApplication(
         app,
         settings,
-        error,
-        true))
+        database,
+        sections))
   {
-    showError(error);
-    return 1;
+    return 0;
   }
 
   if (!ensureDirectory(settings.archiveDirectory) ||
@@ -98,15 +102,6 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  QSqlDatabase database;
-
-  if (!qds::DatabaseConnection::open(
-        settings.database,
-        database,
-        error))
-  {
-    return showError(error);
-  }
 
   qds::ColorSchemeSettings::restore(
     settings.configFile);

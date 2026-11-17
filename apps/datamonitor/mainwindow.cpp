@@ -113,13 +113,17 @@ MainWindow::MainWindow(
   // Создаём клиент до открытия соединения.
   createClient();
 
-  // Загружаем начальную конфигурацию
-  if (!loadConfiguration(m_configurationId))
+  // Загружаем начальную конфигурацию,
+  // только если эксперимент уже выбран.
+  if (m_configurationId.value != 0)
   {
-    QMessageBox::critical(
-      this,
-      tr("DataMonitor"),
-      tr("Не удалось загрузить конфигурацию."));
+    if (!loadConfiguration(m_configurationId))
+    {
+      QMessageBox::critical(
+        this,
+        tr("DataMonitor"),
+        tr("Не удалось загрузить конфигурацию."));
+    }
   }
   openConnection();
 

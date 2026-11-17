@@ -36,6 +36,7 @@ add_library(datawidgets SHARED
   archivetablecontroller.h archivetablecontroller.cpp
   archivetableworker.h archivetableworker.cpp
   archivetableview.h archivetableview.cpp
+  applicationinitializer.h applicationinitializer.cpp
 )
 
 target_include_directories(datawidgets

@@ -36,7 +36,8 @@ public:
 private slots:
   void browseArchiveDirectory();
   void browseLogDirectory();
-  void testDatabaseConnection();
+  bool testDatabaseConnection(
+    bool showSuccess = true);
 
 private:
   void loadSettings();
@@ -45,11 +46,11 @@ private:
   SettingsSections changedSections(
     const ApplicationSettings& settings) const;
 
-
   std::unique_ptr<Ui::ApplicationSettingsDialog> ui;
 
   ApplicationSettings m_settings;
   SettingsSections m_sections;
+  bool m_initialSetup = false;
 
 signals:
   void settingsApplied(qds::SettingsSections sections);

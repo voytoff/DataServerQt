@@ -185,11 +185,18 @@ MainWindow::MainWindow(
     &MainWindow::setModuleError);
 
 
-  if (m_controller.loadConfiguration())
-    updateModules();
-  else
-    m_logView->appendPlainText(
-      tr("ERROR: Не удалось загрузить конфигурацию"));
+  if (m_controller.configurationId().value != 0)
+  {
+    if (m_controller.loadConfiguration())
+    {
+      updateModules();
+    }
+    else
+    {
+      m_logView->appendPlainText(
+        tr("ERROR: Не удалось загрузить конфигурацию"));
+    }
+  }
 
   updateServerState(
     m_controller.isRunning());
