@@ -9,11 +9,14 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS  Core)
 
 add_library(dataexport SHARED
   dataexport_global.h
+  pathutils.h
   archivetableexportsettings.h
   archivetablewriter.h
   archivetableexporter.h archivetableexporter.cpp
   xlsxtablewriter.h xlsxtablewriter.cpp
   odstablewriter.h odstablewriter.cpp
+  odspackage.h odspackage.cpp
+  odsdocuments.h odsdocuments.cpp
 )
 
 target_compile_definitions(dataexport

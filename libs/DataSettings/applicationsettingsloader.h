@@ -12,6 +12,9 @@ namespace qds
 class DATASETTINGS_EXPORT ApplicationSettingsLoader
 {
 public:
+  static QString configFileName(
+    const QCoreApplication& app);
+
   // Загрузка с определением INI через --config.
   static bool load(
     const QCoreApplication& app,

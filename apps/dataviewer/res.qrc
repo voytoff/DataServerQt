@@ -8,5 +8,6 @@
         <file>images/chart.svg</file>
         <file>images/excel.svg</file>
         <file>images/export.svg</file>
+        <file>images/ods.svg</file>
     </qresource>
 </RCC>

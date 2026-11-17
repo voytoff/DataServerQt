@@ -33,6 +33,14 @@ public:
   static bool setLastDirectory(
     const QString& fileName,
     const QString& lastDirectory);
+
+  static QString sourceDirectory(
+    const QString& fileName,
+    const QString& defaultDirectory);
+
+  static bool setSourceDirectory(
+    const QString& fileName,
+    const QString& directory);
 };
 
 }

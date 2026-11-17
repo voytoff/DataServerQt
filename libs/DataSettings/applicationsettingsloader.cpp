@@ -12,6 +12,31 @@ namespace qds
 {
 
 
+QString ApplicationSettingsLoader::configFileName(
+  const QCoreApplication& app)
+{
+  QCommandLineParser parser;
+
+  QCommandLineOption configOption(
+    QStringLiteral("config"),
+    QStringLiteral("Application INI file"),
+    QStringLiteral("file"));
+
+  parser.addOption(configOption);
+  parser.parse(app.arguments());
+
+  if (parser.isSet(configOption))
+    return parser.value(configOption);
+
+  const QString directory =
+    QStandardPaths::writableLocation(
+      QStandardPaths::AppConfigLocation);
+
+  return QDir(directory).filePath(
+    app.applicationName().toLower() +
+    QStringLiteral(".ini"));
+}
+
 bool ApplicationSettingsLoader::load(
   const QCoreApplication& app,
   ApplicationSettings& settings,

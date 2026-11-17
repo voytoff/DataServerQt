@@ -11,8 +11,20 @@ bool DatabaseConnection::open(
 {
   error.clear();
 
+  database = QSqlDatabase{};
+
+  const QString connectionName =
+    QSqlDatabase::defaultConnection;
+
+  if (QSqlDatabase::contains(connectionName))
+  {
+    QSqlDatabase::removeDatabase(connectionName);
+  }
+
   QSqlDatabase db =
-    QSqlDatabase::addDatabase(settings.plugin);
+    QSqlDatabase::addDatabase(
+      settings.plugin,
+      connectionName);
 
   db.setHostName(settings.host);
   db.setPort(settings.port);

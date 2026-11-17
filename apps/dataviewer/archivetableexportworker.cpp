@@ -1,5 +1,7 @@
 #include "archivetableexportworker.h"
 #include "archivetableexporter.h"
+#include "odstablewriter.h"
+#include "pathutils.h"
 #include "xlsxtablewriter.h"
 
 #include <utility>
@@ -7,8 +9,8 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QTemporaryFile>
 #include <QSaveFile>
+#include <QTemporaryDir>
 
 namespace qds
 {
@@ -92,7 +94,8 @@ void ArchiveTableExportWorker::run()
     return;
   }
 
-  if (m_settings.format != ArchiveTableExportFormat::Xlsx)
+  if (m_settings.format != ArchiveTableExportFormat::Xlsx &&
+      m_settings.format != ArchiveTableExportFormat::Ods)
   {
     emit finished(false, tr("Формат пока не поддерживается"));
     return;
@@ -100,7 +103,7 @@ void ArchiveTableExportWorker::run()
 
   const QString output =
     QDir::fromNativeSeparators(
-      QString::fromStdWString(
+      pathToQString(
         m_settings.outputPath.wstring()));
 
   const QFileInfo outputInfo(output);
@@ -111,32 +114,57 @@ void ArchiveTableExportWorker::run()
     return;
   }
 
-  QTemporaryFile temporary(
-    outputInfo.dir().filePath(
-      QStringLiteral(".dataexport-XXXXXX.xlsx")));
+  const QString extension =
+    m_settings.format == ArchiveTableExportFormat::Ods
+      ? QStringLiteral("ods")
+      : QStringLiteral("xlsx");
 
-  if (!temporary.open())
+  QTemporaryDir temporaryDir(
+    outputInfo.dir().filePath(
+      QStringLiteral(".dataexport-XXXXXX")));
+
+  if (!temporaryDir.isValid())
   {
-    emit finished(false, temporary.errorString());
+    emit finished(
+      false,
+      tr("Не удалось создать временный каталог: %1")
+        .arg(temporaryDir.errorString()));
     return;
   }
 
-  const QString temporaryName = temporary.fileName();
-
-  // libxlsxwriter открывает файл самостоятельно.
-  temporary.close();
+  const QString temporaryName =
+    temporaryDir.filePath(
+      QStringLiteral("table.%1").arg(extension));
 
   ArchiveTableExportSettings settings = m_settings;
   settings.outputPath =
     std::filesystem::path(temporaryName.toStdWString());
 
-  XlsxTableWriter writer(settings.outputPath);
+  std::unique_ptr<ArchiveTableWriter> writer;
+
+  switch (settings.format)
+  {
+  case ArchiveTableExportFormat::Xlsx:
+    writer = std::make_unique<XlsxTableWriter>(
+      settings.outputPath);
+    break;
+
+  case ArchiveTableExportFormat::Ods:
+    writer = std::make_unique<OdsTableWriter>(
+      settings.outputPath);
+    break;
+
+  default:
+    emit finished(false, tr("Формат пока не поддерживается"));
+    return;
+  }
+
   ArchiveTableExporter exporter;
 
   const bool success =
     exporter.exportTable(
       settings,
-      writer,
+      *writer,
       m_cancel.get(),
       [this](uint64_t completed, uint64_t total)
       {
@@ -169,8 +197,8 @@ void ArchiveTableExportWorker::run()
   {
     emit finished(
       false,
-      tr("Не удалось сохранить XLSX: %1")
-        .arg(error));
+      tr("Не удалось сохранить %1: %2")
+        .arg(extension.toUpper(), error));
     return;
   }
 

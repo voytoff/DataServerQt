@@ -2,7 +2,10 @@
 #include "databaseconnection.h"
 #include "mainwindow.h"
 #include "colorschemesettings.h"
+#include "applicationsettingsdialog.h"
 
+#include <QFileInfo>
+#include <QDir>
 #include <QApplication>
 #include <QLibraryInfo>
 #include <QLocale>
@@ -54,28 +57,68 @@ int main(int argc, char* argv[])
   app.setStyle(
     QStyleFactory::create("windows11"));
 
+
+
+
   qds::ApplicationSettings settings;
-  QString error;
-
-  if (!qds::ApplicationSettingsLoader::load(
-        app,
-        settings,
-        error))
-  {
-    showError(error);
-    return 1;
-  }
-
   QSqlDatabase database;
 
-  if (!qds::DatabaseConnection::open(
-        settings.database,
-        database,
-        error))
+  const QString configFile =
+    qds::ApplicationSettingsLoader::configFileName(app);
+
+  if (configFile.isEmpty())
   {
-    showError(error);
+    showError(QObject::tr("Не удалось определить путь к настройкам"));
     return 1;
   }
+
+  if (!QDir().mkpath(QFileInfo(configFile).absolutePath()))
+  {
+    showError(QObject::tr("Не удалось создать каталог настроек"));
+    return 1;
+  }
+
+  while (true)
+  {
+    QString error;
+
+    const bool loaded =
+      qds::ApplicationSettingsLoader::load(
+        configFile,
+        settings,
+        error,
+        qds::SettingsSection::Database);
+
+    if (loaded &&
+        qds::DatabaseConnection::open(
+          settings.database,
+          database,
+          error))
+    {
+      break;
+    }
+
+    qWarning().noquote() << error;
+
+    // При ошибке загрузки получаем значения по умолчанию.
+    // При ошибке подключения сохраняем загруженные настройки.
+    if (!loaded)
+    {
+      settings = qds::ApplicationSettings{};
+      settings.configFile = configFile;
+    }
+
+    qds::ApplicationSettingsDialog dialog(
+      settings,
+      qds::SettingsSection::Database);
+
+    if (dialog.exec() != QDialog::Accepted)
+      return 0;
+  }
+
+
+
+
 
   qds::ColorSchemeSettings::restore(
     settings.configFile);

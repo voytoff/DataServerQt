@@ -177,4 +177,46 @@ bool ViewerSettingsLoader::setLastDirectory(
   return settings.status() == QSettings::NoError;
 }
 
+QString ViewerSettingsLoader::sourceDirectory(
+  const QString& fileName,
+  const QString& defaultDirectory)
+{
+  if (fileName.isEmpty())
+    return defaultDirectory;
+
+  QSettings settings(
+    fileName,
+    QSettings::IniFormat);
+
+  const QString directory =
+    settings.value(
+              "Archive/SourceDirectory",
+              defaultDirectory).toString();
+
+  return QDir(directory).exists()
+           ? directory
+           : defaultDirectory;
+}
+
+bool ViewerSettingsLoader::setSourceDirectory(
+  const QString& fileName,
+  const QString& directory)
+{
+  if (fileName.isEmpty() ||
+      directory.isEmpty())
+    return false;
+
+  QSettings settings(
+    fileName,
+    QSettings::IniFormat);
+
+  settings.setValue(
+    "Archive/SourceDirectory",
+    QDir::cleanPath(directory));
+
+  settings.sync();
+
+  return settings.status() == QSettings::NoError;
+}
+
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "dataexport_global.h"
 #include "archivetablewriter.h"
 
 #include <filesystem>
@@ -8,7 +9,8 @@
 namespace qds
 {
 
-class OdsTableWriter final : public ArchiveTableWriter
+class DATAEXPORT_EXPORT OdsTableWriter final
+  : public ArchiveTableWriter
 {
 public:
   explicit OdsTableWriter(

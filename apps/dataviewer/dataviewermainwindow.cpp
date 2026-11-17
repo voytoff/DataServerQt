@@ -136,6 +136,7 @@ void DataViewerMainWindow::createActions()
     tr("Excel (.xlsx)"));
 
   m_exportOdsAction = exportMenu->addAction(
+    themedSvgIcon(":/images/ods.svg"),
     tr("OpenDocument (.ods)"));
 
   m_exportButton->setMenu(exportMenu);
@@ -205,15 +206,24 @@ void DataViewerMainWindow::createActions()
     this,
     [this]()
     {
+      const QString sourceDirectory =
+        ViewerSettingsLoader::sourceDirectory(
+          m_configFile,
+          QDir::homePath());
+
       const QString directory =
         QFileDialog::getExistingDirectory(
           this,
           tr("Выберите каталог архива"),
-          nullptr,
+          sourceDirectory,
           QFileDialog::ShowDirsOnly | QFileDialog::DontUseNativeDialog);
 
       if (directory.isEmpty())
         return;
+
+      ViewerSettingsLoader::setSourceDirectory(
+        m_configFile,
+        QFileInfo(directory).absolutePath());
 
       openArchive(
         std::filesystem::path(directory.toStdWString()));
@@ -246,6 +256,14 @@ void DataViewerMainWindow::createActions()
     this,
     [this]() {
       exportTable(ArchiveTableExportFormat::Xlsx);
+    });
+
+  connect(
+    m_exportOdsAction,
+    &QAction::triggered,
+    this,
+    [this]() {
+      exportTable(ArchiveTableExportFormat::Ods);
     });
 }
 

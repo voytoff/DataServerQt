@@ -16,6 +16,7 @@
 #include <QString>
 #include <QComboBox>
 #include <QVariant>
+#include <QFileInfo>
 
 #include <filesystem>
 
@@ -316,8 +317,14 @@ bool ApplicationSettingsDialog::saveSettings()
   const ApplicationSettings edited =
     editedSettings();
 
-  const SettingsSections changed =
+  const bool createFile =
+    !QFileInfo::exists(m_settings.configFile);
+
+  SettingsSections changed =
     changedSections(edited);
+
+  if (createFile)
+    changed = m_sections;
 
   if (changed == SettingsSections{})
     return true;
@@ -328,7 +335,8 @@ bool ApplicationSettingsDialog::saveSettings()
         m_settings.configFile,
         edited,
         error,
-        changed))
+        changed,
+        createFile))
   {
     QMessageBox::warning(
       this,
