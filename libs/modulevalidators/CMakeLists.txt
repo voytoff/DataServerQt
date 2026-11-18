@@ -18,5 +18,5 @@ target_link_libraries(modulevalidators
   PUBLIC
     configurationvalidation
   PRIVATE
-    DataSource
+    datasource
 )

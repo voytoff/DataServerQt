@@ -108,7 +108,7 @@ target_link_libraries(configeditor
     datasettings
     datawidgets
     QCustomPlot
-    SignalProcessor
+    signalprocessor
     configurationvalidation
     modulevalidators
 )

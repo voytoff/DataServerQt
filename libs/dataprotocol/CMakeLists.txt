@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.23)
-project(DataProtocol LANGUAGES CXX)
+project(dataprotocol LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_library(DataProtocol SHARED
+add_library(dataprotocol SHARED
   packetwriter.h packetwriter.cpp
   packetreader.h packetreader.cpp
   protocol/packetheader.h
@@ -16,7 +16,7 @@ add_library(DataProtocol SHARED
   protocol/publishheader.h
   endpoint.cpp
 )
-target_include_directories(DataProtocol
+target_include_directories(dataprotocol
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../datatypes

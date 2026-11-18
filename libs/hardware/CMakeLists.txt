@@ -1,21 +1,16 @@
 cmake_minimum_required(VERSION 3.23)
-
-project(Hardware LANGUAGES CXX)
+project(hardware LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_library(Hardware SHARED
+add_library(hardware SHARED
     networkutils.h networkutils.cpp
-
     ihardwaremodule.h
     ilcardmodule.h
-
     lcardmodule.h lcardmodule.cpp
-
     ltr11module.h ltr11module.cpp
     ltr11configuration.h
-
     lcardreadresult.h
     ltr11configurationvalidator.h ltr11configurationvalidator.cpp
     ltr11configurationfactory.h ltr11configurationfactory.cpp
@@ -24,15 +19,15 @@ add_library(Hardware SHARED
 if(WIN32)
 
     set(LCARD_DIR "C:/Program Files (x86)/L-Card")
-    target_include_directories(Hardware
+    target_include_directories(hardware
         PRIVATE
             "${LCARD_DIR}/ltr/include"
     )
-    target_link_directories(Hardware
+    target_link_directories(hardware
         PRIVATE
             "${LCARD_DIR}/ltr/lib/msvc64"
     )
-    target_link_libraries(Hardware
+    target_link_libraries(hardware
         PRIVATE
             ltrapi.lib
             ltr11api.lib
@@ -40,15 +35,15 @@ if(WIN32)
 
 elseif(LINUX)
 
-    target_include_directories(Hardware
+    target_include_directories(hardware
         PRIVATE
             /usr/include/ltr/include
     )
-    target_link_directories(Hardware
+    target_link_directories(hardware
         PRIVATE
             /usr/lib
     )
-    target_link_libraries(Hardware
+    target_link_libraries(hardware
         PRIVATE
             ltrapi
             ltr11api
@@ -56,13 +51,13 @@ elseif(LINUX)
 
 endif()
 
-target_include_directories(Hardware
+target_include_directories(hardware
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(Hardware
+target_link_libraries(hardware
     PUBLIC
         configuration
-        Logger
+        logger
 )

@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.23)
-project(SignalStorage LANGUAGES CXX)
+project(signalstorage LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_library(SignalStorage SHARED
+add_library(signalstorage SHARED
   signalarea.h
 
   signalmemorylayout.h signalmemorylayout.cpp
@@ -13,13 +13,13 @@ add_library(SignalStorage SHARED
   signalmemory.h signalmemory.cpp
 )
 
-target_include_directories(SignalStorage
+target_include_directories(signalstorage
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/../datatypes
 )
 
-target_link_libraries(SignalStorage
+target_link_libraries(signalstorage
     PUBLIC
         configuration
 )

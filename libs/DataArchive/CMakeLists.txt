@@ -43,9 +43,9 @@ target_include_directories(dataarchive
 target_link_libraries(dataarchive
     PUBLIC
       configuration
-      SignalStorage
-      DataSource
-      SignalProcessor
-      Logger
+      signalstorage
+      datasource
+      signalprocessor
+      logger
       Qt6::Core
 )

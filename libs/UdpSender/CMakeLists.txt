@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.23)
-project(UdpSender LANGUAGES CXX)
+project(udpsender LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -7,18 +7,18 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 REQUIRED COMPONENTS Core Network)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Network)
 
-add_library(UdpSender SHARED
+add_library(udpsender SHARED
   udpsender.cpp udpsender.h
 )
 
-target_include_directories(UdpSender
+target_include_directories(udpsender
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(UdpSender PRIVATE
+target_link_libraries(udpsender PRIVATE
   PUBLIC
-    DataProtocol
+    dataprotocol
   PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Network

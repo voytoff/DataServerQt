@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.23)
-
-project(DataServer VERSION 0.1 LANGUAGES CXX)
+project(dataserver VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_AUTOMOC ON)
@@ -10,24 +9,24 @@ find_package(QT NAMES Qt6 REQUIRED COMPONENTS           Core Widgets Network Sql
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS  Core Widgets Network Sql Svg)
 
 add_library(dataservercore SHARED
-    dataserver.h dataserver.cpp
+  dataserver.h dataserver.cpp
 )
 
 target_include_directories(dataservercore
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}
+  PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 target_link_libraries(dataservercore
-    PUBLIC
-        PacketDispatcher
-        DataServerRuntime
-        UdpServer
-        Logger
-        configurationvalidation
-    PRIVATE
-        Qt${QT_VERSION_MAJOR}::Core
-        Qt${QT_VERSION_MAJOR}::Network
+  PUBLIC
+    packetdispatcher
+    dataserverruntime
+    udpserver
+    logger
+    configurationvalidation
+  PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Network
 )
 
 set(SERVER_RESOURCE_FILES res.qrc)
@@ -35,12 +34,12 @@ qt6_add_resources(SERVER_PROJECT_RESOURCES ${SERVER_RESOURCE_FILES})
 set(APP_ICON_RESOURCE_WINDOWS "appicon.rc")
 
 add_executable(dataserver
-    ${SERVER_PROJECT_RESOURCES}
-    ${APP_ICON_RESOURCE_WINDOWS}
-    main.cpp
-    guilogger.h guilogger.cpp
-    mainwindow.h mainwindow.cpp
-    servercontroller.h servercontroller.cpp
+  ${SERVER_PROJECT_RESOURCES}
+  ${APP_ICON_RESOURCE_WINDOWS}
+  main.cpp
+  guilogger.h guilogger.cpp
+  mainwindow.h mainwindow.cpp
+  servercontroller.h servercontroller.cpp
 )
 
 get_target_property(
@@ -82,11 +81,11 @@ add_custom_command(
 target_link_libraries(dataserver
     PRIVATE
       configuration
-      Formulas
-      SignalStorage
-      Engine
-      UdpSender
-      DataServerRuntime
+      formulas
+      signalstorage
+      engine
+      udpsender
+      dataserverruntime
       dataservercore
       dataarchive
       datasettings

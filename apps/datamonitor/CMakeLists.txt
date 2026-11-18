@@ -72,8 +72,8 @@ target_include_directories(datamonitor
 target_link_libraries(datamonitor
   PRIVATE
     configuration
-    DataProtocol
-    DataClient
+    dataprotocol
+    dataclient
     datasettings
     datawidgets
     Qt${QT_VERSION_MAJOR}::Core

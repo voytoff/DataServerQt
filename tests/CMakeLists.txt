@@ -73,23 +73,23 @@ target_include_directories(unit_tests
 
 target_link_libraries(unit_tests
   PRIVATE
-    Core
+    core
     configuration
-    DataServerRuntime
-    Subscriptions
-    DataProtocol
+    dataserverruntime
+    subscriptions
+    dataprotocol
     dataservercore
-    Publisher
-    UdpSender
-    DataSource
-    Engine
-    Hardware
+    publisher
+    udpsender
+    datasource
+    engine
+    hardware
     dataarchive
-    SignalStorage
-    Logger
+    signalstorage
+    logger
     datasettings
     datawidgets
-    DataClient
+    dataclient
     modulevalidators
   PRIVATE
     Qt${QT_VERSION_MAJOR}::Core

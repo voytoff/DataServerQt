@@ -22,8 +22,8 @@ target_include_directories(configurationvalidation
 target_link_libraries(configurationvalidation
   PUBLIC
     configuration
-    Formulas
-    SignalStorage
+    formulas
+    signalstorage
   PRIVATE
-    SignalProcessor
+    signalprocessor
 )

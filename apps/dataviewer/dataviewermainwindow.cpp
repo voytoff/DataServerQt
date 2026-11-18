@@ -216,7 +216,7 @@ void DataViewerMainWindow::createActions()
           this,
           tr("Выберите каталог архива"),
           sourceDirectory,
-          QFileDialog::ShowDirsOnly | QFileDialog::DontUseNativeDialog);
+          QFileDialog::ShowDirsOnly);
 
       if (directory.isEmpty())
         return;

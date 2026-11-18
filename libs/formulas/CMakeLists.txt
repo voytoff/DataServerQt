@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.23)
-project(Formulas LANGUAGES CXX)
+project(formulas LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_library(Formulas SHARED
+add_library(formulas SHARED
   iformula.h
   formulacontext.h
   failingformula.h
@@ -26,14 +26,14 @@ add_library(Formulas SHARED
   formulabuilder.h formulabuilder.cpp
 )
 
-target_include_directories(Formulas
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}
-        ${CMAKE_CURRENT_SOURCE_DIR}/../datatypes
+target_include_directories(formulas
+  PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../datatypes
 )
 
-target_link_libraries(Formulas
-    PUBLIC
-        configuration
-        SignalStorage
+target_link_libraries(formulas
+  PUBLIC
+    configuration
+    signalstorage
 )
