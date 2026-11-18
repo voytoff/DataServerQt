@@ -58,7 +58,6 @@ bool ArchiveWriter::write(
   m_file.setLastTimestamp(timestamp.value);
   m_file.recordWritten();
 
-
   return true;
 }
 

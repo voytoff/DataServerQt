@@ -103,6 +103,10 @@ public:
   void setUdpPort(uint16_t port);
   uint16_t udpPort() const noexcept;
 
+  [[nodiscard]]
+  uint32_t archiveSegmentDuration() const noexcept;
+  void setArchiveSegmentDuration(uint32_t seconds);
+
   void setName(std::string name);
   const std::string& name() const noexcept;
 
@@ -132,7 +136,7 @@ private:
     m_configurationModuleTags;
 
   uint16_t m_udpPort = 0;
-
+  uint32_t m_archiveSegmentDuration = 600;
   std::string m_name;
   std::string m_description;
 };

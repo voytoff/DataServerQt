@@ -204,6 +204,16 @@ uint16_t SystemConfiguration::udpPort() const noexcept
   return m_udpPort;
 }
 
+uint32_t SystemConfiguration::archiveSegmentDuration() const noexcept
+{
+  return m_archiveSegmentDuration;
+}
+
+void SystemConfiguration::setArchiveSegmentDuration(uint32_t seconds)
+{
+  m_archiveSegmentDuration = seconds;
+}
+
 void SystemConfiguration::setName(std::string name)
 {
   m_name = name;

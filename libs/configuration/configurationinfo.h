@@ -16,6 +16,7 @@ struct ConfigurationInfo
   QString description;
 
   uint16_t udpPort = 5000;
+  uint32_t archiveSegmentDuration = 600;
 };
 
 }

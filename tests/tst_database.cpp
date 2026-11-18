@@ -595,13 +595,15 @@ void tst_database::test_database_archive()
   auto directory =
     getCurrentFolder();
 
-  ArchiveManager archive;
+  TestLogger logger;
+  ArchiveManager archive(logger);
 
   QVERIFY(
     archive.initialize(
       directory,
       description,
-      layout));
+      layout,
+      60));
 
   // ------------------------------------------------------------
   // Runtime
@@ -622,7 +624,6 @@ void tst_database::test_database_archive()
       }));
 
   FakeSchedulerClock clock;
-  TestLogger logger;
 
   SystemBuilder builder;
   SensorRepository sensors;

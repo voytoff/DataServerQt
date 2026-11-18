@@ -31,6 +31,7 @@ add_library(dataarchive SHARED
     archivetableblock.h
     archivetablesource.h archivetablesource.cpp
     archivedescriptionreader.h archivedescriptionreader.cpp
+    archivesegment.h archivesegment.cpp
 )
 
 target_include_directories(dataarchive

@@ -1,8 +1,13 @@
 #include "archivereader.h"
+#include "archivedescriptionreader.h"
+#include "archivesegment.h"
 
 #include <algorithm>
 #include <stdexcept>
-#include "archivedescriptionreader.h"
+#include <ranges>
+#include <system_error>
+#include <utility>
+#include <limits>
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -30,15 +35,221 @@ bool ArchiveReader::open(
     return false;
   }
 
+  if (tmp.segmentFrameCount == 0 ||
+      tmp.files.empty())
+  {
+    return false;
+  }
+
   std::vector<File> tmpFiles;
   tmpFiles.reserve(tmp.files.size());
+
+  std::vector<uint64_t> expectedSegments;
 
   for (const auto& description : tmp.files)
   {
     File file;
-
     file.description = description;
-    file.path = directory / description.name;
+
+    std::vector<std::pair<
+      uint64_t,
+      std::filesystem::path>> paths;
+
+    std::error_code ec;
+
+    for (const auto& entry :
+         std::filesystem::directory_iterator(
+           directory, ec))
+    {
+      if (ec)
+        return false;
+
+      if (!entry.is_regular_file(ec))
+      {
+        if (ec)
+          return false;
+
+        continue;
+      }
+
+      const auto number =
+        parseSegmentFileName(
+          description.name,
+          entry.path().filename());
+
+      if (!number)
+        continue;
+
+      paths.emplace_back(
+        *number,
+        entry.path());
+    }
+
+    if (ec || paths.empty())
+      return false;
+
+    std::ranges::sort(
+      paths,
+      {},
+      [](const auto& item)
+      {
+        return item.first;
+      });
+
+    for (std::size_t i = 1;
+         i < paths.size();
+         ++i)
+    {
+      if (paths[i].first !=
+          paths[i - 1].first + 1)
+      {
+        return false;
+      }
+    }
+
+    std::vector<uint64_t> numbers;
+    numbers.reserve(paths.size());
+
+    for (const auto& [number, path] : paths)
+      numbers.push_back(number);
+
+    if (expectedSegments.empty())
+    {
+      expectedSegments = std::move(numbers);
+    }
+    else if (expectedSegments != numbers)
+    {
+      return false;
+    }
+
+    file.segments.reserve(paths.size());
+
+    uint64_t totalRecords = 0;
+
+    bool firstSegment = true;
+    bool hasRecords = false;
+
+    std::optional<uint64_t> previousTimestamp;
+
+    for (const auto& [number, path] : paths)
+    {
+      Segment segment;
+
+      segment.number = number;
+      segment.path = path;
+      segment.firstRecord = totalRecords;
+
+      if (!segment.archive.open(
+            path,
+            OpenMode::Read))
+      {
+        return false;
+      }
+
+      segment.header = segment.archive.header();
+
+      // Проверяем соответствие описанию архива.
+      if (segment.header.sampleFrequency !=
+            description.frequency ||
+          segment.header.channelCount !=
+            description.signalIds.size())
+      {
+        return false;
+      }
+
+      // Проверяем физический размер файла.
+      std::error_code ec;
+
+      const uint64_t fileSize =
+        std::filesystem::file_size(path, ec);
+
+      if (ec)
+        return false;
+
+      const uint64_t headerSize =
+        segment.header.headerSize;
+
+      const uint64_t recordSize =
+        segment.header.recordSize;
+
+      if (fileSize < headerSize)
+        return false;
+
+      const uint64_t dataSize =
+        fileSize - headerSize;
+
+      if (recordSize == 0 ||
+          dataSize % recordSize != 0 ||
+          dataSize / recordSize !=
+            segment.header.recordCount)
+      {
+        return false;
+      }
+
+      if (firstSegment)
+      {
+        file.header = segment.header;
+        firstSegment = false;
+      }
+      else
+      {
+        if (segment.header.recordSize !=
+              file.header.recordSize ||
+            segment.header.sampleFrequency !=
+              file.header.sampleFrequency ||
+            segment.header.channelCount !=
+              file.header.channelCount)
+        {
+          return false;
+        }
+      }
+
+      if (segment.header.recordCount > 0)
+      {
+        if (segment.header.firstTimestamp >
+            segment.header.lastTimestamp)
+        {
+          return false;
+        }
+
+        if (previousTimestamp &&
+            segment.header.firstTimestamp <=
+              *previousTimestamp)
+        {
+          return false;
+        }
+
+        if (!hasRecords)
+        {
+          file.header.firstTimestamp =
+            segment.header.firstTimestamp;
+
+          hasRecords = true;
+        }
+
+        file.header.lastTimestamp =
+          segment.header.lastTimestamp;
+
+        previousTimestamp =
+          segment.header.lastTimestamp;
+      }
+
+      if (segment.header.recordCount >
+          std::numeric_limits<uint64_t>::max() -
+            totalRecords)
+      {
+        return false;
+      }
+
+      totalRecords += segment.header.recordCount;
+
+      segment.archive.close();
+
+      file.segments.push_back(
+        std::move(segment));
+    }
+
+    file.header.recordCount = totalRecords;
 
     tmpFiles.push_back(
       std::move(file));
@@ -56,7 +267,12 @@ bool ArchiveReader::open(
 void ArchiveReader::close() noexcept
 {
   for (auto& file : m_files)
-    file.archive.close();
+  {
+    for (auto& segment : file.segments)
+      segment.archive.close();
+
+    file.openSegment.reset();
+  }
 
   m_files.clear();
   m_description = {};
@@ -97,10 +313,7 @@ const DataFileHeader* ArchiveReader::fileHeader(
   if (!m_open || fileIndex >= m_files.size())
     return nullptr;
 
-  if (!ensureOpen(fileIndex))
-    return nullptr;
-
-  return &m_files[fileIndex].archive.header();
+  return &m_files[fileIndex].header;
 }
 
 bool ArchiveReader::read(
@@ -110,37 +323,10 @@ bool ArchiveReader::read(
   if (!m_open || fileIndex >= m_files.size())
     return false;
 
-  if (!ensureOpen(fileIndex))
-    return false;
-
-  auto& file = m_files[fileIndex].archive;
-
-  const auto channelCount =
-    file.header().channelCount;
-
-  SampleRecordHeader header;
-
-  if (!file.readObject(header))
-    return false;
-
-  ArchiveSample result;
-
-  result.frameNumber = FrameNumber{header.frameNumber};
-  result.timestamp = Timestamp{header.timestamp};
-  result.wallTime = WallClockTime{header.wallTime};
-
-  result.values.resize(channelCount);
-
-  if (!file.readArray(
-        result.values.data(),
-        result.values.size()))
-  {
-    return false;
-  }
-
-  sample = std::move(result);
-
-  return true;
+  return readRecord(
+    fileIndex,
+    m_files[fileIndex].nextRecord,
+    sample);
 }
 
 bool ArchiveReader::readFrame(
@@ -190,22 +376,61 @@ bool ArchiveReader::readRecord(
   uint64_t recordIndex,
   ArchiveSample& sample)
 {
+  std::size_t segmentIndex = 0;
+  uint64_t localIndex = 0;
+
+  if (!locateRecord(
+        fileIndex,
+        recordIndex,
+        segmentIndex,
+        localIndex))
+  {
+    return false;
+  }
+
   uint64_t position = 0;
 
   if (!recordPosition(
         fileIndex,
-        recordIndex,
+        segmentIndex,
+        localIndex,
         position))
   {
     return false;
   }
 
-  auto& file = m_files[fileIndex].archive;
+  auto& archive =
+    m_files[fileIndex].segments[segmentIndex].archive;
 
-  if (!file.seek(position))
+  if (!archive.seek(position))
     return false;
 
-  return read(fileIndex, sample);
+  SampleRecordHeader header;
+
+  if (!archive.readObject(header))
+    return false;
+
+  ArchiveSample result;
+
+  result.frameNumber = FrameNumber{header.frameNumber};
+  result.timestamp = Timestamp{header.timestamp};
+  result.wallTime = WallClockTime{header.wallTime};
+
+  result.values.resize(
+    m_files[fileIndex].header.channelCount);
+
+  if (!archive.readArray(
+        result.values.data(),
+        result.values.size()))
+  {
+    return false;
+  }
+
+  sample = std::move(result);
+
+  m_files[fileIndex].nextRecord = recordIndex + 1;
+
+  return true;
 }
 
 bool ArchiveReader::findRecord(
@@ -344,11 +569,11 @@ bool ArchiveReader::readRange(
 {
   samples.clear();
 
-  if (firstFrame.value > lastFrame.value)
+  if (firstFrame.value > lastFrame.value ||
+      maxRecords == 0)
+  {
     return false;
-
-  if (maxRecords == 0)
-    return false;
+  }
 
   uint64_t recordIndex = 0;
 
@@ -365,31 +590,15 @@ bool ArchiveReader::readRange(
   if (!header)
     return false;
 
-  if (recordIndex >= header->recordCount)
-    return true;
-
-  uint64_t position = 0;
-
-  if (!recordPosition(
-        fileIndex,
-        recordIndex,
-        position))
-  {
-    return false;
-  }
-
-  auto& file = m_files[fileIndex].archive;
-
-  if (!file.seek(position))
-    return false;
-
-  while (
-    recordIndex < header->recordCount &&
-    samples.size() < maxRecords)
+  while (recordIndex < header->recordCount &&
+         samples.size() < maxRecords)
   {
     ArchiveSample sample;
 
-    if (!read(fileIndex, sample))
+    if (!readRecord(
+          fileIndex,
+          recordIndex,
+          sample))
     {
       samples.clear();
       return false;
@@ -424,30 +633,22 @@ bool ArchiveReader::readRecords(
   if (firstRecord >= header->recordCount)
     return true;
 
-  uint64_t position = 0;
+  const uint64_t count =
+    std::min<uint64_t>(
+      header->recordCount - firstRecord,
+      maxRecords);
 
-  if (!recordPosition(
-        fileIndex,
-        firstRecord,
-        position))
-  {
-    return false;
-  }
-
-  auto& file = m_files[fileIndex].archive;
-
-  if (!file.seek(position))
-    return false;
-
-  const uint64_t count = std::min<uint64_t>(
-    header->recordCount - firstRecord,
-    maxRecords);
+  samples.reserve(
+    static_cast<std::size_t>(count));
 
   for (uint64_t i = 0; i < count; ++i)
   {
     ArchiveSample sample;
 
-    if (!read(fileIndex, sample))
+    if (!readRecord(
+          fileIndex,
+          firstRecord + i,
+          sample))
     {
       samples.clear();
       return false;
@@ -577,66 +778,153 @@ ArchiveReader::findSignal(
   return std::nullopt;
 }
 
-bool ArchiveReader::ensureOpen(std::size_t fileIndex)
-{
-  auto& file = m_files[fileIndex];
-
-  if (file.archive.isOpen())
-    return file.archive.header().isValid();
-
-  if (!file.archive.open(file.path, OpenMode::Read))
-    return false;
-
-  if (!file.archive.header().isValid())
-  {
-    file.archive.close();
-    return false;
-  }
-
-  return true;
-}
-
 bool ArchiveReader::readRecordHeader(
   std::size_t fileIndex,
   uint64_t recordIndex,
   SampleRecordHeader& header)
 {
+  std::size_t segmentIndex = 0;
+  uint64_t localIndex = 0;
+
+  if (!locateRecord(
+        fileIndex,
+        recordIndex,
+        segmentIndex,
+        localIndex))
+  {
+    return false;
+  }
+
   uint64_t position = 0;
 
   if (!recordPosition(
         fileIndex,
-        recordIndex,
+        segmentIndex,
+        localIndex,
         position))
   {
     return false;
   }
 
-  auto& file = m_files[fileIndex].archive;
+  auto& archive =
+    m_files[fileIndex].segments[segmentIndex].archive;
 
-  if (!file.seek(position))
+  if (!archive.seek(position))
     return false;
 
-  return file.readObject(header);
+  return archive.readObject(header);
 }
 
-bool ArchiveReader::recordPosition(
+bool ArchiveReader::ensureOpen(
   std::size_t fileIndex,
-  uint64_t recordIndex,
-  uint64_t& position)
+  std::size_t segmentIndex)
 {
   if (!m_open || fileIndex >= m_files.size())
     return false;
 
-  if (!ensureOpen(fileIndex))
+  auto& file = m_files[fileIndex];
+
+  if (segmentIndex >= file.segments.size())
     return false;
 
-  auto& file = m_files[fileIndex].archive;
-  const auto& header = file.header();
+  // Нужный сегмент уже открыт.
+  if (file.openSegment == segmentIndex)
+  {
+    return file.segments[segmentIndex].archive.isOpen();
+  }
 
-  if (recordIndex >= header.recordCount)
+  // Закрываем предыдущий сегмент.
+  if (file.openSegment)
+  {
+    file.segments[*file.openSegment].archive.close();
+    file.openSegment.reset();
+  }
+
+  auto& segment = file.segments[segmentIndex];
+
+  if (!segment.archive.open(
+        segment.path,
+        OpenMode::Read))
+  {
+    return false;
+  }
+
+  const auto& header = segment.archive.header();
+
+  // Повторная проверка заголовка.
+  if (!header.isValid() ||
+      header.sampleFrequency != segment.header.sampleFrequency ||
+      header.channelCount != segment.header.channelCount ||
+      header.recordSize != segment.header.recordSize ||
+      header.recordCount != segment.header.recordCount ||
+      header.headerSize != segment.header.headerSize ||
+      header.firstTimestamp != segment.header.firstTimestamp ||
+      header.lastTimestamp != segment.header.lastTimestamp)
+  {
+    segment.archive.close();
+    return false;
+  }
+
+  file.openSegment = segmentIndex;
+
+  return true;
+}
+
+bool ArchiveReader::locateRecord(
+  std::size_t fileIndex,
+  uint64_t recordIndex,
+  std::size_t& segmentIndex,
+  uint64_t& localIndex)
+{
+  if (!m_open || fileIndex >= m_files.size())
     return false;
 
-  const uint64_t fileSize = file.fileSize();
+  const auto& file = m_files[fileIndex];
+
+  if (recordIndex >= file.header.recordCount)
+    return false;
+
+  const auto it = std::upper_bound(
+    file.segments.begin(),
+    file.segments.end(),
+    recordIndex,
+    [](uint64_t index, const Segment& segment)
+    {
+      return index < segment.firstRecord;
+    });
+
+  if (it == file.segments.begin())
+    return false;
+
+  const auto selected = std::prev(it);
+
+  segmentIndex = static_cast<std::size_t>(
+    std::distance(file.segments.begin(), selected));
+
+  localIndex = recordIndex - selected->firstRecord;
+
+  return localIndex < selected->header.recordCount;
+}
+
+bool ArchiveReader::recordPosition(
+  std::size_t fileIndex,
+  std::size_t segmentIndex,
+  uint64_t localIndex,
+  uint64_t& position)
+{
+  if (!ensureOpen(fileIndex, segmentIndex))
+    return false;
+
+  auto& segment =
+    m_files[fileIndex].segments[segmentIndex];
+
+  const auto& header = segment.header;
+
+  if (localIndex >= header.recordCount)
+    return false;
+
+  const uint64_t fileSize =
+    segment.archive.fileSize();
 
   if (header.headerSize > fileSize)
     return false;
@@ -644,22 +932,22 @@ bool ArchiveReader::recordPosition(
   const uint64_t available =
     fileSize - header.headerSize;
 
-  if (header.recordSize > available)
+  if (header.recordSize == 0 ||
+      header.recordSize > available)
+  {
     return false;
+  }
 
-  // Проверяем индекс без умножения, чтобы
-  // избежать переполнения uint64_t.
-  if (
-    recordIndex >
-    (available - header.recordSize) /
-      header.recordSize)
+  if (localIndex >
+      (available - header.recordSize) /
+        header.recordSize)
   {
     return false;
   }
 
   position =
     static_cast<uint64_t>(header.headerSize) +
-    recordIndex *
+    localIndex *
       static_cast<uint64_t>(header.recordSize);
 
   return true;

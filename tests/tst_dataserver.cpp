@@ -82,12 +82,12 @@ void tst_dataserver::test_dataServer_publish_archive_pipeline()
 
   auto directory = getCurrentFolder();
 
-  ArchiveManager archive;
-  QVERIFY(archive.initialize(directory, description, layout));
+   FakeSchedulerClock clock(2, 3);
+   Logger logger(getCurrentFolder(), clock);
+   ArchiveManager archive(logger);
+  QVERIFY(archive.initialize(directory, description, layout, 60));
 
   UdpSender sender;
-  FakeSchedulerClock clock(2, 3);
-  Logger logger(getCurrentFolder(), clock);
   ModuleConfigurationValidatorRegistry validator;
 
   DataServer ds(
@@ -3706,8 +3706,8 @@ void tst_dataserver::test_dataServer_failModule()
   SignalMemoryLayout layout;
    QVERIFY(layout.build(cfg));
 
-  ArchiveManager archive;
-  QVERIFY(archive.initialize(getCurrentFolder(), description, layout));
+  ArchiveManager archive(logger);
+  QVERIFY(archive.initialize(getCurrentFolder(), description, layout, 60));
   UdpSender sender;
 
   CalibrationRepository cr;
@@ -3814,8 +3814,8 @@ void tst_dataserver::test_dataServer_restart_after_runtime_failure()
   SignalMemoryLayout layout;
    QVERIFY(layout.build(cfg));
 
-  ArchiveManager archive;
-  QVERIFY(archive.initialize(getCurrentFolder(), description, layout));
+  ArchiveManager archive(logger);
+  QVERIFY(archive.initialize(getCurrentFolder(), description, layout, 60));
   UdpSender sender;
 
   CalibrationRepository cr;
@@ -3909,12 +3909,12 @@ void tst_dataserver::subscriptionAutoCleanup()
 
   auto directory = getCurrentFolder();
 
-  ArchiveManager archive;
-  QVERIFY(archive.initialize(directory, description, layout));
+   FakeSchedulerClock clock(2, 3);
+   Logger logger(getCurrentFolder(), clock);
+  ArchiveManager archive(logger);
+  QVERIFY(archive.initialize(directory, description, layout, 60));
 
   UdpSender sender;
-  FakeSchedulerClock clock(2, 3);
-  Logger logger(getCurrentFolder(), clock);
   ModuleConfigurationValidatorRegistry validator;
 
   DataServer ds(

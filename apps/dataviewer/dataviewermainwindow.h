@@ -72,6 +72,7 @@ private:
     bool checked);
 
   TableContext* currentTable();
+
   bool isSignalSelected(
     SignalId id) const;
 

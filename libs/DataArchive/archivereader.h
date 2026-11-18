@@ -107,26 +107,49 @@ public:
     SignalId signalId) const;
 
 private:
-  bool ensureOpen(
-    std::size_t fileIndex);
-
   bool readRecordHeader(
     std::size_t fileIndex,
     uint64_t recordIndex,
     SampleRecordHeader& header);
 
-  bool recordPosition(
+  bool ensureOpen(
+    std::size_t fileIndex,
+    std::size_t segmentIndex);
+
+  bool locateRecord(
     std::size_t fileIndex,
     uint64_t recordIndex,
+    std::size_t& segmentIndex,
+    uint64_t& localIndex);
+
+  bool recordPosition(
+    std::size_t fileIndex,
+    std::size_t segmentIndex,
+    uint64_t localIndex,
     uint64_t& position);
 
 private:
+  struct Segment
+  {
+    uint64_t number = 0;
+    uint64_t firstRecord = 0;
+
+    std::filesystem::path path;
+    ArchiveFile archive;
+
+    DataFileHeader header;
+  };
 
   struct File
   {
     ArchiveFileDescription description;
-    std::filesystem::path path;
-    ArchiveFile archive;
+    std::vector<Segment> segments;
+
+    DataFileHeader header;
+
+    uint64_t nextRecord = 0;
+
+    std::optional<std::size_t> openSegment;
   };
 
   std::filesystem::path m_directory;

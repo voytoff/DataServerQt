@@ -113,6 +113,9 @@ bool ArchiveDescriptionWriter::write(
     static_cast<int>(
       description.version);
 
+  root["segmentFrameCount"] =
+    static_cast<qint64>(description.segmentFrameCount);
+
   QJsonArray files;
 
   for (const auto& file :

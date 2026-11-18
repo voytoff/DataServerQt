@@ -79,8 +79,14 @@ bool ConfigurationRepository::load(
 
   // проверяем наличие конфигурации
   auto query = getQuery(R"(
-SELECT id, name, description, udp_port
-FROM configuration WHERE id = :id;)",
+SELECT
+  id,
+  name,
+  description,
+  udp_port,
+  archive_segment_duration
+FROM configuration
+WHERE id = :id;)",
   {
     {":id", configuration.value}
   });
@@ -96,6 +102,9 @@ FROM configuration WHERE id = :id;)",
 
   cfg.setUdpPort(
     query.value("udp_port").toUInt());
+
+  cfg.setArchiveSegmentDuration(
+    query.value("archive_segment_duration").toUInt());
 
   cfg.setName(
     query.value("name").toString().toStdString());
@@ -502,13 +511,14 @@ std::optional<ConfigurationId> ConfigurationRepository::addConfiguration(
 {
   auto query = getQuery(R"(
 INSERT INTO configuration
-  (name, description, udp_port)
+  (name, description, udp_port, archive_segment_duration)
 VALUES
-  (:name, :description, :udp_port);)",
+  (:name, :description, :udp_port, :archive_segment_duration);)",
     {
       {":name", configuration.name},
       {":description", configuration.description},
-      {":udp_port", configuration.udpPort}
+      {":udp_port", configuration.udpPort},
+      {":archive_segment_duration", configuration.archiveSegmentDuration}
     });
 
   if (!exec(query))
@@ -534,13 +544,15 @@ UPDATE configuration
 SET
   name = :name,
   description = :description,
-  udp_port = :udp_port
+  udp_port = :udp_port,
+  archive_segment_duration = :archive_segment_duration
 WHERE id = :id;)",
     {
       {":id", configuration.id.value},
       {":name", configuration.name},
       {":description", configuration.description},
-      {":udp_port", configuration.udpPort}
+      {":udp_port", configuration.udpPort},
+      {":archive_segment_duration", configuration.archiveSegmentDuration}
     });
 
   if (!exec(query))
@@ -580,7 +592,8 @@ SELECT
   id,
   name,
   description,
-  udp_port
+  udp_port,
+  archive_segment_duration
 FROM configuration
 WHERE id = :id;)",
     {
@@ -608,6 +621,11 @@ WHERE id = :id;)",
   result.udpPort =
     static_cast<uint16_t>(
       query.value("udp_port").toUInt());
+
+  result.archiveSegmentDuration =
+    static_cast<uint32_t>(
+      query.value("archive_segment_duration").toUInt());
+
 
   configuration = std::move(result);
 

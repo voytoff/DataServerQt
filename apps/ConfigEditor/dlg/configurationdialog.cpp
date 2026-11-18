@@ -39,14 +39,17 @@ void ConfigurationDialog::setConfiguration(
 {
   m_configurationId = configuration.id;
 
+  m_ui->editPort->setValue(
+    configuration.udpPort);
+
+  m_ui->editArchiveSegmentDuration->setValue(
+    configuration.archiveSegmentDuration / 60);
+
   m_ui->editName->setText(
     configuration.name);
 
   m_ui->editDescription->setPlainText(
     configuration.description);
-
-  m_ui->editPort->setValue(
-    configuration.udpPort);
 }
 
 ConfigurationInfo ConfigurationDialog::configuration() const
@@ -64,6 +67,10 @@ ConfigurationInfo ConfigurationDialog::configuration() const
   result.udpPort =
     static_cast<uint16_t>(
       m_ui->editPort->value());
+
+  result.archiveSegmentDuration =
+    static_cast<uint32_t>(
+      m_ui->editArchiveSegmentDuration->value()) * 60;
 
   return result;
 }

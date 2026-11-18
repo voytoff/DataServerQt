@@ -1454,7 +1454,8 @@ void ConfigurationEditor::editConfiguration()
   // повторная запись в базу не нужна.
   if (result.name == configuration.name &&
       result.description == configuration.description &&
-      result.udpPort == configuration.udpPort)
+      result.udpPort == configuration.udpPort &&
+      result.archiveSegmentDuration == configuration.archiveSegmentDuration)
   {
     return;
   }
@@ -1473,7 +1474,7 @@ void ConfigurationEditor::editConfiguration()
 
     return;
   }
-  //===
+
   {
     const QSignalBlocker blocker(m_configurationCombo);
 

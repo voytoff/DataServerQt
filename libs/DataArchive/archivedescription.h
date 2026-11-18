@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "archiveformat.h"
 #include "datatypes.h"
 #include "signaldefinition.h"
 
@@ -44,7 +45,9 @@ struct ArchiveFileDescription
 
 struct ArchiveDescription
 {
-  uint32_t version = 1;
+  uint32_t version = ArchiveDescriptionVersion;
+
+  uint64_t segmentFrameCount = 0;
 
   std::vector<ArchiveFileDescription> files;
 };

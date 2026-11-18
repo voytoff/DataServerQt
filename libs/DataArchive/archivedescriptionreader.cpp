@@ -7,6 +7,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
+#include <cmath>
+
 namespace qds
 {
 
@@ -173,6 +175,26 @@ bool ArchiveDescriptionReader::read(
 
   if (tmp.version != ArchiveDescriptionVersion)
     return false;
+
+  const QJsonValue segmentFrameCount =
+    root.value("segmentFrameCount");
+
+  if (!segmentFrameCount.isDouble())
+    return false;
+
+  const double count =
+    segmentFrameCount.toDouble();
+
+  if (!std::isfinite(count) ||
+      count < 1.0 ||
+      count > 9007199254740991.0 ||
+      std::floor(count) != count)
+  {
+    return false;
+  }
+
+  tmp.segmentFrameCount =
+    static_cast<uint64_t>(count);
 
   if (!root["files"].isArray())
     return false;

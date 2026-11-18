@@ -9,6 +9,9 @@
 namespace qds
 {
 
+namespace
+{
+
 inline constexpr uint32_t ArchiveMagic   = 0x51445341; // "QDSA"
 inline constexpr uint32_t ArchiveVersion = 1;
 
@@ -17,11 +20,15 @@ inline constexpr uint32_t BaseFrameFrequency = 1000;
 inline const std::string DescriptionFileName = "description.json";
 inline constexpr uint32_t ArchiveDescriptionVersion = 1;
 
+inline constexpr uint32_t DefaultArchiveSegmentDuration = 600;
+
 constexpr bool isValidArchiveFrequency(
   uint32_t frequency) noexcept
 {
   return frequency != 0 &&
          BaseFrameFrequency % frequency == 0;
+}
+
 }
 
 struct SampleRecordHeader

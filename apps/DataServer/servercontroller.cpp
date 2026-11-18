@@ -1,5 +1,4 @@
 #include "servercontroller.h"
-
 #include "archivedescriptionbuilder.h"
 #include "archivedescriptionwriter.h"
 #include "configurationrepository.h"
@@ -13,6 +12,9 @@
 #include "preparedconfiguration.h"
 
 #include <QDir>
+
+#include <cstdint>
+#include <limits>
 
 namespace qds
 {
@@ -31,6 +33,7 @@ ServerController::ServerController(
   , m_clock(m_systemClock)
   , m_fileLogger(m_logDirectory, m_systemClock)
   , m_guiLogger(m_fileLogger)
+  , m_archive(m_guiLogger)
 {
   connect(
     &m_guiLogger,
@@ -191,7 +194,26 @@ bool ServerController::initializeArchive()
   if (!builder.build(
         m_configuration,
         description))
+  {
     return false;
+  }
+
+  const uint64_t segmentDuration =
+    m_configuration.archiveSegmentDuration();
+
+  if (segmentDuration == 0 ||
+      segmentDuration >
+        std::numeric_limits<uint64_t>::max() /
+          BaseFrameFrequency)
+  {
+    m_guiLogger.error(
+      "Некорректная длительность сегмента архива");
+
+    return false;
+  }
+
+  description.segmentFrameCount =
+    segmentDuration * BaseFrameFrequency;
 
   SignalMemoryLayout layout;
   if (!layout.build(m_configuration))
@@ -228,7 +250,8 @@ bool ServerController::initializeArchive()
   if (!m_archive.initialize(
         sessionDirectory,
         description,
-        layout))
+        layout,
+        segmentDuration))
   {
     m_guiLogger.error(
       "Не удалось инициализировать архив");
