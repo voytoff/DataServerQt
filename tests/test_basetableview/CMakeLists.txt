@@ -38,10 +38,11 @@ target_include_directories(test_basetableview
 
 target_link_libraries(test_basetableview
   PRIVATE
-    configuration
     QCustomPlot
+    configuration
     datawidgets
     dataarchive
+    hardware
     Qt6::Widgets
     Qt6::Test
 )

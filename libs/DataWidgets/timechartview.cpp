@@ -1090,24 +1090,6 @@ void TimeChartView::updateTimeLabels()
       label.isEmpty() ? QString(" ") : label,
       value);
   }
-  /*
-for (int i = 0; i < TickCount; ++i)
-{
-  const double value =
-    minimum + step * i;
-
-  const QString label = formatTime(value);
-
-  if (i == 0)
-  {
-    m_axisX->setStartValue(minimum);
-    continue;
-  }
-
-  m_axisX->append(
-    label.isEmpty() ? QString(" ") : label,
-    value);
-}  */
 }
 
 }

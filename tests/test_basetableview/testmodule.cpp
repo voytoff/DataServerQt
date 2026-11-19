@@ -15,11 +15,14 @@
 #include "calibration.h"
 #include "calibrationdialog.h"
 #include "datatypes.h"
+#include "lcarddiscovery.h"
+#include "lcarddiscoverydialog.h"
 #include "settingssection.h"
 #include "systemconfiguration.h"
 #include "timechartview.h"
 #include "timerangecontroller.h"
 
+#include <minwindef.h>
 #include <qstylehints.h>
 #include <timeaxis.h>
 #include <cmath>
@@ -1680,6 +1683,47 @@ void TestModule::createFinalArchiveChartView2(QApplication* app)
 
   window->resize(1000, 500);
   window->show();
+}
+
+void TestModule::testLCardDiscovery()
+{
+  LCardDiscovery discovery;
+  const auto result = discovery.scan(
+    0x7F000001l,
+    11111);
+
+  if (result.success())
+  {
+    qDebug() << result.serverVersion;
+    for (const auto& crate : result.crates)
+    {
+      qDebug()
+        << crate.interfaceId
+        << crate.serial
+        << crate.typeId;
+
+      const auto& modules = crate.modules;
+      for (std::size_t slot = 0; slot < modules.size(); ++slot)
+      {
+        const auto module = modules[slot];
+
+        qDebug()
+          << module.slot
+          << module.serial
+          << module.typeId;
+      }
+    }
+  }
+}
+
+void TestModule::testLCardDiscoveryDialog()
+{
+  LCardDiscoveryDialog dialog;
+  dialog.setServer(
+    0x7F000001l,
+    11111);
+
+  dialog.exec();
 }
 
 }

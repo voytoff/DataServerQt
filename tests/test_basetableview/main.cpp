@@ -32,7 +32,9 @@ int main(int argc, char* argv[])
   //tm.createDynamicArchiveChartsView();
   //tm.createCombinedArchiveChartView2();
   //tm.createFinalArchiveChartView();
-  tm.createFinalArchiveChartView2(&app);
+  //tm.createFinalArchiveChartView2(&app);
+  //tm.testLCardDiscovery();
+  tm.testLCardDiscoveryDialog();
 
   return app.exec();
 }

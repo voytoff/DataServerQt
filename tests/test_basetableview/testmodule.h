@@ -32,6 +32,10 @@ public:
   /*6*/ void createFinalArchiveChartView2(
     QApplication *app);
 
+  /** LTR */
+  void testLCardDiscovery();
+  void testLCardDiscoveryDialog();
+
 private:
   std::unique_ptr<QMainWindow> m_mainWindow;
 };

@@ -60,6 +60,8 @@ MainWindow::MainWindow(
   m_signalView =
     new BaseTableView(0, 4, 0, 4, 0, this);
 
+  m_signalView->setRowHeight(22);
+
   m_signalView->setModel(m_signalModel);
 
   auto* header =

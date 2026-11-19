@@ -66,11 +66,13 @@ SignalChartWidget::SignalChartWidget(
 
   m_axisX->setTitleText(tr("Время, с"));
   m_axisX->setLabelFormat("%.1f");
+//m_axisX->setTickCount(6);
   m_axisX->setRange(0.0, m_windowSeconds);
 
   m_chart->addAxis(
     m_axisX,
     Qt::AlignBottom);
+m_axisX->setTitleVisible(false);
 
   m_chartView =
     new QChartView(m_chart, this);

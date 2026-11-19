@@ -8,12 +8,13 @@ add_library(hardware SHARED
     networkutils.h networkutils.cpp
     ihardwaremodule.h
     ilcardmodule.h
-    lcardmodule.h lcardmodule.cpp
+
     ltr11module.h ltr11module.cpp
     ltr11configuration.h
     lcardreadresult.h
     ltr11configurationvalidator.h ltr11configurationvalidator.cpp
     ltr11configurationfactory.h ltr11configurationfactory.cpp
+    lcarddiscovery.h lcarddiscovery.cpp
 )
 
 if(WIN32)
@@ -31,6 +32,17 @@ if(WIN32)
         PRIVATE
             ltrapi.lib
             ltr11api.lib
+            ltr12api.lib
+            ltr22api.lib
+            ltr24api.lib
+            ltr25api.lib
+            ltr27api.lib
+            ltr35api.lib
+            ltr41api.lib
+            ltr42api.lib
+            ltr43api.lib
+            ltr51api.lib
+            ltr114api.lib
     )
 
 elseif(LINUX)
@@ -47,6 +59,17 @@ elseif(LINUX)
         PRIVATE
             ltrapi
             ltr11api
+            ltr12api
+            ltr22api
+            ltr24api
+            ltr25api
+            ltr27api
+            ltr35api
+            ltr41api
+            ltr42api
+            ltr43api
+            ltr51api
+            ltr114api
     )
 
 endif()
