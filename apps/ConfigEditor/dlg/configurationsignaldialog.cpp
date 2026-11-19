@@ -16,6 +16,8 @@ ConfigurationSignalDialog::ConfigurationSignalDialog(
 {
   setWindowTitle(tr("Добавить сигнал"));
   setModal(true);
+  this->setSizeGripEnabled(true);
+
 
   m_nameEdit = new QLineEdit(this);
   m_nameEdit->setMaxLength(128);

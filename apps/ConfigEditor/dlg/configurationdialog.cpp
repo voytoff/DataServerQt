@@ -17,6 +17,8 @@ ConfigurationDialog::ConfigurationDialog(
 {
   m_ui->setupUi(this);
 
+  this->setSizeGripEnabled(true);
+
   connect(
     m_ui->buttonBox,
     &QDialogButtonBox::accepted,

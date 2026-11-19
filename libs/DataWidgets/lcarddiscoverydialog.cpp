@@ -3,6 +3,7 @@
 
 #include <QPushButton>
 #include <QtConcurrent>
+#include <QStatusBar>
 
 namespace qds
 {
@@ -12,7 +13,9 @@ LCardDiscoveryDialog::LCardDiscoveryDialog(QWidget *parent)
   , ui(new Ui::LCardDiscoveryDialog)
 {
   ui->setupUi(this);
-  this->setWindowTitle("Обнаружение оборудования LCard");
+  setWindowTitle("Обнаружение оборудования LCard");
+
+  this->setSizeGripEnabled(true);
 
   ui->buttonBox->button(QDialogButtonBox::Reset)
     ->setText(tr("Обновить"));
@@ -38,11 +41,16 @@ LCardDiscoveryDialog::LCardDiscoveryDialog(QWidget *parent)
     this,
     &LCardDiscoveryDialog::finishScan);
 
-  connect(ui->buttonBox, &QDialogButtonBox::accepted,
-          this, &QDialog::accept);
+  connect(
+    ui->buttonBox,
+    &QDialogButtonBox::accepted,
+    this, &QDialog::accept);
 
-  connect(ui->buttonBox, &QDialogButtonBox::rejected,
-          this, &QDialog::reject);
+  connect(
+    ui->buttonBox,
+    &QDialogButtonBox::rejected,
+    this,
+    &QDialog::reject);
 }
 
 LCardDiscoveryDialog::~LCardDiscoveryDialog()
@@ -145,10 +153,11 @@ void LCardDiscoveryDialog::startScan()
   const auto port = port_;
 
   scanWatcher_.setFuture(
-    QtConcurrent::run([address, port]()
-                      {
-                        return LCardDiscovery::scan(address, port);
-                      }));
+    QtConcurrent::run(
+      [address, port]()
+      {
+        return LCardDiscovery::scan(address, port);
+      }));
 }
 
 void LCardDiscoveryDialog::finishScan()
@@ -161,7 +170,9 @@ void LCardDiscoveryDialog::finishScan()
 
   ui->statusLabel->setText(
     discoveryResult_.success()
-      ? tr("Сканирование завершено")
+      ? discoveryResult_.crates.size() == 0
+        ? tr("Устройств не обнаружено")
+        : tr("Сканирование завершено")
       : QString::fromStdString(discoveryResult_.error));
 
   ui->buttonBox->button(QDialogButtonBox::Reset)->setEnabled(true);

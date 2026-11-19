@@ -29,6 +29,8 @@ CalibrationDialog::CalibrationDialog(
 {
   m_ui->setupUi(this);
 
+  this->setSizeGripEnabled(true);
+
   // Модель тарировки.
   m_model = new CalibrationTableModel(this);
   m_model->setCalibration(calibration);

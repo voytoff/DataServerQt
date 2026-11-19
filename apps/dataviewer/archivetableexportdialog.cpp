@@ -22,6 +22,7 @@ ArchiveTableExportDialog::ArchiveTableExportDialog(
   , m_settings(settings)
 {
   ui->setupUi(this);
+  this->setSizeGripEnabled(true);
 
   ui->xlsxRadioButton->setChecked(
     settings.format == ArchiveTableExportFormat::Xlsx);

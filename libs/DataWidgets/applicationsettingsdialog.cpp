@@ -68,6 +68,8 @@ ApplicationSettingsDialog::ApplicationSettingsDialog(
   ui->setupUi(this);
   ui->tabWidget->setCurrentIndex(0);
 
+  this->setSizeGripEnabled(true);
+
   setWindowTitle(
     initialSetup
       ? tr("Первоначальная настройка приложения")
