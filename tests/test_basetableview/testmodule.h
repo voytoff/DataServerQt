@@ -37,6 +37,8 @@ public:
   void testLCardDiscoveryDialog();
   void testLCardDiscoveryDialog_select();
 
+  void testCrateDialog();
+
 private:
   std::unique_ptr<QMainWindow> m_mainWindow;
 };

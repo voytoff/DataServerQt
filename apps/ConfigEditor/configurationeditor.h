@@ -14,6 +14,7 @@
 #include "sensorpropertiesmodel.h"
 #include "measurementunitmodel.h"
 #include "signaltypemodel.h"
+#include "cratedialog.h"
 
 #include <QWidget>
 #include <QSortFilterProxyModel>
@@ -81,10 +82,12 @@ private:
 
   void validateConfiguration();
 
+private:
   /// Actions
-
   void doAdd();
   void doDelete();
+
+  void addCrate();
 
 private:
   ConfigurationSelector* m_configurationCombo = nullptr;

@@ -17,6 +17,11 @@ add_executable(test_basetableview
     ../../apps/configeditor/dlg/calibrationdialog.cpp
     ../../apps/configeditor/dlg/calibrationdialog.h
     ../../apps/configeditor/dlg/calibrationdialog.ui
+
+    ../../apps/configeditor/dlg/cratedialog.cpp
+    ../../apps/configeditor/dlg/cratedialog.h
+    ../../apps/configeditor/dlg/cratedialog.ui
+
     ../../apps/configeditor/model/calibrationtablemodel.cpp
     ../../apps/configeditor/model/calibrationtablemodel.h
     ../../apps/configeditor/plot/calibrationplot.cpp

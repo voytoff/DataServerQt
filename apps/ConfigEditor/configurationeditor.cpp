@@ -2226,4 +2226,27 @@ void ConfigurationEditor::doDelete()
   }
 }
 
+void ConfigurationEditor::addCrate()
+{
+  CrateDialog dialog(this);
+
+  if (dialog.exec() != QDialog::Accepted)
+    return;
+
+  const QModelIndex index =
+    m_treeModel->addCrate(
+      dialog.crateType(),
+      dialog.serial(),
+      dialog.host(),
+      dialog.port(),
+      dialog.description());
+
+  if (!index.isValid())
+    return;
+
+  m_configurationTree->setCurrentIndex(index);
+  m_configurationTree->scrollTo(index);
+  m_configurationTree->setFocus();
+}
+
 }

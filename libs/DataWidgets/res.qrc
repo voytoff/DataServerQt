@@ -2,5 +2,7 @@
     <qresource prefix="/">
         <file>images/columns.svg</file>
         <file>images/fit.svg</file>
+        <file>images/key.svg</file>
+        <file>images/rowcopy.svg</file>
     </qresource>
 </RCC>

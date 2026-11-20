@@ -59,6 +59,14 @@ public:
     const QModelIndex& index) const noexcept;
 
   [[nodiscard]]
+  QModelIndex addCrate(
+    CrateType type,
+    const QString& serial,
+    const QString& host,
+    uint32_t port,
+    const QString& description);
+
+  [[nodiscard]]
   bool updateCrate(
     const QModelIndex& index,
     const QString& host,

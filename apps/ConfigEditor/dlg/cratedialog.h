@@ -1,24 +1,49 @@
 #pragma once
 
-#include <QDialog>
+#include "cratetype.h"
 
-namespace Ui {
+#include <QDialog>
+#include <QString>
+#include <cstdint>
+
+namespace Ui
+{
 class CrateDialog;
 }
 
 namespace qds
 {
 
-class CrateDialog : public QDialog
+class CrateDialog final : public QDialog
 {
   Q_OBJECT
 
 public:
-  explicit CrateDialog(QWidget *parent = nullptr);
-  ~CrateDialog();
+  explicit CrateDialog(
+    QWidget* parent = nullptr);
+
+  ~CrateDialog() override;
+
+  [[nodiscard]]
+  CrateType crateType() const;
+
+  [[nodiscard]]
+  QString serial() const;
+
+  [[nodiscard]]
+  QString host() const;
+
+  [[nodiscard]]
+  uint32_t port() const;
+
+  [[nodiscard]]
+  QString description() const;
 
 private:
-  Ui::CrateDialog *ui;
+  void updateActions();
+
+private:
+  Ui::CrateDialog* ui;
 };
 
 }

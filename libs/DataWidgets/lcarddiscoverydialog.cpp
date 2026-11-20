@@ -1,4 +1,5 @@
 #include "lcarddiscoverydialog.h"
+#include "themedsvgicon.h"
 #include "ui_lcarddiscoverydialog.h"
 
 #include <QPushButton>
@@ -493,12 +494,16 @@ void LCardDiscoveryDialog::showContextMenu(const QPoint& pos)
   QMenu menu(this);
 
   auto* copySerialAction =
-    menu.addAction(tr("Копировать серийный номер"));
+    menu.addAction(
+      themedSvgIcon(":/images/key.svg"),
+      tr("Копировать серийный номер"));
 
   copySerialAction->setEnabled(!serial.isEmpty());
 
   auto* copyRowAction =
-    menu.addAction(tr("Копировать строку"));
+    menu.addAction(
+      themedSvgIcon(":/images/rowcopy.svg"),
+      tr("Копировать строку"));
 
   const auto* action =
     menu.exec(ui->treeWidget->viewport()->mapToGlobal(pos));

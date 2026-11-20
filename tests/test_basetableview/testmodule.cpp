@@ -14,6 +14,8 @@
 #include "archivewriter.h"
 #include "calibration.h"
 #include "calibrationdialog.h"
+#include "cratedialog.h"
+#include "cratetypeinfo.h"
 #include "datatypes.h"
 #include "lcarddiscovery.h"
 #include "lcarddiscoverydialog.h"
@@ -1749,6 +1751,20 @@ void TestModule::testLCardDiscoveryDialog_select()
       }
     }
   }
+}
+
+void TestModule::testCrateDialog()
+{
+  CrateDialog dialog;
+
+  if (dialog.exec() != QDialog::Accepted)
+    return;
+
+  qDebug() << crateTypeName(dialog.crateType())
+           << dialog.serial()
+           << dialog.host()
+           << dialog.port()
+           << dialog.description();
 }
 
 }

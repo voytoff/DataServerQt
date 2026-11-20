@@ -19,5 +19,6 @@
         <file>images/func.svg</file>
         <file>images/unit.svg</file>
         <file>images/ctype.svg</file>
+        <file>images/aim.svg</file>
     </qresource>
 </RCC>

@@ -619,6 +619,59 @@ const TreeItemData* ConfigurationTreeModel::treeItemData(
    : nullptr;
 }
 
+QModelIndex ConfigurationTreeModel::addCrate(
+  CrateType type,
+  const QString& serial,
+  const QString& host,
+  uint32_t port,
+  const QString& description)
+{
+  if (!m_root)
+    return {};
+
+  const auto id =
+    m_repository.addCrate(
+      type,
+      serial,
+      host,
+      port,
+      description);
+
+  if (!id)
+  {
+    const auto error = m_repository.lastError();
+
+    emit operationFailed(
+      error.isValid()
+        ? error.text()
+        : tr("Не удалось добавить крейт."));
+
+    return {};
+  }
+
+  CrateItemData crateData
+    {
+      .id = *id,
+      .type = type,
+      .serial = serial,
+      .host = host,
+      .port = port,
+      .description = description
+    };
+
+  const int row =
+    static_cast<int>(m_root->children().size());
+
+  beginInsertRows({}, row, row);
+
+  auto* item =
+    m_root->addChild(std::move(crateData));
+
+  endInsertRows();
+
+  return createIndex(row, 0, item);
+}
+
 bool ConfigurationTreeModel::updateCrate(
   const QModelIndex& index,
   const QString& host,
