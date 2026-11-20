@@ -16,7 +16,7 @@ SensorDialog::SensorDialog(
   : QDialog(parent)
 {
   setWindowTitle(tr("Новый датчик"));
-  setFixedSize(280, 120);
+  setFixedSize(320, 120);
 
   auto* layout = new QFormLayout(this);
 

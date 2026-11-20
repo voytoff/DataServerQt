@@ -1,4 +1,4 @@
-#include "configurationsignaldialog.h"
+#include "signaldialog.h"
 
 #include <QLineEdit>
 #include <QComboBox>
@@ -10,14 +10,12 @@
 namespace qds
 {
 
-ConfigurationSignalDialog::ConfigurationSignalDialog(
+SignalDialog::SignalDialog(
   QWidget* parent)
   : QDialog(parent)
 {
   setWindowTitle(tr("Добавить сигнал"));
-  setModal(true);
-  this->setSizeGripEnabled(true);
-
+  setFixedSize(320, 120);
 
   m_nameEdit = new QLineEdit(this);
   m_nameEdit->setMaxLength(128);
@@ -90,18 +88,18 @@ ConfigurationSignalDialog::ConfigurationSignalDialog(
   m_nameEdit->setFocus();
 }
 
-QString ConfigurationSignalDialog::signalName() const
+QString SignalDialog::signalName() const
 {
   return m_nameEdit->text().trimmed();
 }
 
-SignalKind ConfigurationSignalDialog::signalKind() const
+SignalKind SignalDialog::signalKind() const
 {
   return static_cast<SignalKind>(
     m_kindCombo->currentData().toInt());
 }
 
-void ConfigurationSignalDialog::updateActions()
+void SignalDialog::updateActions()
 {
   m_okButton->setEnabled(
     !m_nameEdit->text().trimmed().isEmpty());

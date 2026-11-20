@@ -5,7 +5,7 @@
 #include "basecomboboxdelegate.h"
 #include "configurationpropertiesdelegate.h"
 #include "configurationsignalpropertiesdelegate.h"
-#include "configurationsignaldialog.h"
+#include "signaldialog.h"
 #include "measurementunitdelegate.h"
 #include "measurementunitdialog.h"
 #include "rowheightdelegate.h"
@@ -1140,6 +1140,9 @@ void ConfigurationEditor::createToolbar(
 
 void ConfigurationEditor::updateActions()
 {
+  const bool modulesTab =
+    m_tabs->currentWidget() == m_modulesSplitter;
+
   const bool hasConfiguration =
     bool(currentConfiguration());
 
@@ -1174,6 +1177,7 @@ void ConfigurationEditor::updateActions()
     m_signalTypesView->currentIndex().isValid();
 
   m_addAction->setEnabled(
+    (hasConfiguration && modulesTab) ||
     (hasConfiguration && signalsTab) ||
     sensorTypesTab ||
     sensorsTab ||
@@ -1891,8 +1895,14 @@ void ConfigurationEditor::validateConfiguration()
 
 void ConfigurationEditor::doAdd()
 {
+  if (m_tabs->currentWidget() == m_modulesSplitter)
+  {
+    if (currentConfiguration())
+      addCrate();
 
-  if (m_tabs->currentWidget() == m_sensorTypesView)
+    return;
+  }
+  else if (m_tabs->currentWidget() == m_sensorTypesView)
   {
     SensorTypeDialog dialog(this);
 
@@ -1959,7 +1969,7 @@ void ConfigurationEditor::doAdd()
     if (!currentConfiguration())
       return;
 
-    ConfigurationSignalDialog dialog(this);
+    SignalDialog dialog(this);
 
     if (dialog.exec() != QDialog::Accepted)
       return;
@@ -2036,7 +2046,6 @@ void ConfigurationEditor::doAdd()
     updateActions();
     return;
   }
-
   else if (m_tabs->currentWidget() == m_signalTypesView)
   {
     SignalTypeDialog dialog(this);

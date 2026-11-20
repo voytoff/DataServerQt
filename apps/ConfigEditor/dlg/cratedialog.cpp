@@ -13,6 +13,7 @@ CrateDialog::CrateDialog(
   , ui(new Ui::CrateDialog)
 {
   ui->setupUi(this);
+  this->setSizeGripEnabled(true);
 
   setWindowTitle(tr("Добавление крейта"));
 

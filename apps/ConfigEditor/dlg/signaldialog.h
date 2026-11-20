@@ -10,12 +10,12 @@ class QComboBox;
 namespace qds
 {
 
-class ConfigurationSignalDialog final : public QDialog
+class SignalDialog final : public QDialog
 {
   Q_OBJECT
 
 public:
-  explicit ConfigurationSignalDialog(
+  explicit SignalDialog(
     QWidget* parent = nullptr);
 
   [[nodiscard]]

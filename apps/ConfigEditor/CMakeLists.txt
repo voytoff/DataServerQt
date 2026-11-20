@@ -27,7 +27,7 @@ qt_add_executable(configeditor
     model/configurationsignalmodel.h model/configurationsignalmodel.cpp
     model/configurationsignalpropertiesmodel.h model/configurationsignalpropertiesmodel.cpp
     delegate/configurationsignalpropertiesdelegate.h delegate/configurationsignalpropertiesdelegate.cpp
-    dlg/configurationsignaldialog.h dlg/configurationsignaldialog.cpp
+    dlg/signaldialog.h dlg/signaldialog.cpp
     model/sensortypemodel.h model/sensortypemodel.cpp
     delegate/basecomboboxdelegate.h delegate/basecomboboxdelegate.cpp
     model/sensormodel.h model/sensormodel.cpp

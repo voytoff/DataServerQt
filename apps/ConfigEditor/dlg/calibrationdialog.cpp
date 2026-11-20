@@ -28,7 +28,6 @@ CalibrationDialog::CalibrationDialog(
   , m_ui(std::make_unique<Ui::CalibrationDialog>())
 {
   m_ui->setupUi(this);
-
   this->setSizeGripEnabled(true);
 
   // Модель тарировки.
