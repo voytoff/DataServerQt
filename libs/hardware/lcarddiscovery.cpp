@@ -20,6 +20,7 @@
 #include <format>
 #include <string>
 #include <vector>
+#include <cstddef>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -698,6 +699,36 @@ LCardDiscoveryResult LCardDiscovery::scan(
       crate.error = errorString(err);
     }
 
+    TLTR_CRATE_DESCR descr{};
+
+    err = LTR_GetCrateDescr(
+      server.handle(),
+      static_cast<INT>(crate.interfaceId),
+      crate.serial.c_str(),
+      &descr,
+      sizeof(descr));
+
+    if (err == LTR_OK)
+    {
+      crate.name = serialString(descr.devname);
+      crate.typeName = serialString(descr.crate_type_name);
+    }
+
+    TLTR_CRATE_STATISTIC stat{};
+
+    err = LTR_GetCrateStatistic(
+      server.handle(),
+      static_cast<INT>(crate.interfaceId),
+      crate.serial.c_str(),
+      &stat,
+      sizeof(stat));
+
+    if (err == LTR_OK)
+    {
+      if (stat.size >= offsetof(TLTR_CRATE_STATISTIC, mids))
+        crate.slotCount = stat.modules_cnt;
+    }
+
     std::array<WORD, LTR_MODULES_PER_CRATE_MAX> modules{};
 
     err = LTR_GetCrateModules(
@@ -838,6 +869,78 @@ LCardDiscoveryResult LCardDiscovery::scan(
   }
 
   return result;
+}
+
+std::string LCardDiscovery::crateName(uint32_t typeId)
+{
+  switch (typeId)
+  {
+  case LTR_CRATE_TYPE_UNKNOWN:    return "Unknown";
+  case LTR_CRATE_TYPE_LTR010:     return "LTR-U-8/16";
+  case LTR_CRATE_TYPE_LTR021:     return "LTR-U-1";
+  case LTR_CRATE_TYPE_LTR030:     return "LTR-EU-8/16";
+  case LTR_CRATE_TYPE_LTR031:     return "LTR-EU-2";
+  case LTR_CRATE_TYPE_LTR032:     return "LTR-E-7/15";
+  case LTR_CRATE_TYPE_LTR_CU_1:   return "LTR-CU-1";
+  case LTR_CRATE_TYPE_LTR_CEU_1:  return "LTR-CEU-1";
+  case LTR_CRATE_TYPE_BOOTLOADER: return "Bootloader";
+
+  default:
+    return std::format("Unknown ({})", typeId);
+  }
+}
+
+std::string LCardDiscovery::crateName(
+  uint32_t typeId,
+  uint32_t slotCount)
+{
+  switch (typeId)
+  {
+  case LTR_CRATE_TYPE_UNKNOWN:
+    return "Unknown";
+
+  case LTR_CRATE_TYPE_LTR010:
+    switch (slotCount)
+    {
+    case 8:  return "LTR-U-8";
+    case 16: return "LTR-U-16";
+    default: return "LTR-U-8/16";
+    }
+
+  case LTR_CRATE_TYPE_LTR021:
+    return "LTR-U-1";
+
+  case LTR_CRATE_TYPE_LTR030:
+    switch (slotCount)
+    {
+    case 8:  return "LTR-EU-8";
+    case 16: return "LTR-EU-16";
+    default: return "LTR-EU-8/16";
+    }
+
+  case LTR_CRATE_TYPE_LTR031:
+    return "LTR-EU-2";
+
+  case LTR_CRATE_TYPE_LTR032:
+    switch (slotCount)
+    {
+    case 7:  return "LTR-E-7";
+    case 15: return "LTR-E-15";
+    default: return "LTR-E-7/15";
+    }
+
+  case LTR_CRATE_TYPE_LTR_CU_1:
+    return "LTR-CU-1";
+
+  case LTR_CRATE_TYPE_LTR_CEU_1:
+    return "LTR-CEU-1";
+
+  case LTR_CRATE_TYPE_BOOTLOADER:
+    return "Bootloader";
+
+  default:
+    return std::format("Unknown ({})", typeId);
+  }
 }
 
 std::string LCardDiscovery::moduleName(uint32_t typeId)

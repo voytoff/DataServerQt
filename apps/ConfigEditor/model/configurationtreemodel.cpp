@@ -1,4 +1,5 @@
 #include "configurationtreemodel.h"
+#include "cratetypeinfo.h"
 #include "modulesettingsformatter.h"
 #include "moduletypeinfo.h"
 
@@ -65,7 +66,11 @@ bool ConfigurationTreeModel::load(
   {
     CrateItemData crateData{
       .id = crate.id,
-      .serial = crate.serial
+      .type = crate.type,
+      .serial = crate.serial,
+      .host = crate.host,
+      .port = crate.port,
+      .description = crate.description
     };
 
     auto* crateItem =
@@ -299,6 +304,14 @@ QVariant ConfigurationTreeModel::data(
   {
     if (role != Qt::DisplayRole)
       return {};
+
+    if (const auto* crate =
+        std::get_if<CrateItemData>(&itemData))
+    {
+      return QString("%1 · %2:%3")
+        .arg(crateTypeName(crate->type), crate->host)
+        .arg(crate->port);
+    }
 
     if (const auto* module =
         std::get_if<ModuleItemData>(&itemData))
@@ -604,6 +617,61 @@ const TreeItemData* ConfigurationTreeModel::treeItemData(
   return item
    ? &item->data()
    : nullptr;
+}
+
+bool ConfigurationTreeModel::updateCrate(
+  const QModelIndex& index,
+  const QString& host,
+  uint32_t port,
+  const QString& description)
+{
+  auto* data = const_cast<TreeItemData*>(
+    treeItemData(index));
+
+  if (!data)
+    return false;
+
+  auto* crate = std::get_if<CrateItemData>(data);
+
+  if (!crate)
+    return false;
+
+  if (crate->host == host &&
+      crate->port == port &&
+      crate->description == description)
+  {
+    return true;
+  }
+
+  if (!m_repository.updateCrate(
+        crate->id,
+        host,
+        port,
+        description))
+  {
+    const auto error = m_repository.lastError();
+
+    emit operationFailed(
+      error.isValid()
+        ? error.text()
+        : tr("Не удалось сохранить свойства крейта."));
+
+    return false;
+  }
+
+  crate->host = host;
+  crate->port = port;
+  crate->description = description;
+
+  const QModelIndex parametersIndex =
+    index.siblingAtColumn(1);
+
+  emit dataChanged(
+    parametersIndex,
+    parametersIndex,
+    {Qt::DisplayRole});
+
+  return true;
 }
 
 bool ConfigurationTreeModel::updateModuleSettings(

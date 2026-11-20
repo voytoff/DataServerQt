@@ -88,14 +88,15 @@ private:
 
 private:
   ConfigurationSelector* m_configurationCombo = nullptr;
-  BaseTableView* m_tagsView = nullptr;
   QString m_configFile;
 
-  QSqlRelationalTableModel* m_tags = nullptr;
-
   ConfigurationRepository m_repository;
+
   ConfigurationTreeModel* m_treeModel = nullptr;
   QTreeView* m_configurationTree = nullptr;
+
+  QSqlRelationalTableModel* m_tags = nullptr;
+  BaseTableView* m_tagsView = nullptr;
 
   ConfigurationPropertiesModel* m_propertiesModel = nullptr;
 

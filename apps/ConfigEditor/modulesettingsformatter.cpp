@@ -1,4 +1,5 @@
 #include "modulesettingsformatter.h"
+#include "moduletypeinfo.h"
 
 namespace qds
 {
@@ -61,14 +62,24 @@ QString ltr11ChannelText(
 QString ModuleSettingsFormatter::moduleText(
   const ModuleItemData& module)
 {
+  const QString name =
+    moduleTypeName(module.type);
+
+  QString settings;
+
   switch (module.type)
   {
   case ModuleType::LTR11:
-    return ltr11ModuleText(module);
+    settings = ltr11ModuleText(module);
+    break;
 
   default:
-    return {};
+    break;
   }
+
+  return settings.isEmpty()
+    ? name
+    : QStringLiteral("%1 · %2").arg(name, settings);
 }
 
 QString ModuleSettingsFormatter::channelText(

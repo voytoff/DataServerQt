@@ -44,6 +44,7 @@ qt_add_executable(configeditor
     dlg/measurementunitdialog.h dlg/measurementunitdialog.cpp
     dlg/sensortypedialog.h dlg/sensortypedialog.cpp
     dlg/signaltypedialog.h dlg/signaltypedialog.cpp
+    dlg/cratedialog.h dlg/cratedialog.cpp dlg/cratedialog.ui
 )
 
 if(WIN32)

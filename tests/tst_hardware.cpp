@@ -254,7 +254,7 @@ void tst_hardware::test_ltr11configurationbuilder()
   {
     .id = {0},
     .serial = "LTR1101",
-    .type = CrateType::LTR_EU_16_1,
+    .type = CrateType::LTR_U_16,
     .host = "127.0.0.1",
     .port = 11111
   };

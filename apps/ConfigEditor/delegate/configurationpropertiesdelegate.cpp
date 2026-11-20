@@ -4,6 +4,8 @@
 #include <QAbstractItemModel>
 #include <QComboBox>
 #include <QDoubleSpinBox>
+#include <QLineEdit>
+#include <QSpinBox>
 
 namespace qds
 {
@@ -21,14 +23,35 @@ QWidget* ConfigurationPropertiesDelegate::createEditor(
   const QStyleOptionViewItem& option,
   const QModelIndex& index) const
 {
-  if (!index.isValid() || index.column() != 1)
+  if (!index.isValid() ||
+      index.column() != 1 ||
+      !index.flags().testFlag(Qt::ItemIsEditable))
+  {
     return nullptr;
+  }
 
   const auto propertyId =
     static_cast<Model::PropertyId>(
       index.data(Model::PropertyIdRole).toInt());
 
-  if (propertyId == Model::PropertyId::ChannelRate)
+  if (propertyId == Model::PropertyId::CrateHost ||
+      propertyId == Model::PropertyId::CrateDescription)
+  {
+    auto* editor = new QLineEdit(parent);
+
+    editor->setMaxLength(255);
+
+    return editor;
+  }
+  else if (propertyId == Model::PropertyId::CratePort)
+  {
+    auto* editor = new QSpinBox(parent);
+
+    editor->setRange(1, 65535);
+
+    return editor;
+  }
+  else if (propertyId == Model::PropertyId::ChannelRate)
   {
     auto* editor = new QDoubleSpinBox(parent);
 
@@ -80,13 +103,19 @@ void ConfigurationPropertiesDelegate::setEditorData(
     index.data(Qt::EditRole);
 
   if (auto* spin =
-      qobject_cast<QDoubleSpinBox*>(editor))
+      qobject_cast<QSpinBox*>(editor))
+  {
+    spin->setValue(value.toInt());
+    return;
+  }
+  else if (auto* spin =
+           qobject_cast<QDoubleSpinBox*>(editor))
   {
     spin->setValue(value.toDouble());
     return;
   }
   else if (auto* combo =
-      qobject_cast<QComboBox*>(editor))
+           qobject_cast<QComboBox*>(editor))
   {
     const int position =
       combo->findData(value.toInt());
@@ -108,7 +137,19 @@ void ConfigurationPropertiesDelegate::setModelData(
   const QModelIndex& index) const
 {
   if (auto* spin =
-      qobject_cast<QDoubleSpinBox*>(editor))
+      qobject_cast<QSpinBox*>(editor))
+  {
+    spin->interpretText();
+
+    model->setData(
+      index,
+      spin->value(),
+      Qt::EditRole);
+
+    return;
+  }
+  else if (auto* spin =
+           qobject_cast<QDoubleSpinBox*>(editor))
   {
     spin->interpretText();
 
@@ -120,7 +161,7 @@ void ConfigurationPropertiesDelegate::setModelData(
     return;
   }
   else if (auto* combo =
-      qobject_cast<QComboBox*>(editor))
+           qobject_cast<QComboBox*>(editor))
   {
     model->setData(
       index,

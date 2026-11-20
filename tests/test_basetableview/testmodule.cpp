@@ -1720,10 +1720,35 @@ void TestModule::testLCardDiscoveryDialog()
 {
   LCardDiscoveryDialog dialog;
   dialog.setServer(
-    0x7F000001l,
+    0x7F000001,
     11111);
 
   dialog.exec();
+}
+
+void TestModule::testLCardDiscoveryDialog_select()
+{
+  LCardDiscoveryDialog dialog;
+
+  dialog.setMode(LCardDiscoveryDialogMode::Select);
+  dialog.setServer(0x7F000001, 11111);
+
+  if (dialog.exec() == QDialog::Accepted)
+  {
+    const auto crates = dialog.selectedCrates();
+
+    for (const auto& crate : crates)
+    {
+      qDebug() << QString::fromStdString(crate.serial);
+
+      for (const auto& module : crate.modules)
+      {
+        qDebug()
+        << module.slot
+        << QString::fromStdString(module.serial);
+      }
+    }
+  }
 }
 
 }

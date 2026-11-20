@@ -33,7 +33,7 @@ const ModuleTypeInfo* moduleTypeInfo(
   return nullptr;
 }
 
-QString moduleTypeToString(
+QString moduleTypeName(
   ModuleType type)
 {
   switch (type)

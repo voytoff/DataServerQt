@@ -48,7 +48,7 @@ void tst_database::test_database_loadConfiguration()
   QCOMPARE(cfg.signalDefinitions().size(), 5);
 
   const CrateInfo &ci = cfg.crates()[0];
-  QCOMPARE(ci.type, CrateType::LTR_EU_16_1); // в базе - 1
+  QCOMPARE(ci.type, CrateType::LTR_U_16); // в базе - 1
 
   QCOMPARE(
     ci.serial,

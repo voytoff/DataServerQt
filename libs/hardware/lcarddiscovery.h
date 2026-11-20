@@ -19,6 +19,11 @@ struct LCardDiscoveredCrate
   std::string serial;
   uint32_t typeId = 0;
   uint32_t interfaceId = 0;
+
+  uint32_t slotCount = 0;
+  std::string name;
+  std::string typeName;
+
   std::vector<LCardDiscoveredModule> modules;
   std::string error;
 };
@@ -42,6 +47,15 @@ public:
   static LCardDiscoveryResult scan(
     uint32_t address,
     uint16_t port);
+
+  [[nodiscard]]
+  static std::string crateName(
+    uint32_t typeId);
+
+  [[nodiscard]]
+  static std::string crateName(
+    uint32_t typeId,
+    uint32_t slotCount);
 
   [[nodiscard]]
   static std::string moduleName(

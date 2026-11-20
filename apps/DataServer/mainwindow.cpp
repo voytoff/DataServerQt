@@ -424,7 +424,7 @@ void MainWindow::updateModules()
 
     auto* typeItem =
       new QTableWidgetItem(
-        moduleTypeToString(module.type));
+        moduleTypeName(module.type));
 
     auto* stateItem =
       new QTableWidgetItem(tr("Остановлен"));

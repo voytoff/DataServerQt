@@ -59,6 +59,13 @@ public:
     const QModelIndex& index) const noexcept;
 
   [[nodiscard]]
+  bool updateCrate(
+    const QModelIndex& index,
+    const QString& host,
+    uint32_t port,
+    const QString& description);
+
+  [[nodiscard]]
   bool updateModuleSettings(
     const QModelIndex& index,
     const QJsonObject& settings);

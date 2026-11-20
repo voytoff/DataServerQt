@@ -19,7 +19,7 @@ struct ModuleTypeInfo
 const ModuleTypeInfo* moduleTypeInfo(
   ModuleType type) noexcept;
 
-QString moduleTypeToString(
+QString moduleTypeName(
   ModuleType type);
 
 }

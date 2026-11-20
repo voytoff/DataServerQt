@@ -7,7 +7,6 @@
 #include "datatypes.h"
 #include "measurementunit.h"
 #include "sensorrepository.h"
-#include "signaltype.h"
 #include "signaltypeinfo.h"
 #include "systemconfiguration.h"
 #include "tagsourceinfo.h"
@@ -63,6 +62,13 @@ public:
     const QString& serial,
     const QString& host,
     const uint32_t port,
+    const QString& description);
+
+  [[nodiscard]]
+  bool updateCrate(
+    const CrateId& crate,
+    const QString& host,
+    uint32_t port,
     const QString& description);
 
   [[nodiscard]]

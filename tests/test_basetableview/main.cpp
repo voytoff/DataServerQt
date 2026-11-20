@@ -34,7 +34,8 @@ int main(int argc, char* argv[])
   //tm.createFinalArchiveChartView();
   //tm.createFinalArchiveChartView2(&app);
   //tm.testLCardDiscovery();
-  tm.testLCardDiscoveryDialog();
+  //tm.testLCardDiscoveryDialog();
+  tm.testLCardDiscoveryDialog_select();
 
   return app.exec();
 }

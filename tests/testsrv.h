@@ -946,7 +946,7 @@ inline qds::ModuleRuntimeConfiguration createModuleRuntimeConfiguration(ModuleTy
       .crate = {
         .id = {0},
         .serial = "",//"5T776728",
-        .type = CrateType::LTR_EU_16_1,
+        .type = CrateType::LTR_U_16,
         .host = "127.0.0.1",
         .port = 11111
       },

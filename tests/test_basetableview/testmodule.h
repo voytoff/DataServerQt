@@ -35,6 +35,7 @@ public:
   /** LTR */
   void testLCardDiscovery();
   void testLCardDiscoveryDialog();
+  void testLCardDiscoveryDialog_select();
 
 private:
   std::unique_ptr<QMainWindow> m_mainWindow;

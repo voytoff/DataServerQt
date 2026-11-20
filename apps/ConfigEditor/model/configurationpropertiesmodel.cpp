@@ -1,4 +1,5 @@
 #include "configurationpropertiesmodel.h"
+#include "cratetypeinfo.h"
 #include <cmath>
 #include <QMessageBox>
 
@@ -29,7 +30,45 @@ void ConfigurationPropertiesModel::setItem(
   if (const auto* data =
       m_treeModel->treeItemData(index))
   {
-    if (const auto* module =
+    if (const auto* crate =
+        std::get_if<CrateItemData>(data))
+    {
+      properties.push_back({
+        PropertyId::CrateType,
+        tr("Тип крейта"),
+        static_cast<int>(crate->type),
+        false
+      });
+
+      properties.push_back({
+        PropertyId::CrateSerial,
+        tr("Серийный номер"),
+        crate->serial,
+        false
+      });
+
+      properties.push_back({
+        PropertyId::CrateHost,
+        tr("Адрес сервера"),
+        crate->host,
+        true
+      });
+
+      properties.push_back({
+        PropertyId::CratePort,
+        tr("Порт"),
+        crate->port,
+        true
+      });
+
+      properties.push_back({
+        PropertyId::CrateDescription,
+        tr("Описание"),
+        crate->description,
+        true
+      });
+    }
+    else if (const auto* module =
         std::get_if<ModuleItemData>(data))
     {
       if (module->type == ModuleType::LTR11 &&
@@ -124,7 +163,13 @@ QVariant ConfigurationPropertiesModel::data(
   if (role == Qt::EditRole)
     return property.value;
 
-  if (property.id == PropertyId::ModuleMode)
+  if (property.id == PropertyId::CrateType)
+  {
+    return crateTypeName(
+      static_cast<CrateType>(
+        property.value.toInt()));
+  }
+  else if (property.id == PropertyId::ModuleMode)
   {
     switch (property.value.toInt())
     {
@@ -202,11 +247,71 @@ bool ConfigurationPropertiesModel::setData(
   auto& property =
     m_properties[index.row()];
 
+  if (!property.editable)
+    return false;
+
   QVariant newValue = value;
 
   QJsonObject settings;
 
-  if (const auto* module =
+  if (const auto* crate =
+      std::get_if<CrateItemData>(itemData))
+  {
+    QString host = crate->host;
+    uint32_t port = crate->port;
+    QString description = crate->description;
+
+    switch (property.id)
+    {
+    case PropertyId::CrateHost:
+    {
+      host = value.toString().trimmed();
+
+      if (host.isEmpty() || host.size() > 255)
+        return false;
+
+      newValue = host;
+      break;
+    }
+
+    case PropertyId::CratePort:
+    {
+      bool ok = false;
+
+      port = value.toUInt(&ok);
+
+      if (!ok || port == 0 || port > 65535)
+        return false;
+
+      newValue = port;
+      break;
+    }
+
+    case PropertyId::CrateDescription:
+    {
+      description = value.toString();
+
+      if (description.size() > 255)
+        return false;
+
+      newValue = description;
+      break;
+    }
+
+    default:
+      return false;
+    }
+
+    if (!m_treeModel->updateCrate(
+          m_currentItem,
+          host,
+          port,
+          description))
+    {
+      return false;
+    }
+  }
+  else if (const auto* module =
       std::get_if<ModuleItemData>(itemData))
   {
     settings = module->settings;
@@ -346,7 +451,6 @@ bool ConfigurationPropertiesModel::setData(
 Qt::ItemFlags ConfigurationPropertiesModel::flags(
   const QModelIndex& index) const
 {
-
   auto result =
     QAbstractTableModel::flags(index);
 
@@ -360,7 +464,10 @@ Qt::ItemFlags ConfigurationPropertiesModel::flags(
     return result;
   }
 
-  return result | Qt::ItemIsEditable;
+  if (m_properties[index.row()].editable)
+    result |= Qt::ItemIsEditable;
+
+  return result;
 }
 
 }

@@ -668,6 +668,29 @@ VALUES
   };
 }
 
+bool ConfigurationRepository::updateCrate(
+  const CrateId& crate,
+  const QString& host,
+  uint32_t port,
+  const QString& description)
+{
+  auto query = getQuery(R"(
+UPDATE crate
+SET
+  host = :host,
+  port = :port,
+  description = :description
+WHERE id = :id;)",
+  {
+    {":id", crate.value},
+    {":host", host},
+    {":port", port},
+    {":description", description}
+  });
+
+  return exec(query);
+}
+
 bool ConfigurationRepository::crates(
   std::vector<CrateInfo> &crates)
 {

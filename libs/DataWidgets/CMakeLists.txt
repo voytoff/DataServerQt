@@ -6,8 +6,8 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 REQUIRED COMPONENTS          Core Widgets Sql Svg Charts Concurrent)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Sql Svg Charts Concurrent)
+find_package(QT NAMES Qt6 REQUIRED COMPONENTS          Core Widgets Sql Svg Charts Network Concurrent)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Sql Svg Charts Network Concurrent)
 
 set(DATAWIDGETS_RESOURCE_FILES res.qrc)
 qt6_add_resources(DATAWIDGETS_PROJECT_RESOURCES ${DATAWIDGETS_RESOURCE_FILES})
@@ -52,6 +52,7 @@ target_link_libraries(datawidgets
     Qt${QT_VERSION_MAJOR}::Sql
     Qt${QT_VERSION_MAJOR}::Svg
     Qt${QT_VERSION_MAJOR}::Charts
+    Qt${QT_VERSION_MAJOR}::Network
     Qt${QT_VERSION_MAJOR}::Concurrent
     datasettings
     dataarchive

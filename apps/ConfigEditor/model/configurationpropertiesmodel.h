@@ -56,9 +56,12 @@ public:
     ChannelRate,
     ModuleMode,
     ChannelRange,
-    //ArchiveRate,
-    //Sensor,
-    //PreprocessingFormula
+
+    CrateType,
+    CrateSerial,
+    CrateHost,
+    CratePort,
+    CrateDescription
   };
 
 private:
@@ -67,6 +70,7 @@ private:
     PropertyId id;
     QString name;
     QVariant value;
+    bool editable = true;
   };
 
   ConfigurationTreeModel* m_treeModel = nullptr;

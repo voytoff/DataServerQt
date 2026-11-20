@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cratetype.h"
 #include "datatypes.h"
 #include "moduletype.h"
 #include <optional>
@@ -15,7 +16,11 @@ struct RootItemData
 struct CrateItemData
 {
   CrateId id;
+  CrateType type = CrateType::Unknown;
   QString serial;
+  QString host;
+  uint32_t port = 0;
+  QString description;
 };
 
 struct ModuleItemData

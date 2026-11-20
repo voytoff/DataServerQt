@@ -26,6 +26,7 @@ add_library(configuration SHARED
   configurationinfo.h
   measurementunit.h
   moduleruntimeconfiguration.h
+  cratetypeinfo.h
   moduleinfo.cpp moduleinfo.h
   crateinfo.cpp crateinfo.h
   systemconfiguration.cpp systemconfiguration.h
